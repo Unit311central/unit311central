@@ -2,11 +2,11 @@ import { assertDemoMutationAllowedForRequest } from "@/lib/demo/mutation-guard";
 import { NextRequest, NextResponse } from "next/server";
 
 import {
-  requireInternalAdministratorWorkspaceSession,
   requireUsersModuleAdministratorSession,
 } from "@/lib/internal-admin-auth";
 import { createInternalOperator, listInternalOperators } from "@/lib/internal-operators-service";
 import { listWorkspaceTenantUsers } from "@/lib/platform-users-service";
+import { createWorkspaceTenantUser } from "@/lib/workspace-tenant-users-service";
 import { isAbhiSlug } from "@/lib/abhi-surface";
 import { listAbhiTenantUsers } from "@/lib/abhi/users-data";
 import { isTalantonImpactSlug } from "@/lib/talanton-surface";
@@ -76,18 +76,11 @@ export async function POST(request: NextRequest) {
   const demoMutationBlock = await assertDemoMutationAllowedForRequest(request);
   if (demoMutationBlock) return demoMutationBlock;
 
-  const auth = await requireInternalAdministratorWorkspaceSession();
+  const auth = await requireUsersModuleAdministratorSession();
   if ("error" in auth) return auth.error;
 
   if (!isSupabaseConfigured()) {
     return NextResponse.json({ error: "Supabase is not configured." }, { status: 503 });
-  }
-
-  if (isCustomerWorkspaceSlug(auth.workspace.slug)) {
-    return NextResponse.json(
-      { error: "Creating users from this screen is not available for this workspace yet." },
-      { status: 501 },
-    );
   }
 
   try {
@@ -115,6 +108,32 @@ export async function POST(request: NextRequest) {
         { error: "Full name and email/username are required" },
         { status: 400 },
       );
+    }
+
+    if (isCustomerWorkspaceSlug(auth.workspace.slug)) {
+      const result = await createWorkspaceTenantUser(
+        auth.workspace.id,
+        auth.workspace.name,
+        {
+          operatorLabel: body.operatorLabel,
+          fullName: body.fullName,
+          username: (body.username || body.email)!,
+          email: body.email,
+          phone: body.phone,
+          role: body.role as UserRole | undefined,
+          roles: body.roles as UserRole[] | undefined,
+          department: body.department as UserDepartment | undefined,
+          departments: body.departments as UserDepartment[] | undefined,
+          status: body.status as UserStatus | undefined,
+          region: body.region,
+          licenseId: body.licenseId,
+          notes: body.notes,
+          allowedViews: body.allowedViews,
+          dashboardPrefs: body.dashboardPrefs,
+          password: body.password,
+        },
+      );
+      return NextResponse.json({ user: result.user, temporaryPassword: result.temporaryPassword });
     }
 
     await ensureInternalOperatorsTable();

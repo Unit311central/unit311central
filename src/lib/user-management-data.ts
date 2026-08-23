@@ -23,7 +23,7 @@ export type UserDepartment =
 
 export type UserStatus = "Active" | "On Leave" | "Inactive";
 
-export type UserRegion = "Barcelona" | "Porto" | "Oxford" | "Multi-site";
+export type UserRegion = string;
 
 export type UserDashboardPrefs = {
   homeTiles: CommandCentreHomeTileId[];
@@ -376,7 +376,7 @@ export function createBlankUserInput(): Omit<ManagedUser, "id"> {
     department,
     departments,
     status: "Active",
-    region: "Barcelona",
+    region: "",
     licenseId: "",
     notes: "",
     allowedViews: defaultAllowedViewsForRoles(roles, departments),

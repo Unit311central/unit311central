@@ -4,7 +4,6 @@ import { useCallback, useEffect, useMemo, useRef, useState, startTransition } fr
 
 import {
   USER_DEPARTMENT_OPTIONS,
-  USER_REGION_OPTIONS,
   USER_ROLE_OPTIONS,
   USER_STATUS_OPTIONS,
   formatUserDepartments,
@@ -24,8 +23,6 @@ import { KeyRound, Loader2, Plus, Save, Shield, Trash2, X } from "lucide-react";
 import AddUserAccessWizard from "./AddUserAccessWizard";
 import { setCachedJson, PLATFORM_CACHE_KEYS } from "@/lib/platform-fetch-cache";
 import { validatePlatformSignupPasswordConfirmation } from "@/lib/platform-password-validation";
-import { isBrowserAbhiSurface } from "@/lib/abhi-surface";
-import { isBrowserTalantonImpactSurface } from "@/lib/talanton-surface";
 
 async function readApiJson<T>(response: Response): Promise<T> {
   const text = await response.text();
@@ -73,10 +70,6 @@ export default function UserManagementWorkspace({ onUsersChange }: UserManagemen
     () => users.find((user) => user.id === selectedUserId) ?? users[0] ?? null,
     [users, selectedUserId],
   );
-
-  const isTalantonUsers = isBrowserTalantonImpactSurface();
-  const isAbhiUsers = isBrowserAbhiSurface();
-  const showCityCountry = isTalantonUsers || isAbhiUsers;
 
   const isDirty = useMemo(() => {
     if (!selectedUser) return false;
@@ -666,43 +659,15 @@ export default function UserManagementWorkspace({ onUsersChange }: UserManagemen
                       })}
                     </div>
                   </div>
-                  {showCityCountry ? (
-                    <>
-                      <div>
-                        <FieldLabel>City</FieldLabel>
-                        <input
-                          className={inputClassName()}
-                          value={selectedUser.city ?? ""}
-                          onChange={(event) => patchSelected({ city: event.target.value })}
-                        />
-                      </div>
-                      <div>
-                        <FieldLabel>Country</FieldLabel>
-                        <input
-                          className={inputClassName()}
-                          value={selectedUser.country ?? ""}
-                          onChange={(event) => patchSelected({ country: event.target.value })}
-                        />
-                      </div>
-                    </>
-                  ) : (
-                    <div>
-                      <FieldLabel>Region</FieldLabel>
-                      <select
-                        className={inputClassName()}
-                        value={selectedUser.region}
-                        onChange={(event) =>
-                          patchSelected({ region: event.target.value as ManagedUser["region"] })
-                        }
-                      >
-                        {USER_REGION_OPTIONS.map((option) => (
-                          <option key={option} value={option}>
-                            {option}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  )}
+                  <div>
+                    <FieldLabel>Location</FieldLabel>
+                    <input
+                      className={inputClassName()}
+                      value={selectedUser.region}
+                      onChange={(event) => patchSelected({ region: event.target.value })}
+                      placeholder="e.g. Barcelona, Spain"
+                    />
+                  </div>
                   <div>
                     <FieldLabel>Status</FieldLabel>
                     <select

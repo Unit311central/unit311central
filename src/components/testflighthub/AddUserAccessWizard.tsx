@@ -23,14 +23,12 @@ import {
 } from "@/lib/access-presets";
 import {
   USER_DEPARTMENT_OPTIONS,
-  USER_REGION_OPTIONS,
   USER_ROLE_OPTIONS,
   USER_STATUS_OPTIONS,
   primaryUserRole,
   primaryUserDepartment,
   type ManagedUser,
   type UserDepartment,
-  type UserRegion,
   type UserRole,
   type UserStatus,
 } from "@/lib/user-management-data";
@@ -55,7 +53,7 @@ type AddUserAccessWizardProps = {
     department: UserDepartment;
     departments: UserDepartment[];
     status: UserStatus;
-    region: UserRegion;
+    region: string;
     licenseId: string;
     notes: string;
     password?: string;
@@ -94,7 +92,7 @@ export default function AddUserAccessWizard({
   const [phone, setPhone] = useState(initial?.phone ?? "");
   const [password, setPassword] = useState("");
   const [status, setStatus] = useState<UserStatus>(initial?.status ?? "Active");
-  const [region, setRegion] = useState<UserRegion>(initial?.region ?? "Barcelona");
+  const [location, setLocation] = useState(initial?.region ?? "");
   const [licenseId, setLicenseId] = useState(initial?.licenseId ?? "");
   const [notes, setNotes] = useState(initial?.notes ?? "");
 
@@ -185,7 +183,7 @@ export default function AddUserAccessWizard({
         department,
         departments,
         status,
-        region,
+        region: location.trim(),
         licenseId: licenseId.trim(),
         notes: notes.trim(),
         password: password.trim() || undefined,
@@ -281,18 +279,13 @@ export default function AddUserAccessWizard({
                 />
               </div>
               <div>
-                <FieldLabel>Region</FieldLabel>
-                <select
+                <FieldLabel>Location</FieldLabel>
+                <input
                   className={inputClassName()}
-                  value={region}
-                  onChange={(event) => setRegion(event.target.value as UserRegion)}
-                >
-                  {USER_REGION_OPTIONS.map((option) => (
-                    <option key={option} value={option}>
-                      {option}
-                    </option>
-                  ))}
-                </select>
+                  value={location}
+                  onChange={(event) => setLocation(event.target.value)}
+                  placeholder="e.g. Barcelona, Spain"
+                />
               </div>
               <div>
                 <FieldLabel>Status</FieldLabel>

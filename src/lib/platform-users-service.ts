@@ -12,9 +12,8 @@ import { createTenancyServerClient } from "@/lib/supabase/tenancy-server";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
 import { resolveWorkspaceOnboardingRedirectForUser } from "@/lib/workspace-customer-onboarding-service";
 import { formatWorkspaceDisplayStatus } from "@/lib/workspace-host";
-import type { ManagedUser, UserRole } from "@/lib/user-management-data";
-import { primaryUserRole } from "@/lib/user-management-data";
-import { defaultAllowedViewsForRoles } from "@/lib/access-presets";
+import type { ManagedUser } from "@/lib/user-management-data";
+import { mergeWorkspaceTenantUserRecord } from "@/lib/workspace-tenant-users-service";
 
 function requirePlatformUsersSupabase() {
   if (!isSupabaseConfigured()) {
@@ -466,15 +465,6 @@ export async function loginPlatformUser(
   return session;
 }
 
-function mapWorkspaceRoleToUserRole(role: string | null | undefined, isOwner: boolean): UserRole {
-  if (isOwner) return "Admin";
-  const normalized = String(role ?? "").toLowerCase();
-  if (normalized === "owner" || normalized === "admin") return "Admin";
-  if (normalized === "manager") return "Manager";
-  if (normalized === "exec") return "Exec";
-  return "Associate";
-}
-
 /**
  * Customer-workspace internal users list (platform_users ∩ workspace_users).
  * Used by Tools → Users on corpcentre and other customer tenants — not the global
@@ -504,6 +494,24 @@ export async function listWorkspaceTenantUsers(workspaceId: string): Promise<Man
     .eq("workspace_id", workspaceId);
   if (usersError) throw new Error(usersError.message);
 
+  const usernames = (users ?? [])
+    .map((user) => String(user.username ?? "").trim().toLowerCase())
+    .filter(Boolean);
+
+  const operatorByUsername = new Map<string, Parameters<typeof mergeWorkspaceTenantUserRecord>[0]["operator"]>();
+  if (usernames.length > 0) {
+    const { data: operators, error: operatorError } = await supabase
+      .from("internal_operators")
+      .select(
+        "id, operator_label, full_name, username, email, phone, role, roles, status, region, license_id, notes, department, departments, allowed_views, dashboard_prefs, created_at, updated_at",
+      )
+      .in("username", usernames);
+    if (operatorError) throw new Error(operatorError.message);
+    for (const operator of operators ?? []) {
+      operatorByUsername.set(String(operator.username).toLowerCase(), operator);
+    }
+  }
+
   const membershipByUser = new Map(
     (memberships ?? []).map((row) => [String(row.user_id), row] as const),
   );
@@ -512,31 +520,20 @@ export async function listWorkspaceTenantUsers(workspaceId: string): Promise<Man
     .filter((user) => user.user_type === "internal" || user.user_type === "external")
     .map((user) => {
       const membership = membershipByUser.get(String(user.id));
-      const role = mapWorkspaceRoleToUserRole(
-        membership?.role as string | undefined,
-        Boolean(membership?.is_owner),
-      );
-      const roles = [role];
       const fullName = String(user.display_name || user.username || "").trim() || "User";
       const email = String(user.email || user.username || "");
-      return {
-        id: String(user.id),
-        operatorLabel: fullName.split(/\s+/)[0] || "User",
-        fullName,
-        username: String(user.username || email),
+      const username = String(user.username || email);
+      return mergeWorkspaceTenantUserRecord({
+        platformUserId: String(user.id),
+        username,
         email,
-        phone: "",
-        role: primaryUserRole(roles),
-        roles,
-        department: "Operations",
-        departments: ["Operations"],
-        status: user.is_active === false ? "Inactive" : "Active",
-        region: "Multi-site",
-        licenseId: "",
-        notes: user.client_name ? `Workspace member · ${user.client_name}` : "Workspace member",
-        allowedViews: defaultAllowedViewsForRoles(roles, ["Operations"]),
-        dashboardPrefs: null,
-      } satisfies ManagedUser;
+        fullName,
+        isActive: user.is_active !== false,
+        clientName: user.client_name ? String(user.client_name) : null,
+        workspaceRole: String(membership?.role ?? ""),
+        isOwner: Boolean(membership?.is_owner),
+        operator: operatorByUsername.get(username.toLowerCase()) ?? null,
+      });
     })
     .sort((a, b) => a.fullName.localeCompare(b.fullName));
 }
