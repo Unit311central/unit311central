@@ -167,8 +167,39 @@ async function checkViews(origin, cookie) {
     assert.equal(res.status, 200, `${row.module}/${row.sub} HTTP ${res.status}`);
     assert.equal(authRequired, false, `${row.module}/${row.sub} shows auth error`);
     assert.equal(redirectedHome, false, `${row.module}/${row.sub} redirected away`);
+
+    if (row.module === "Fundraising") {
+      assert.match(text, /Northstar|Fundraising/i, `${row.sub} should show Fundraising/Northstar content`);
+      assert.doesNotMatch(text, /TALANTON INTELLIGENCE|OnwardAir Fundraising|Nakama/i, `${row.sub} leaked foreign tenant content`);
+      assert.doesNotMatch(text, /£|€|EUR|GBP/i, `${row.sub} must not show non-USD currency markers`);
+    }
+    if (row.module === "Content Studio") {
+      assert.match(text, /New content|Create content|Approved templates/i, `${row.sub} should expose create workflow`);
+    }
+
     console.log(`  PASS ${row.module} → ${row.sub} (?view=${row.view})`);
   }
+}
+
+async function checkCommissionRules(origin, cookie) {
+  const create = await fetchJson(origin, "/api/sales-management/commission-rules", cookie, {
+    method: "POST",
+    body: JSON.stringify({
+      name: `Acceptance rule ${Date.now()}`,
+      ratePct: 7.5,
+      appliesTo: "won_deal",
+    }),
+  });
+  assert.equal(create.status, 201, `commission rule create expected 201, got ${create.status}`);
+  const ruleId = create.json?.rule?.id;
+  assert.ok(ruleId, "commission rule id required");
+  const del = await fetchJson(
+    origin,
+    `/api/sales-management/commission-rules?id=${encodeURIComponent(ruleId)}`,
+    cookie,
+    { method: "DELETE" },
+  );
+  assert.equal(del.status, 200, `commission rule delete expected 200, got ${del.status}`);
 }
 
 async function checkApis(origin, cookie) {
@@ -205,6 +236,7 @@ async function main() {
   await checkMigration159(origin, cookie);
   await checkWorkPackageCrud(origin, cookie);
   await checkApis(origin, cookie);
+  await checkCommissionRules(origin, cookie);
   await checkViews(origin, cookie);
 
   console.log("prove:demo-acceptance: OK");

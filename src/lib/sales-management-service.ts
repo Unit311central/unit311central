@@ -758,4 +758,74 @@ export function buildReportsSummary(bundle: SalesWorkspaceBundle) {
   };
 }
 
+export async function createSalesCommissionRule(input: {
+  workspaceId: string;
+  name: string;
+  ratePct: number;
+  appliesTo: SalesCommissionRule["appliesTo"];
+  isActive?: boolean;
+}): Promise<SalesCommissionRule> {
+  const supabase = requireSupabase();
+  const { data, error } = await supabase
+    .from("sales_commission_rules")
+    .insert({
+      workspace_id: input.workspaceId,
+      name: input.name.trim(),
+      rate_pct: input.ratePct,
+      applies_to: input.appliesTo,
+      is_active: input.isActive ?? true,
+    })
+    .select("*")
+    .single();
+  if (error) throw new Error(error.message);
+  return {
+    id: String(data.id),
+    name: String(data.name),
+    ratePct: Number(data.rate_pct ?? 0),
+    appliesTo: data.applies_to as SalesCommissionRule["appliesTo"],
+    isActive: Boolean(data.is_active),
+  };
+}
+
+export async function updateSalesCommissionRule(input: {
+  workspaceId: string;
+  ruleId: string;
+  name?: string;
+  ratePct?: number;
+  appliesTo?: SalesCommissionRule["appliesTo"];
+  isActive?: boolean;
+}): Promise<SalesCommissionRule> {
+  const supabase = requireSupabase();
+  const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
+  if (input.name != null) patch.name = input.name.trim();
+  if (input.ratePct != null) patch.rate_pct = input.ratePct;
+  if (input.appliesTo != null) patch.applies_to = input.appliesTo;
+  if (input.isActive != null) patch.is_active = input.isActive;
+  const { data, error } = await supabase
+    .from("sales_commission_rules")
+    .update(patch)
+    .eq("workspace_id", input.workspaceId)
+    .eq("id", input.ruleId)
+    .select("*")
+    .single();
+  if (error) throw new Error(error.message);
+  return {
+    id: String(data.id),
+    name: String(data.name),
+    ratePct: Number(data.rate_pct ?? 0),
+    appliesTo: data.applies_to as SalesCommissionRule["appliesTo"],
+    isActive: Boolean(data.is_active),
+  };
+}
+
+export async function deleteSalesCommissionRule(workspaceId: string, ruleId: string): Promise<void> {
+  const supabase = requireSupabase();
+  const { error } = await supabase
+    .from("sales_commission_rules")
+    .delete()
+    .eq("workspace_id", workspaceId)
+    .eq("id", ruleId);
+  if (error) throw new Error(error.message);
+}
+
 export { formatSalesMoney, filterLeadsBySalesSegment };

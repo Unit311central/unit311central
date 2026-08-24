@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 
+import { assertDemoMutationAllowedForRequest } from "@/lib/demo/mutation-guard";
+import { resolveSlugReportingCurrency } from "@/lib/financial-reporting-currency";
 import { resolveSalesManagementAuth, salesManagementErrorResponse } from "@/lib/sales-management-api";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
 import { createTenancyServerClient } from "@/lib/supabase/tenancy-server";
@@ -12,10 +14,9 @@ export async function POST(request: Request) {
     if (!(await isSupabaseConfigured())) {
       return NextResponse.json({ error: "Supabase is not configured." }, { status: 503 });
     }
+    const blocked = await assertDemoMutationAllowedForRequest(request);
+    if (blocked) return blocked;
     const auth = await resolveSalesManagementAuth();
-    if (auth.demo) {
-      return NextResponse.json({ error: "Targets cannot be saved on demo fixtures." }, { status: 403 });
-    }
 
     const workspace = await requireCurrentWorkspace();
     const body = (await request.json()) as {
@@ -47,7 +48,7 @@ export async function POST(request: Request) {
         period_start: body.periodStart,
         period_end: body.periodEnd,
         target_value: body.targetValue,
-        currency: body.currency ?? "GBP",
+        currency: body.currency ?? resolveSlugReportingCurrency(auth.workspace.slug),
         notes: body.notes ?? null,
       })
       .select("id")

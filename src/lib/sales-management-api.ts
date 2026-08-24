@@ -1,9 +1,7 @@
 import { NextResponse } from "next/server";
 
-import { isDemoApiRequest } from "@/lib/demo/demo-request";
-import { getNorthstarCrmLeads, getNorthstarDiscoveryMeetings } from "@/lib/demo/module-fixtures";
-import { listSalesQuotes } from "@/lib/accounting/sales-quotes-service";
 import { requirePlatformSession } from "@/lib/platform-session";
+import { assertDemoMutationAllowedForRequest } from "@/lib/demo/mutation-guard";
 import { ensureSalesManagementFoundationTables } from "@/lib/internal-db-migrations";
 import {
   buildForecastSummary,
@@ -14,8 +12,8 @@ import {
   buildSalesTeamSummary,
   loadSalesWorkspaceBundle,
 } from "@/lib/sales-management-service";
-import { buildSalesDashboardMetrics } from "@/lib/sales-management-insights";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
+import { createTenancyServerClient } from "@/lib/supabase/tenancy-server";
 import { requireCurrentWorkspace } from "@/lib/workspace-context";
 
 export const dynamic = "force-dynamic";
@@ -32,30 +30,6 @@ export type SalesManagementSection =
   | "reports";
 
 export async function resolveSalesManagementAuth() {
-  if (await isDemoApiRequest()) {
-    const leads = getNorthstarCrmLeads();
-    const quotes = await listSalesQuotes({ workspaceSlug: "demo" });
-    const meetings = getNorthstarDiscoveryMeetings().map((meeting) => ({
-      id: meeting.id,
-      organization: meeting.organization,
-      name: meeting.name,
-      formattedWhen: meeting.formattedWhenGmt,
-      status: meeting.status,
-    }));
-    const displayNameForUserId = () => "Demo Rep";
-    return {
-      demo: true as const,
-      workspace: { id: "demo", slug: "demo", name: "Demo" },
-      session: { sub: "demo-user", displayName: "Demo Rep", username: "client" },
-      bundle: null,
-      leads,
-      quotes,
-      meetings,
-      displayNameForUserId,
-      metrics: buildSalesDashboardMetrics({ leads, quotes, meetings, displayNameForUserId }),
-    };
-  }
-
   if (!isSupabaseConfigured()) {
     throw new Error("Supabase is not configured.");
   }
@@ -72,7 +46,6 @@ export async function resolveSalesManagementAuth() {
   });
 
   return {
-    demo: false as const,
     workspace,
     session,
     bundle,
@@ -92,64 +65,7 @@ export function salesManagementErrorResponse(error: unknown) {
 }
 
 export function buildSectionPayload(section: SalesManagementSection, auth: Awaited<ReturnType<typeof resolveSalesManagementAuth>>) {
-  if (auth.demo) {
-    const activities = buildSalesActivities({
-      leads: auth.leads,
-      meetings: auth.meetings,
-      crmActivities: [],
-      displayNameForUserId: auth.displayNameForUserId,
-    });
-    const forecast = buildForecastSummary(auth.leads, auth.quotes);
-    const performance = buildPerformanceSummary(auth.leads, [], auth.displayNameForUserId);
-    return {
-      section,
-      workspace: auth.workspace,
-      context: {
-        currentUserId: auth.session.sub,
-        currentUserName: auth.session.displayName,
-        isManager: true,
-        isSalesperson: true,
-        people: [],
-        teams: [],
-      },
-      metrics: auth.metrics,
-      mySales: {
-        prospects: auth.leads.filter((l) => l.status === "Cold" || l.status === "Warm"),
-        opportunities: auth.leads.filter((l) => ["Warm", "Hot", "Won", "Active Customer"].includes(l.status)),
-        pipeline: auth.leads.filter((l) => ["Cold", "Warm", "Hot"].includes(l.status)),
-        quotes: auth.quotes,
-        activities,
-        metrics: {
-          pipelineValue: auth.metrics.pipelineValue,
-          openOpportunities: auth.metrics.openOpportunityCount,
-          overdueActivities: activities.filter((a) => a.status === "overdue").length,
-          upcomingMeetings: auth.metrics.upcomingMeetingsCount,
-        },
-      },
-      salesTeam: [],
-      activities,
-      targets: [],
-      performance,
-      forecast,
-      commissionRules: [],
-      commissions: [],
-      reports: {
-        pipelineByStage: auth.metrics.byStatus,
-        pipelineByPerson: auth.metrics.pipelineByAssignee,
-        wonLost: [
-          { label: "Won", count: auth.metrics.wonCount, value: 0 },
-          { label: "Lost", count: auth.metrics.lostCount, value: 0 },
-        ],
-        leadTrend: auth.metrics.leadsCreatedByMonth,
-        forecast,
-        targetProgress: [],
-        activitySummary: { upcoming: activities.filter((a) => a.status === "upcoming").length, overdue: activities.filter((a) => a.status === "overdue").length },
-        conversionPct: auth.metrics.winRatePct,
-      },
-    };
-  }
-
-  const bundle = auth.bundle!;
+  const bundle = auth.bundle;
   const activities = buildSalesActivities({
     leads: bundle.leads,
     meetings: bundle.meetings,

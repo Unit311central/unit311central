@@ -599,6 +599,21 @@ export default function UserManagementWorkspace({ onUsersChange }: UserManagemen
                                   : [selectedUser.role];
                                 let next: UserRole[];
                                 if (event.target.checked) {
+                                  if (option === "Admin") {
+                                    next = [...USER_ROLE_OPTIONS];
+                                    const allDepartments = [...USER_DEPARTMENT_OPTIONS];
+                                    patchSelected({
+                                      roles: next,
+                                      role: "Admin",
+                                      departments: allDepartments,
+                                      department: primaryUserDepartment(allDepartments),
+                                      allowedViews: defaultAllowedViewsForRoles(next, allDepartments),
+                                      dashboardPrefs: {
+                                        homeTiles: defaultHomeTilesForRoles(next, allDepartments),
+                                      },
+                                    });
+                                    return;
+                                  }
                                   next = [...new Set([...current, option])];
                                 } else {
                                   next = current.filter((role) => role !== option);

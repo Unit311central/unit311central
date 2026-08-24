@@ -69,44 +69,8 @@ function centralPlatformPack(
 
 export const internalMarketingPack = centralPlatformPack("internal", "Unit311 Internal");
 
-export const demoMarketingPack: MarketingWorkspacePack = {
-  id: "demo",
-  label: "Northstar Demo",
-  workspaceKeys: ["demo"],
-  resolveView(view, ctx) {
-    switch (view) {
-      case "social":
-        return { rendererId: MARKETING_RENDERER_IDS.SOCIAL };
-      case "marketing-training":
-        return { rendererId: MARKETING_RENDERER_IDS.STAFF_TRAINING };
-      case "oa-marketing-dashboard":
-        return { rendererId: MARKETING_RENDERER_IDS.CENTRAL_DASHBOARD };
-      case "marketing-newsletter":
-      case "stories-newsletter":
-        return { rendererId: MARKETING_RENDERER_IDS.ABHI_NEWSLETTER };
-      case "marketing-events":
-        return { rendererId: MARKETING_RENDERER_IDS.ABHI_EVENTS };
-      case "marketing-event-management":
-        return { rendererId: MARKETING_RENDERER_IDS.ABHI_EVENT_MANAGEMENT };
-      case "marketing-mailing-list":
-      case "stories-mailing-list":
-        return { rendererId: MARKETING_RENDERER_IDS.ABHI_MAILING_LIST };
-      case "portfolio-stories":
-        return { rendererId: MARKETING_RENDERER_IDS.TALANTON_PORTFOLIO_STORIES };
-      case "journey-stories":
-        return { rendererId: MARKETING_RENDERER_IDS.TALANTON_JOURNEY_STORIES };
-      case "stories-media-library":
-        return { rendererId: MARKETING_RENDERER_IDS.TALANTON_MEDIA_LIBRARY };
-      case "marketing-abhi-events":
-      case "marketing-working-groups":
-      case "marketing-us-accelerator":
-      case "marketing-me-accelerator":
-        return unavailable(view, ctx);
-      default:
-        return unavailable(view, ctx);
-    }
-  },
-};
+/** Northstar Demo uses the same central marketing renderers as Internal — not Talanton/ABHI packs. */
+export const demoMarketingPack = centralPlatformPack("demo", "Northstar Demo");
 
 export const onwardAirMarketingPack: MarketingWorkspacePack = {
   id: "onwardair",

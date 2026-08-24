@@ -56,6 +56,7 @@ export async function GET() {
         const operator = await getInternalOperatorByUsername(session.username);
         if (operator) {
           payload.email = operator.email?.trim() || payload.email;
+          payload.displayName = operator.fullName?.trim() || payload.displayName;
           payload.role = operator.role ?? payload.role;
           payload.roles = operator.roles ?? (operator.role ? [operator.role] : payload.roles);
           payload.department = operator.department ?? payload.department;
@@ -66,6 +67,27 @@ export async function GET() {
         }
       } catch {
         // Northstar fixture profile is enough for demo.
+      }
+    }
+
+    if (session.sub && isSupabaseConfigured()) {
+      try {
+        const { createTenancyServerClient } = await import("@/lib/supabase/tenancy-server");
+        const supabase = createTenancyServerClient();
+        const { data: platformUser } = await supabase
+          .from("platform_users")
+          .select("display_name, email")
+          .eq("id", session.sub)
+          .maybeSingle();
+        const platformDisplayName = platformUser?.display_name?.trim();
+        if (platformDisplayName) {
+          payload.displayName = platformDisplayName;
+        }
+        if (platformUser?.email?.trim()) {
+          payload.email = platformUser.email.trim();
+        }
+      } catch {
+        /* optional profile */
       }
     }
 

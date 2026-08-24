@@ -28,12 +28,18 @@ export function getNorthstarWhoamiPayload(session: PlatformSession | null) {
   const fixtures = getDemoEnterpriseFixtures();
   const directory = fixtures.directory;
   const matched =
-    directory.find((row) => row.email.toLowerCase() === session?.username?.toLowerCase()) ??
-    directory.find((row) => row.role.toLowerCase().includes("chief executive")) ??
-    directory[0];
+    (session?.username
+      ? directory.find((row) => row.email.toLowerCase() === session.username.toLowerCase())
+      : null) ??
+    directory.find((row) => row.role.toLowerCase().includes("chief executive"));
+
+  const sessionDisplayName = session?.displayName?.trim();
 
   return {
-    displayName: session?.displayName?.trim() || matched?.fullName || fixtures.company.tradingName,
+    displayName:
+      sessionDisplayName ||
+      matched?.fullName ||
+      fixtures.company.tradingName,
     username: session?.username || DEMO_PROSPECT_USERNAME,
     email: matched?.email || session?.username || DEMO_PROSPECT_USERNAME,
     role: matched?.role || "Admin",
@@ -131,7 +137,7 @@ function buildNorthstarExpenseHistory(): FinancialExpense[] {
         submitterName: submitter.name,
         purposeDescription: `${template.purpose} — ${month}`,
         amount,
-        currency: "GBP",
+        currency: "USD",
         dateSubmitted,
         paid: i !== 1 || month < "2026-08",
         supplier: template.supplier,
@@ -228,7 +234,7 @@ export function getNorthstarSoftwareAssets(): {
       licenceType: "Unlimited",
       monthlyCost: 1_070,
       annualCost: 12_840,
-      currency: "GBP",
+      currency: "USD",
       lastPaymentAmount: 1_070,
       lastPaymentDate: "2026-08-01",
       nextRenewalDate: "2026-09-01",
@@ -273,7 +279,7 @@ export function getNorthstarSoftwareAssets(): {
       licenceType: "Per user",
       monthlyCost: 890,
       annualCost: 10_680,
-      currency: "GBP",
+      currency: "USD",
       lastPaymentAmount: 890,
       lastPaymentDate: "2026-08-01",
       nextRenewalDate: "2026-09-01",
@@ -318,7 +324,7 @@ export function getNorthstarSoftwareAssets(): {
       licenceType: "Named",
       monthlyCost: 620,
       annualCost: 7_440,
-      currency: "GBP",
+      currency: "USD",
       lastPaymentAmount: 620,
       lastPaymentDate: "2026-08-01",
       nextRenewalDate: "2027-08-01",
@@ -360,7 +366,7 @@ export function getNorthstarSoftwareAssets(): {
   }));
 
   const summary = computeSoftwareAssetsSummary(assets, 25);
-  summary.currency = "GBP";
+  summary.currency = "USD";
 
   return { assets, summary };
 }

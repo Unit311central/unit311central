@@ -20,13 +20,11 @@ import {
 } from "@/components/testflighthub/corporate-ui";
 import { cn } from "@/lib/utils";
 
-function formatGbp(value: number | null) {
+import { formatReportingMoney } from "@/lib/financial-reporting-currency";
+
+function formatMoney(value: number | null) {
   if (value == null) return "—";
-  return new Intl.NumberFormat("en-GB", {
-    style: "currency",
-    currency: "GBP",
-    maximumFractionDigits: 0,
-  }).format(value);
+  return formatReportingMoney(value);
 }
 
 function formatShares(value: number) {
@@ -82,7 +80,7 @@ export default function NorthstarCapTableWorkspace() {
       <header>
         <h1 className="text-2xl font-semibold text-white">Cap Table Management</h1>
         <p className="mt-1 text-sm text-white/60">
-          {NORTHSTAR_COMPANY_NAME} — fully diluted ownership, option pool, and share capital (GBP).
+          {NORTHSTAR_COMPANY_NAME} — fully diluted ownership, option pool, and share capital (USD).
         </p>
       </header>
 
@@ -160,7 +158,7 @@ export default function NorthstarCapTableWorkspace() {
                   <td className={tdClass()}>{row.shareType}</td>
                   <td className={cn(tdClass(), "tabular-nums")}>{formatShares(row.shares)}</td>
                   <td className={cn(tdClass(), "tabular-nums")}>{row.ownershipPct}%</td>
-                  <td className={cn(tdClass(), "tabular-nums")}>{formatGbp(row.investmentGbp)}</td>
+                  <td className={cn(tdClass(), "tabular-nums")}>{formatMoney(row.investmentGbp)}</td>
                   <td className={tdClass()}>
                     <button
                       type="button"
@@ -340,7 +338,7 @@ export default function NorthstarCapTableWorkspace() {
                 </select>
               </label>
               <label className="block text-sm text-white/60">
-                Investment (GBP)
+                Investment (USD)
                 <input
                   className={cn(corporateInputClass(), "mt-1 w-full")}
                   value={shareholderForm.investmentGbp ?? ""}
