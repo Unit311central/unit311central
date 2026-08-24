@@ -371,10 +371,8 @@ export function getNorthstarEngineeringSummary() {
   };
 }
 
+import { formatNorthstarDemoMoney } from "@/lib/demo/northstar-money";
+
 export function formatNorthstarEngGbp(amount: number) {
-  return new Intl.NumberFormat("en-GB", {
-    style: "currency",
-    currency: "GBP",
-    maximumFractionDigits: 0,
-  }).format(amount);
+  return formatNorthstarDemoMoney(amount);
 }

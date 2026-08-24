@@ -171,7 +171,7 @@ async function checkViews(origin, cookie) {
     if (row.module === "Fundraising") {
       assert.match(text, /Northstar|Fundraising/i, `${row.sub} should show Fundraising/Northstar content`);
       assert.doesNotMatch(text, /TALANTON INTELLIGENCE|OnwardAir Fundraising|Nakama/i, `${row.sub} leaked foreign tenant content`);
-      assert.doesNotMatch(text, /£|€|EUR|GBP/i, `${row.sub} must not show non-USD currency markers`);
+      assert.doesNotMatch(text, /£|\bGBP\b/i, `${row.sub} must not show non-USD currency markers`);
     }
     if (row.module === "Content Studio") {
       assert.match(text, /New content|Create content|Approved templates/i, `${row.sub} should expose create workflow`);

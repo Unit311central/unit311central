@@ -62,12 +62,10 @@ function uid(prefix: string) {
   return `${prefix}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
-export function formatNorthstarGbp(value: number, maximumFractionDigits = 0) {
-  return new Intl.NumberFormat("en-GB", {
-    style: "currency",
-    currency: "GBP",
-    maximumFractionDigits,
-  }).format(value);
+import { formatNorthstarDemoMoney } from "@/lib/demo/northstar-money";
+
+export function formatNorthstarGbp(value: number, _maximumFractionDigits = 0) {
+  return formatNorthstarDemoMoney(value);
 }
 
 export function countShipmentsInTransit(

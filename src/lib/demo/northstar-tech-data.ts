@@ -38,10 +38,8 @@ export function buildNorthstarTechSpendTrend(input: {
   return { labels, values, changePct, currentMonthly: last };
 }
 
+import { formatNorthstarDemoMoney } from "@/lib/demo/northstar-money";
+
 export function formatNorthstarTechGbp(amount: number) {
-  return new Intl.NumberFormat("en-GB", {
-    style: "currency",
-    currency: "GBP",
-    maximumFractionDigits: 0,
-  }).format(amount);
+  return formatNorthstarDemoMoney(amount);
 }

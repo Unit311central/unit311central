@@ -4,6 +4,7 @@
 
 import "server-only";
 
+import { formatNorthstarDemoMoney, formatNorthstarDemoMoneyCompact } from "@/lib/demo/northstar-money";
 import {
   NORTHSTAR_BOARD_ACTIONS,
   NORTHSTAR_BOARD_MEETINGS,
@@ -152,17 +153,7 @@ export type NorthstarModuleQueryResult = {
 const AS_OF = "2026-08-16";
 
 function formatGbp(value: number, compact = false): string {
-  if (compact && Math.abs(value) >= 1_000_000) {
-    return `£${(value / 1_000_000).toFixed(1)}m`;
-  }
-  if (compact && Math.abs(value) >= 1_000) {
-    return `£${Math.round(value / 1_000)}k`;
-  }
-  return new Intl.NumberFormat("en-GB", {
-    style: "currency",
-    currency: "GBP",
-    maximumFractionDigits: 0,
-  }).format(value);
+  return compact ? formatNorthstarDemoMoneyCompact(value) : formatNorthstarDemoMoney(value);
 }
 
 function worstStatus(...statuses: NorthstarHealthStatus[]): NorthstarHealthStatus {

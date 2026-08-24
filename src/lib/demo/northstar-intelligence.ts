@@ -4,6 +4,7 @@
  */
 
 import type { ManagedClient } from "@/lib/client-management-data";
+import { formatNorthstarDemoMoney, formatNorthstarDemoMoneyCompact } from "@/lib/demo/northstar-money";
 import { getNorthstarInvoices } from "@/lib/demo/northstar-ap-ar-fixtures";
 import {
   NORTHSTAR_CASH_GBP,
@@ -99,17 +100,7 @@ export type NorthstarMarketIntelligence = {
 };
 
 function formatGbp(value: number, compact = false) {
-  if (compact && Math.abs(value) >= 1_000_000) {
-    return `£${(value / 1_000_000).toFixed(1)}m`;
-  }
-  if (compact && Math.abs(value) >= 1_000) {
-    return `£${Math.round(value / 1_000)}k`;
-  }
-  return new Intl.NumberFormat("en-GB", {
-    style: "currency",
-    currency: "GBP",
-    maximumFractionDigits: 0,
-  }).format(value);
+  return compact ? formatNorthstarDemoMoneyCompact(value) : formatNorthstarDemoMoney(value);
 }
 
 function healthBand(score: number): NorthstarClientIntelRow["healthBand"] {

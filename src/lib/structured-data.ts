@@ -59,7 +59,7 @@ export function softwareApplicationJsonLd() {
     image: SITE_LOGO_URL,
     offers: {
       "@type": "Offer",
-      priceCurrency: "EUR",
+      priceCurrency: "USD",
       availability: "https://schema.org/InStock",
       url: `${SITE_URL}/book`,
     },

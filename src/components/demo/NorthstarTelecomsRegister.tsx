@@ -157,7 +157,7 @@ export default function NorthstarTelecomsRegister() {
               <th className="px-3 py-2.5">Handset</th>
               <th className="px-3 py-2.5">Assigned</th>
               <th className="px-3 py-2.5">Office</th>
-              <th className="px-3 py-2.5">£/mo</th>
+              <th className="px-3 py-2.5">USD/mo</th>
               <th className="px-3 py-2.5">Status</th>
               <th className="px-3 py-2.5 text-right">Actions</th>
             </tr>
@@ -320,7 +320,7 @@ export default function NorthstarTelecomsRegister() {
                 </select>
               </label>
               <label className="space-y-1 text-xs text-white/50">
-                £/month
+                USD/month
                 <input
                   type="number"
                   min={0}
