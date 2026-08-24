@@ -21,8 +21,12 @@ import { cn } from "@/lib/utils";
 import ResponsiveMasterDetail, { useMobileDetailPanel } from "@/components/ui/ResponsiveMasterDetail";
 import { KeyRound, Loader2, Plus, Save, Shield, Trash2, X } from "lucide-react";
 import AddUserAccessWizard from "./AddUserAccessWizard";
-import { setCachedJson, PLATFORM_CACHE_KEYS } from "@/lib/platform-fetch-cache";
+import { setCachedJson, PLATFORM_CACHE_KEYS, invalidateCachedJson } from "@/lib/platform-fetch-cache";
 import { validatePlatformSignupPasswordConfirmation } from "@/lib/platform-password-validation";
+import {
+  defaultAllowedViewsForRoles,
+  defaultHomeTilesForRoles,
+} from "@/lib/access-presets";
 
 async function readApiJson<T>(response: Response): Promise<T> {
   const text = await response.text();
@@ -232,6 +236,7 @@ export default function UserManagementWorkspace({ onUsersChange }: UserManagemen
         syncUsers(users.map((item) => (item.id === data.user!.id ? data.user! : item)));
         snapshottedIdRef.current = data.user.id;
         setSavedSnapshot(data.user);
+        invalidateCachedJson(PLATFORM_CACHE_KEYS.whoami);
         setSaveMessage("Access updated");
         setWizardOpen(null);
         return;
@@ -599,9 +604,16 @@ export default function UserManagementWorkspace({ onUsersChange }: UserManagemen
                                   next = current.filter((role) => role !== option);
                                   if (next.length === 0) next = [option];
                                 }
+                                const departments = selectedUser.departments?.length
+                                  ? selectedUser.departments
+                                  : [selectedUser.department ?? "Corporate"];
                                 patchSelected({
                                   roles: next,
                                   role: primaryUserRole(next),
+                                  allowedViews: defaultAllowedViewsForRoles(next, departments),
+                                  dashboardPrefs: {
+                                    homeTiles: defaultHomeTilesForRoles(next, departments),
+                                  },
                                 });
                               }}
                             />

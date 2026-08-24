@@ -48,8 +48,8 @@ import { createTenancyServerClient } from "@/lib/supabase/tenancy-server";
 import { convertToGbp } from "@/lib/treasury/treasury-utils";
 import { getWiseConnectionStatus, listWiseBalances } from "@/lib/wise-service";
 
-/** Platform reporting currency — matches Wise Bank treasury totals (Internal default). */
-export const FINANCIAL_REPORTING_CURRENCY = "GBP";
+/** Platform reporting currency default for generic customer workspaces. */
+export const FINANCIAL_REPORTING_CURRENCY = "USD";
 
 const FX_TO_AUD: Record<string, number> = {
   AUD: 1,

@@ -2,9 +2,8 @@ import type { CommandCentreHomeTileId } from "@/lib/command-centre-home-tiles";
 import {
   defaultAllowedViewsForRoles,
   defaultHomeTilesForRoles,
-  normalizeAllowedViews,
-  normalizeHomeTiles,
 } from "@/lib/access-presets";
+import { resolveOperatorEntitlementsFromOperatorRow } from "@/lib/operator-entitlements-resolve";
 import type { InternalOperationsView } from "@/lib/internal-operations-data";
 
 export type UserRole = "Board" | "Exec" | "Manager" | "Associate" | "Admin";
@@ -326,19 +325,7 @@ type DbInternalOperator = {
 };
 
 export function mapInternalOperator(row: DbInternalOperator): ManagedUser {
-  const roles = normalizeUserRoles(row.roles, row.role);
-  const role = primaryUserRole(roles);
-  const departments = normalizeUserDepartments(row.departments, row.department);
-  const department = primaryUserDepartment(departments);
-  const allowedViews = normalizeAllowedViews(row.allowed_views);
-  const homeTiles = normalizeHomeTiles(
-    row.dashboard_prefs &&
-      typeof row.dashboard_prefs === "object" &&
-      row.dashboard_prefs !== null &&
-      "homeTiles" in (row.dashboard_prefs as object)
-      ? (row.dashboard_prefs as { homeTiles?: unknown }).homeTiles
-      : null,
-  );
+  const resolved = resolveOperatorEntitlementsFromOperatorRow(row);
 
   return {
     id: row.id,
@@ -347,16 +334,16 @@ export function mapInternalOperator(row: DbInternalOperator): ManagedUser {
     username: row.username,
     email: row.email ?? "",
     phone: row.phone ?? "",
-    role,
-    roles,
-    department,
-    departments,
+    role: resolved.role,
+    roles: resolved.roles,
+    department: resolved.department,
+    departments: resolved.departments,
     status: row.status as UserStatus,
     region: row.region as UserRegion,
     licenseId: row.license_id ?? "",
     notes: row.notes ?? "",
-    allowedViews,
-    dashboardPrefs: homeTiles ? { homeTiles } : null,
+    allowedViews: resolved.allowedViews,
+    dashboardPrefs: resolved.homeTiles ? { homeTiles: resolved.homeTiles } : null,
   };
 }
 

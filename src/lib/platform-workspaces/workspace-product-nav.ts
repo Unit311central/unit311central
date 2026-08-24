@@ -50,6 +50,24 @@ export function isSpecialistWorkspaceSlug(slug: string | null | undefined): bool
   return normalized.includes("onwardair") || normalized.includes("talanton");
 }
 
+/** When a module is enabled but has no catalogue sub-module keys, use the full module catalogue. */
+export function repairWorkspaceSubmoduleKeys(
+  enabledModules: readonly string[],
+  enabledSubModules: readonly string[],
+): string[] {
+  const subSet = new Set(enabledSubModules);
+  for (const moduleId of enabledModules) {
+    const prefix = `${moduleId}:`;
+    const hasModuleKey = [...subSet].some((key) => key.startsWith(prefix));
+    if (!hasModuleKey) {
+      for (const sub of getWorkspaceModuleEntry(moduleId)?.subModules ?? []) {
+        subSet.add(subModuleKey(moduleId, sub.id));
+      }
+    }
+  }
+  return [...subSet];
+}
+
 /**
  * Resolve navigation enablement from workspace metadata.
  * Demo workspaces with legacy empty sub-module metadata receive the full catalogue.
@@ -84,10 +102,11 @@ export function resolveWorkspaceNavEnablement(input: {
   }
 
   if (modules.length > 0) {
+    const baseSubs =
+      subModules.length > 0 ? subModules : defaultEnabledSubModules(modules);
     return {
       enabledModules: modules,
-      enabledSubModules:
-        subModules.length > 0 ? subModules : defaultEnabledSubModules(modules),
+      enabledSubModules: repairWorkspaceSubmoduleKeys(modules, baseSubs),
     };
   }
 

@@ -76,7 +76,7 @@ function initialState(): WizardState {
     contactEmail: "",
     country: "United Kingdom",
     timezone: "Europe/London",
-    currency: "GBP",
+    currency: "USD",
     description: "",
     enabledModules,
     enabledSubModules: defaultEnabledSubModules(enabledModules),

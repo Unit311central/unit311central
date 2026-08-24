@@ -1,6 +1,8 @@
 import type { SurveyOperationsBasePath } from "@/lib/survey-operations-mock-data";
 import { buildFinancesNavSection } from "@/lib/finances-nav";
 import { EXECUTIVE_ASSISTANT_VISIBLE } from "@/lib/product-surface-flags";
+import { buildProjectManagementNavSection } from "@/lib/project-management-nav";
+import { buildCentralBusinessCentralNavSection } from "@/lib/platform-workspaces/central-product-nav";
 import { buildSalesManagementNavSection } from "@/lib/sales-management-nav";
 import {
   DEFAULT_SALES_MANAGEMENT_TAB,
@@ -778,49 +780,8 @@ export const internalSurveyNavSections: readonly InternalNavSection[] = [
         } satisfies InternalNavSection,
       ]
     : []),
-  {
-    kind: "workspace",
-    label: "Business Central",
-    icon: "Briefcase",
-    color: "#2563EB",
-    items: [
-      {
-        label: "Clients",
-        icon: "Building2",
-        children: [
-          { label: "Dashboard", view: "clients-dashboard" as const },
-          { label: "Client Directory", view: "clients" as const },
-          { label: "Member Intelligence", view: "member-intelligence" as const },
-        ],
-      },
-      {
-        label: "Customer Management",
-        icon: "ContactRound",
-        children: [
-          { label: "Pipeline", view: "crm" as const },
-          { label: "Discovery", view: "crm-meetings" as const },
-          { label: "Sales Quotes", view: "sales-quotes" as const },
-          { label: "Client Onboarding", view: "client-onboarding" as const },
-          { label: "Potential Clients", view: "potential-clients" as const },
-          ],
-      },
-      {
-        label: "Projects",
-        icon: "FolderKanban",
-        children: [
-          { label: "Dashboard", view: "projects-dashboard" as const },
-          { label: "Internal Projects", view: "projects-internal" as const },
-          { label: "External Projects", view: "projects-external" as const },
-          { label: "Grants", view: "grants" as const },
-        ],
-      },
-      {
-        label: "Management",
-        icon: "ClipboardList",
-        view: "management" as const,
-      },
-    ],
-  },
+  buildCentralBusinessCentralNavSection(),
+  buildProjectManagementNavSection({ includeGrants: true }),
   buildSalesManagementNavSection(),
   buildFinancesNavSection(),
   {

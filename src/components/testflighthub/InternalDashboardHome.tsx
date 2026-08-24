@@ -755,7 +755,7 @@ export default function InternalDashboardHome(props?: { showCustomize?: boolean 
 
   /** Always show a reporting-currency amount — finance empty state is 0.00, never em dash. */
   const money = (value: number | null | undefined) =>
-    formatMoney(value ?? 0, financial?.burnRate?.currency || "GBP");
+    formatMoney(value ?? 0, financial?.burnRate?.currency || "USD");
 
   const burnPerMonth = (value: number | null | undefined) => {
     const formatted = money(value);
@@ -1075,7 +1075,7 @@ export default function InternalDashboardHome(props?: { showCustomize?: boolean 
                               fontSize: 11,
                             }}
                             formatter={(value) =>
-                              formatMoney(Number(value ?? 0), financial?.burnRate?.currency || "GBP")
+                              formatMoney(Number(value ?? 0), financial?.burnRate?.currency || "USD")
                             }
                           />
                           <Area

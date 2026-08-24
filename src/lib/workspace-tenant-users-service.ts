@@ -21,7 +21,11 @@ import {
 import { validatePlatformSignupPassword } from "@/lib/platform-password-validation";
 import { createTenancyServerClient } from "@/lib/supabase/tenancy-server";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
-import { defaultAllowedViewsForRoles } from "@/lib/access-presets";
+import { defaultAllowedViewsForRoles, defaultHomeTilesForRoles } from "@/lib/access-presets";
+import {
+  allowedViewsForRolePatch,
+  isSuperOperatorRole,
+} from "@/lib/operator-entitlements-resolve";
 import type { InternalOperationsView } from "@/lib/internal-operations-data";
 
 const OPERATOR_SELECT =
@@ -607,6 +611,19 @@ export async function updateWorkspaceTenantUser(
     role: membership.is_owner ? "Admin" : role,
     roles: membership.is_owner ? ["Admin"] : roles,
   });
+
+  if (roles && isSuperOperatorRole(roles)) {
+    operatorPatch.allowed_views = null;
+    operatorPatch.dashboard_prefs = patch.dashboardPrefs ?? {
+      homeTiles: defaultHomeTilesForRoles(roles, patch.departments ?? []),
+    };
+  } else if (roles && patch.allowedViews === undefined) {
+    operatorPatch.allowed_views = allowedViewsForRolePatch(
+      roles,
+      patch.departments ?? [],
+      undefined,
+    );
+  }
 
   const operatorPayload = Object.fromEntries(
     Object.entries(operatorPatch).filter(([, value]) => value !== undefined),

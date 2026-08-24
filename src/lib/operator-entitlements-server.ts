@@ -4,7 +4,9 @@ import { headers } from "next/headers";
 
 import { getRequestHost, parseClientPlatformSubdomainSafe } from "@/lib/app-domains";
 import { getInternalOperatorByUsername } from "@/lib/internal-operators-service";
+import { resolveOperatorEntitlementsFromOperatorRow } from "@/lib/operator-entitlements-resolve";
 import { getPlatformSession } from "@/lib/platform-session";
+import { isUnit311GlobalAdminUsername } from "@/lib/demo/read-only";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
 import { createTenancyServerClient } from "@/lib/supabase/tenancy-server";
 import { getCurrentWorkspace } from "@/lib/workspace-context";
@@ -59,21 +61,38 @@ export async function loadOperatorEntitlementsSnapshot(
     enabledSubModules: null,
   };
 
-  if (session.userType === "internal" && isSupabaseConfigured()) {
+  if (isSupabaseConfigured()) {
     try {
       const operator = await getInternalOperatorByUsername(session.username);
       if (operator) {
-        snapshot.role = operator.role ?? null;
-        snapshot.roles = operator.roles ?? (operator.role ? [operator.role] : []);
-        snapshot.department = operator.department ?? null;
-        snapshot.departments =
-          operator.departments ?? (operator.department ? [operator.department] : []);
-        snapshot.allowedViews = operator.allowedViews;
-        snapshot.homeTiles = operator.dashboardPrefs?.homeTiles ?? null;
+        const resolved = resolveOperatorEntitlementsFromOperatorRow({
+          role: operator.role,
+          roles: operator.roles,
+          department: operator.department,
+          departments: operator.departments,
+          allowed_views: operator.allowedViews,
+          dashboard_prefs: operator.dashboardPrefs,
+        });
+        snapshot.role = resolved.role;
+        snapshot.roles = resolved.roles;
+        snapshot.department = resolved.department;
+        snapshot.departments = resolved.departments;
+        snapshot.allowedViews = resolved.allowedViews;
+        snapshot.homeTiles = resolved.homeTiles;
       }
     } catch {
       /* optional operator profile */
     }
+  }
+
+  if (isUnit311GlobalAdminUsername(session.username)) {
+    snapshot.role = "Admin";
+    snapshot.roles = ["Admin"];
+    snapshot.department = snapshot.department ?? "Corporate";
+    snapshot.departments = snapshot.departments?.length
+      ? snapshot.departments
+      : ["Corporate"];
+    snapshot.allowedViews = null;
   }
 
   if (workspace?.id && isSupabaseConfigured()) {

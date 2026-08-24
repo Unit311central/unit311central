@@ -1,4 +1,4 @@
-export const DEFAULT_REPORTING_CURRENCY = "GBP";
+export const DEFAULT_REPORTING_CURRENCY = "USD";
 
 export type ReportingCurrency = "AUD" | "GBP" | "USD" | "EUR";
 

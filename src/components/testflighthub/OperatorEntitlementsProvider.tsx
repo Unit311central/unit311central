@@ -137,27 +137,45 @@ function buildEntitlementsFromPayload(
   };
 }
 
+function serverSnapshotHydratesPermissions(
+  snapshot?: OperatorEntitlementsSnapshot | null,
+): boolean {
+  if (!snapshot) return false;
+  return Boolean(snapshot.roles?.length || snapshot.role);
+}
+
 function buildInitialEntitlementsState(
   serverSnapshot?: OperatorEntitlementsSnapshot | null,
 ): OperatorEntitlements {
   const hostSlug = readHostWorkspaceSlug();
   const cached = readCachedWhoami();
+  const serverHydratesPermissions = serverSnapshotHydratesPermissions(serverSnapshot);
   const payload: WhoamiPayload = {
-    ...cached,
+    ...(serverHydratesPermissions ? {} : cached),
     ...serverSnapshot,
     workspaceSlug: serverSnapshot?.workspaceSlug ?? cached?.workspaceSlug ?? hostSlug ?? null,
     workspaceType: serverSnapshot?.workspaceType ?? cached?.workspaceType ?? null,
     workspaceName: serverSnapshot?.workspaceName ?? cached?.workspaceName ?? null,
     enabledModules: serverSnapshot?.enabledModules ?? cached?.enabledModules ?? null,
     enabledSubModules: serverSnapshot?.enabledSubModules ?? cached?.enabledSubModules ?? null,
-    allowedViews: serverSnapshot?.allowedViews ?? cached?.allowedViews ?? null,
+    allowedViews: serverHydratesPermissions
+      ? (serverSnapshot?.allowedViews ?? null)
+      : (serverSnapshot?.allowedViews ?? cached?.allowedViews ?? null),
     dashboardPrefs: serverSnapshot?.homeTiles
       ? { homeTiles: serverSnapshot.homeTiles }
       : cached?.dashboardPrefs,
-    role: serverSnapshot?.role ?? cached?.role ?? null,
-    roles: serverSnapshot?.roles ?? cached?.roles ?? null,
-    department: serverSnapshot?.department ?? cached?.department ?? null,
-    departments: serverSnapshot?.departments ?? cached?.departments ?? null,
+    role: serverHydratesPermissions
+      ? (serverSnapshot?.role ?? null)
+      : (serverSnapshot?.role ?? cached?.role ?? null),
+    roles: serverHydratesPermissions
+      ? (serverSnapshot?.roles ?? null)
+      : (serverSnapshot?.roles ?? cached?.roles ?? null),
+    department: serverHydratesPermissions
+      ? (serverSnapshot?.department ?? null)
+      : (serverSnapshot?.department ?? cached?.department ?? null),
+    departments: serverHydratesPermissions
+      ? (serverSnapshot?.departments ?? null)
+      : (serverSnapshot?.departments ?? cached?.departments ?? null),
   };
 
   const entitlements = buildEntitlementsFromPayload(
@@ -222,8 +240,11 @@ export function OperatorEntitlementsProvider({
   }, []);
 
   useEffect(() => {
-    // SSR already hydrated nav enablement — skip duplicate whoami on first paint.
-    if (serverSnapshotHydratesNav(initialSnapshot)) {
+    // SSR hydrated nav + permissions — skip duplicate whoami on first paint.
+    if (
+      serverSnapshotHydratesNav(initialSnapshot) &&
+      serverSnapshotHydratesPermissions(initialSnapshot)
+    ) {
       return;
     }
     void load();

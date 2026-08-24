@@ -14,6 +14,7 @@ import {
 import { findAbhiTenantUserByUsername } from "@/lib/abhi/users-data";
 import { isAbhiSlug } from "@/lib/abhi-surface";
 import { getInternalOperatorByUsername } from "@/lib/internal-operators-service";
+import { resolveOperatorEntitlementsFromOperatorRow } from "@/lib/operator-entitlements-resolve";
 import { getPlatformSession } from "@/lib/platform-session";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
 import { getCurrentWorkspace } from "@/lib/workspace-context";
@@ -87,18 +88,25 @@ export async function GET() {
   let enabledModules: string[] | null = null;
   let enabledSubModules: string[] | null = null;
 
-  if (session.userType === "internal" && isSupabaseConfigured()) {
+  if (isSupabaseConfigured()) {
     try {
       const operator = await getInternalOperatorByUsername(session.username);
       if (operator) {
+        const resolved = resolveOperatorEntitlementsFromOperatorRow({
+          role: operator.role,
+          roles: operator.roles,
+          department: operator.department,
+          departments: operator.departments,
+          allowed_views: operator.allowedViews,
+          dashboard_prefs: operator.dashboardPrefs,
+        });
         email = operator.email?.trim() || null;
-        role = operator.role ?? null;
-        roles = operator.roles ?? (operator.role ? [operator.role] : null);
-        department = operator.department ?? null;
-        departments =
-          operator.departments ?? (operator.department ? [operator.department] : null);
-        allowedViews = operator.allowedViews;
-        dashboardPrefs = operator.dashboardPrefs;
+        role = resolved.role;
+        roles = resolved.roles;
+        department = resolved.department;
+        departments = resolved.departments;
+        allowedViews = resolved.allowedViews;
+        dashboardPrefs = resolved.homeTiles ? { homeTiles: resolved.homeTiles } : null;
       }
     } catch {
       // Profile still returns session identity if operator lookup fails.

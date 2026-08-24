@@ -12,7 +12,7 @@ export function workspaceCreateFixture(
     contactEmail: "owner@acme.example.com",
     country: "United Kingdom",
     timezone: "Europe/London",
-    currency: "GBP",
+    currency: "USD",
     description: "Test workspace",
     enabledModules: ["home", "settings"],
     enabledSubModules: [],

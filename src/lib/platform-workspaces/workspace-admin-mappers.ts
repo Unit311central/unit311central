@@ -187,7 +187,7 @@ export function mapWorkspaceRowToRecord(
     },
     country: metadata?.country?.trim() ?? "",
     timezone: settings?.timezone?.trim() || "Europe/London",
-    currency: settings?.currency?.trim() || "GBP",
+    currency: settings?.currency?.trim() || "USD",
     description: metadata?.description?.trim() ?? "",
     enabledModules,
     enabledSubModules,
