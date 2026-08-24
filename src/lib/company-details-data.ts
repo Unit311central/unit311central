@@ -28,6 +28,8 @@ export type CompanyDetailsFields = {
 export type CompanyDetails = CompanyDetailsFields & {
   id: string;
   workspaceId: string;
+  displayOrder: number;
+  archivedAt: string | null;
   createdAt: string;
   updatedAt: string;
 };

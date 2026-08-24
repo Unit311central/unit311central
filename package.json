@@ -52,6 +52,7 @@
     "prove:workspaces-provisioning-final": "node --require ./scripts/test-server-only-hook.cjs --import tsx src/lib/__tests__/workspaces-provisioning-final.check.ts",
     "prove:qa-workspace": "node --import tsx src/lib/__tests__/qa-workspace.check.ts",
     "prove:business-central-branding": "node --import tsx src/lib/__tests__/business-central-branding.check.ts",
+    "prove:company-details-multi": "node --import tsx src/lib/__tests__/company-details-multi.check.ts",
     "prove:qa-element-identification": "node --import tsx src/lib/qa-workspace/__tests__/element-identification.check.ts",
     "prove:engineering-sop": "node --import tsx src/lib/__tests__/engineering-sop.check.ts",
     "prove:engineering-sop-central": "node --import tsx src/lib/__tests__/engineering-sop-central.check.ts",

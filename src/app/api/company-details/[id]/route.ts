@@ -4,10 +4,9 @@ import { NextRequest, NextResponse } from "next/server";
 import type { CompanyDetailsFields } from "@/lib/company-details-data";
 import {
   COMPANY_DETAILS_MIGRATION_REQUIRED,
-  createCompanyDetails,
-  getCompanyDetails,
-  listCompanyDetails,
-  upsertCompanyDetails,
+  archiveCompanyDetails,
+  getCompanyDetailsById,
+  updateCompanyDetails,
 } from "@/lib/company-details-service";
 import { requirePlatformSession } from "@/lib/platform-session";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
@@ -17,6 +16,8 @@ import {
 } from "@/lib/workspace-context";
 
 export const dynamic = "force-dynamic";
+
+type RouteContext = { params: Promise<{ id: string }> };
 
 function errorStatus(error: unknown): number {
   if (error instanceof WorkspaceAccessError) return error.status;
@@ -35,7 +36,7 @@ function errorStatus(error: unknown): number {
   return 500;
 }
 
-export async function GET() {
+export async function GET(_request: NextRequest, context: RouteContext) {
   if (!isSupabaseConfigured()) {
     return NextResponse.json({ error: "Supabase is not configured." }, { status: 503 });
   }
@@ -43,22 +44,19 @@ export async function GET() {
   try {
     await requirePlatformSession();
     const workspace = await requireCurrentWorkspace();
-    const companies = await listCompanyDetails({ workspaceId: workspace.id });
-    const details = await getCompanyDetails({ workspaceId: workspace.id });
-    return NextResponse.json({
-      companies,
-      /** @deprecated Use `companies` — first active company for legacy clients. */
-      details,
-      workspace: { id: workspace.id, slug: workspace.slug, name: workspace.name },
-    });
+    const { id } = await context.params;
+    const details = await getCompanyDetailsById(id, { workspaceId: workspace.id });
+    if (!details || details.archivedAt) {
+      return NextResponse.json({ error: "Company not found." }, { status: 404 });
+    }
+    return NextResponse.json({ details });
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Failed to load company details";
+    const message = error instanceof Error ? error.message : "Failed to load company";
     return NextResponse.json({ error: message }, { status: errorStatus(error) });
   }
 }
 
-export async function POST(request: NextRequest) {
+export async function PUT(request: NextRequest, context: RouteContext) {
   const demoMutationBlock = await assertDemoMutationAllowedForRequest(request);
   if (demoMutationBlock) return demoMutationBlock;
 
@@ -69,40 +67,32 @@ export async function POST(request: NextRequest) {
   try {
     await requirePlatformSession();
     const workspace = await requireCurrentWorkspace();
-    const body = (await request.json()) as CompanyDetailsFields;
-    const details = await createCompanyDetails(body, { workspaceId: workspace.id });
-    return NextResponse.json({
-      details,
-      workspace: { id: workspace.id, slug: workspace.slug, name: workspace.name },
-    });
-  } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Failed to create company";
-    return NextResponse.json({ error: message }, { status: errorStatus(error) });
-  }
-}
-
-/** Legacy single-record upsert — updates first company or creates when none exist. */
-export async function PUT(request: NextRequest) {
-  const demoMutationBlock = await assertDemoMutationAllowedForRequest(request);
-  if (demoMutationBlock) return demoMutationBlock;
-
-  if (!isSupabaseConfigured()) {
-    return NextResponse.json({ error: "Supabase is not configured." }, { status: 503 });
-  }
-
-  try {
-    await requirePlatformSession();
-    const workspace = await requireCurrentWorkspace();
+    const { id } = await context.params;
     const body = (await request.json()) as Partial<CompanyDetailsFields>;
-    const details = await upsertCompanyDetails(body, { workspaceId: workspace.id });
-    return NextResponse.json({
-      details,
-      workspace: { id: workspace.id, slug: workspace.slug, name: workspace.name },
-    });
+    const details = await updateCompanyDetails(id, body, { workspaceId: workspace.id });
+    return NextResponse.json({ details });
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Failed to save company details";
+    const message = error instanceof Error ? error.message : "Failed to update company";
+    return NextResponse.json({ error: message }, { status: errorStatus(error) });
+  }
+}
+
+export async function DELETE(request: NextRequest, context: RouteContext) {
+  const demoMutationBlock = await assertDemoMutationAllowedForRequest(request);
+  if (demoMutationBlock) return demoMutationBlock;
+
+  if (!isSupabaseConfigured()) {
+    return NextResponse.json({ error: "Supabase is not configured." }, { status: 503 });
+  }
+
+  try {
+    await requirePlatformSession();
+    const workspace = await requireCurrentWorkspace();
+    const { id } = await context.params;
+    const details = await archiveCompanyDetails(id, { workspaceId: workspace.id });
+    return NextResponse.json({ details });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Failed to archive company";
     return NextResponse.json({ error: message }, { status: errorStatus(error) });
   }
 }
