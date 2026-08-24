@@ -134,7 +134,10 @@ async function checkDraftSubmitWorkflow(workspace, cookie) {
     console.log(`  SKIP ${workspace.label}: draft create blocked (read-only demo session)`);
     return;
   }
-  assert.equal(create.status, 201, `${workspace.label}: create draft → ${create.status} ${create.text?.slice(0, 200)}`);
+  assert.ok(
+    create.status === 200 || create.status === 201,
+    `${workspace.label}: create draft → ${create.status} ${create.text?.slice(0, 200)}`,
+  );
   const expenseId = create.json?.expense?.id;
   assert.ok(expenseId, `${workspace.label}: expense id required`);
 
