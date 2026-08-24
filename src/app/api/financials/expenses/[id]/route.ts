@@ -2,7 +2,7 @@ import { assertDemoMutationAllowedForRequest } from "@/lib/demo/mutation-guard";
 import { NextRequest, NextResponse } from "next/server";
 
 import type { ExpenseCurrency } from "@/lib/expenses-data";
-import { deleteExpense, updateExpense } from "@/lib/financial-expenses-service";
+import { deleteExpense, getExpense, updateExpense } from "@/lib/financial-expenses-service";
 import { requirePlatformSession } from "@/lib/platform-session";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
 import { requireCurrentWorkspace } from "@/lib/workspace-context";
@@ -10,6 +10,24 @@ import { requireCurrentWorkspace } from "@/lib/workspace-context";
 export const dynamic = "force-dynamic";
 
 type RouteContext = { params: Promise<{ id: string }> };
+
+export async function GET(_request: NextRequest, context: RouteContext) {
+  if (!isSupabaseConfigured()) {
+    return NextResponse.json({ error: "Supabase is not configured." }, { status: 503 });
+  }
+
+  try {
+    await requirePlatformSession();
+    const workspace = await requireCurrentWorkspace();
+    const { id } = await context.params;
+    const expense = await getExpense(id, { workspaceId: workspace.id });
+    if (!expense) return NextResponse.json({ error: "Expense not found" }, { status: 404 });
+    return NextResponse.json({ expense });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Failed to load expense";
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
+}
 
 export async function PATCH(request: NextRequest, context: RouteContext) {
   const demoMutationBlock = await assertDemoMutationAllowedForRequest(request);

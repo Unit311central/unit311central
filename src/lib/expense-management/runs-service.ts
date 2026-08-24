@@ -2,8 +2,10 @@ import type { ExpenseRun, ExpenseRunStatus } from "@/lib/expense-management/type
 import {
   buildExpenseRunLabel,
   calculateExpectedPaymentDate,
-  periodBoundsForPaymentMonth,
+  cutoffDateForPayment,
+  periodBoundsForPaymentDate,
 } from "@/lib/expense-management/payment-schedule";
+import { notifyExpensePaid } from "@/lib/expense-management/notifications-service";
 import { getExpensePaymentSchedule } from "@/lib/expense-management/config-service";
 import { createTenancyServerClient } from "@/lib/supabase/tenancy-server";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
@@ -61,8 +63,8 @@ export async function ensureOpenExpenseRun(workspaceId: string, workspaceSlug?: 
   const supabase = requireSupabase();
   const schedule = await getExpensePaymentSchedule(workspaceId);
   const paymentDate = calculateExpectedPaymentDate(schedule);
-  const { periodStart, periodEnd } = periodBoundsForPaymentMonth(paymentDate);
-  const cutoffDate = `${paymentDate.slice(0, 8)}${String(schedule.cutoffDay).padStart(2, "0").slice(-2)}`;
+  const { periodStart, periodEnd } = periodBoundsForPaymentDate(paymentDate, schedule.frequency);
+  const cutoffDate = cutoffDateForPayment(paymentDate, schedule);
   const currency = await resolveWorkspaceReportingCurrency(workspaceId, workspaceSlug);
 
   const { data: existing } = await supabase
@@ -148,16 +150,41 @@ export async function updateExpenseRunStatus(
   if (error) throw new Error(error.message);
 
   if (status === "paid") {
-    await supabase
+    const paidAt = new Date().toISOString();
+    const paidDateLabel = paidAt.slice(0, 10);
+
+    const { data: paidExpenses, error: paidListError } = await supabase
+      .from("financial_expenses")
+      .select("id, submitter_user_id, expense_number, amount, currency")
+      .eq("workspace_id", workspaceId)
+      .eq("expense_run_id", runId);
+    if (paidListError) throw new Error(paidListError.message);
+
+    const { error: paidUpdateError } = await supabase
       .from("financial_expenses")
       .update({
         workflow_status: "paid",
         paid: true,
-        paid_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
+        paid_at: paidAt,
+        updated_at: paidAt,
       })
       .eq("workspace_id", workspaceId)
       .eq("expense_run_id", runId);
+    if (paidUpdateError) throw new Error(paidUpdateError.message);
+
+    for (const row of paidExpenses ?? []) {
+      const submitterUserId = String(row.submitter_user_id ?? "");
+      if (!submitterUserId) continue;
+      await notifyExpensePaid({
+        workspaceId,
+        recipientUserId: submitterUserId,
+        expenseId: String(row.id),
+        expenseNumber: String(row.expense_number ?? row.id).slice(0, 32),
+        amount: Number(row.amount ?? 0),
+        currency: String(row.currency ?? "USD"),
+        paidDate: paidDateLabel,
+      });
+    }
   }
 
   return mapRun(data);

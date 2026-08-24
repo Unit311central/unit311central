@@ -3,14 +3,18 @@ import { NextRequest, NextResponse } from "next/server";
 import {
   archiveExpenseBillingCode,
   archiveExpenseCategory,
+  archiveExpenseMileageRate,
   createExpenseBillingCode,
   createExpenseCategory,
+  createExpenseMileageRate,
   getExpensePaymentSchedule,
+  listAllExpenseMileageRates,
   listExpenseBillingCodes,
   listExpenseCategories,
-  listExpenseMileageRates,
+  updateExpenseMileageRate,
   upsertExpensePaymentSchedule,
 } from "@/lib/expense-management/config-service";
+import { resolveExpenseAccess } from "@/lib/expense-management/permissions";
 import { requirePlatformSession } from "@/lib/platform-session";
 import { requireCurrentWorkspace } from "@/lib/workspace-context";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
@@ -28,7 +32,7 @@ export async function GET() {
     const [categories, billingCodes, mileageRates, schedule] = await Promise.all([
       listExpenseCategories(workspace.id),
       listExpenseBillingCodes(workspace.id),
-      listExpenseMileageRates(workspace.id),
+      listAllExpenseMileageRates(workspace.id),
       getExpensePaymentSchedule(workspace.id),
     ]);
     return NextResponse.json({ categories, billingCodes, mileageRates, schedule });
@@ -44,8 +48,13 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    await requirePlatformSession();
+    const session = await requirePlatformSession();
     const workspace = await requireCurrentWorkspace();
+    const access = resolveExpenseAccess({ session });
+    if (!access.canConfigure) {
+      return NextResponse.json({ error: "Not authorized to configure expenses." }, { status: 403 });
+    }
+
     const body = (await request.json()) as {
       action?: string;
       name?: string;
@@ -57,6 +66,13 @@ export async function POST(request: NextRequest) {
         cutoffDay?: number;
         approvalDeadlineDay?: number;
         paymentDay?: number;
+      };
+      mileageRate?: {
+        countryCode?: string;
+        vehicleType?: string;
+        ratePerUnit?: number;
+        distanceUnit?: "miles" | "kilometres";
+        active?: boolean;
       };
     };
 
@@ -83,6 +99,26 @@ export async function POST(request: NextRequest) {
       case "update_schedule":
         const schedule = await upsertExpensePaymentSchedule(workspace.id, body.schedule ?? {});
         return NextResponse.json({ schedule });
+      case "create_mileage_rate":
+        const createdRate = await createExpenseMileageRate(workspace.id, {
+          countryCode: body.mileageRate?.countryCode,
+          vehicleType: body.mileageRate?.vehicleType,
+          ratePerUnit: Number(body.mileageRate?.ratePerUnit ?? 0),
+          distanceUnit: body.mileageRate?.distanceUnit,
+        });
+        return NextResponse.json({ mileageRate: createdRate });
+      case "update_mileage_rate":
+        const updatedRate = await updateExpenseMileageRate(workspace.id, body.id ?? "", {
+          countryCode: body.mileageRate?.countryCode,
+          vehicleType: body.mileageRate?.vehicleType,
+          ratePerUnit: body.mileageRate?.ratePerUnit,
+          distanceUnit: body.mileageRate?.distanceUnit,
+          active: body.mileageRate?.active,
+        });
+        return NextResponse.json({ mileageRate: updatedRate });
+      case "archive_mileage_rate":
+        await archiveExpenseMileageRate(workspace.id, body.id ?? "");
+        return NextResponse.json({ ok: true });
       default:
         return NextResponse.json({ error: "Unknown action" }, { status: 400 });
     }

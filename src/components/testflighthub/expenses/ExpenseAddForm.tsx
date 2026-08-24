@@ -43,6 +43,7 @@ type FormState = {
   mileageTo: string;
   mileageDistance: string;
   mileageDistanceUnit: "miles" | "kilometres";
+  mileageRateId: string;
   attachmentPath: string | null;
   attachmentName: string | null;
 };
@@ -64,9 +65,10 @@ export default function ExpenseAddForm({
   onSaved,
   onCancel,
 }: ExpenseAddFormProps) {
-  const activeCategories = categories.filter((row) => row.active && !row.archivedAt);
-  const activeBillingCodes = billingCodes.filter((row) => row.active && !row.archivedAt);
-  const defaultMileageRate = mileageRates.find((row) => row.active) ?? mileageRates[0];
+  const activeCategories = categories.filter((row) => row.active);
+  const activeBillingCodes = billingCodes.filter((row) => row.active);
+  const activeMileageRates = mileageRates.filter((row) => row.active);
+  const defaultMileageRate = activeMileageRates[0] ?? mileageRates[0];
 
   const [form, setForm] = useState<FormState>(() => ({
     claimantEmployeeId:
@@ -87,6 +89,7 @@ export default function ExpenseAddForm({
     mileageDistance:
       editExpense?.mileageDistance != null ? String(editExpense.mileageDistance) : "",
     mileageDistanceUnit: editExpense?.mileageDistanceUnit ?? defaultMileageRate?.distanceUnit ?? "miles",
+    mileageRateId: defaultMileageRate?.id ?? "",
     attachmentPath: editExpense?.attachmentPath ?? null,
     attachmentName: editExpense?.attachmentPath ? "Receipt attached" : null,
   }));
@@ -94,12 +97,15 @@ export default function ExpenseAddForm({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const selectedMileageRate =
+    activeMileageRates.find((row) => row.id === form.mileageRateId) ?? defaultMileageRate;
+
   const mileageCalculated = useMemo(() => {
     if (form.expenseType !== "mileage") return 0;
     const distance = Number(form.mileageDistance) || 0;
-    const rate = defaultMileageRate?.ratePerUnit ?? 0;
+    const rate = selectedMileageRate?.ratePerUnit ?? 0;
     return Math.round(distance * rate * 100) / 100;
-  }, [form.expenseType, form.mileageDistance, defaultMileageRate]);
+  }, [form.expenseType, form.mileageDistance, selectedMileageRate]);
 
   useEffect(() => {
     if (form.expenseType === "mileage" && mileageCalculated > 0) {
@@ -147,7 +153,7 @@ export default function ExpenseAddForm({
       mileageDistance:
         form.expenseType === "mileage" ? Number(form.mileageDistance) || 0 : null,
       mileageDistanceUnit: form.expenseType === "mileage" ? form.mileageDistanceUnit : null,
-      mileageRate: form.expenseType === "mileage" ? defaultMileageRate?.ratePerUnit ?? null : null,
+      mileageRate: form.expenseType === "mileage" ? selectedMileageRate?.ratePerUnit ?? null : null,
       mileageCalculatedAmount: form.expenseType === "mileage" ? mileageCalculated : null,
       submit,
       skipDuplicateReferenceCheck: true,
@@ -156,7 +162,7 @@ export default function ExpenseAddForm({
   [
     attachmentFile,
     currentUserId,
-    defaultMileageRate,
+    selectedMileageRate,
     form,
     mileageCalculated,
   ]);
@@ -395,6 +401,28 @@ export default function ExpenseAddForm({
               />
             </div>
             <div>
+              <FieldLabel>Mileage rate</FieldLabel>
+              <select
+                className={expenseInputClassName()}
+                value={form.mileageRateId}
+                onChange={(event) => {
+                  const rate = activeMileageRates.find((row) => row.id === event.target.value);
+                  setForm((current) => ({
+                    ...current,
+                    mileageRateId: event.target.value,
+                    mileageDistanceUnit: rate?.distanceUnit ?? current.mileageDistanceUnit,
+                  }));
+                }}
+              >
+                {activeMileageRates.map((rate) => (
+                  <option key={rate.id} value={rate.id}>
+                    {rate.vehicleType} — {rate.ratePerUnit} / {rate.distanceUnit}
+                    {rate.countryCode ? ` (${rate.countryCode})` : ""}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
               <FieldLabel>Unit</FieldLabel>
               <select
                 className={expenseInputClassName()}
@@ -415,9 +443,9 @@ export default function ExpenseAddForm({
               <p className="mt-1 text-sm font-semibold text-white">
                 {form.currency} {mileageCalculated.toFixed(2)}
               </p>
-              {defaultMileageRate && (
+              {selectedMileageRate && (
                 <p className="mt-1 text-[10px] text-white/40">
-                  Rate: {defaultMileageRate.ratePerUnit} / {defaultMileageRate.distanceUnit}
+                  Rate: {selectedMileageRate.ratePerUnit} / {selectedMileageRate.distanceUnit}
                 </p>
               )}
             </div>

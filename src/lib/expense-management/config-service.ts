@@ -142,6 +142,18 @@ export async function listExpenseMileageRates(workspaceId: string): Promise<Expe
   return (data ?? []).map(mapMileageRate);
 }
 
+export async function listAllExpenseMileageRates(workspaceId: string): Promise<ExpenseMileageRate[]> {
+  await ensureExpenseConfigSeeded(workspaceId);
+  const supabase = requireSupabase();
+  const { data, error } = await supabase
+    .from("expense_mileage_rates")
+    .select("*")
+    .eq("workspace_id", workspaceId)
+    .order("country_code", { ascending: true });
+  if (error) throw new Error(error.message);
+  return (data ?? []).map(mapMileageRate);
+}
+
 export async function getExpensePaymentSchedule(workspaceId: string): Promise<ExpensePaymentSchedule> {
   await ensureExpenseConfigSeeded(workspaceId);
   const supabase = requireSupabase();
@@ -230,6 +242,72 @@ export async function archiveExpenseBillingCode(workspaceId: string, id: string)
   const { error } = await supabase
     .from("expense_billing_codes")
     .update({ archived_at: new Date().toISOString(), active: false })
+    .eq("workspace_id", workspaceId)
+    .eq("id", id);
+  if (error) throw new Error(error.message);
+}
+
+export async function createExpenseMileageRate(
+  workspaceId: string,
+  input: {
+    countryCode?: string;
+    vehicleType?: string;
+    ratePerUnit: number;
+    distanceUnit?: "miles" | "kilometres";
+  },
+): Promise<ExpenseMileageRate> {
+  const supabase = requireSupabase();
+  const { data, error } = await supabase
+    .from("expense_mileage_rates")
+    .insert({
+      workspace_id: workspaceId,
+      country_code: (input.countryCode ?? "GB").trim().toUpperCase(),
+      vehicle_type: (input.vehicleType ?? "car").trim().toLowerCase(),
+      rate_per_unit: input.ratePerUnit,
+      distance_unit: input.distanceUnit ?? "miles",
+      active: true,
+    })
+    .select("*")
+    .single();
+  if (error) throw new Error(error.message);
+  return mapMileageRate(data);
+}
+
+export async function updateExpenseMileageRate(
+  workspaceId: string,
+  id: string,
+  patch: {
+    countryCode?: string;
+    vehicleType?: string;
+    ratePerUnit?: number;
+    distanceUnit?: "miles" | "kilometres";
+    active?: boolean;
+  },
+): Promise<ExpenseMileageRate> {
+  const supabase = requireSupabase();
+  const payload: Record<string, unknown> = { updated_at: new Date().toISOString() };
+  if (patch.countryCode !== undefined) payload.country_code = patch.countryCode.trim().toUpperCase();
+  if (patch.vehicleType !== undefined) payload.vehicle_type = patch.vehicleType.trim().toLowerCase();
+  if (patch.ratePerUnit !== undefined) payload.rate_per_unit = patch.ratePerUnit;
+  if (patch.distanceUnit !== undefined) payload.distance_unit = patch.distanceUnit;
+  if (patch.active !== undefined) payload.active = patch.active;
+
+  const { data, error } = await supabase
+    .from("expense_mileage_rates")
+    .update(payload)
+    .eq("workspace_id", workspaceId)
+    .eq("id", id)
+    .select("*")
+    .single();
+  if (error) throw new Error(error.message);
+  return mapMileageRate(data);
+}
+
+export async function archiveExpenseMileageRate(workspaceId: string, id: string) {
+  const supabase = requireSupabase();
+  const { error } = await supabase
+    .from("expense_mileage_rates")
+    .update({ active: false, updated_at: new Date().toISOString() })
     .eq("workspace_id", workspaceId)
     .eq("id", id);
   if (error) throw new Error(error.message);

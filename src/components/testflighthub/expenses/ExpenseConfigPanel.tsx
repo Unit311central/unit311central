@@ -9,6 +9,7 @@ import type {
   ExpenseMileageRate,
   ExpensePaymentSchedule,
 } from "@/lib/expense-management/types";
+import { scheduleFrequencyLabel } from "@/lib/expense-management/payment-schedule";
 
 import { expenseInputClassName, FieldLabel, readApiJson } from "./expense-hub-shared";
 
@@ -23,6 +24,10 @@ export default function ExpenseConfigPanel() {
   const [newCategoryName, setNewCategoryName] = useState("");
   const [newBillingCode, setNewBillingCode] = useState("");
   const [newBillingName, setNewBillingName] = useState("");
+  const [newMileageCountry, setNewMileageCountry] = useState("GB");
+  const [newMileageVehicle, setNewMileageVehicle] = useState("car");
+  const [newMileageRate, setNewMileageRate] = useState("0.45");
+  const [newMileageUnit, setNewMileageUnit] = useState<"miles" | "kilometres">("miles");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -90,10 +95,46 @@ export default function ExpenseConfigPanel() {
 
       <section className="space-y-3">
         <h4 className="text-sm font-semibold text-white">Expense payment schedule</h4>
+        <p className="text-xs text-white/45">
+          Configure how often expense runs are paid. Fortnightly creates two payment windows per
+          month (payment day and payment day + 14).
+        </p>
         {schedule && (
-          <div className="grid gap-3 sm:grid-cols-3">
+          <div className="grid gap-3 sm:grid-cols-2">
             <div>
-              <FieldLabel>Cut-off day</FieldLabel>
+              <FieldLabel>Frequency</FieldLabel>
+              <select
+                className={expenseInputClassName()}
+                value={schedule.frequency}
+                onChange={(event) =>
+                  setSchedule({
+                    ...schedule,
+                    frequency: event.target.value as ExpensePaymentSchedule["frequency"],
+                  })
+                }
+              >
+                <option value="fortnightly">Every 2 weeks</option>
+                <option value="monthly">Monthly</option>
+              </select>
+              <p className="mt-1 text-[10px] text-white/35">
+                {scheduleFrequencyLabel(schedule.frequency)}
+              </p>
+            </div>
+            <div>
+              <FieldLabel>Payment day (of month)</FieldLabel>
+              <input
+                type="number"
+                min={1}
+                max={31}
+                className={expenseInputClassName()}
+                value={schedule.paymentDay}
+                onChange={(event) =>
+                  setSchedule({ ...schedule, paymentDay: Number(event.target.value) })
+                }
+              />
+            </div>
+            <div>
+              <FieldLabel>Cut-off day (of month)</FieldLabel>
               <input
                 type="number"
                 min={1}
@@ -118,19 +159,6 @@ export default function ExpenseConfigPanel() {
                 }
               />
             </div>
-            <div>
-              <FieldLabel>Payment day</FieldLabel>
-              <input
-                type="number"
-                min={1}
-                max={31}
-                className={expenseInputClassName()}
-                value={schedule.paymentDay}
-                onChange={(event) =>
-                  setSchedule({ ...schedule, paymentDay: Number(event.target.value) })
-                }
-              />
-            </div>
           </div>
         )}
         <button
@@ -150,6 +178,82 @@ export default function ExpenseConfigPanel() {
           className="rounded-xl border border-white/10 px-3 py-2 text-xs text-white/70 hover:text-white"
         >
           Save schedule
+        </button>
+      </section>
+
+      <section className="space-y-3">
+        <h4 className="text-sm font-semibold text-white">Mileage rates</h4>
+        <ul className="space-y-2">
+          {mileageRates.map((rate) => (
+            <li
+              key={rate.id}
+              className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-white/10 px-3 py-2 text-sm text-white/80"
+            >
+              <span>
+                {rate.countryCode} · {rate.vehicleType}: {rate.ratePerUnit} / {rate.distanceUnit}
+                {!rate.active && " (archived)"}
+              </span>
+              {rate.active && (
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => void postConfig({ action: "archive_mileage_rate", id: rate.id })}
+                  className="text-xs text-white/40 hover:text-red-300"
+                >
+                  Archive
+                </button>
+              )}
+            </li>
+          ))}
+        </ul>
+        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+          <input
+            className={expenseInputClassName()}
+            placeholder="Country (GB, US)"
+            value={newMileageCountry}
+            onChange={(event) => setNewMileageCountry(event.target.value)}
+          />
+          <input
+            className={expenseInputClassName()}
+            placeholder="Vehicle type"
+            value={newMileageVehicle}
+            onChange={(event) => setNewMileageVehicle(event.target.value)}
+          />
+          <input
+            className={expenseInputClassName()}
+            placeholder="Rate per unit"
+            value={newMileageRate}
+            onChange={(event) => setNewMileageRate(event.target.value)}
+          />
+          <select
+            className={expenseInputClassName()}
+            value={newMileageUnit}
+            onChange={(event) =>
+              setNewMileageUnit(event.target.value as "miles" | "kilometres")
+            }
+          >
+            <option value="miles">Miles</option>
+            <option value="kilometres">Kilometres</option>
+          </select>
+        </div>
+        <button
+          type="button"
+          disabled={busy || !newMileageRate.trim()}
+          onClick={() =>
+            void postConfig({
+              action: "create_mileage_rate",
+              mileageRate: {
+                countryCode: newMileageCountry.trim(),
+                vehicleType: newMileageVehicle.trim(),
+                ratePerUnit: Number(newMileageRate),
+                distanceUnit: newMileageUnit,
+              },
+            })
+          }
+          className="inline-flex items-center gap-1 rounded-xl border border-white/10 px-3 py-2 text-xs text-white/70"
+        >
+          <Plus className="h-3.5 w-3.5" />
+          Add mileage rate
         </button>
       </section>
 
@@ -259,17 +363,6 @@ export default function ExpenseConfigPanel() {
           Add billing code
         </button>
       </section>
-
-      {mileageRates.length > 0 && (
-        <section className="space-y-2">
-          <h4 className="text-sm font-semibold text-white">Mileage rates</h4>
-          {mileageRates.map((rate) => (
-            <p key={rate.id} className="text-sm text-white/60">
-              {rate.countryCode} · {rate.vehicleType}: {rate.ratePerUnit} / {rate.distanceUnit}
-            </p>
-          ))}
-        </section>
-      )}
     </div>
   );
 }

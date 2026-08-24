@@ -13,6 +13,7 @@ import type {
   ExpenseBillingCode,
   ExpenseCategory,
   ExpenseMileageRate,
+  ExpenseNotification,
   ExpensePaymentSchedule,
 } from "@/lib/expense-management/types";
 import { resolveExpenseAccess } from "@/lib/expense-management/permissions";
@@ -24,6 +25,7 @@ import DashboardTopTilesBar from "@/components/testflighthub/DashboardTopTilesBa
 import { useOperatorEntitlements } from "@/components/testflighthub/OperatorEntitlementsProvider";
 import { isBrowserOnwardAirSurface } from "@/lib/onwardair-surface";
 
+import ExpenseDetailDrawer from "./expenses/ExpenseDetailDrawer";
 import ExpenseAddForm from "./expenses/ExpenseAddForm";
 import ExpenseApprovalsPanel from "./expenses/ExpenseApprovalsPanel";
 import ExpenseConfigPanel from "./expenses/ExpenseConfigPanel";
@@ -80,6 +82,8 @@ export default function ExpensesHubWorkspace({ onBackToFinancials }: ExpensesHub
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [editExpense, setEditExpense] = useState<FinancialExpense | null>(null);
+  const [selectedExpense, setSelectedExpense] = useState<FinancialExpense | null>(null);
+  const [notifications, setNotifications] = useState<ExpenseNotification[]>([]);
 
   const claimExpenses = useMemo(
     () => myExpenses.filter((expense) => !isAccountsPayableSeedExpense(expense)),
@@ -124,11 +128,13 @@ export default function ExpensesHubWorkspace({ onBackToFinancials }: ExpensesHub
     setLoading(true);
     setError(null);
     try {
-      const [myResponse, configResponse, employeesResponse] = await Promise.all([
-        fetch("/api/expenses/my", { cache: "no-store" }),
-        fetch("/api/expenses/config", { cache: "no-store" }),
-        fetch("/api/hr/employees", { cache: "no-store" }),
-      ]);
+      const [myResponse, configResponse, employeesResponse, notificationsResponse] =
+        await Promise.all([
+          fetch("/api/expenses/my", { cache: "no-store" }),
+          fetch("/api/expenses/config", { cache: "no-store" }),
+          fetch("/api/hr/employees", { cache: "no-store" }),
+          fetch("/api/expenses/notifications", { cache: "no-store" }),
+        ]);
 
       const myData = await readApiJson<{
         expenses?: FinancialExpense[];
@@ -159,6 +165,13 @@ export default function ExpensesHubWorkspace({ onBackToFinancials }: ExpensesHub
             (employee) => employee.employmentStatus !== "archived",
           ),
         );
+      }
+
+      if (notificationsResponse.ok) {
+        const notificationsData = await readApiJson<{ notifications?: ExpenseNotification[] }>(
+          notificationsResponse,
+        );
+        setNotifications(notificationsData.notifications ?? []);
       }
 
       if (access.canViewAll) {
@@ -295,14 +308,31 @@ export default function ExpensesHubWorkspace({ onBackToFinancials }: ExpensesHub
       )}
 
       {!loading && section === "my" && (
-        <ExpenseListPanel
-          expenses={claimExpenses}
-          onEdit={(expense) => {
-            setEditExpense(expense);
-            navigateSection("add");
-          }}
-          emptyMessage="You have not submitted any expenses yet."
-        />
+        <>
+          {notifications.length > 0 && (
+            <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+              <h4 className="text-xs font-semibold uppercase tracking-wide text-white/45">
+                Notifications
+              </h4>
+              <ul className="mt-2 space-y-2">
+                {notifications.slice(0, 5).map((notification) => (
+                  <li key={notification.id} className="text-sm text-white/70">
+                    {notification.message}
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+          <ExpenseListPanel
+            expenses={claimExpenses}
+            onSelect={(expense) => setSelectedExpense(expense)}
+            onEdit={(expense) => {
+              setEditExpense(expense);
+              navigateSection("add");
+            }}
+            emptyMessage="You have not submitted any expenses yet."
+          />
+        </>
       )}
 
       {!loading && section === "add" && sessionUser.userId && (
@@ -334,6 +364,7 @@ export default function ExpensesHubWorkspace({ onBackToFinancials }: ExpensesHub
         <ExpenseListPanel
           expenses={allClaimExpenses}
           showEmployee
+          onSelect={(expense) => setSelectedExpense(expense)}
           emptyMessage="No workspace expenses recorded."
         />
       )}
@@ -359,17 +390,22 @@ export default function ExpensesHubWorkspace({ onBackToFinancials }: ExpensesHub
         </section>
       )}
 
-      {section === "my" && (
+      {section === "my" && schedule && (
         <p className="text-[11px] text-white/35">
           Workspace currency: <span className="text-white/55">{currency}</span>
-          {schedule && (
-            <>
-              {" "}
-              · Payment day {schedule.paymentDay} · Cut-off day {schedule.cutoffDay}
-            </>
-          )}
+          {" "}
+          · Schedule: {schedule.frequency === "fortnightly" ? "Every 2 weeks" : "Monthly"}
+          · Payment day {schedule.paymentDay} · Cut-off day {schedule.cutoffDay}
         </p>
       )}
+
+      <ExpenseDetailDrawer
+        expense={selectedExpense}
+        onClose={() => setSelectedExpense(null)}
+        employees={employees}
+        categories={categories}
+        billingCodes={billingCodes}
+      />
     </div>
   );
 }
