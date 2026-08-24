@@ -54,6 +54,9 @@ export const MeetingsWorkspace = lazyWorkspace(() => import("./MeetingsWorkspace
 export const ConnectionsWorkspace = lazyWorkspace(() => import("./ConnectionsWorkspace"));
 export const FileRepositoryWorkspace = lazyWorkspace(() => import("./FileRepositoryWorkspace"));
 export const Unit311DetailsWorkspace = lazyWorkspace(() => import("./Unit311DetailsWorkspace"));
+export const InterfaceWorxInformationRepositoryWorkspace = lazyWorkspace(
+  () => import("./InterfaceWorxInformationRepositoryWorkspace"),
+);
 export const CorporateInformationWorkspace = lazyWorkspace(() => import("./CorporateInformationWorkspace"));
 export const CorporateDashboardWorkspace = lazyWorkspace(() => import("./CorporateDashboardWorkspace"));
 export const ModuleGoLiveWorkspace = lazyWorkspace(() => import("./ModuleGoLiveWorkspace"));

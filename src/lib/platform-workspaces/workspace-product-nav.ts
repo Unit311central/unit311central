@@ -4,6 +4,7 @@
  */
 
 import { DEMO_WORKSPACE_SLUG } from "@/lib/app-domains";
+import { isInterfaceWorxSlug } from "@/lib/interface-worx-surface";
 import {
   buildFinancesNavSection,
   shouldHideFinancesShellLeaves,
@@ -257,7 +258,19 @@ export function buildWorkspaceProductNavSections(
 
     if (filteredItems.length === 0) continue;
 
-    sections.push({ ...section, items: filteredItems });
+    const items =
+      spec.id === "business-central" && isInterfaceWorxSlug(options.workspaceSlug)
+        ? [
+            ...filteredItems,
+            {
+              label: "Information Repository",
+              icon: "FileText",
+              view: "information-repository" as const,
+            },
+          ]
+        : filteredItems;
+
+    sections.push({ ...section, items });
   }
 
   return sections;

@@ -8,15 +8,17 @@ import {
   detailTasksFileName,
   detailTxtFileName,
   getBuiltinDetailCategory,
-  isReservedDetailFolderName,
   parseUnit311DetailTasks,
   serializeUnit311DetailTasks,
-  UNIT311_DETAIL_CATEGORIES,
-  UNIT311_DETAILS_ROOT_FOLDER_NAME,
   type Unit311DetailCategory,
   type Unit311DetailCategoryId,
   type Unit311DetailTask,
 } from "@/lib/unit311-details-data";
+import {
+  isReservedRepositoryFolderName,
+  UNIT311_DETAILS_REPOSITORY_PROFILE,
+  type InformationRepositoryProfile,
+} from "@/lib/information-repository-profile";
 import { DOMAIN_GO_LIVE_STORAGE_CATEGORY_ID } from "@/lib/domain-go-live-data";
 import { MODULE_GO_LIVE_STORAGE_CATEGORY_ID } from "@/lib/module-go-live-data";
 import {
@@ -241,10 +243,11 @@ async function listChildFolderMap(parentId: string, scope?: FilesWorkspaceScope)
 
 async function listDetailCategories(
   rootFolderId: string,
-  scope?: FilesWorkspaceScope,
+  scope: FilesWorkspaceScope | undefined,
+  profile: InformationRepositoryProfile,
 ): Promise<Unit311DetailCategory[]> {
   const { entries } = await browseFolder({ folderId: rootFolderId }, scope);
-  const categories: Unit311DetailCategory[] = UNIT311_DETAIL_CATEGORIES.map((category) => ({
+  const categories: Unit311DetailCategory[] = profile.builtinCategories.map((category) => ({
     ...category,
   }));
 
@@ -252,7 +255,7 @@ async function listDetailCategories(
     if (entry.kind !== "folder") continue;
 
     const displayName = entry.item.name;
-    if (isReservedDetailFolderName(displayName)) {
+    if (isReservedRepositoryFolderName(displayName, profile)) {
       continue;
     }
 
@@ -274,22 +277,24 @@ async function listDetailCategories(
 async function resolveCategory(
   categoryId: string,
   rootFolderId: string,
-  scope?: FilesWorkspaceScope,
+  scope: FilesWorkspaceScope | undefined,
+  profile: InformationRepositoryProfile,
 ): Promise<Unit311DetailCategory | null> {
-  const categories = await listDetailCategories(rootFolderId, scope);
+  const categories = await listDetailCategories(rootFolderId, scope, profile);
   return categories.find((category) => category.id === categoryId) ?? null;
 }
 
 export async function ensureUnit311DetailsFolders(
   scope?: FilesWorkspaceScope,
+  profile: InformationRepositoryProfile = UNIT311_DETAILS_REPOSITORY_PROFILE,
 ): Promise<Unit311DetailsBootstrap> {
-  const root = await ensureFolder(UNIT311_DETAILS_ROOT_FOLDER_NAME, null, scope);
+  const root = await ensureFolder(profile.rootFolderName, null, scope);
 
-  for (const category of UNIT311_DETAIL_CATEGORIES) {
+  for (const category of profile.builtinCategories) {
     await ensureFolder(category.folderName, root.id, scope);
   }
 
-  const categories = await listDetailCategories(root.id, scope);
+  const categories = await listDetailCategories(root.id, scope, profile);
   const childFolders = await listChildFolderMap(root.id, scope);
   const folders: Unit311DetailsFolderMap = {};
 
@@ -391,11 +396,15 @@ async function deleteNamedFilesInFolderExcept(
   }
 }
 
-async function buildDetailDocxBuffer(label: string, content: string): Promise<Buffer> {
+async function buildDetailDocxBuffer(
+  label: string,
+  content: string,
+  repositoryLabel = UNIT311_DETAILS_REPOSITORY_PROFILE.rootFolderName,
+): Promise<Buffer> {
   const lines = content.split(/\r?\n/);
   const children = [
     new Paragraph({
-      text: `${label} — Unit311 Details`,
+      text: `${label} — ${repositoryLabel}`,
       heading: HeadingLevel.HEADING_1,
       spacing: { after: 240 },
     }),
@@ -421,7 +430,11 @@ function toUploadFile(name: string, buffer: Buffer, mimeType: string) {
   return new File([blob], name, { type: mimeType });
 }
 
-export async function createUnit311DetailSection(name: string, scope?: FilesWorkspaceScope) {
+export async function createUnit311DetailSection(
+  name: string,
+  scope?: FilesWorkspaceScope,
+  profile: InformationRepositoryProfile = UNIT311_DETAILS_REPOSITORY_PROFILE,
+) {
   const trimmed = name.trim();
   if (!trimmed) {
     throw new Error("Section name is required.");
@@ -430,9 +443,9 @@ export async function createUnit311DetailSection(name: string, scope?: FilesWork
     throw new Error("Section name must be 80 characters or fewer.");
   }
 
-  const root = await ensureFolder(UNIT311_DETAILS_ROOT_FOLDER_NAME, null, scope);
+  const root = await ensureFolder(profile.rootFolderName, null, scope);
 
-  if (isReservedDetailFolderName(trimmed)) {
+  if (isReservedRepositoryFolderName(trimmed, profile)) {
     throw new Error("This name is already used by a standard section.");
   }
 
@@ -459,9 +472,10 @@ export async function createUnit311DetailSection(name: string, scope?: FilesWork
 export async function loadUnit311DetailContent(
   categoryId: string,
   scope?: FilesWorkspaceScope,
+  profile: InformationRepositoryProfile = UNIT311_DETAILS_REPOSITORY_PROFILE,
 ) {
-  const bootstrap = await ensureUnit311DetailsFolders(scope);
-  const category = await resolveCategory(categoryId, bootstrap.rootFolderId, scope);
+  const bootstrap = await ensureUnit311DetailsFolders(scope, profile);
+  const category = await resolveCategory(categoryId, bootstrap.rootFolderId, scope, profile);
   if (!category) {
     throw new Error("Unknown category.");
   }
@@ -478,10 +492,10 @@ export async function loadUnit311DetailContent(
   ]);
   let content = txtFile ? await readStorageText(txtFile.storage_path) : "";
 
-  if (!content.trim()) {
+  if (!content.trim() && profile.id === UNIT311_DETAILS_REPOSITORY_PROFILE.id) {
     const seed = readSeedDetailContent(categoryId);
     if (seed?.trim()) {
-      await saveUnit311DetailContent(categoryId, seed, scope);
+      await saveUnit311DetailContent(categoryId, seed, scope, profile);
       content = seed;
     }
   }
@@ -499,9 +513,10 @@ export async function saveUnit311DetailContent(
   categoryId: string,
   content: string,
   scope?: FilesWorkspaceScope,
+  profile: InformationRepositoryProfile = UNIT311_DETAILS_REPOSITORY_PROFILE,
 ) {
-  const bootstrap = await ensureUnit311DetailsFolders(scope);
-  const category = await resolveCategory(categoryId, bootstrap.rootFolderId, scope);
+  const bootstrap = await ensureUnit311DetailsFolders(scope, profile);
+  const category = await resolveCategory(categoryId, bootstrap.rootFolderId, scope, profile);
   if (!category) {
     throw new Error("Unknown category.");
   }
@@ -531,7 +546,7 @@ export async function saveUnit311DetailContent(
   let docxFileId: string | null = null;
 
   try {
-    const docxBuffer = await buildDetailDocxBuffer(category.label, content);
+    const docxBuffer = await buildDetailDocxBuffer(category.label, content, profile.rootFolderName);
     const docxFile = await uploadFile(
       {
         file: toUploadFile(
@@ -579,9 +594,10 @@ export async function saveUnit311DetailTasks(
   categoryId: string,
   tasks: Unit311DetailTask[],
   scope?: FilesWorkspaceScope,
+  profile: InformationRepositoryProfile = UNIT311_DETAILS_REPOSITORY_PROFILE,
 ) {
-  const bootstrap = await ensureUnit311DetailsFolders(scope);
-  const category = await resolveCategory(categoryId, bootstrap.rootFolderId, scope);
+  const bootstrap = await ensureUnit311DetailsFolders(scope, profile);
+  const category = await resolveCategory(categoryId, bootstrap.rootFolderId, scope, profile);
   if (!category) {
     throw new Error("Unknown category.");
   }
@@ -624,53 +640,60 @@ export async function saveUnit311DetailTasks(
   };
 }
 
-export async function getUnit311DetailsOverview(scope?: FilesWorkspaceScope) {
-  try {
-    const { getCurrentWorkspace } = await import("@/lib/workspace-context");
-    const { isDemoWiseWorkspaceSlug } = await import("@/lib/treasury/bank-provider");
-    const { getDemoEnterpriseFixtures } = await import("@/lib/demo-enterprise");
-    const workspace = await getCurrentWorkspace();
-    if (isDemoWiseWorkspaceSlug(workspace?.slug ?? null)) {
-      const fixtures = getDemoEnterpriseFixtures();
-      const categories = fixtures.details.categories.map((row) => ({
-        id: `custom-${row.id}` as const,
-        label: row.label,
-        folderName: row.label,
-        builtin: false as const,
-      }));
-      const contents: Record<string, string> = {};
-      const tasks: Record<string, Unit311DetailTask[]> = {};
-      for (const row of fixtures.details.categories) {
-        contents[`custom-${row.id}`] = row.content;
-        tasks[`custom-${row.id}`] = [];
+export async function getUnit311DetailsOverview(
+  scope?: FilesWorkspaceScope,
+  profile: InformationRepositoryProfile = UNIT311_DETAILS_REPOSITORY_PROFILE,
+) {
+  if (profile.id === UNIT311_DETAILS_REPOSITORY_PROFILE.id) {
+    try {
+      const { getCurrentWorkspace } = await import("@/lib/workspace-context");
+      const { isDemoWiseWorkspaceSlug } = await import("@/lib/treasury/bank-provider");
+      const { getDemoEnterpriseFixtures } = await import("@/lib/demo-enterprise");
+      const workspace = await getCurrentWorkspace();
+      if (isDemoWiseWorkspaceSlug(workspace?.slug ?? null)) {
+        const fixtures = getDemoEnterpriseFixtures();
+        const categories = fixtures.details.categories.map((row) => ({
+          id: `custom-${row.id}` as const,
+          label: row.label,
+          folderName: row.label,
+          builtin: false as const,
+        }));
+        const contents: Record<string, string> = {};
+        const tasks: Record<string, Unit311DetailTask[]> = {};
+        for (const row of fixtures.details.categories) {
+          contents[`custom-${row.id}`] = row.content;
+          tasks[`custom-${row.id}`] = [];
+        }
+        return {
+          rootFolderId: "demo-mag-details-root",
+          folders: Object.fromEntries(categories.map((c) => [c.id, `demo-folder-${c.id}`])),
+          categories,
+          contents,
+          tasks,
+        };
       }
-      return {
-        rootFolderId: "demo-mag-details-root",
-        folders: Object.fromEntries(categories.map((c) => [c.id, `demo-folder-${c.id}`])),
-        categories,
-        contents,
-        tasks,
-      };
+    } catch (error) {
+      console.warn("[unit311-details] Demo overview short-circuit failed", error);
     }
-  } catch (error) {
-    console.warn("[unit311-details] Demo overview short-circuit failed", error);
   }
 
   // Folder bootstrap only — do not read every section's storage files here.
   // Content/tasks load on category select so the Details grid appears immediately.
-  const refreshed = await ensureUnit311DetailsFolders(scope);
+  await ensureUnit311DetailsFolders(scope, profile);
 
-  // Ensure the Cyber Resilience Act section button/folder exists (no duplicate).
-  try {
-    const { ensureCyberResilienceActSection } = await import(
-      "@/lib/unit311-details-doc-pack-service"
-    );
-    await ensureCyberResilienceActSection(scope);
-  } catch (error) {
-    console.warn("[unit311-details] CRA section ensure failed", error);
+  if (profile.id === UNIT311_DETAILS_REPOSITORY_PROFILE.id) {
+    // Ensure the Cyber Resilience Act section button/folder exists (no duplicate).
+    try {
+      const { ensureCyberResilienceActSection } = await import(
+        "@/lib/unit311-details-doc-pack-service"
+      );
+      await ensureCyberResilienceActSection(scope);
+    } catch (error) {
+      console.warn("[unit311-details] CRA section ensure failed", error);
+    }
   }
 
-  const latest = await ensureUnit311DetailsFolders(scope);
+  const latest = await ensureUnit311DetailsFolders(scope, profile);
 
   return {
     rootFolderId: latest.rootFolderId,
@@ -698,7 +721,10 @@ export function parseUnit311DetailCategoryId(value: string | null): Unit311Detai
   return null;
 }
 
-export async function listUnit311DetailsRootEntries(scope?: FilesWorkspaceScope) {
-  const { rootFolderId } = await ensureUnit311DetailsFolders(scope);
+export async function listUnit311DetailsRootEntries(
+  scope?: FilesWorkspaceScope,
+  profile: InformationRepositoryProfile = UNIT311_DETAILS_REPOSITORY_PROFILE,
+) {
+  const { rootFolderId } = await ensureUnit311DetailsFolders(scope, profile);
   return browseFolder({ folderId: rootFolderId }, scope);
 }

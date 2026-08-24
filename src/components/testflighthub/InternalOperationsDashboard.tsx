@@ -269,6 +269,7 @@ import {
   CourseBuilderWorkspace,
   TqmsReportsWorkspace,
   Unit311DetailsWorkspace,
+  InterfaceWorxInformationRepositoryWorkspace,
   UserManagementWorkspace,
   WebODMWorkspace,
   WebsiteManagementWorkspace,
@@ -317,6 +318,7 @@ import { NorthstarIntelligenceRouter } from "@/components/demo/intelligence/Nort
 import IntelligenceCentralWorkspace from "@/components/intelligence/IntelligenceCentralWorkspace";
 import QaTasksWorkspace from "@/components/qa-workspace/QaTasksWorkspace";
 import { isTestWorkspaceSlug } from "@/lib/qa-workspace/surface";
+import { isInterfaceWorxSlug } from "@/lib/interface-worx-surface";
 import { isIntelligenceOperationsView } from "@/lib/intelligence/views";
 import NorthstarBusinessCentralDashboard from "@/components/demo/NorthstarBusinessCentralDashboard";
 import {
@@ -1238,6 +1240,7 @@ export default function InternalOperationsDashboard({
           )}
 
           {activeView === "unit311-details" && <Unit311DetailsWorkspace />}
+          {activeView === "information-repository" && <InterfaceWorxInformationRepositoryWorkspace />}
 
           {activeView === "module-go-live" && <ModuleGoLiveWorkspace />}
 
@@ -1605,6 +1608,12 @@ function AccessViewGuard({
       return;
     }
     if (activeView === "qa-tasks" && isTestWorkspaceSlug(workspaceSlug)) {
+      return;
+    }
+    if (activeView === "information-repository") {
+      if (!isInterfaceWorxSlug(workspaceSlug)) {
+        onRedirect("home");
+      }
       return;
     }
     if (isFundraisingModuleView(activeView) && !isFundraisingModuleEnabled(enabledModules)) {
