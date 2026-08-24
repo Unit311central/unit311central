@@ -10,7 +10,6 @@ import {
 } from "@/lib/internal-operations-data";
 
 import { isBrowserDemoSurface } from "@/lib/demo-enterprise";
-import NorthstarCompanyDetailsWorkspace from "@/components/demo/NorthstarCompanyDetailsWorkspace";
 
 import BankAccountsWorkspace from "./BankAccountsWorkspace";
 import BoardDirectorsWorkspace from "./BoardDirectorsWorkspace";
@@ -68,9 +67,7 @@ export default function CorporateInformationWorkspace({
 
   return (
     <div className="space-y-4">
-      {tab === "company-details" ? (
-        isBrowserDemoSurface() ? <NorthstarCompanyDetailsWorkspace /> : <CompanyDetailsWorkspace />
-      ) : null}
+      {tab === "company-details" ? <CompanyDetailsWorkspace /> : null}
       {tab === "cap-table" ? <CapTableWorkspace /> : null}
       {tab === "office-locations" ? <OfficeLocationsWorkspace /> : null}
       {tab === "bank-accounts" ? <BankAccountsWorkspace /> : null}

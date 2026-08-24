@@ -847,7 +847,7 @@ function seedState(): ProcurementMockState {
       notes: `${fixtures.tag} ${row.category} supplier for ${fixtures.company.tradingName}.`,
       documents: [],
       category: row.category,
-      currency: "GBP",
+      currency: "USD",
       status: "active" as const,
     }));
     const { getNorthstarProcurementSeed } =
@@ -867,7 +867,7 @@ function seedState(): ProcurementMockState {
         supplierId: suppliers[index % Math.max(suppliers.length, 1)]?.id ?? "mag-sup-1",
         supplierName: row.supplier,
         contractValue: Number(String(row.value).replace(/[^0-9.]/g, "")) || 50_000,
-        currency: "GBP",
+        currency: "USD",
         startDate: row.startDate,
         renewalDate: row.expiryDate,
         noticePeriodDays: 60,

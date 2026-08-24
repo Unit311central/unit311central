@@ -30,7 +30,7 @@ import { useInternalOperationsBasePath } from "@/components/testflighthub/Intern
 
 import { getInternalNavHref } from "@/lib/internal-operations-data";
 
-import { formatSalesMoney } from "@/lib/sales-management-insights";
+import { formatSalesMoney, salesReportingCurrency } from "@/lib/sales-management-insights";
 
 import type { CrmLead } from "@/lib/crm-data";
 
@@ -118,7 +118,7 @@ export function SalesManagementMySalesTab() {
 
   };
 
-  const currency = "GBP";
+  const currency = salesReportingCurrency();
 
   const money = (value: number) => formatSalesMoney(value, currency);
 
