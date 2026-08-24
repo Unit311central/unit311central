@@ -69,6 +69,10 @@ import {
   DEMO_PREVIEW_HEADER,
   normalizeDemoPreviewSlug,
 } from "@/lib/demo/workspace-preview";
+import {
+  interfaceWorxWebsiteImplPath,
+  isInterfaceWorxWebsiteHost,
+} from "@/lib/interface-worx-surface";
 import { INTERNAL_WORKSPACE_SLUG } from "@/lib/workspace-host";
 
 /** Next.js / browser prefetch must not clear auth gates or bounce live sessions. */
@@ -221,6 +225,36 @@ export async function middleware(request: NextRequest) {
   // Internal workspace slug must never be a customer subdomain host.
   if (normalizedHost === `unit311.${UNIT311_SITE_HOST}`) {
     return redirectExternal(`${INTERNAL_SITE_URL}${pathname === "/" ? "" : pathname}${search}`);
+  }
+
+  // --- Interface Worx draft public website (iw-website.*) — not a workspace host ---
+  if (isInterfaceWorxWebsiteHost(host)) {
+    const headers = new Headers(request.headers);
+    headers.set("x-unit311-bare-chrome", "1");
+    headers.set("x-unit311-interface-worx-website", "1");
+
+    if (pathname.startsWith("/api/") || pathname.startsWith("/_next/")) {
+      return NextResponse.next({ request: { headers } });
+    }
+
+    const normalizedPath =
+      pathname === "/" || pathname === "" ? "/" : pathname.replace(/\/$/, "");
+    const allowed =
+      normalizedPath === "/" || normalizedPath === "/about" || normalizedPath === "/contact";
+
+    if (!allowed) {
+      return redirectExternal(`https://${host}/`);
+    }
+
+    const implPath = interfaceWorxWebsiteImplPath(normalizedPath);
+    const response = rewriteTo(request, implPath, headers, {
+      "x-unit311-interface-worx-website": "1",
+    });
+    response.headers.set(
+      "Cache-Control",
+      "private, no-cache, no-store, max-age=0, must-revalidate",
+    );
+    return response;
   }
 
   // --- Customer workspace hosts: route into the app (existence checked in /ws/[slug]) ---

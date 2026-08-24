@@ -1,5 +1,10 @@
 /** Website Management (MOD-150 / program MOD-610). */
 
+import {
+  INTERFACE_WORX_WEBSITE_HOST,
+  INTERFACE_WORX_WEBSITE_URL,
+} from "@/lib/interface-worx-surface";
+
 export const WEBSITE_CMS_TYPES = ["WordPress", "Other"] as const;
 export type WebsiteCmsType = (typeof WEBSITE_CMS_TYPES)[number];
 
@@ -99,6 +104,39 @@ export function createSeedWebsites(): ManagedWebsite[] {
     }
 
     try {
+      const { isBrowserInterfaceWorxSurface } =
+        require("@/lib/interface-worx-surface") as typeof import("@/lib/interface-worx-surface");
+      if (isBrowserInterfaceWorxSurface()) {
+        return [
+          {
+            id: "web-iw-001",
+            name: "Interface Worx Draft Website",
+            cms: "Other",
+            url: INTERFACE_WORX_WEBSITE_URL,
+            restApiUrl: "",
+            environment: "Development",
+            domain: INTERFACE_WORX_WEBSITE_HOST,
+            sslStatus: "Valid",
+            lastDeployment: "2026-08-24T00:00:00Z",
+            lastSync: "2026-08-24T00:00:00Z",
+            pages: 3,
+            posts: 0,
+            media: 1,
+            pluginUpdates: 0,
+            themeUpdates: 0,
+            backups: 0,
+            analyticsVisitors: 0,
+            connectionStatus: "connected",
+            providerCode: "cms.other",
+            clientName: "Interface Worx",
+          },
+        ];
+      }
+    } catch {
+      // Fall through.
+    }
+
+    try {
       const { isBrowserDemoSurface, getDemoEnterpriseFixtures } =
         require("@/lib/demo-enterprise") as typeof import("@/lib/demo-enterprise");
       if (isBrowserDemoSurface()) {
@@ -185,13 +223,14 @@ export function createSeedWebsites(): ManagedWebsite[] {
 export function createSeedWebsiteContent(websiteId: string): WebsiteContentItem[] {
   const isDemo = websiteId.startsWith("web-mag-");
   const isAbhi = websiteId.startsWith("web-abhi-");
+  const isIw = websiteId.startsWith("web-iw-");
   return [
     { id: `${websiteId}-p1`, websiteId, kind: "Page", title: "Home", status: "Published", updatedAt: "2026-07-18", author: "Marketing" },
     {
       id: `${websiteId}-p2`,
       websiteId,
       kind: "Page",
-      title: isAbhi ? "Membership" : "Solutions",
+      title: isAbhi ? "Membership" : isIw ? "About" : "Solutions",
       status: "Published",
       updatedAt: "2026-07-16",
       author: "Marketing",
@@ -218,7 +257,7 @@ export function createSeedWebsiteContent(websiteId: string): WebsiteContentItem[
       id: `${websiteId}-m1`,
       websiteId,
       kind: "Media",
-      title: isAbhi ? "abhi-hero.jpg" : isDemo ? "hero-consulting.jpg" : "hero-drone.jpg",
+      title: isAbhi ? "abhi-hero.jpg" : isIw ? "hero.jpg" : isDemo ? "hero-consulting.jpg" : "hero-drone.jpg",
       status: "Published",
       updatedAt: "2026-07-10",
       author: "Design",
@@ -228,7 +267,7 @@ export function createSeedWebsiteContent(websiteId: string): WebsiteContentItem[
       id: `${websiteId}-t1`,
       websiteId,
       kind: "Theme",
-      title: isAbhi ? "ABHI Theme" : isDemo ? "Northstar Theme" : "Unit311 Theme",
+      title: isAbhi ? "ABHI Theme" : isIw ? "Interface Worx Theme" : isDemo ? "Northstar Theme" : "Unit311 Theme",
       status: "Published",
       updatedAt: "2026-06-20",
       author: "Design",

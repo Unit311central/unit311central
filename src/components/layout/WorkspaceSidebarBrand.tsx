@@ -6,6 +6,9 @@ import CorpCentreLogoMark, {
   isCorpCentreSlug,
 } from "@/components/layout/CorpCentreLogoMark";
 import AbhiLogoMark, { isAbhiSlug } from "@/components/layout/AbhiLogoMark";
+import InterfaceWorxLogoMark, {
+  isInterfaceWorxSlug,
+} from "@/components/layout/InterfaceWorxLogoMark";
 import NorthstarLogoMark, { isNorthstarDemoSlug } from "@/components/layout/NorthstarLogoMark";
 import OnwardAirLogoMark, { isOnwardAirSlug } from "@/components/layout/OnwardAirLogoMark";
 import TalantonLogoMark, {
@@ -53,6 +56,7 @@ type BrandKind =
   | "talanton"
   | "abhi"
   | "onwardair"
+  | "interfaceworx"
   | "customer";
 
 function resolveBrandKind(slug: string | null): BrandKind {
@@ -64,6 +68,7 @@ function resolveBrandKind(slug: string | null): BrandKind {
   if (isTalantonImpactSlug(slug)) return "talanton";
   if (isAbhiSlug(slug)) return "abhi";
   if (isOnwardAirSlug(slug)) return "onwardair";
+  if (isInterfaceWorxSlug(slug)) return "interfaceworx";
   return "customer";
 }
 
@@ -139,6 +144,8 @@ export default function WorkspaceSidebarBrand({
       <AbhiLogoMark height={32} tone="onDark" />
     ) : brand === "onwardair" ? (
       <OnwardAirLogoMark height={32} maxWidth={184} />
+    ) : brand === "interfaceworx" ? (
+      <InterfaceWorxLogoMark height={32} maxWidth={180} />
     ) : brand === "northstar" ? (
       <NorthstarLogoMark height={40} maxWidth={230} />
     ) : brand === "customer" ? (
@@ -167,6 +174,8 @@ export default function WorkspaceSidebarBrand({
           ? "ABHI home"
           : brand === "onwardair"
             ? "OnwardAir home"
+            : brand === "interfaceworx"
+              ? "Interface Worx home"
             : brand === "northstar"
               ? "Northstar Industrial Technologies home"
               : brand === "customer"

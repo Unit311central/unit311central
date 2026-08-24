@@ -12,6 +12,7 @@ import {
   isInternalOpsShellHost,
   parseClientPlatformSubdomainSafe,
 } from "@/lib/app-domains";
+import { isInterfaceWorxWebsiteHost } from "@/lib/interface-worx-surface";
 import { homeMetadata } from "@/lib/metadata";
 import {
   organizationJsonLd,
@@ -65,6 +66,7 @@ export default async function RootLayout({
   const hideMarketingChrome =
     Boolean(parseClientPlatformSubdomainSafe(host)) ||
     isInternalOpsShellHost(host) ||
+    isInterfaceWorxWebsiteHost(host) ||
     requestHeaders.get("x-unit311-bare-chrome") === "1";
 
   return (
