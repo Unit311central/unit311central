@@ -1358,7 +1358,21 @@ export default function InternalOperationsDashboard({
           {activeView === "technology-architecture" && <TechnologyArchitectureWorkspace />}
 
           {activeView === "technology-devices" && (
-            <TechnologyPlaceholderWorkspace module="devices" />
+            <div className="space-y-5">
+              {isDemoSurface ? <NorthstarAssetKpiBar /> : null}
+              <AssetManagementWorkspace
+                assets={assets}
+                categories={assetCategories}
+                locations={assetLocations}
+                clients={clients}
+                users={users}
+                selectedAssetId={selectedAssetId}
+                onSelectAsset={setSelectedAssetId}
+                onAssetsChange={setAssets}
+                onCategoriesChange={setAssetCategories}
+                onLocationsChange={setAssetLocations}
+              />
+            </div>
           )}
 
           {activeView === "technology-software-dashboard" && (

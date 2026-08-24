@@ -53,6 +53,17 @@ export const DEFAULT_ASSET_CATEGORIES = [
   "Software Licence",
 ] as const;
 
+/** Technology Management — hardware asset register categories (Central platform). */
+export const TECHNOLOGY_ASSET_CATEGORIES = [
+  "Laptop",
+  "Desktop",
+  "Monitor",
+  "Mobile",
+  "Networking Hardware",
+  "Server",
+  "Peripheral",
+] as const;
+
 export const DEFAULT_ASSET_LOCATIONS = ["Barcelona", "Porto", "Oxford"] as const;
 
 export const MODELS_BY_CATEGORY: Record<string, string[]> = {
@@ -75,6 +86,10 @@ export const MODELS_BY_CATEGORY: Record<string, string[]> = {
   "4G Connectivity": ["DJI Cellular Dongle 2", "DJI eSIM Dongle"],
   "Software Licence": ["FlightHub 2 Organisation", "DJI Terra Advanced", "DJI Modify"],
   Laptop: ["MacBook Pro 14\" M3", "Dell Latitude 5450", "Lenovo ThinkPad X1 Carbon"],
+  Desktop: ["Dell OptiPlex Tower", "HP EliteDesk", "Custom Workstation"],
+  Mobile: ["iPhone 15 Pro", "Samsung Galaxy S24", "Google Pixel 8"],
+  "Networking Hardware": ["Cisco Meraki MR46", "Ubiquiti UniFi AP", "Fortinet FortiGate 60F"],
+  Server: ["Dell PowerEdge R750", "HPE ProLiant DL380", "AWS Outpost rack"],
   "Mobile Phone": ["iPhone 15", "iPhone 15 Pro", "Samsung Galaxy S24"],
   Tablet: ["iPad Pro 11\"", "iPad 10th Gen"],
   Camera: ["Sony A7 IV", "Canon EOS R6 Mark II", "GoPro Hero 12"],
@@ -1136,27 +1151,29 @@ export function createInitialAssetRegistry(): AssetRegistryState {
       if (isBrowserDemoSurface()) {
         const fixtures = getDemoEnterpriseFixtures();
         const locations = fixtures.offices.map((office) => office.city);
+        const techCategories = [...TECHNOLOGY_ASSET_CATEGORIES];
         const assets = fixtures.assets.slice(0, 36).map((row, index) => {
           const office =
             fixtures.offices.find((item) => item.id === row.officeId) ?? fixtures.offices[0];
+          const category = techCategories[index % techCategories.length] ?? "Laptop";
           return buildSeedAsset({
             id: row.id,
             assetTag: `IT-${String(index + 1).padStart(4, "0")}`,
-            category: "IT Equipment",
+            category,
             location: office?.city ?? "Manchester",
-            model: row.sku ?? "Laptop",
-            serialNumber: `MAG-${index + 1}`,
+            model: row.sku ?? getModelsForCategory(category)[0] ?? "Laptop",
+            serialNumber: `NST-${String(index + 1).padStart(5, "0")}`,
             operationalStatus: "In Service",
             purchaseDate: new Date().toISOString().slice(0, 10),
             firmwareVersion: "N/A",
-            notes: `${fixtures.tag} Assigned to ${row.assignedTo}`,
+            notes: `${fixtures.tag} · assigned to ${row.assignedTo}`,
             assignedToUserId: null,
             assignedClientId: null,
           });
         });
         return {
           assets,
-          categories: [...DEFAULT_ASSET_CATEGORIES, "IT Equipment"],
+          categories: [...TECHNOLOGY_ASSET_CATEGORIES],
           locations: locations.length ? locations : [...DEFAULT_ASSET_LOCATIONS],
         };
       }

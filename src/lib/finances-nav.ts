@@ -29,8 +29,6 @@ export const FINANCES_SHELL_VIEWS = [
   "finances-ar-collections",
   "finances-ar-reporting",
   "finances-ap-payments",
-  "finances-expense-approvals",
-  "finances-expense-categories",
   "finances-banking-cash-position",
   "finances-banking-reconciliation",
   "finances-planning-budget",
@@ -75,22 +73,6 @@ export const FINANCES_SHELL_CONFIG: Record<FinancesShellView, FinancesShellConfi
       "Supplier payment runs and treasury funding will surface here. Review outstanding payables and supplier invoice drafts in Accounts Payable today.",
     relatedView: "accounts-payable",
     relatedLabel: "Open Accounts Payable",
-  },
-  "finances-expense-approvals": {
-    areaLabel: "Expenses",
-    sectionLabel: "Approvals",
-    summary:
-      "Review submitted employee expenses, approve reimbursements, and request changes.",
-    relatedView: "expenses",
-    relatedLabel: "Open Expenses approvals",
-  },
-  "finances-expense-categories": {
-    areaLabel: "Expenses",
-    sectionLabel: "Configuration",
-    summary:
-      "Manage workspace expense categories, billing codes, mileage rates, and payment schedule.",
-    relatedView: "expenses",
-    relatedLabel: "Open Expenses configuration",
   },
   "finances-banking-cash-position": {
     areaLabel: "Banking & Cash",
@@ -151,18 +133,14 @@ export function isFinancesShellView(view: string | null | undefined): view is Fi
   return (FINANCES_SHELL_VIEWS as readonly string[]).includes(String(view ?? ""));
 }
 
-/** Customer workspaces hide unfinished Finances leaves from navigation. */
+/** Unfinished Finances leaves stay off customer and Demo nav until implemented. Internal host may preview shells. */
 export function shouldHideFinancesShellLeaves(input: {
   workspaceSlug?: string | null;
   workspaceType?: string | null;
 }): boolean {
-  const slug = String(input.workspaceSlug ?? "")
-    .trim()
-    .toLowerCase();
   const type = String(input.workspaceType ?? "")
     .trim()
     .toLowerCase();
-  if (type === "demo" || slug === "demo") return false;
   if (type === "internal") return false;
   return true;
 }
@@ -312,8 +290,8 @@ export const FINANCES_DASHBOARD_AREAS: readonly {
   },
   {
     label: "Planning & Management",
-    description: "Budget, forecast, and management reporting (in progress).",
-    view: "finances-planning-budget",
+    description: "Budget, forecast, and management reporting (planned — not in current release).",
+    view: "financial-reports",
   },
   {
     label: "Financial Reports",

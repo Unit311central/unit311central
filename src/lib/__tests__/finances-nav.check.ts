@@ -43,11 +43,15 @@ assert.deepEqual(
 
 const built = buildFinancesNavSection();
 assert.equal(built.label, FINANCES_MODULE_LABEL);
-assert.equal(FINANCES_SHELL_VIEWS.length, 13);
+assert.equal(FINANCES_SHELL_VIEWS.length, 11);
 
-assert.equal(shouldHideFinancesShellLeaves({ workspaceType: "Demo", workspaceSlug: "demo" }), false);
+assert.equal(shouldHideFinancesShellLeaves({ workspaceType: "Demo", workspaceSlug: "demo" }), true);
 assert.equal(shouldHideFinancesShellLeaves({ workspaceType: "Internal", workspaceSlug: "unit311" }), false);
 assert.equal(shouldHideFinancesShellLeaves({ workspaceType: "Customer", workspaceSlug: "greendesert" }), true);
+
+const demoFinances = buildFinancesNavSection({ hideUnfinishedLeaves: true });
+const demoPlanning = demoFinances.items.find((item) => item.label === "Planning & Management");
+assert.equal(demoPlanning, undefined);
 
 const customerFinances = buildFinancesNavSection({ hideUnfinishedLeaves: true });
 const arChildren = customerFinances.items.find((item) => item.label === "Accounts Receivable")?.children ?? [];

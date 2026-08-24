@@ -309,8 +309,8 @@ export default function EnterprisePlatformSidebar({
       filterInternalNavSectionsByGrants(workspaceNavBase, allowedViews),
       { allowHostSurfaces: true },
     );
-    reconcileSidebarNavCustom(filtered);
-  }, [hydrated, allowedViews, entitlementsReady, workspaceNavBase]);
+    reconcileSidebarNavCustom(filtered, effectiveWorkspaceSlug);
+  }, [hydrated, allowedViews, entitlementsReady, workspaceNavBase, effectiveWorkspaceSlug]);
 
   useEffect(() => {
     const onTheme = (event: Event) => {
@@ -784,13 +784,13 @@ export default function EnterprisePlatformSidebar({
     );
     const withQaNav = injectTestWorkspaceQaNav(filtered, workspaceSlug);
     if (typeof window !== "undefined" && (hydrated || customerHostNav)) {
-      const custom = loadSidebarNavCustom(withQaNav);
+      const custom = loadSidebarNavCustom(withQaNav, effectiveWorkspaceSlug);
       return applySidebarSectionOrder(withQaNav, custom);
     }
     return withQaNav;
     // sectionOrderTick forces re-read after Settings saves.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [allowedViews, entitlementsReady, hydrated, sectionOrderTick, workspaceNavBase, customerHostNav]);
+  }, [allowedViews, entitlementsReady, hydrated, sectionOrderTick, workspaceNavBase, customerHostNav, effectiveWorkspaceSlug]);
 
   const pinSections = navSections.filter((section) => section.kind === "pin");
   const showWorkspaceSections =

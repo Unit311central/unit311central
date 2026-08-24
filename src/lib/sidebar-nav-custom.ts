@@ -7,6 +7,7 @@
  * the user reorders in Settings (`customized: true`). After that, stored order wins.
  */
 
+import { DEMO_WORKSPACE_SLUG } from "@/lib/app-domains";
 import type { InternalNavSection } from "@/lib/internal-operations-data";
 import {
   ABHI_LOCKED_SECTION_ORDER_KEYS,
@@ -105,7 +106,7 @@ export function resolveSidebarNavWorkspaceSlug(): string {
     return canonicalizeTalantonImpactSlug(slug) ?? slug;
   }
   if (host === "internal.unit311central.com" || host === "internal.localhost") return "internal";
-  if (host === "demo.unit311central.com" || host === "demo.localhost") return "central";
+  if (host === "demo.unit311central.com" || host === "demo.localhost") return DEMO_WORKSPACE_SLUG;
   return "";
 }
 
@@ -132,11 +133,11 @@ function migrateLegacySidebarNavCustom(
   const scoped = window.localStorage.getItem(scopedKey);
   if (scoped) return scoped;
 
-  if (slug === "central") {
-    const demoScoped = window.localStorage.getItem(`${SIDEBAR_NAV_CUSTOM_STORAGE_KEY}:demo`);
-    if (demoScoped) {
-      window.localStorage.setItem(scopedKey, demoScoped);
-      return demoScoped;
+  if (slug === DEMO_WORKSPACE_SLUG) {
+    const legacyCentral = window.localStorage.getItem(`${SIDEBAR_NAV_CUSTOM_STORAGE_KEY}:central`);
+    if (legacyCentral) {
+      window.localStorage.setItem(scopedKey, legacyCentral);
+      return legacyCentral;
     }
   }
 
@@ -378,12 +379,14 @@ function buildNavCustomPayload(
 
 export function loadSidebarNavCustom(
   sections: readonly InternalNavSection[],
+  workspaceSlug?: string | null,
 ): SidebarNavCustomStorage {
   const fallback = emptyNavCustomStorage(sections);
   if (typeof window === "undefined") return fallback;
 
   try {
-    const raw = migrateLegacySidebarNavCustom(sections) ?? readSidebarNavCustomRaw();
+    const raw =
+      migrateLegacySidebarNavCustom(sections, workspaceSlug) ?? readSidebarNavCustomRaw(workspaceSlug);
     if (!raw) return fallback;
     const parsed = JSON.parse(raw) as Partial<SidebarNavCustomStorage>;
     const storedVersion = Number(parsed.version ?? 1);
@@ -437,14 +440,16 @@ export function loadSidebarNavCustom(
  */
 export function reconcileSidebarNavCustom(
   sections: readonly InternalNavSection[],
+  workspaceSlug?: string | null,
 ): SidebarNavCustomStorage {
-  const next = loadSidebarNavCustom(sections);
+  const next = loadSidebarNavCustom(sections, workspaceSlug);
   if (typeof window === "undefined") return next;
 
   try {
-    const raw = migrateLegacySidebarNavCustom(sections) ?? readSidebarNavCustomRaw();
+    const raw =
+      migrateLegacySidebarNavCustom(sections, workspaceSlug) ?? readSidebarNavCustomRaw(workspaceSlug);
     if (!raw) {
-      saveSidebarNavCustom(next);
+      saveSidebarNavCustom(next, workspaceSlug);
       return next;
     }
     const parsed = JSON.parse(raw) as Partial<SidebarNavCustomStorage>;
@@ -460,8 +465,15 @@ export function reconcileSidebarNavCustom(
       (isOnwardAirLockedSectionBundle(sections) && storedVersion < 5 && parsed.customized !== true) ||
       (lockedHost && storedVersion < 6 && parsed.customized !== true)
     ) {
-      saveSidebarNavCustom(next);
+      saveSidebarNavCustom(next, workspaceSlug);
       return next;
+    }
+
+    if (parsed.customized === true) {
+      const movable = sections.filter(isMovableWorkspaceSection).map(getNavSectionKey);
+      const prev = parsed.sectionOrder ?? [];
+      const missingKeys = movable.filter((key) => !prev.includes(key));
+      if (missingKeys.length === 0) return next;
     }
 
     const movable = sections.filter(isMovableWorkspaceSection).map(getNavSectionKey);
@@ -478,14 +490,17 @@ export function reconcileSidebarNavCustom(
             sections,
           ),
     };
-    saveSidebarNavCustom(payload);
+    saveSidebarNavCustom(payload, workspaceSlug);
     return payload;
   } catch {
     return next;
   }
 }
 
-export function saveSidebarNavCustom(next: SidebarNavCustomStorage) {
+export function saveSidebarNavCustom(
+  next: SidebarNavCustomStorage,
+  workspaceSlug?: string | null,
+) {
   if (typeof window === "undefined") return;
   const payload: SidebarNavCustomStorage = {
     version: next.version,
@@ -494,7 +509,7 @@ export function saveSidebarNavCustom(next: SidebarNavCustomStorage) {
     hidden: next.hidden,
     customItems: next.customItems,
   };
-  window.localStorage.setItem(sidebarNavCustomStorageKey(), JSON.stringify(payload));
+  window.localStorage.setItem(sidebarNavCustomStorageKey(workspaceSlug), JSON.stringify(payload));
   window.dispatchEvent(new CustomEvent(SIDEBAR_NAV_CUSTOM_EVENT));
 }
 
