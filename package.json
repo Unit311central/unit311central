@@ -40,6 +40,7 @@
     "prove:track-c": "node --import tsx src/lib/accounting/__tests__/track-c-money-workflow.check.ts && node scripts/prove-track-c.mjs",
     "prove:northstar-demo": "node scripts/prove-northstar-demo.mjs",
     "prove:demo-readonly": "node scripts/prove-demo-readonly.mjs",
+    "prove:demo-acceptance": "node scripts/prove-demo-acceptance.mjs",
     "prove:pm-nav": "node --import tsx src/lib/__tests__/project-management-nav.check.ts",
     "prove:sales-management-nav": "node --require ./scripts/test-server-only-hook.cjs --import tsx src/lib/__tests__/sales-management-nav.check.ts",
     "prove:demo-auth-return-to": "node --import tsx src/lib/__tests__/demo-auth-return-to.check.ts",

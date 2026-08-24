@@ -1,5 +1,6 @@
 /**
- * Prove demo@unit311central.com cannot mutate workspace data via /api/*.
+ * Prove Demo Owner (`demo@…`) can mutate workspace-scoped modules on the Demo host.
+ * Legacy financial bulk routes remain guarded separately where applicable.
  *
  * Usage:
  *   npm run prove:demo-readonly
@@ -14,77 +15,6 @@ const LOCAL_ORIGIN = "http://127.0.0.1:3000";
 const DEMO_USERNAME = "demo@unit311central.com";
 const DEMO_PASSWORD = process.env.DEMO_PROSPECT_PASSWORD ?? "Letmein2026$";
 
-const MUTATION_CASES = [
-  {
-    name: "financials expenses POST",
-    method: "POST",
-    path: "/api/financials/expenses",
-    body: {
-      submitterUserId: "user-demo-owner",
-      purposeDescription: "Prove readonly guard",
-      amount: 1,
-      currency: "GBP",
-    },
-  },
-  {
-    name: "financials expenses bulk POST",
-    method: "POST",
-    path: "/api/financials/expenses/bulk",
-    body: { action: "noop", ids: [] },
-  },
-  {
-    name: "crm leads POST",
-    method: "POST",
-    path: "/api/crm/leads",
-    body: {
-      companyName: "Prove Readonly Ltd",
-      contactName: "Test User",
-    },
-  },
-  {
-    name: "hr employees POST",
-    method: "POST",
-    path: "/api/hr/employees",
-    body: {
-      firstName: "Prove",
-      lastName: "Readonly",
-      email: "prove.readonly@example.com",
-    },
-  },
-  {
-    name: "projects POST",
-    method: "POST",
-    path: "/api/projects",
-    body: {
-      name: "Prove Readonly Project",
-      clientId: "client-demo-1",
-    },
-  },
-  {
-    name: "payroll runs POST",
-    method: "POST",
-    path: "/api/payroll/runs",
-    body: {
-      periodStart: "2026-08-01",
-      periodEnd: "2026-08-31",
-    },
-  },
-  {
-    name: "clients POST",
-    method: "POST",
-    path: "/api/clients",
-    body: {
-      companyName: "Prove Readonly Client",
-    },
-  },
-  {
-    name: "demo reset POST",
-    method: "POST",
-    path: "/api/demo/reset",
-    body: {},
-  },
-];
-
 function read(rel) {
   return readFileSync(join(process.cwd(), rel), "utf8");
 }
@@ -95,23 +25,10 @@ function staticChecks() {
 
   const core = read("src/lib/demo/mutation-guard-core.ts");
   assert.match(core, /evaluateDemoProspectMutationBlock/);
-  assert.match(core, /DEMO_MUTATION_EXEMPT_API_PREFIXES/);
-  assert.match(core, /\/api\/executive-assistant\//);
 
-  const guard = read("src/lib/demo/mutation-guard.ts");
-  assert.match(guard, /assertDemoMutationAllowed/);
-  assert.match(guard, /assertDemoMutationAllowedForRequest/);
-
-  const sampleRoutes = [
-    "src/app/api/financials/expenses/route.ts",
-    "src/app/api/crm/leads/route.ts",
-    "src/app/api/hr/employees/route.ts",
-    "src/app/api/projects/route.ts",
-  ];
-  for (const route of sampleRoutes) {
-    const content = read(route);
-    assert.match(content, /assertDemoMutationAllowedForRequest/);
-  }
+  const readOnly = read("src/lib/demo/read-only.ts");
+  assert.match(readOnly, /isDemoOwnerUsername/);
+  assert.match(readOnly, /DEMO_RELEASE_MODEL|Demo Owner/i);
 
   console.log("prove:demo-readonly static checks: OK");
 }
@@ -161,28 +78,32 @@ async function login(origin) {
   return cookie;
 }
 
-async function expectBlocked(origin, cookie, testCase) {
-  const res = await fetch(`${origin}${testCase.path}`, {
-    method: testCase.method,
+async function expectWorkPackageCreateAllowed(origin, cookie) {
+  const res = await fetch(`${origin}/api/internal-work-packages`, {
+    method: "POST",
     headers: {
       "Content-Type": "application/json",
       Cookie: cookie,
     },
-    body: JSON.stringify(testCase.body ?? {}),
+    body: JSON.stringify({
+      name: `Prove readonly guard ${Date.now()}`,
+      description: "Demo Owner mutation check",
+    }),
   });
   const payload = await res.json().catch(() => ({}));
-  if (res.status !== 403) {
+  if (res.status === 403 && /read-only|read only/i.test(String(payload.error ?? ""))) {
     throw new Error(
-      `${testCase.name}: expected 403, got ${res.status} — ${JSON.stringify(payload).slice(0, 200)}`,
+      `Demo Owner should not be read-only blocked: ${JSON.stringify(payload).slice(0, 200)}`,
     );
   }
-  const message = String(payload.error ?? "");
-  if (!/read-only|read only/i.test(message)) {
-    throw new Error(
-      `${testCase.name}: expected read-only error message, got ${JSON.stringify(payload).slice(0, 200)}`,
-    );
-  }
-  console.log(`  blocked: ${testCase.name} (${res.status})`);
+  assert.equal(res.status, 201, `expected 201 create, got ${res.status}`);
+  const id = payload.package?.id;
+  assert.ok(id, "package id required");
+  await fetch(`${origin}/api/internal-work-packages/${id}`, {
+    method: "DELETE",
+    headers: { Cookie: cookie },
+  });
+  console.log(`  allowed: POST /api/internal-work-packages (${res.status})`);
 }
 
 async function expectEaAllowed(origin, cookie) {
@@ -202,7 +123,7 @@ async function expectEaAllowed(origin, cookie) {
   if (res.status === 403) {
     const payload = await res.json().catch(() => ({}));
     throw new Error(
-      `EA chat should stay allowed for demo prospect, got 403: ${JSON.stringify(payload).slice(0, 200)}`,
+      `EA chat should stay allowed for Demo Owner, got 403: ${JSON.stringify(payload).slice(0, 200)}`,
     );
   }
   console.log(`  allowed: executive-assistant/chat (${res.status})`);
@@ -211,20 +132,19 @@ async function expectEaAllowed(origin, cookie) {
 async function runtimeChecks(origin) {
   console.log(`prove:demo-readonly runtime against ${origin}`);
   const cookie = await login(origin);
-
-  for (const testCase of MUTATION_CASES) {
-    await expectBlocked(origin, cookie, testCase);
-  }
+  await expectWorkPackageCreateAllowed(origin, cookie);
   await expectEaAllowed(origin, cookie);
 
-  const readRes = await fetch(`${origin}/api/financials/expenses`, {
+  const readRes = await fetch(`${origin}/api/internal-work-packages`, {
     headers: { Cookie: cookie },
   });
   if (readRes.status !== 200) {
     const body = await readRes.text();
-    throw new Error(`GET /api/financials/expenses expected 200, got ${readRes.status}: ${body.slice(0, 200)}`);
+    throw new Error(
+      `GET /api/internal-work-packages expected 200, got ${readRes.status}: ${body.slice(0, 200)}`,
+    );
   }
-  console.log(`  allowed: GET /api/financials/expenses (${readRes.status})`);
+  console.log(`  allowed: GET /api/internal-work-packages (${readRes.status})`);
 }
 
 async function main() {

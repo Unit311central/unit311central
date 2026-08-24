@@ -3,21 +3,29 @@ import { DEMO_WORKSPACE_SLUG } from "@/lib/app-domains";
 export const DEMO_PROSPECT_USERNAME = "demo@unit311central.com";
 export const DEMO_ADMIN_USERNAME = "admin@unit311central.com";
 
-export type DemoRole = "prospect" | "admin" | null;
+/** Demo host identities — see docs/DEMO_RELEASE_MODEL.md */
+export type DemoRole = "owner" | "platform-admin" | null;
 
 export function resolveDemoRole(username: string | null | undefined): DemoRole {
   const normalized = String(username ?? "").trim().toLowerCase();
-  if (normalized === DEMO_PROSPECT_USERNAME) return "prospect";
-  if (normalized === DEMO_ADMIN_USERNAME) return "admin";
+  if (normalized === DEMO_PROSPECT_USERNAME) return "owner";
+  if (normalized === DEMO_ADMIN_USERNAME) return "platform-admin";
   return null;
 }
 
-export function isDemoProspectUsername(username: string | null | undefined): boolean {
-  return resolveDemoRole(username) === "prospect";
+/** Demo Owner (`demo@…`) — primary Demo workspace account. */
+export function isDemoOwnerUsername(username: string | null | undefined): boolean {
+  return resolveDemoRole(username) === "owner";
 }
 
+/** Legacy alias used by /portals and fixture helpers. */
+export function isDemoProspectUsername(username: string | null | undefined): boolean {
+  return isDemoOwnerUsername(username);
+}
+
+/** Unit311 platform admin on Demo host (`admin@…`). */
 export function isDemoAdminUsername(username: string | null | undefined): boolean {
-  return resolveDemoRole(username) === "admin";
+  return resolveDemoRole(username) === "platform-admin";
 }
 
 /** Global Unit311 platform admin (internal + demo). */
@@ -51,9 +59,11 @@ export function isDemoReadOnlySession(input: {
   username?: string | null;
 }): boolean {
   if (!isDemoWorkspaceSlug(input.workspaceSlug)) return false;
-  return isDemoProspectUsername(input.username);
+  // Demo Owner and platform admin may mutate on the Demo workspace (DEMO_RELEASE_MODEL).
+  // Internal operators visiting Demo were never read-only; keep that behaviour.
+  return false;
 }
 
 export function demoMutationBlockedMessage(): string {
-  return "Demo is read-only for prospect users. Sign in as admin@unit311central.com to make changes or reset the Demo.";
+  return "This Demo workspace session is read-only. Sign in as the Demo Owner or admin@unit311central.com to make changes.";
 }

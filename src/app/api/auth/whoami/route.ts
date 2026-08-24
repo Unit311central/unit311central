@@ -69,6 +69,33 @@ export async function GET() {
       }
     }
 
+    if (workspace?.id && isSupabaseConfigured()) {
+      try {
+        const { createTenancyServerClient } = await import("@/lib/supabase/tenancy-server");
+        const supabase = createTenancyServerClient();
+        const { data: metadata } = await supabase
+          .from("workspace_admin_metadata")
+          .select("enabled_modules, enabled_sub_modules")
+          .eq("workspace_id", workspace.id)
+          .maybeSingle();
+        if (metadata?.enabled_modules?.length) {
+          payload.enabledModules = [...metadata.enabled_modules];
+        }
+        if (metadata?.enabled_sub_modules?.length) {
+          payload.enabledSubModules = [...metadata.enabled_sub_modules];
+        }
+      } catch {
+        /* optional nav enablement */
+      }
+    }
+
+    payload.allowedViews = applyDemoWorkspaceAllowedViews(
+      payload.allowedViews as InternalOperationsView[] | null,
+      payload.workspaceSlug ?? workspace?.slug ?? null,
+      payload.enabledModules ?? null,
+      payload.enabledSubModules ?? null,
+    );
+
     if (session.username?.trim().toLowerCase() === DEMO_ADMIN_USERNAME) {
       Object.assign(payload, applyUnit311GlobalAdminEntitlements(payload));
     }

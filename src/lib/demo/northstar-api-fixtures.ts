@@ -48,6 +48,8 @@ export function getNorthstarWhoamiPayload(session: PlatformSession | null) {
     workspaceSlug: "demo",
     workspaceName: fixtures.company.tradingName,
     workspaceLogoUrl: null as string | null,
+    enabledModules: null as string[] | null,
+    enabledSubModules: null as string[] | null,
   };
 }
 
