@@ -7,6 +7,7 @@ import {
   buildNorthstarCapTableSnapshot,
   NORTHSTAR_AUTHORISED_SHARES,
   NORTHSTAR_COMPANY_NAME,
+  NORTHSTAR_NOMINAL_PER_SHARE_GBP,
   type NorthstarCapTableRow,
   type NorthstarOptionGrant,
 } from "@/lib/demo/northstar-cap-table-data";
