@@ -41,6 +41,16 @@ export function resolveSlugReportingCurrency(slug: string | null | undefined): R
     /* optional at build edges */
   }
 
+  try {
+    const { isInterfaceWorxSlug, INTERFACE_WORX_REPORTING_CURRENCY } =
+      require("@/lib/interface-worx-surface") as typeof import("@/lib/interface-worx-surface");
+    if (isInterfaceWorxSlug(normalized)) {
+      return INTERFACE_WORX_REPORTING_CURRENCY as ReportingCurrency;
+    }
+  } catch {
+    /* optional at build edges */
+  }
+
   return DEFAULT_REPORTING_CURRENCY;
 }
 
@@ -76,6 +86,16 @@ export function resolveBrowserReportingCurrency(): ReportingCurrency {
     const { isBrowserDemoSurface } =
       require("@/lib/demo-enterprise/surface") as typeof import("@/lib/demo-enterprise/surface");
     if (isBrowserDemoSurface()) return DEFAULT_REPORTING_CURRENCY;
+  } catch {
+    /* optional at build edges */
+  }
+
+  try {
+    const { isBrowserInterfaceWorxSurface, INTERFACE_WORX_REPORTING_CURRENCY } =
+      require("@/lib/interface-worx-surface") as typeof import("@/lib/interface-worx-surface");
+    if (isBrowserInterfaceWorxSurface()) {
+      return INTERFACE_WORX_REPORTING_CURRENCY as ReportingCurrency;
+    }
   } catch {
     /* optional at build edges */
   }

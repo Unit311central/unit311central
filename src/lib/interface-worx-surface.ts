@@ -9,6 +9,8 @@ import { normalizeHost, UNIT311_SITE_HOST } from "@/lib/app-domains";
 
 export const INTERFACE_WORX_SLUG = "interfaceworx";
 
+export const INTERFACE_WORX_REPORTING_CURRENCY = "GBP";
+
 /** Draft public website subdomain (not a workspace slug). */
 export const INTERFACE_WORX_WEBSITE_SUBDOMAIN = "iw-website";
 
