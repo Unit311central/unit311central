@@ -206,7 +206,7 @@ export const NORTHSTAR_FUNDRAISING_PIPELINE_SEED: readonly FundraisingPipelineDe
     amountGbp: 2_500_000,
     owner: "Elena Hart",
     lastTouch: "2026-08-12",
-    notes: "Lead candidate for £5M seed round.",
+    notes: "Lead candidate for $5M seed round.",
     introDate: "2026-05-10",
     pitchSentDate: "2026-05-28",
   },
