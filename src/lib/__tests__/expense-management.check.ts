@@ -12,8 +12,8 @@ import { resolveExpenseAccess } from "@/lib/expense-management/permissions";
 import { migrationsMissingSatisfactionProbes } from "@/lib/migration-satisfaction-probes";
 import { UNIT311_PENDING_MIGRATIONS } from "@/lib/unit311-pending-migrations";
 
-test("migration 158 is registered with satisfaction probe", () => {
-  const migration = "supabase/migrations/158_expense_management_foundation.sql";
+test("migration 162 is registered with satisfaction probe", () => {
+  const migration = "supabase/migrations/162_expense_management_foundation.sql";
   assert.ok((UNIT311_PENDING_MIGRATIONS as readonly string[]).includes(migration));
   assert.equal(migrationsMissingSatisfactionProbes(UNIT311_PENDING_MIGRATIONS).includes(migration), false);
 });
