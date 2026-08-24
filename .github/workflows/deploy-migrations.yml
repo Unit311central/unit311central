@@ -2,6 +2,7 @@ name: Post-deploy migrations
 
 # POST pending migrations via authenticated production runner (apply step only).
 # Migration 150 satisfied in production (schema pre-existed; verified_skip is valid).
+# Migration 157: customer workspace reporting currency GBP → USD (data-only UPDATE).
 on:
   workflow_dispatch:
   push:
@@ -87,6 +88,15 @@ jobs:
               (.pending | index("supabase/migrations/150_workspace_admin_metadata.sql")) == null
             )
           ' >/dev/null
+          echo "$response" | jq -e '
+            (
+              ([.applied[]? | select(.migration == "supabase/migrations/157_customer_workspace_currency_usd.sql")] | length) == 1
+            ) or (
+              ([.skipped[]? | select(.migration == "supabase/migrations/157_customer_workspace_currency_usd.sql")] | length) == 1
+            ) or (
+              (.pending | index("supabase/migrations/157_customer_workspace_currency_usd.sql")) == null
+            )
+          ' >/dev/null
 
       - name: GET verify migration plan after apply
         env:
@@ -109,6 +119,9 @@ jobs:
           ' >/dev/null
           echo "$response" | jq -e '
             (.plan.satisfied | index("supabase/migrations/149_sales_management_foundation.sql")) != null
+          ' >/dev/null
+          echo "$response" | jq -e '
+            (.plan.satisfied | index("supabase/migrations/157_customer_workspace_currency_usd.sql")) != null
           ' >/dev/null
           echo "$response" | jq -e '
             ([.plan.actions[] | select(.kind == "apply")] | length) == 0
