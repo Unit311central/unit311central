@@ -530,6 +530,17 @@ export async function saveUnit311DetailContent(
   const txtName = detailTxtFileName(category.label);
   const txtBuffer = Buffer.from(content, "utf8");
 
+  if (txtBuffer.length === 0) {
+    await deleteNamedFilesInFolder(folderId, [docxName, txtName], scope);
+    return {
+      categoryId,
+      label: category.label,
+      folderId,
+      docxFileId: null,
+      docxFileName: docxName,
+    };
+  }
+
   // TXT is the machine-readable source of truth — write first, then retire old
   // copies. Never delete-before-write: a failed upload would wipe the register
   // and Module Go-Live would silently fall back to catalogue defaults.

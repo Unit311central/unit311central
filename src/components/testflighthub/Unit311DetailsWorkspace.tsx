@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, startTransition } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, startTransition } from "react";
 import {
   Check,
   Clock3,
@@ -140,6 +140,8 @@ export default function Unit311DetailsWorkspace() {
   const [packLabel, setPackLabel] = useState<string | null>(null);
   const [activePackDocId, setActivePackDocId] = useState<string | null>(null);
   const [packLoading, setPackLoading] = useState(false);
+  const selectedCategoryIdRef = useRef<string | null>(null);
+  const draftDirtyRef = useRef(false);
 
   const categoryRows = useMemo(
     () => groupRepositoryCategoriesIntoRows(categories, config.profile),
@@ -315,6 +317,10 @@ export default function Unit311DetailsWorkspace() {
   }, [loadDiagramIndex]);
 
   useEffect(() => {
+    selectedCategoryIdRef.current = selectedCategoryId;
+  }, [selectedCategoryId]);
+
+  useEffect(() => {
     startTransition(() => {
       void loadOverview();
     });
@@ -326,12 +332,16 @@ export default function Unit311DetailsWorkspace() {
         setDraft("");
         setTaskDraft([]);
         setDiagram(null);
+        draftDirtyRef.current = false;
         return;
       }
+      draftDirtyRef.current = false;
       setDraft(contents[selectedCategoryId] ?? "");
       setTaskDraft((tasksByCategory[selectedCategoryId] ?? []).map((task) => ({ ...task })));
     });
-  }, [contents, selectedCategoryId, tasksByCategory]);
+    // Only reset the editor when the selected tile changes — not when async loads update `contents`.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedCategoryId]);
 
   useEffect(() => {
     if (!features.architectureHub || !selectedCategoryId) return;
@@ -386,11 +396,17 @@ export default function Unit311DetailsWorkspace() {
         error?: string;
       }>(response);
       if (!response.ok) throw new Error(data.error ?? "Failed to load section");
-      setContents((current) => ({ ...current, [categoryId]: data.content ?? "" }));
+      const content = data.content ?? "";
+      const tasks = Array.isArray(data.tasks) ? data.tasks : [];
+      setContents((current) => ({ ...current, [categoryId]: content }));
       setTasksByCategory((current) => ({
         ...current,
-        [categoryId]: Array.isArray(data.tasks) ? data.tasks : [],
+        [categoryId]: tasks,
       }));
+      if (!draftDirtyRef.current && selectedCategoryIdRef.current === categoryId) {
+        setDraft(content);
+        setTaskDraft(tasks.map((task) => ({ ...task })));
+      }
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : "Failed to load section");
     }
@@ -453,6 +469,7 @@ export default function Unit311DetailsWorkspace() {
       if (!response.ok) throw new Error(data.error ?? "Failed to save details");
 
       setContents((current) => ({ ...current, [selectedCategoryId]: draft }));
+      draftDirtyRef.current = false;
       setSuccessMessage(data.docxFileName ? `Saved ${data.docxFileName}` : "Details saved");
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : "Failed to save");
@@ -1188,7 +1205,10 @@ export default function Unit311DetailsWorkspace() {
                 ) : activeTab === "details" ? (
                   <textarea
                     value={draft}
-                    onChange={(event) => setDraft(event.target.value)}
+                    onChange={(event) => {
+                      draftDirtyRef.current = true;
+                      setDraft(event.target.value);
+                    }}
                     placeholder={`Enter ${selectedCategory.label} details, links, credentials, and notes…`}
                     className="min-h-[18rem] flex-1 resize-y rounded-xl border border-white/10 bg-[#0b1524] px-4 py-3 text-sm leading-relaxed text-white outline-none focus:border-sky-400/50"
                   />
