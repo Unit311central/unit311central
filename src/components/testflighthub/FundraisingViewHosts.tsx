@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 
 import {
+  DemoFundraisingCapTableWorkspace,
   DemoFundraisingDashboardWorkspace,
   DemoFundraisingDataRoomsWorkspace,
   DemoFundraisingInvestorsWorkspace,
@@ -20,6 +21,7 @@ import {
 } from "@/components/onwardair/FundraisingWorkspaces";
 import { resolveFundraisingSurfaceKind } from "@/lib/fundraising-workspace-surface";
 
+import CapTableWorkspace from "./CapTableWorkspace";
 import { useOperatorEntitlements } from "./OperatorEntitlementsProvider";
 import { FundraisingCustomerEmptyWorkspace } from "./FundraisingCustomerEmptyWorkspace";
 
@@ -67,6 +69,17 @@ export function FundraisingInvestorsHost() {
       onwardair={<FundraisingInvestorsWorkspace />}
       customerTitle="Investors"
       customerSubtitle="Manage investor relationships and engagement for this workspace."
+    />
+  );
+}
+
+export function FundraisingCapTableHost() {
+  return (
+    <Host
+      demo={<DemoFundraisingCapTableWorkspace />}
+      onwardair={<CapTableWorkspace />}
+      customerTitle="Cap table"
+      customerSubtitle="Manage equity ownership and share classes for this workspace."
     />
   );
 }

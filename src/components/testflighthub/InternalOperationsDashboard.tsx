@@ -48,9 +48,6 @@ import { isBrowserOnwardAirSurface } from "@/lib/onwardair-surface";
 import NorthstarCorporateDashboard from "@/components/demo/NorthstarCorporateDashboard";
 import { isBrowserDemoSurface } from "@/lib/demo-enterprise";
 import {
-  DemoFundraisingCapTableWorkspace,
-} from "@/components/demo/DemoFundraisingWorkspaces";
-import {
   NorthstarBoardMeetingsWorkspace,
   NorthstarBoardPacksWorkspace,
   NorthstarBoardRisksWorkspace,
@@ -60,6 +57,7 @@ import {
   CUSTOMER_PLATFORM_HIDDEN_VIEWS,
 } from "@/lib/internal-role-views";
 import { isViewAllowedForWorkspaceGrants } from "@/lib/workspace-enabled-views";
+import { resolveWorkspaceNavEnablement } from "@/lib/platform-workspaces/workspace-product-nav";
 import {
   FINANCES_QUERY_PARAM_VIEWS,
   isFinancesShellView,
@@ -303,6 +301,7 @@ import {
   EngineeringTeamWorkspace,
 } from "@/components/onwardair/OnwardAirEngineeringWorkspaces";
 import {
+  FundraisingCapTableHost,
   FundraisingDashboardHost,
   FundraisingDataRoomsHost,
   FundraisingInvestorsHost,
@@ -1388,12 +1387,7 @@ export default function InternalOperationsDashboard({
 
           {activeView === "fundraising-dashboard" && <FundraisingDashboardHost />}
           {activeView === "fundraising-investors" && <FundraisingInvestorsHost />}
-          {activeView === "fundraising-cap-table" &&
-            (isBrowserDemoSurface() ? (
-              <DemoFundraisingCapTableWorkspace />
-            ) : (
-              <CapTableWorkspace />
-            ))}
+          {activeView === "fundraising-cap-table" && <FundraisingCapTableHost />}
           {activeView === "fundraising-pipeline" && <FundraisingPipelineHost />}
           {activeView === "fundraising-meetings" && <FundraisingMeetingsHost />}
           {activeView === "fundraising-pitch-decks" && <FundraisingPitchDecksHost />}
@@ -1595,8 +1589,20 @@ function AccessViewGuard({
   onRedirect: (view: InternalOperationsView) => void;
   isInternalHost: boolean;
 }) {
-  const { allowedViews, ready, workspaceSlug, enabledModules, enabledSubModules } =
+  const { allowedViews, ready, workspaceSlug, workspaceType, enabledModules, enabledSubModules } =
     useOperatorEntitlements();
+
+  const resolvedEnablement = useMemo(
+    () =>
+      resolveWorkspaceNavEnablement({
+        workspaceSlug,
+        workspaceType,
+        enabledModules,
+        enabledSubModules,
+        allowDefaultFallback: ready,
+      }),
+    [workspaceSlug, workspaceType, enabledModules, enabledSubModules, ready],
+  );
 
   useEffect(() => {
     if (!ready) return;
@@ -1619,18 +1625,37 @@ function AccessViewGuard({
       }
       return;
     }
-    if (isFundraisingModuleView(activeView) && !isFundraisingModuleEnabled(enabledModules)) {
+    if (
+      isFundraisingModuleView(activeView) &&
+      !isFundraisingModuleEnabled(resolvedEnablement.enabledModules, {
+        workspaceSlug,
+        workspaceType,
+        enabledSubModules: resolvedEnablement.enabledSubModules,
+      })
+    ) {
       onRedirect("home");
       return;
     }
     if (!isViewAllowedForWorkspaceGrants(activeView, allowedViews, {
       workspaceSlug,
-      enabledModules,
-      enabledSubModules,
+      enabledModules: resolvedEnablement.enabledModules,
+      enabledSubModules: resolvedEnablement.enabledSubModules,
     })) {
       onRedirect("home");
     }
-  }, [activeView, allowedViews, enabledModules, enabledSubModules, isInternalHost, onRedirect, ready, workspaceSlug]);
+  }, [
+    activeView,
+    allowedViews,
+    enabledModules,
+    enabledSubModules,
+    isInternalHost,
+    onRedirect,
+    ready,
+    resolvedEnablement.enabledModules,
+    resolvedEnablement.enabledSubModules,
+    workspaceSlug,
+    workspaceType,
+  ]);
 
   return null;
 }

@@ -54,8 +54,8 @@ import {
 import { brandFromWorkspaceClaim } from "@/lib/workspace-brand";
 
 function useFundraisingPresentation() {
-  const surface = resolveFundraisingSurfaceKind();
   const { workspaceSlug, workspaceName } = useOperatorEntitlements();
+  const surface = resolveFundraisingSurfaceKind(workspaceSlug);
   const isWorkspace = surface === "workspace";
 
   return {

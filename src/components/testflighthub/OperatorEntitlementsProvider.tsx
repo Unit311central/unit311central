@@ -10,7 +10,7 @@ import {
   type ReactNode,
 } from "react";
 
-import { parseClientPlatformSubdomainSafe } from "@/lib/app-domains";
+import { resolveBrowserPlatformCacheHostSlug } from "@/lib/demo-enterprise/workspace-tenancy-surface";
 import type { CommandCentreHomeTileId } from "@/lib/command-centre-home-tiles";
 import type { InternalOperationsView } from "@/lib/internal-operations-data";
 import { isViewAllowedForGrants } from "@/lib/internal-role-views";
@@ -83,7 +83,7 @@ type WhoamiPayload = {
 
 function readHostWorkspaceSlug(): string | null {
   if (typeof window === "undefined") return null;
-  return parseClientPlatformSubdomainSafe(window.location.hostname);
+  return resolveBrowserPlatformCacheHostSlug();
 }
 
 function readCachedWhoami(hostSlug: string | null): WhoamiPayload | null {
