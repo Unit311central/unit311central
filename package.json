@@ -41,6 +41,7 @@
     "prove:northstar-demo": "node scripts/prove-northstar-demo.mjs",
     "prove:demo-readonly": "node scripts/prove-demo-readonly.mjs",
     "prove:demo-acceptance": "node scripts/prove-demo-acceptance.mjs",
+    "prove:demo-browser-sweep": "node --import tsx scripts/build-demo-sweep-manifest.mjs && node scripts/prove-demo-browser-sweep.mjs",
     "prove:expenses-acceptance": "node scripts/prove-expenses-acceptance.mjs",
     "prove:telecom-migration-163": "node scripts/prove-telecom-migration-163.mjs",
     "prove:demo-fundraising-auth-ui": "node --import tsx src/lib/__tests__/demo-fundraising-auth-ui.check.ts && node --import tsx src/lib/__tests__/fundraising-workspace-surface.check.ts",
