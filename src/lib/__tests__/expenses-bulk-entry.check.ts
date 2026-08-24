@@ -7,7 +7,7 @@ import {
   syncBillingCodeFromCategory,
   validateBulkExpenseRows,
 } from "@/lib/expenses-bulk-entry";
-import { isCountableExpense, isExpenseDraft } from "@/lib/expenses-data";
+import { expenseFixture, isCountableExpense, isExpenseDraft } from "@/lib/expenses-data";
 
 const baseRow = {
   rowIndex: 0,
