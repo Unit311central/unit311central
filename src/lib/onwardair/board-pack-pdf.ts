@@ -5,6 +5,10 @@ import {
   ONWARDAIR_LOGO_INTRINSIC_WIDTH,
 } from "@/lib/onwardair-surface";
 import {
+  NORTHSTAR_LOGO_INTRINSIC_HEIGHT,
+  NORTHSTAR_LOGO_INTRINSIC_WIDTH,
+} from "@/lib/demo/northstar-surface";
+import {
   abhiRiskRatingBand,
   abhiRiskScore,
   abhiRiskTrendLabel,
@@ -114,6 +118,19 @@ function drawNorthstarWordmark(
   return subY - y + subPt * 0.35;
 }
 
+function logoDimensions(brand: AbhiBoardPackData | null | undefined, width: number) {
+  if (isNorthstarBoardPack(brand)) {
+    return {
+      w: width,
+      h: width * (NORTHSTAR_LOGO_INTRINSIC_HEIGHT / NORTHSTAR_LOGO_INTRINSIC_WIDTH),
+    };
+  }
+  return {
+    w: width,
+    h: width * (ONWARDAIR_LOGO_INTRINSIC_HEIGHT / ONWARDAIR_LOGO_INTRINSIC_WIDTH),
+  };
+}
+
 function drawLogo(
   doc: JsPdfDocument,
   logoDataUrl: string | null,
@@ -133,19 +150,12 @@ function drawLogo(
   try {
     const format = logoImageFormat(logoDataUrl);
     if (placement === "cover") {
-      const coverW = LOGO_W * 2.2;
-      const coverH = LOGO_H * 2.2;
+      const { w: coverW, h: coverH } = logoDimensions(brand, LOGO_W * 2.2);
       doc.addImage(logoDataUrl, format, MARGIN, 6, coverW, coverH);
       return;
     }
-    doc.addImage(
-      logoDataUrl,
-      format,
-      SLIDE_W - MARGIN - LOGO_W,
-      4,
-      LOGO_W,
-      LOGO_H,
-    );
+    const { w, h } = logoDimensions(brand, LOGO_W);
+    doc.addImage(logoDataUrl, format, SLIDE_W - MARGIN - w, 4, w, h);
   } catch {
     if (isNorthstarBoardPack(brand)) {
       if (placement === "cover") {

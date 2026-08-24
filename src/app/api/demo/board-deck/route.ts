@@ -73,7 +73,7 @@ function pdfResponse(
     headers: {
       "Content-Type": "application/pdf",
       "Content-Disposition": `${disposition}; filename="${asciiHeaderValue(filename)}"`,
-      "Cache-Control": "public, max-age=3600",
+      "Cache-Control": "no-store, max-age=0",
       "X-Northstar-Pack-Name": asciiHeaderValue(meta.packName),
       "X-Northstar-Meeting-Date": asciiHeaderValue(meta.meetingDate),
       "X-Northstar-Deck-Build": asciiHeaderValue(meta.build),
