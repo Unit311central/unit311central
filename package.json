@@ -41,6 +41,7 @@
     "prove:northstar-demo": "node scripts/prove-northstar-demo.mjs",
     "prove:demo-readonly": "node scripts/prove-demo-readonly.mjs",
     "prove:demo-acceptance": "node scripts/prove-demo-acceptance.mjs",
+    "prove:demo-fundraising-auth-ui": "node --import tsx src/lib/__tests__/demo-fundraising-auth-ui.check.ts && node --import tsx src/lib/__tests__/fundraising-workspace-surface.check.ts",
     "prove:pm-nav": "node --import tsx src/lib/__tests__/project-management-nav.check.ts",
     "prove:sales-management-nav": "node --require ./scripts/test-server-only-hook.cjs --import tsx src/lib/__tests__/sales-management-nav.check.ts",
     "prove:demo-auth-return-to": "node --import tsx src/lib/__tests__/demo-auth-return-to.check.ts",

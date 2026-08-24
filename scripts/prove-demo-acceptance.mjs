@@ -226,7 +226,48 @@ async function checkWhoami(origin, cookie) {
     "allowedViews shape",
   );
   console.log(`  whoami ${ms}ms — enabledModules: ${(res.json?.enabledModules ?? []).length || "null"}`);
-  return ms;
+  return { ms, whoami: res.json };
+}
+
+async function checkFundraisingEntitlements(origin, cookie, whoami) {
+  const staleCookie = `${cookie}; unit311_demo_preview_slug=onwardair`;
+  const staleWhoami = await fetchJson(origin, "/api/auth/whoami", staleCookie);
+  assert.equal(staleWhoami.json?.workspaceSlug, "demo", "stale preview cookie must not change whoami workspace");
+
+  const legacyStarterModules = [
+    "home",
+    "executive-assistant",
+    "business-central",
+    "financials",
+    "board",
+  ];
+  const modules = whoami?.enabledModules ?? [];
+  const usesLegacyStarter =
+    modules.length === legacyStarterModules.length &&
+    legacyStarterModules.every((id) => modules.includes(id));
+
+  if (usesLegacyStarter) {
+    console.log("  whoami uses legacy 5-module starter metadata — guard regression relies on resolved Demo enablement");
+  } else {
+    assert.ok(
+      modules.includes("fundraising"),
+      "Demo workspace metadata should include fundraising module after migration 161",
+    );
+  }
+
+  for (const view of VIEW_CHECKS.filter((row) => row.module === "Fundraising")) {
+    const res = await fetch(`${origin}/dashboard?view=${view.view}`, {
+      headers: { Cookie: staleCookie, Accept: "text/html" },
+      redirect: "manual",
+    });
+    const text = await res.text();
+    assert.equal(res.status, 200, `${view.sub} must stay on fundraising route with stale preview cookie`);
+    assert.doesNotMatch(
+      text,
+      /TALANTON INTELLIGENCE|OnwardAir · Fundraising|No fundraising records yet/i,
+      `${view.sub} leaked wrong tenant or empty fundraising shell in SSR`,
+    );
+  }
 }
 
 async function main() {
@@ -236,7 +277,8 @@ async function main() {
   const { cookie, ms: loginMs } = await login(origin);
   console.log(`  login ${loginMs}ms`);
 
-  await checkWhoami(origin, cookie);
+  const { whoami } = await checkWhoami(origin, cookie);
+  await checkFundraisingEntitlements(origin, cookie, whoami);
   await checkMigration159(origin, cookie);
   await checkWorkPackageCrud(origin, cookie);
   await checkApis(origin, cookie);

@@ -22,6 +22,14 @@ assert.equal(isFundraisingModuleEnabled(null), true);
 assert.equal(isFundraisingModuleEnabled([]), true);
 assert.equal(isFundraisingModuleEnabled(["home", "fundraising"]), true);
 assert.equal(isFundraisingModuleEnabled(["home", "financials"]), false);
+assert.equal(
+  isFundraisingModuleEnabled(["home", "financials"], {
+    workspaceSlug: "demo",
+    workspaceType: "Demo",
+    enabledSubModules: [],
+  }),
+  true,
+);
 
 assert.equal(
   buildFundraisingWorkspaceEyebrow({
@@ -43,7 +51,8 @@ const dashboard = readFileSync(
 );
 assert.match(dashboard, /FundraisingMeetingsHost/);
 assert.match(dashboard, /FundraisingDataRoomsHost/);
-assert.match(dashboard, /fundraising-cap-table[\s\S]*CapTableWorkspace/);
+assert.match(dashboard, /FundraisingCapTableHost/);
+assert.doesNotMatch(dashboard, /fundraising-cap-table[\s\S]*isBrowserDemoSurface\(\)/);
 assert.doesNotMatch(dashboard, /<FundraisingMeetingsWorkspace \/>/);
 
 const hosts = readFileSync(
