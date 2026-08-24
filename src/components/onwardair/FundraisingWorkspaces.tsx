@@ -38,6 +38,41 @@ import {
   corporateSecondaryButtonClass,
 } from "@/components/testflighthub/corporate-ui";
 import { useCorporateMockStore } from "@/components/testflighthub/useCorporateMockStore";
+import { useOperatorEntitlements } from "@/components/testflighthub/OperatorEntitlementsProvider";
+import {
+  buildFundraisingWorkspaceEyebrow,
+  resolveFundraisingSurfaceKind,
+} from "@/lib/fundraising-workspace-surface";
+import {
+  WORKSPACE_FUNDING_ROUNDS,
+  WORKSPACE_FUNDRAISING_DATA_ROOMS,
+  WORKSPACE_FUNDRAISING_MEETINGS,
+  WORKSPACE_FUNDRAISING_PIPELINE,
+  WORKSPACE_FUNDRAISING_PITCH_DECKS,
+  getWorkspacePreSeedFromCapTable,
+} from "@/lib/workspace-fundraising-data";
+import { brandFromWorkspaceClaim } from "@/lib/workspace-brand";
+
+function useFundraisingPresentation() {
+  const surface = resolveFundraisingSurfaceKind();
+  const { workspaceSlug, workspaceName } = useOperatorEntitlements();
+  const isWorkspace = surface === "workspace";
+
+  return {
+    isWorkspace,
+    eyebrow: isWorkspace
+      ? buildFundraisingWorkspaceEyebrow({ workspaceSlug, workspaceName })
+      : "OnwardAir · Fundraising",
+    fundingRounds: isWorkspace ? WORKSPACE_FUNDING_ROUNDS : FUNDING_ROUNDS,
+    pipeline: isWorkspace ? WORKSPACE_FUNDRAISING_PIPELINE : FUNDRAISING_PIPELINE,
+    meetings: isWorkspace ? WORKSPACE_FUNDRAISING_MEETINGS : FUNDRAISING_MEETINGS,
+    pitchDecks: isWorkspace ? WORKSPACE_FUNDRAISING_PITCH_DECKS : FUNDRAISING_PITCH_DECKS,
+    dataRooms: isWorkspace ? WORKSPACE_FUNDRAISING_DATA_ROOMS : FUNDRAISING_DATA_ROOMS,
+    seedRaiseTargetUsd: isWorkspace ? null : ONWARDAIR_SEED_RAISE_TARGET_USD,
+    capitalCommittedUsd: isWorkspace ? null : ONWARDAIR_CAPITAL_COMMITTED_USD,
+    resolvePreSeed: isWorkspace ? getWorkspacePreSeedFromCapTable : getPreSeedFromCapTable,
+  };
+}
 
 function roundStatusClass(status: FundingRoundStatus) {
   switch (status) {
@@ -77,14 +112,16 @@ function formatDateTime(iso: string) {
 function PageHeader({
   title,
   subtitle,
+  eyebrow,
 }: {
   title: string;
   subtitle: string;
+  eyebrow: string;
 }) {
   return (
     <header className="rounded-2xl border border-white/12 bg-white/[0.03] p-5 sm:p-6">
       <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/40">
-        OnwardAir · Fundraising
+        {eyebrow}
       </p>
       <h1 className="mt-1 text-2xl font-semibold tracking-tight text-white">{title}</h1>
       <p className="mt-2 max-w-2xl text-sm leading-relaxed text-white/55">{subtitle}</p>
@@ -106,18 +143,23 @@ function tdClass() {
 
 /** Fundraising Dashboard — KPI row + LHS round tiles + detail pane. */
 export function FundraisingDashboardWorkspace() {
+  const presentation = useFundraisingPresentation();
   const store = useCorporateMockStore();
   const preSeed = useMemo(
-    () => getPreSeedFromCapTable(store.shareholders),
-    [store.shareholders],
+    () => presentation.resolvePreSeed(store.shareholders),
+    [presentation, store.shareholders],
   );
   const [selectedRoundId, setSelectedRoundId] = useState<FundingRoundId>("pre-seed");
-  const selected = FUNDING_ROUNDS.find((r) => r.id === selectedRoundId) ?? FUNDING_ROUNDS[0];
-  const activeRaises = FUNDING_ROUNDS.filter((r) => r.status === "Active").length;
+  const selected =
+    presentation.fundingRounds.find((r) => r.id === selectedRoundId) ??
+    presentation.fundingRounds[0];
+  const activeRaises = presentation.fundingRounds.filter((r) => r.status === "Active").length;
 
   const raisedDisplay =
     selected.id === "pre-seed"
-      ? formatUsdCompact(preSeed.raisedUsd)
+      ? preSeed.raisedUsd > 0
+        ? formatUsdCompact(preSeed.raisedUsd)
+        : "—"
       : selected.status === "Active"
         ? "In progress"
         : "—";
@@ -125,14 +167,31 @@ export function FundraisingDashboardWorkspace() {
     selected.id === "pre-seed"
       ? String(preSeed.investorCount)
       : selected.status === "Active"
-        ? String(FUNDRAISING_PIPELINE.filter((d) => d.stage !== "Passed").length)
+        ? String(presentation.pipeline.filter((d) => d.stage !== "Passed").length)
         : "—";
   const targetDisplay =
-    selected.targetUsd != null ? formatUsdCompact(selected.targetUsd) : "—";
+    selected.targetUsd != null
+      ? formatUsdCompact(selected.targetUsd)
+      : presentation.seedRaiseTargetUsd != null
+        ? formatUsdCompact(presentation.seedRaiseTargetUsd)
+        : "—";
+  const committedDisplay =
+    presentation.capitalCommittedUsd != null
+      ? formatUsdCompact(presentation.capitalCommittedUsd)
+      : preSeed.raisedUsd > 0
+        ? formatUsdCompact(preSeed.raisedUsd)
+        : preSeed.investorCount > 0
+          ? String(preSeed.investorCount)
+          : "—";
+  const committedHint =
+    presentation.isWorkspace
+      ? "External investors · Cap Table"
+      : "Pre-Seed closed · Cap Table";
 
   return (
     <div className="mx-auto max-w-6xl space-y-5 px-1 py-6">
       <PageHeader
+        eyebrow={presentation.eyebrow}
         title="Dashboard"
         subtitle="Active raises, capital progress, and round detail. Pre-Seed figures sync from Cap Table Management."
       />
@@ -141,17 +200,17 @@ export function FundraisingDashboardWorkspace() {
         <CorporateKpiTile
           label="Active Raises"
           value={activeRaises}
-          hint="Seed round open"
+          hint={presentation.isWorkspace ? "Planned and active rounds" : "Seed round open"}
         />
         <CorporateKpiTile
           label="Raise Targets"
-          value={formatUsdCompact(ONWARDAIR_SEED_RAISE_TARGET_USD)}
-          hint="Seed target · active raise"
+          value={targetDisplay}
+          hint={presentation.isWorkspace ? "Configured round targets" : "Seed target · active raise"}
         />
         <CorporateKpiTile
           label="Capital Committed"
-          value={formatUsdCompact(ONWARDAIR_CAPITAL_COMMITTED_USD)}
-          hint="Pre-Seed closed · Cap Table"
+          value={committedDisplay}
+          hint={committedHint}
         />
       </section>
 
@@ -160,7 +219,7 @@ export function FundraisingDashboardWorkspace() {
           <p className="px-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/40">
             Rounds
           </p>
-          {FUNDING_ROUNDS.map((round) => {
+          {presentation.fundingRounds.map((round) => {
             const active = round.id === selectedRoundId;
             return (
               <button
@@ -267,26 +326,36 @@ export function FundraisingDashboardWorkspace() {
 
 /** Investors — sourced from Cap Table Management. */
 export function FundraisingInvestorsWorkspace() {
+  const presentation = useFundraisingPresentation();
   const store = useCorporateMockStore();
   const investors = useMemo(
-    () => getPreSeedFromCapTable(store.shareholders).investors,
-    [store.shareholders],
+    () => presentation.resolvePreSeed(store.shareholders).investors,
+    [presentation, store.shareholders],
   );
   const totalShares = investors.reduce((sum, row) => sum + row.shares, 0);
+  const committedDisplay =
+    presentation.capitalCommittedUsd != null
+      ? formatUsdCompact(presentation.capitalCommittedUsd)
+      : "—";
 
   return (
     <div className="mx-auto max-w-6xl space-y-5 px-1 py-6">
       <PageHeader
+        eyebrow={presentation.eyebrow}
         title="Investors"
-        subtitle="Investor records from Cap Table Management — external capital holders on the OnwardAir register."
+        subtitle={
+          presentation.isWorkspace
+            ? "Investor records from Cap Table Management — external capital holders on this workspace register."
+            : "Investor records from Cap Table Management — external capital holders on the OnwardAir register."
+        }
       />
 
       <section data-ai-target="fundraising-kpis" className="grid gap-3 sm:grid-cols-3">
         <CorporateKpiTile label="Investors" value={investors.length} hint="From cap table" />
         <CorporateKpiTile
           label="Capital Committed"
-          value={formatUsdCompact(ONWARDAIR_CAPITAL_COMMITTED_USD)}
-          hint="Pre-Seed · Cap Table"
+          value={committedDisplay}
+          hint={presentation.isWorkspace ? "Cap Table external investors" : "Pre-Seed · Cap Table"}
         />
         <CorporateKpiTile
           label="Shares held"
@@ -361,33 +430,47 @@ function stagePillClass(stage: string) {
 
 /** Pipeline — fake Seed round (ongoing / not finished). */
 export function FundraisingPipelineWorkspace() {
-  const openDeals = FUNDRAISING_PIPELINE.filter((d) => d.stage !== "Passed");
+  const presentation = useFundraisingPresentation();
+  const openDeals = presentation.pipeline.filter((d) => d.stage !== "Passed");
   const pipelineUsd = openDeals.reduce((sum, d) => sum + d.amountUsd, 0);
+  const seedTargetDisplay =
+    presentation.seedRaiseTargetUsd != null
+      ? formatUsdCompact(presentation.seedRaiseTargetUsd)
+      : "—";
 
   return (
     <div className="mx-auto max-w-6xl space-y-5 px-1 py-6">
       <PageHeader
+        eyebrow={presentation.eyebrow}
         title="Pipeline"
-        subtitle="Seed round in progress — investor progression across stages. Raise not finished."
+        subtitle={
+          presentation.isWorkspace
+            ? "Track investor progression across fundraising stages for this workspace."
+            : "Seed round in progress — investor progression across stages. Raise not finished."
+        }
       />
 
       <section data-ai-target="fundraising-kpis" className="grid gap-3 sm:grid-cols-3">
-        <CorporateKpiTile label="Open deals" value={openDeals.length} hint="Seed pipeline" />
+        <CorporateKpiTile
+          label="Open deals"
+          value={openDeals.length}
+          hint={presentation.isWorkspace ? "Active pipeline" : "Seed pipeline"}
+        />
         <CorporateKpiTile
           label="Pipeline value"
-          value={formatUsdCompact(pipelineUsd)}
+          value={pipelineUsd > 0 ? formatUsdCompact(pipelineUsd) : "—"}
           hint="Excludes passed"
         />
         <CorporateKpiTile
           label="Seed target"
-          value={formatUsdCompact(ONWARDAIR_SEED_RAISE_TARGET_USD)}
-          hint="Active raise target"
+          value={seedTargetDisplay}
+          hint={presentation.isWorkspace ? "Configured target" : "Active raise target"}
         />
       </section>
 
       <div className="grid gap-3 md:grid-cols-3 xl:grid-cols-6">
         {PIPELINE_STAGES.map((stage) => {
-          const count = FUNDRAISING_PIPELINE.filter((d) => d.stage === stage).length;
+          const count = presentation.pipeline.filter((d) => d.stage === stage).length;
           return (
             <div
               key={stage}
@@ -403,8 +486,12 @@ export function FundraisingPipelineWorkspace() {
       </div>
 
       <CorporateSection
-        title="Seed round deals"
-        subtitle="Demo pipeline for the ongoing Seed raise."
+        title={presentation.isWorkspace ? "Pipeline deals" : "Seed round deals"}
+        subtitle={
+          presentation.isWorkspace
+            ? "Workspace-owned fundraising pipeline records."
+            : "Demo pipeline for the ongoing Seed raise."
+        }
       >
         <div data-ai-target="fundraising-pipeline-table" className={tableWrapClass()}>
           <table className="min-w-full text-left">
@@ -420,7 +507,7 @@ export function FundraisingPipelineWorkspace() {
               </tr>
             </thead>
             <tbody>
-              {FUNDRAISING_PIPELINE.map((deal) => (
+              {presentation.pipeline.map((deal) => (
                 <tr key={deal.id} className="border-b border-white/5 last:border-0">
                   <td className={cn(tdClass(), "font-medium text-white")}>{deal.investor}</td>
                   <td className={tdClass()}>{deal.firm}</td>
@@ -437,6 +524,13 @@ export function FundraisingPipelineWorkspace() {
                   <td className={cn(tdClass(), "max-w-xs text-white/55")}>{deal.notes}</td>
                 </tr>
               ))}
+              {presentation.pipeline.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="px-3 py-8 text-center text-sm text-white/45">
+                    No pipeline deals yet. Add investor outreach records as your raise progresses.
+                  </td>
+                </tr>
+              ) : null}
             </tbody>
           </table>
         </div>
@@ -445,34 +539,48 @@ export function FundraisingPipelineWorkspace() {
   );
 }
 
-/** Meetings — five upcoming investor meetings (demo). */
+/** Meetings — upcoming investor meetings. */
 export function FundraisingMeetingsWorkspace() {
+  const presentation = useFundraisingPresentation();
+
   return (
     <div className="mx-auto max-w-6xl space-y-5 px-1 py-6">
       <PageHeader
+        eyebrow={presentation.eyebrow}
         title="Meetings"
-        subtitle="Upcoming meetings with potential Seed investors — dates, attendees, links, and deck status."
+        subtitle={
+          presentation.isWorkspace
+            ? "Schedule and track investor meetings for this workspace."
+            : "Upcoming meetings with potential Seed investors — dates, attendees, links, and deck status."
+        }
       />
 
       <section data-ai-target="fundraising-kpis" className="grid gap-3 sm:grid-cols-3">
         <CorporateKpiTile
           label="Upcoming"
-          value={FUNDRAISING_MEETINGS.length}
+          value={presentation.meetings.length}
           hint="Next investor sessions"
         />
         <CorporateKpiTile
           label="Deck sent"
-          value={FUNDRAISING_MEETINGS.filter((m) => m.pitchDeckSent).length}
+          value={presentation.meetings.filter((m) => m.pitchDeckSent).length}
           hint="Pitch deck already shared"
         />
         <CorporateKpiTile
           label="Confirmed"
-          value={FUNDRAISING_MEETINGS.filter((m) => m.status === "Confirmed").length}
+          value={presentation.meetings.filter((m) => m.status === "Confirmed").length}
           hint="Locked on calendar"
         />
       </section>
 
-      <CorporateSection title="Upcoming investor meetings" subtitle="Demo schedule for Seed outreach.">
+      <CorporateSection
+        title="Upcoming investor meetings"
+        subtitle={
+          presentation.isWorkspace
+            ? "Workspace-owned investor meeting schedule."
+            : "Demo schedule for Seed outreach."
+        }
+      >
         <div className={tableWrapClass()}>
           <table className="min-w-full text-left">
             <thead className="border-b border-white/10 bg-white/[0.03]">
@@ -487,7 +595,7 @@ export function FundraisingMeetingsWorkspace() {
               </tr>
             </thead>
             <tbody>
-              {FUNDRAISING_MEETINGS.map((m) => (
+              {presentation.meetings.map((m) => (
                 <tr key={m.id} className="border-b border-white/5 last:border-0">
                   <td className={tdClass()}>
                     <div className="flex items-center gap-2">
@@ -540,6 +648,13 @@ export function FundraisingMeetingsWorkspace() {
                   </td>
                 </tr>
               ))}
+              {presentation.meetings.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="px-3 py-8 text-center text-sm text-white/45">
+                    No investor meetings scheduled yet.
+                  </td>
+                </tr>
+              ) : null}
             </tbody>
           </table>
         </div>
@@ -577,8 +692,12 @@ function compareDeckVersions(a: PitchDeckVersion, b: PitchDeckVersion) {
 
 /** Pitch Decks — explorer with newest version first; add / edit / delete. */
 export function FundraisingPitchDecksWorkspace() {
+  const presentation = useFundraisingPresentation();
+  const { workspaceSlug, workspaceName } = useOperatorEntitlements();
+  const brand = brandFromWorkspaceClaim({ slug: workspaceSlug, name: workspaceName });
+  const deckBrandName = presentation.isWorkspace ? brand.displayName : "OnwardAir";
   const [decks, setDecks] = useState<PitchDeckVersion[]>(() =>
-    [...FUNDRAISING_PITCH_DECKS].sort(compareDeckVersions),
+    [...presentation.pitchDecks].sort(compareDeckVersions),
   );
   const [form, setForm] = useState<DeckFormState | null>(null);
 
@@ -593,8 +712,8 @@ export function FundraisingPitchDecksWorkspace() {
     setForm({
       ...emptyDeckForm(),
       version: next,
-      title: latest?.title ?? "OnwardAir Pitch Deck",
-      fileName: `OnwardAir_Pitch_v${next}.pdf`,
+      title: latest?.title ?? `${deckBrandName} Pitch Deck`,
+      fileName: `${deckBrandName.replace(/\s+/g, "_")}_Pitch_v${next}.pdf`,
     });
   }
 
@@ -659,6 +778,7 @@ export function FundraisingPitchDecksWorkspace() {
   return (
     <div className="mx-auto max-w-6xl space-y-5 px-1 py-6">
       <PageHeader
+        eyebrow={presentation.eyebrow}
         title="Pitch Decks"
         subtitle="Version explorer — newest deck at the top. Add, edit, or remove versions."
       />
@@ -813,36 +933,47 @@ export function FundraisingPitchDecksWorkspace() {
   );
 }
 
-/** Data Rooms — five current investors. */
+/** Data Rooms — investor diligence folders. */
 export function FundraisingDataRoomsWorkspace() {
+  const presentation = useFundraisingPresentation();
+
   return (
     <div className="mx-auto max-w-6xl space-y-5 px-1 py-6">
       <PageHeader
+        eyebrow={presentation.eyebrow}
         title="Data Rooms"
-        subtitle="Active investor data rooms — folder links and last update."
+        subtitle={
+          presentation.isWorkspace
+            ? "Share diligence materials with investors from this workspace."
+            : "Active investor data rooms — folder links and last update."
+        }
       />
 
       <section data-ai-target="fundraising-kpis" className="grid gap-3 sm:grid-cols-3">
         <CorporateKpiTile
           label="Active rooms"
-          value={FUNDRAISING_DATA_ROOMS.length}
+          value={presentation.dataRooms.length}
           hint="Current investors"
         />
         <CorporateKpiTile
           label="Open access"
-          value={FUNDRAISING_DATA_ROOMS.filter((r) => r.status === "Open").length}
+          value={presentation.dataRooms.filter((r) => r.status === "Open").length}
           hint="Full folder access"
         />
         <CorporateKpiTile
           label="Documents"
-          value={FUNDRAISING_DATA_ROOMS.reduce((sum, r) => sum + r.documents, 0)}
+          value={presentation.dataRooms.reduce((sum, r) => sum + r.documents, 0)}
           hint="Across all rooms"
         />
       </section>
 
       <CorporateSection
         title="Investor data rooms"
-        subtitle="One row per current investor data room."
+        subtitle={
+          presentation.isWorkspace
+            ? "Workspace-owned investor data rooms."
+            : "One row per current investor data room."
+        }
       >
         <div className={tableWrapClass()}>
           <table className="min-w-full text-left">
@@ -858,7 +989,7 @@ export function FundraisingDataRoomsWorkspace() {
               </tr>
             </thead>
             <tbody>
-              {FUNDRAISING_DATA_ROOMS.map((room) => (
+              {presentation.dataRooms.map((room) => (
                 <tr key={room.id} className="border-b border-white/5 last:border-0">
                   <td className={cn(tdClass(), "font-medium text-white")}>{room.investor}</td>
                   <td className={tdClass()}>{room.firm}</td>
@@ -892,6 +1023,13 @@ export function FundraisingDataRoomsWorkspace() {
                   </td>
                 </tr>
               ))}
+              {presentation.dataRooms.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="px-3 py-8 text-center text-sm text-white/45">
+                    No investor data rooms configured yet.
+                  </td>
+                </tr>
+              ) : null}
             </tbody>
           </table>
         </div>

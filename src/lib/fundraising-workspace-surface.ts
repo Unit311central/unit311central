@@ -1,8 +1,9 @@
 import { isBrowserDemoSurface } from "@/lib/demo-enterprise";
 import { isBrowserOnwardAirSurface } from "@/lib/onwardair-surface";
 import type { InternalOperationsView } from "@/lib/internal-operations-data";
+import { brandFromWorkspaceClaim } from "@/lib/workspace-brand";
 
-export type FundraisingSurfaceKind = "demo" | "onwardair" | "customer";
+export type FundraisingSurfaceKind = "demo" | "onwardair" | "workspace";
 
 export const FUNDRAISING_MODULE_VIEWS: ReadonlySet<InternalOperationsView> = new Set([
   "fundraising-dashboard",
@@ -17,7 +18,19 @@ export const FUNDRAISING_MODULE_VIEWS: ReadonlySet<InternalOperationsView> = new
 export function resolveFundraisingSurfaceKind(): FundraisingSurfaceKind {
   if (isBrowserDemoSurface()) return "demo";
   if (isBrowserOnwardAirSurface()) return "onwardair";
-  return "customer";
+  return "workspace";
+}
+
+/** Eyebrow line above workspace Fundraising pages (customer tenants). */
+export function buildFundraisingWorkspaceEyebrow(input: {
+  workspaceSlug?: string | null;
+  workspaceName?: string | null;
+}): string {
+  const brand = brandFromWorkspaceClaim({
+    slug: input.workspaceSlug,
+    name: input.workspaceName,
+  });
+  return `${brand.displayName} · Fundraising`;
 }
 
 export function isFundraisingModuleView(view: string | null | undefined): view is InternalOperationsView {

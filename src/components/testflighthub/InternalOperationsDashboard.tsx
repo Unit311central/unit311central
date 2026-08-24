@@ -1376,9 +1376,12 @@ export default function InternalOperationsDashboard({
 
           {activeView === "fundraising-dashboard" && <FundraisingDashboardHost />}
           {activeView === "fundraising-investors" && <FundraisingInvestorsHost />}
-          {activeView === "fundraising-cap-table" && isBrowserDemoSurface() && (
-            <DemoFundraisingCapTableWorkspace />
-          )}
+          {activeView === "fundraising-cap-table" &&
+            (isBrowserDemoSurface() ? (
+              <DemoFundraisingCapTableWorkspace />
+            ) : (
+              <CapTableWorkspace />
+            ))}
           {activeView === "fundraising-pipeline" && <FundraisingPipelineHost />}
           {activeView === "fundraising-meetings" && <FundraisingMeetingsHost />}
           {activeView === "fundraising-pitch-decks" && <FundraisingPitchDecksHost />}

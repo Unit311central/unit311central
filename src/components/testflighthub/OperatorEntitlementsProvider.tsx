@@ -41,6 +41,7 @@ export type OperatorEntitlements = {
   roleView: InternalRoleView | null;
   workspaceSlug: string | null;
   workspaceType: string | null;
+  workspaceName: string | null;
   enabledModules: string[] | null;
   enabledSubModules: string[] | null;
   ready: boolean;
@@ -56,6 +57,7 @@ const EMPTY_ENTITLEMENTS: OperatorEntitlements = {
   roleView: null,
   workspaceSlug: null,
   workspaceType: null,
+  workspaceName: null,
   enabledModules: null,
   enabledSubModules: null,
   ready: false,
@@ -89,6 +91,7 @@ function readCachedWhoami(): WhoamiPayload | null {
 function navCanRenderWithoutWhoami(snapshot: {
   workspaceSlug: string | null;
   workspaceType: string | null;
+  workspaceName: string | null;
   enabledModules: string[] | null;
 }): boolean {
   if (snapshot.enabledModules?.length) return true;
@@ -113,6 +116,7 @@ function buildEntitlementsFromPayload(
 
   const workspaceSlug = payload.workspaceSlug ?? hostSlug ?? null;
   const workspaceType = payload.workspaceType ?? null;
+  const workspaceName = payload.workspaceName ?? null;
   const enabledModules = payload.enabledModules ?? null;
   const enabledSubModules = payload.enabledSubModules ?? null;
 
@@ -126,6 +130,7 @@ function buildEntitlementsFromPayload(
     roleView,
     workspaceSlug,
     workspaceType,
+    workspaceName,
     enabledModules,
     enabledSubModules,
     ready,
@@ -142,6 +147,7 @@ function buildInitialEntitlementsState(
     ...serverSnapshot,
     workspaceSlug: serverSnapshot?.workspaceSlug ?? cached?.workspaceSlug ?? hostSlug ?? null,
     workspaceType: serverSnapshot?.workspaceType ?? cached?.workspaceType ?? null,
+    workspaceName: serverSnapshot?.workspaceName ?? cached?.workspaceName ?? null,
     enabledModules: serverSnapshot?.enabledModules ?? cached?.enabledModules ?? null,
     enabledSubModules: serverSnapshot?.enabledSubModules ?? cached?.enabledSubModules ?? null,
     allowedViews: serverSnapshot?.allowedViews ?? cached?.allowedViews ?? null,
@@ -160,6 +166,7 @@ function buildInitialEntitlementsState(
     navCanRenderWithoutWhoami({
       workspaceSlug: payload.workspaceSlug ?? hostSlug ?? null,
       workspaceType: payload.workspaceType ?? null,
+      workspaceName: payload.workspaceName ?? null,
       enabledModules: payload.enabledModules ?? null,
     }),
   );

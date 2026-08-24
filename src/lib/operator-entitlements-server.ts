@@ -25,6 +25,7 @@ export type OperatorEntitlementsSnapshot = {
   homeTiles?: CommandCentreHomeTileId[] | null;
   workspaceSlug?: string | null;
   workspaceType?: string | null;
+  workspaceName?: string | null;
   enabledModules?: string[] | null;
   enabledSubModules?: string[] | null;
 };
@@ -50,6 +51,7 @@ export async function loadOperatorEntitlementsSnapshot(
   const snapshot: OperatorEntitlementsSnapshot = {
     workspaceSlug: workspace?.slug ?? hostSlug ?? null,
     workspaceType: workspaceRecord?.workspaceType ?? null,
+    workspaceName: workspace?.name ?? workspaceRecord?.name ?? null,
     role: null,
     roles: [],
     department: null,
