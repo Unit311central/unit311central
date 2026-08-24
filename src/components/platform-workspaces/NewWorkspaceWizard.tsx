@@ -130,6 +130,17 @@ export function NewWorkspaceWizard() {
   const [employeeCsv, setEmployeeCsv] = useState("");
   const [clientCsv, setClientCsv] = useState("");
 
+  function resetWizard() {
+    setStep(0);
+    setState(initialState());
+    setBusy(false);
+    setCreated(null);
+    setProvisioning(false);
+    setProvisionError(null);
+    setEmployeeCsv("");
+    setClientCsv("");
+  }
+
   const allModulesSelected = useMemo(
     () =>
       WORKSPACE_MODULE_IDS.length > 0 &&
@@ -311,8 +322,9 @@ export function NewWorkspaceWizard() {
 
   return (
     <div className="space-y-5">
-      <header className="flex items-start gap-4">
-        <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-sky-400/30 bg-sky-500/15 text-sky-200">
+      <header className="flex items-start justify-between gap-4">
+        <div className="flex items-start gap-4">
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-sky-400/30 bg-sky-500/15 text-sky-200">
           <PlusCircle className="h-5 w-5" aria-hidden />
         </div>
         <div>
@@ -325,7 +337,24 @@ export function NewWorkspaceWizard() {
             authentication, hostname routing, and optional imports when you create the workspace.
           </p>
         </div>
+        </div>
+        {!created ? (
+          <button
+            type="button"
+            onClick={resetWizard}
+            className="shrink-0 rounded-xl border border-white/10 px-3 py-2 text-xs font-medium text-white/60 transition hover:bg-white/5 hover:text-white/85"
+          >
+            Reset form
+          </button>
+        ) : null}
       </header>
+
+      <form
+        autoComplete="off"
+        className="space-y-5"
+        onSubmit={(event) => event.preventDefault()}
+        name="unit311-new-workspace-provision"
+      >
 
       <div className="flex flex-wrap gap-2">
         {WIZARD_STEPS.map((label, index) => (
@@ -375,8 +404,28 @@ export function NewWorkspaceWizard() {
 
         {step === 1 ? (
           <div className="grid gap-4 md:grid-cols-2">
-            <WizardField label="Workspace name *" value={state.name} onChange={(value) => setState({ ...state, name: value, branding: { ...state.branding, displayName: value }, companyName: value, loginPage: { ...state.loginPage, title: value }, customerHostname: deriveDefaultCustomerHostname({ workspaceSlug: state.slug, workspaceName: value }), hostnameAvailable: null, hostnameMessage: null })} />
             <WizardField
+              fieldKey="workspace-name"
+              label="Workspace name *"
+              value={state.name}
+              onChange={(value) =>
+                setState({
+                  ...state,
+                  name: value,
+                  branding: { ...state.branding, displayName: value },
+                  companyName: value,
+                  loginPage: { ...state.loginPage, title: value },
+                  customerHostname: deriveDefaultCustomerHostname({
+                    workspaceSlug: state.slug,
+                    workspaceName: value,
+                  }),
+                  hostnameAvailable: null,
+                  hostnameMessage: null,
+                })
+              }
+            />
+            <WizardField
+              fieldKey="workspace-slug"
               label="Workspace slug *"
               value={state.slug}
               onChange={(value) => {
@@ -403,16 +452,61 @@ export function NewWorkspaceWizard() {
               }}
             />
             {state.slugMessage ? (
-              <p className={cn("md:col-span-2 text-sm", state.slugAvailable ? "text-emerald-200" : "text-rose-200")}>
-                {state.slugMessage}
-              </p>
+              <div className="md:col-span-2 space-y-1">
+                <p
+                  className={cn(
+                    "text-sm",
+                    state.slugAvailable ? "text-emerald-200" : "text-rose-200",
+                  )}
+                >
+                  {state.slugMessage}
+                </p>
+                {!state.slugAvailable ? (
+                  <p className="text-xs text-white/45">
+                    If you did not enter this workspace name, your browser may have restored a prior
+                    attempt. Click <span className="font-medium text-white/65">Reset form</span> and
+                    type the details again.
+                  </p>
+                ) : null}
+              </div>
             ) : null}
-            <WizardField label="Company / organisation *" value={state.companyName} onChange={(value) => setState({ ...state, companyName: value })} />
-            <WizardField label="Primary contact name *" value={state.contactName} onChange={(value) => setState({ ...state, contactName: value })} />
-            <WizardField label="Primary contact email *" value={state.contactEmail} onChange={(value) => setState({ ...state, contactEmail: value })} />
-            <WizardField label="Country" value={state.country} onChange={(value) => setState({ ...state, country: value })} />
-            <WizardField label="Timezone" value={state.timezone} onChange={(value) => setState({ ...state, timezone: value })} />
-            <WizardField label="Currency" value={state.currency} onChange={(value) => setState({ ...state, currency: value })} />
+            <WizardField
+              fieldKey="company-name"
+              label="Company / organisation *"
+              value={state.companyName}
+              onChange={(value) => setState({ ...state, companyName: value })}
+            />
+            <WizardField
+              fieldKey="contact-name"
+              label="Primary contact name *"
+              value={state.contactName}
+              onChange={(value) => setState({ ...state, contactName: value })}
+            />
+            <WizardField
+              fieldKey="contact-email"
+              label="Primary contact email *"
+              value={state.contactEmail}
+              autoComplete="off"
+              onChange={(value) => setState({ ...state, contactEmail: value })}
+            />
+            <WizardField
+              fieldKey="country"
+              label="Country"
+              value={state.country}
+              onChange={(value) => setState({ ...state, country: value })}
+            />
+            <WizardField
+              fieldKey="timezone"
+              label="Timezone"
+              value={state.timezone}
+              onChange={(value) => setState({ ...state, timezone: value })}
+            />
+            <WizardField
+              fieldKey="currency"
+              label="Currency"
+              value={state.currency}
+              onChange={(value) => setState({ ...state, currency: value })}
+            />
             <div className="md:col-span-2">
               <label className="text-[10px] font-medium uppercase tracking-[0.12em] text-white/45">
                 Description
@@ -666,6 +760,7 @@ export function NewWorkspaceWizard() {
           </button>
         ) : null}
       </div>
+      </form>
     </div>
   );
 }
@@ -676,23 +771,46 @@ function WizardField({
   onChange,
   onBlur,
   readOnly,
+  fieldKey,
+  autoComplete = "off",
+  type = "text",
 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
   onBlur?: () => void;
   readOnly?: boolean;
+  /** Stable id/name — avoids browser autofill heuristics on generic field names. */
+  fieldKey?: string;
+  autoComplete?: string;
+  type?: string;
 }) {
+  const [unlocked, setUnlocked] = useState(false);
+  const inputId = fieldKey ? `unit311-nw-${fieldKey}` : undefined;
+  const locked = !readOnly && !unlocked;
+
   return (
     <div>
-      <label className="text-[10px] font-medium uppercase tracking-[0.12em] text-white/45">
+      <label
+        htmlFor={inputId}
+        className="text-[10px] font-medium uppercase tracking-[0.12em] text-white/45"
+      >
         {label}
       </label>
       <input
+        id={inputId}
+        name={inputId}
+        type={type}
         value={value}
-        readOnly={readOnly}
+        readOnly={readOnly || locked}
+        autoComplete={autoComplete}
+        data-1p-ignore="true"
+        data-lpignore="true"
+        data-form-type="other"
+        onFocus={() => setUnlocked(true)}
         onBlur={onBlur}
         onChange={(event) => onChange(event.target.value)}
+        onInput={(event) => onChange(event.currentTarget.value)}
         className="mt-1.5 w-full rounded-xl border border-white/10 bg-[#0b1524] px-3 py-2 text-sm text-white outline-none focus:border-sky-400/50 read-only:opacity-70"
       />
     </div>
@@ -1083,6 +1201,7 @@ function InitialAdministratorStep({
       </p>
       <div className="grid gap-4 md:grid-cols-2">
         <WizardField
+          fieldKey="admin-first-name"
           label="First name *"
           value={state.initialAdministrator.firstName}
           onChange={(value) =>
@@ -1092,6 +1211,7 @@ function InitialAdministratorStep({
           }
         />
         <WizardField
+          fieldKey="admin-last-name"
           label="Last name *"
           value={state.initialAdministrator.lastName}
           onChange={(value) =>
@@ -1101,6 +1221,7 @@ function InitialAdministratorStep({
           }
         />
         <WizardField
+          fieldKey="admin-email"
           label="Email address *"
           value={state.initialAdministrator.email}
           onChange={(value) =>
@@ -1111,7 +1232,10 @@ function InitialAdministratorStep({
         />
         <div />
         <WizardField
+          fieldKey="admin-password"
           label="Password *"
+          type="password"
+          autoComplete="new-password"
           value={state.initialAdministrator.password}
           onChange={(value) =>
             onChange({
@@ -1120,7 +1244,10 @@ function InitialAdministratorStep({
           }
         />
         <WizardField
+          fieldKey="admin-password-confirm"
           label="Confirm password *"
+          type="password"
+          autoComplete="new-password"
           value={state.initialAdministrator.confirmPassword}
           onChange={(value) =>
             onChange({

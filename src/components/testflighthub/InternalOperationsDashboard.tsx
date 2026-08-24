@@ -491,6 +491,8 @@ export default function InternalOperationsDashboard({
   const [activeView, setActiveView] = useState<InternalOperationsView>(() =>
     readInitialView(searchParams, pathname, initialView),
   );
+  const [newWorkspaceWizardKey, setNewWorkspaceWizardKey] = useState(0);
+  const previousViewForWizardRef = useRef<InternalOperationsView | null>(null);
   const tutorialTabKey = useMemo(
     () => resolveTutorialTabKey(activeView, searchParams),
     [activeView, searchParams],
@@ -526,6 +528,16 @@ export default function InternalOperationsDashboard({
   useEffect(() => {
     setIsDemoSurface(isBrowserDemoSurface());
   }, []);
+
+  useEffect(() => {
+    if (
+      activeView === "workspaces-new" &&
+      previousViewForWizardRef.current !== "workspaces-new"
+    ) {
+      setNewWorkspaceWizardKey((current) => current + 1);
+    }
+    previousViewForWizardRef.current = activeView;
+  }, [activeView]);
 
   // Seed mock registries only when a module that needs them is first opened.
   // Resolve the registry in-effect so host-specific seeds (ABHI / CorpCentre) see `window`.
@@ -1288,7 +1300,7 @@ export default function InternalOperationsDashboard({
 
           {activeView === "workspaces-new" && isInternalHost && (
             <WorkspaceErrorBoundary title="New Workspace">
-              <NewWorkspaceWizard />
+              <NewWorkspaceWizard key={`workspaces-new-${newWorkspaceWizardKey}`} />
             </WorkspaceErrorBoundary>
           )}
 
