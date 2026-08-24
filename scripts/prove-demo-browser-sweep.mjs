@@ -146,12 +146,6 @@ async function loginBrowserContext(context) {
   await context.addCookies(cookies);
 }
 
-async function ensureAuthenticated(page, context) {
-  const cookies = await context.cookies();
-  if (cookies.some((cookie) => cookie.name === "dc_platform_session")) return;
-  await loginBrowserContext(context);
-}
-
 async function main() {
   fs.mkdirSync(ARTIFACT_DIR, { recursive: true });
   const rows = await loadSweepManifest();
@@ -168,7 +162,6 @@ async function main() {
     const url = `${ORIGIN}/dashboard?view=${encodeURIComponent(row.view)}`;
     process.stdout.write(`  ${row.module}/${row.subModule} … `);
     try {
-      await ensureAuthenticated(page, context);
       const response = await page.goto(url, { waitUntil: "networkidle", timeout: 90000 });
       await page.waitForTimeout(500);
       const text = await page.locator("body").innerText();

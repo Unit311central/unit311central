@@ -274,13 +274,13 @@ export function resolveInternalOperationsBasePath(
   hostname?: string | null,
 ): SurveyOperationsBasePath {
   const host = (hostname ?? "").split(":")[0].trim().toLowerCase();
-  if (
-    host === "internal.unit311central.com" ||
-    host === "internal.localhost" ||
-    host === "demo.unit311central.com" ||
-    host === "demo.localhost"
-  ) {
+  if (host === "internal.unit311central.com" || host === "internal.localhost") {
     return "/";
+  }
+  // Demo uses the same public /dashboard shell as customer workspace hosts.
+  // Links must not use /?view=… — demo apex / clears dc_platform_session in middleware.
+  if (host === "demo.unit311central.com" || host === "demo.localhost") {
+    return "/dashboard";
   }
   // Customer workspace hosts use /dashboard as the public app URL.
   if (
