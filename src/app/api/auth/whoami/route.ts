@@ -17,7 +17,6 @@ import { getInternalOperatorByUsername } from "@/lib/internal-operators-service"
 import { getPlatformSession } from "@/lib/platform-session";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
 import { getCurrentWorkspace } from "@/lib/workspace-context";
-import { findWorkspaceById } from "@/lib/workspace-host";
 
 export const dynamic = "force-dynamic";
 
@@ -76,8 +75,7 @@ export async function GET() {
   // Active workspace comes from host → authz → getCurrentWorkspace only.
   // Never fall back to session workspace claim fields for tenancy.
   const workspace = await getCurrentWorkspace();
-  const workspaceRecord = workspace?.id ? await findWorkspaceById(workspace.id).catch(() => null) : null;
-
+  const workspaceType: string | null = workspace?.workspaceType ?? null;
   let email: string | null = null;
   let role: string | null = null;
   let roles: string[] | null = null;
@@ -88,7 +86,6 @@ export async function GET() {
   let workspaceLogoUrl: string | null = null;
   let enabledModules: string[] | null = null;
   let enabledSubModules: string[] | null = null;
-  const workspaceType: string | null = workspaceRecord?.workspaceType ?? null;
 
   if (session.userType === "internal" && isSupabaseConfigured()) {
     try {

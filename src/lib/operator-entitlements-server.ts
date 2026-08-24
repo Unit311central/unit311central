@@ -8,7 +8,6 @@ import { getPlatformSession } from "@/lib/platform-session";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
 import { createTenancyServerClient } from "@/lib/supabase/tenancy-server";
 import { getCurrentWorkspace } from "@/lib/workspace-context";
-import { findWorkspaceById } from "@/lib/workspace-host";
 import type { CommandCentreHomeTileId } from "@/lib/command-centre-home-tiles";
 import type { InternalOperationsView } from "@/lib/internal-operations-data";
 
@@ -45,13 +44,11 @@ export async function loadOperatorEntitlementsSnapshot(
   }
 
   const workspace = await getCurrentWorkspace().catch(() => null);
-  const workspaceRecord =
-    workspace?.id ? await findWorkspaceById(workspace.id).catch(() => null) : null;
 
   const snapshot: OperatorEntitlementsSnapshot = {
     workspaceSlug: workspace?.slug ?? hostSlug ?? null,
-    workspaceType: workspaceRecord?.workspaceType ?? null,
-    workspaceName: workspace?.name ?? workspaceRecord?.name ?? null,
+    workspaceType: workspace?.workspaceType ?? null,
+    workspaceName: workspace?.name ?? null,
     role: null,
     roles: [],
     department: null,

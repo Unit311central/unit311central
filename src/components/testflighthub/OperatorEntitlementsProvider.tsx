@@ -174,6 +174,16 @@ function buildInitialEntitlementsState(
   return entitlements;
 }
 
+function serverSnapshotHydratesNav(snapshot?: OperatorEntitlementsSnapshot | null): boolean {
+  if (!snapshot) return false;
+  return navCanRenderWithoutWhoami({
+    workspaceSlug: snapshot.workspaceSlug ?? null,
+    workspaceType: snapshot.workspaceType ?? null,
+    workspaceName: snapshot.workspaceName ?? null,
+    enabledModules: snapshot.enabledModules ?? null,
+  });
+}
+
 export function OperatorEntitlementsProvider({
   children,
   initialSnapshot,
@@ -212,8 +222,12 @@ export function OperatorEntitlementsProvider({
   }, []);
 
   useEffect(() => {
+    // SSR already hydrated nav enablement — skip duplicate whoami on first paint.
+    if (serverSnapshotHydratesNav(initialSnapshot)) {
+      return;
+    }
     void load();
-  }, [load]);
+  }, [load, initialSnapshot]);
 
   const value = useMemo(() => state, [state]);
 

@@ -14,6 +14,7 @@ const DEMO_WORKSPACE: CurrentWorkspace = {
   id: "demo-workspace",
   slug: DEMO_WORKSPACE_SLUG,
   name: "Northstar Industrial Technologies",
+  workspaceType: "Demo",
 };
 
 function demoPlatformSession(existing: PlatformSession | null): PlatformSession {

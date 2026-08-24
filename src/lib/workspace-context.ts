@@ -38,6 +38,7 @@ export type CurrentWorkspace = {
   id: string;
   slug: string;
   name: string;
+  workspaceType: string | null;
 };
 
 export type WorkspaceContextSource =
@@ -80,6 +81,7 @@ function toCurrentWorkspace(record: WorkspaceHostRecord): CurrentWorkspace {
     id: record.id,
     slug: record.slug,
     name: record.name,
+    workspaceType: record.workspaceType ?? null,
   };
 }
 
@@ -91,6 +93,7 @@ function sessionWorkspaceClaim(session: PlatformSession | null): CurrentWorkspac
     id: session.workspaceId,
     slug: session.workspaceSlug,
     name: session.workspaceName,
+    workspaceType: null,
   };
 }
 
@@ -243,6 +246,7 @@ export const getWorkspaceContextDiagnostics = cache(
               id: "abhi-workspace",
               slug: ABHI_SLUG,
               name: "ABHI",
+              workspaceType: "Customer",
             },
             source: "abhi_demo_default",
             authenticated: true,
@@ -288,6 +292,7 @@ export const getWorkspaceContextDiagnostics = cache(
               id: "demo-workspace",
               slug: demoWorkspaceSlug(),
               name: "Demo",
+              workspaceType: "Demo",
             },
             source: "demo_default",
             authenticated: true,

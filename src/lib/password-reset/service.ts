@@ -217,7 +217,12 @@ async function resolveRequestBrand() {
     const workspace = await findWorkspaceBySlug(slug);
     return resolveWorkspaceBrandFor({
       workspace: workspace
-        ? { id: workspace.id, slug: workspace.slug, name: workspace.name }
+        ? {
+            id: workspace.id,
+            slug: workspace.slug,
+            name: workspace.name,
+            workspaceType: workspace.workspaceType ?? null,
+          }
         : null,
       slug,
       name: workspace?.name ?? slug,

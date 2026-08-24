@@ -1,3 +1,5 @@
+import { cache } from "react";
+
 import { isSupabaseConfigured } from "@/lib/supabase/server";
 import { createTenancyServerClient } from "@/lib/supabase/tenancy-server";
 import {
@@ -38,6 +40,12 @@ export function parseWorkspaceSlugFromPathname(pathname: string): string | null 
 export async function findWorkspaceBySlug(
   slug: string,
 ): Promise<WorkspaceHostRecord | null> {
+  return findWorkspaceBySlugCached(slug);
+}
+
+const findWorkspaceBySlugCached = cache(async function findWorkspaceBySlugImpl(
+  slug: string,
+): Promise<WorkspaceHostRecord | null> {
   const raw = slug.trim().toLowerCase();
   if (!raw) return null;
   if (!isSupabaseConfigured()) return null;
@@ -59,9 +67,15 @@ export async function findWorkspaceBySlug(
   if (error || !data) return null;
 
   return mapWorkspaceRow(data);
-}
+});
 
 export async function findWorkspaceById(
+  id: string,
+): Promise<WorkspaceHostRecord | null> {
+  return findWorkspaceByIdCached(id);
+}
+
+const findWorkspaceByIdCached = cache(async function findWorkspaceByIdImpl(
   id: string,
 ): Promise<WorkspaceHostRecord | null> {
   const normalized = id.trim();
@@ -78,7 +92,7 @@ export async function findWorkspaceById(
   if (error || !data) return null;
 
   return mapWorkspaceRow(data);
-}
+});
 
 function mapWorkspaceRow(data: {
   id: unknown;
