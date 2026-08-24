@@ -209,7 +209,7 @@ import {
   EngineeringSopRouter,
   EngineeringTechnicalFilesWorkspace,
   ExecutiveAssistantWorkspace,
-  ExpensesWorkspace,
+  ExpensesHubWorkspace,
   ExternalClientAccessWorkspace,
   ExternalUsersWorkspace,
   FileRepositoryWorkspace,
@@ -1068,7 +1068,7 @@ export default function InternalOperationsDashboard({
               <BoardPackCustomizerWorkspace />
             ))}
 
-          {activeView === "expenses" && <ExpensesWorkspace />}
+          {activeView === "expenses" && <ExpensesHubWorkspace />}
 
           {isFinancesShellView(activeView) ? (
             <FinancesSubsectionShell view={activeView} basePath={basePath} />

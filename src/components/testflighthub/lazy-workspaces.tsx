@@ -64,7 +64,8 @@ export const CapTableWorkspace = lazyWorkspace(() => import("./CapTableWorkspace
 export const ClientFilesExplorerWorkspace = lazyWorkspace(() => import("./ClientFilesExplorerWorkspace"));
 export const AccountsPayableWorkspace = lazyWorkspace(() => import("./AccountsPayableWorkspace"));
 export const AccountsReceivableWorkspace = lazyWorkspace(() => import("./AccountsReceivableWorkspace"));
-export const ExpensesWorkspace = lazyWorkspace(() => import("./ExpensesWorkspace"));
+export const ExpensesHubWorkspace = lazyWorkspace(() => import("./ExpensesHubWorkspace"));
+export const ExpensesWorkspace = ExpensesHubWorkspace;
 export const FinancialReportsWorkspace = lazyWorkspace(() => import("./FinancialReportsWorkspace"));
 export const FinancialsWorkspace = lazyWorkspace(() => import("./FinancialsWorkspace"));
 export const GeneralLedgerWorkspace = lazyWorkspace(() => import("./GeneralLedgerWorkspace"));

@@ -80,17 +80,17 @@ export const FINANCES_SHELL_CONFIG: Record<FinancesShellView, FinancesShellConfi
     areaLabel: "Expenses",
     sectionLabel: "Approvals",
     summary:
-      "Expense approval queues and policy routing are not wired on this workspace yet. Capture reimbursable spend in Expenses while approvals are built out.",
+      "Review submitted employee expenses, approve reimbursements, and request changes.",
     relatedView: "expenses",
-    relatedLabel: "Open Expenses",
+    relatedLabel: "Open Expenses approvals",
   },
   "finances-expense-categories": {
     areaLabel: "Expenses",
-    sectionLabel: "Categories",
+    sectionLabel: "Configuration",
     summary:
-      "Category governance and GL mapping controls will live here. Expense Management already infers categories from submitted lines.",
+      "Manage workspace expense categories, billing codes, mileage rates, and payment schedule.",
     relatedView: "expenses",
-    relatedLabel: "Open Expenses",
+    relatedLabel: "Open Expenses configuration",
   },
   "finances-banking-cash-position": {
     areaLabel: "Banking & Cash",
@@ -229,9 +229,12 @@ export function buildFinancesNavSection(options?: {
       label: "Expenses",
       icon: "Receipt",
       children: [
-        { label: "Expense Management", view: "expenses" },
-        { label: "Approvals", view: "finances-expense-approvals" },
-        { label: "Categories", view: "finances-expense-categories" },
+        { label: "My Expenses", view: "expenses" },
+        { label: "Add Expense", view: "expenses", query: { section: "add" } },
+        { label: "All Expenses", view: "expenses", query: { section: "all" } },
+        { label: "Approvals", view: "expenses", query: { section: "approvals" } },
+        { label: "Expense Runs", view: "expenses", query: { section: "runs" } },
+        { label: "Configuration", view: "expenses", query: { section: "config" } },
       ],
     },
     {

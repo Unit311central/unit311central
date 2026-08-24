@@ -39,6 +39,7 @@ import { isBrowserDemoSurface } from "@/lib/demo-enterprise";
 import ResponsiveMasterDetail, { useMobileDetailPanel } from "@/components/ui/ResponsiveMasterDetail";
 import EmployeePerformancePanel from "./EmployeePerformancePanel";
 import EmployeePayrollPanel from "./EmployeePayrollPanel";
+import EmployeePaymentDetailsPanel from "./EmployeePaymentDetailsPanel";
 import { useInternalOperationsBasePath } from "./InternalOperationsBasePathContext";
 import { useHrMockStore } from "./useHrMockStore";
 import { HrStatusPill } from "./hr-ui";
@@ -1342,7 +1343,12 @@ export default function EmployeeRecordWorkspace() {
           </div>
         ) : null}
 
-        {tab === "Payroll" && draft ? <EmployeePayrollPanel employeeId={draft.id} /> : null}
+        {tab === "Payroll" && draft ? (
+          <div className="space-y-4">
+            <EmployeePayrollPanel employeeId={draft.id} />
+            <EmployeePaymentDetailsPanel employeeId={draft.id} />
+          </div>
+        ) : null}
 
         {tab === "Leave" ? (
           <div className="space-y-4">
