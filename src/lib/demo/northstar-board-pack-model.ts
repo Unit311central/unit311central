@@ -78,7 +78,8 @@ export function northstarBoardDeckPdfFileName(meetingDate: string): string {
 }
 
 export function northstarBoardDeckPdfUrl(meetingDate: string, disposition: "inline" | "attachment" = "inline") {
-  return `/api/demo/board-deck?meetingDate=${encodeURIComponent(meetingDate)}&disposition=${disposition}`;
+  void disposition;
+  return northstarBoardDeckSampleUrl(meetingDate);
 }
 
 export function northstarBoardDeckSampleUrl(meetingDate: string): string {
