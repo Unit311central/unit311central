@@ -1,7 +1,8 @@
 /**
  * Interface Worx customer host + draft public website detection.
  * Workspace: interfaceworx.unit311central.com
- * Draft site: iw-website.unit311central.com (future production: interfaceworx.com)
+ * Draft site: iw-website.unit311central.com
+ * Production public site: interfaceworx.com
  */
 
 import { normalizeHost, UNIT311_SITE_HOST } from "@/lib/app-domains";
@@ -15,7 +16,10 @@ export const INTERFACE_WORX_WEBSITE_HOST = `${INTERFACE_WORX_WEBSITE_SUBDOMAIN}.
 
 export const INTERFACE_WORX_WEBSITE_URL = `https://${INTERFACE_WORX_WEBSITE_HOST}`;
 
-/** Future intended production domain — not configured in this task. */
+/** Production public website apex domain (custom domain on unit311central Vercel project). */
+export const INTERFACE_WORX_PRODUCTION_DOMAIN = "interfaceworx.com";
+
+/** Future www alias — not part of apex routing yet. */
 export const INTERFACE_WORX_FUTURE_DOMAIN = "www.interfaceworx.com";
 
 export const INTERFACE_WORX_WEBSITE_LOGO_SRC =
@@ -56,7 +60,9 @@ export function isInterfaceWorxWebsiteHost(host: string | null | undefined): boo
   const normalized = normalizeHost(host);
   if (!normalized) return false;
   if (normalized === INTERFACE_WORX_WEBSITE_HOST) return true;
+  if (normalized === INTERFACE_WORX_PRODUCTION_DOMAIN) return true;
   if (normalized === "iw-website.localhost") return true;
+  if (normalized === "interfaceworx.localhost") return true;
   return false;
 }
 

@@ -3,6 +3,7 @@ import test from "node:test";
 
 import { RESERVED_UNIT311_SUBDOMAINS, parseClientPlatformSubdomainSafe } from "@/lib/app-domains";
 import {
+  INTERFACE_WORX_PRODUCTION_DOMAIN,
   INTERFACE_WORX_SLUG,
   INTERFACE_WORX_WEBSITE_HOST,
   INTERFACE_WORX_WEBSITE_URL,
@@ -23,8 +24,43 @@ test("interfaceworx remains a customer workspace slug", () => {
 
 test("interface worx website host detection", () => {
   assert.ok(isInterfaceWorxWebsiteHost(INTERFACE_WORX_WEBSITE_HOST));
+  assert.ok(isInterfaceWorxWebsiteHost(INTERFACE_WORX_PRODUCTION_DOMAIN));
   assert.ok(isInterfaceWorxWebsiteHost("iw-website.localhost"));
+  assert.ok(isInterfaceWorxWebsiteHost("interfaceworx.localhost"));
   assert.equal(isInterfaceWorxWebsiteHost("interfaceworx.unit311central.com"), false);
+  assert.equal(isInterfaceWorxWebsiteHost("unit311central.com"), false);
+  assert.equal(isInterfaceWorxWebsiteHost("www.interfaceworx.com"), false);
+  assert.equal(isInterfaceWorxWebsiteHost("acme.unit311central.com"), false);
+  assert.equal(isInterfaceWorxWebsiteHost("onwardair.unit311central.com"), false);
+});
+
+test("interface worx apex and draft hosts route to public website surface only", () => {
+  const websiteHosts = [INTERFACE_WORX_PRODUCTION_DOMAIN, INTERFACE_WORX_WEBSITE_HOST];
+  const nonWebsiteHosts = [
+    "interfaceworx.unit311central.com",
+    "unit311central.com",
+    "internal.unit311central.com",
+    "demo.unit311central.com",
+    "acme.unit311central.com",
+    "northstar.unit311central.com",
+  ];
+
+  for (const host of websiteHosts) {
+    assert.ok(isInterfaceWorxWebsiteHost(host), `${host} must be Interface Worx website`);
+    assert.equal(
+      parseClientPlatformSubdomainSafe(host),
+      null,
+      `${host} must not be a workspace slug`,
+    );
+  }
+
+  for (const host of nonWebsiteHosts) {
+    assert.equal(
+      isInterfaceWorxWebsiteHost(host),
+      false,
+      `${host} must not be Interface Worx website`,
+    );
+  }
 });
 
 test("interface worx website impl paths", () => {
