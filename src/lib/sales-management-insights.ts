@@ -9,12 +9,22 @@ export type SalesReportingCurrency = "AUD" | "GBP" | "USD";
 
 export function salesReportingCurrency(): SalesReportingCurrency {
   try {
+    if (typeof window !== "undefined") {
+      const { resolveBrowserReportingCurrency } =
+        require("@/lib/financial-reporting-currency") as typeof import("@/lib/financial-reporting-currency");
+      return resolveBrowserReportingCurrency() as SalesReportingCurrency;
+    }
+  } catch {
+    // Fall through to legacy host checks.
+  }
+
+  try {
     if (typeof window !== "undefined" && isBrowserOnwardAirSurface()) return "USD";
     if (typeof window !== "undefined" && isBrowserCorpCentreSurface()) return "AUD";
   } catch {
     // SSR / non-browser
   }
-  return "GBP";
+  return "USD";
 }
 
 export function formatSalesMoney(amount: number, currency = salesReportingCurrency()): string {

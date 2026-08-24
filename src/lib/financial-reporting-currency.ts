@@ -36,7 +36,7 @@ export function resolveSlugReportingCurrency(slug: string | null | undefined): R
   try {
     const { isDemoWorkspaceSlug } =
       require("@/lib/demo/read-only") as typeof import("@/lib/demo/read-only");
-    if (isDemoWorkspaceSlug(normalized)) return "GBP";
+    if (isDemoWorkspaceSlug(normalized)) return DEFAULT_REPORTING_CURRENCY;
   } catch {
     /* optional at build edges */
   }
@@ -75,7 +75,7 @@ export function resolveBrowserReportingCurrency(): ReportingCurrency {
   try {
     const { isBrowserDemoSurface } =
       require("@/lib/demo-enterprise/surface") as typeof import("@/lib/demo-enterprise/surface");
-    if (isBrowserDemoSurface()) return "GBP";
+    if (isBrowserDemoSurface()) return DEFAULT_REPORTING_CURRENCY;
   } catch {
     /* optional at build edges */
   }

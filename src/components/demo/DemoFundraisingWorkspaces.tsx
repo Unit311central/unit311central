@@ -35,6 +35,7 @@ import {
   getNorthstarFundraisingMeetings,
   getNorthstarPitchDecks,
 } from "@/lib/demo/module-fixtures";
+import { formatSalesMoney } from "@/lib/sales-management-insights";
 import { cn } from "@/lib/utils";
 
 const FUNDRAISING_TILE_STORAGE_KEY = "northstar-fundraising-dashboard-tiles-v1";
@@ -46,12 +47,8 @@ type DashboardTile = {
   hint: string;
 };
 
-function formatGbp(value: number) {
-  return new Intl.NumberFormat("en-GB", {
-    style: "currency",
-    currency: "GBP",
-    maximumFractionDigits: 0,
-  }).format(value);
+function formatMoney(value: number) {
+  return formatSalesMoney(value);
 }
 
 function formatDate(value: string) {
@@ -103,14 +100,14 @@ function buildDefaultDashboardTiles(): DashboardTile[] {
     {
       id: "raised",
       label: "Total raised",
-      value: formatGbp(NORTHSTAR_TOTAL_RAISED_GBP),
+      value: formatMoney(NORTHSTAR_TOTAL_RAISED_GBP),
       hint: "Pre-seed closed (2023)",
     },
     {
       id: "seed",
       label: "Seed round",
-      value: formatGbp(NORTHSTAR_SEED_TARGET_GBP),
-      hint: "In progress · £5M target",
+      value: formatMoney(NORTHSTAR_SEED_TARGET_GBP),
+      hint: "In progress · $5M target",
     },
     {
       id: "seed-close",
@@ -121,13 +118,13 @@ function buildDefaultDashboardTiles(): DashboardTile[] {
     {
       id: "series-a",
       label: "Series A aspiration",
-      value: formatGbp(NORTHSTAR_SERIES_A_TARGET_GBP),
+      value: formatMoney(NORTHSTAR_SERIES_A_TARGET_GBP),
       hint: "Target raise 2027",
     },
     {
       id: "cash",
       label: "Cash",
-      value: formatGbp(1_900_000),
+      value: formatMoney(1_900_000),
       hint: "Treasury position",
     },
     {
@@ -304,7 +301,7 @@ export function DemoFundraisingDashboardWorkspace() {
                   ) : null}
                 </div>
                 <div className="text-right">
-                  <p className="font-semibold text-white">{formatGbp(round.amountGbp)}</p>
+                  <p className="font-semibold text-white">{formatMoney(round.amountGbp)}</p>
                   <CorporateStatusPill>{round.status}</CorporateStatusPill>
                 </div>
               </div>
@@ -369,7 +366,7 @@ export function DemoFundraisingInvestorsWorkspace() {
         />
         <CorporateKpiTile
           label="Total invested"
-          value={formatGbp(totalInvestment)}
+          value={formatMoney(totalInvestment)}
           hint="Pre-seed round (2023)"
         />
       </section>
@@ -399,7 +396,7 @@ export function DemoFundraisingInvestorsWorkspace() {
                   <td className={cn(tdClass(), "font-medium text-white")}>{inv.fundName}</td>
                   <td className={tdClass()}>{inv.leadContact}</td>
                   <td className={tdClass()}>{inv.investorType}</td>
-                  <td className={cn(tdClass(), "tabular-nums")}>{formatGbp(inv.investmentAmountGbp)}</td>
+                  <td className={cn(tdClass(), "tabular-nums")}>{formatMoney(inv.investmentAmountGbp)}</td>
                   <td className={cn(tdClass(), "tabular-nums")}>{formatShares(inv.sharesIssued)}</td>
                   <td className={cn(tdClass(), "tabular-nums")}>{inv.ownershipPct}%</td>
                   <td className={tdClass()}>{inv.shareClass}</td>
@@ -425,7 +422,7 @@ export function DemoFundraisingInvestorsWorkspace() {
                   Total
                 </td>
                 <td className={cn(tdClass(), "tabular-nums font-semibold text-white")}>
-                  {formatGbp(totalInvestment)}
+                  {formatMoney(totalInvestment)}
                 </td>
                 <td className={cn(tdClass(), "tabular-nums font-semibold text-white")}>
                   {formatShares(totalShares)}
@@ -481,7 +478,7 @@ export function DemoFundraisingInvestorsWorkspace() {
               </label>
               <div className="grid gap-3 sm:grid-cols-2">
                 <label className="block text-sm text-white/60">
-                  Investment (GBP)
+                  Investment (USD)
                   <input
                     type="number"
                     className={cn(corporateInputClass(), "mt-1 w-full")}
@@ -669,10 +666,10 @@ export function DemoFundraisingPipelineWorkspace() {
       </header>
       <section className="grid gap-3 sm:grid-cols-3">
         <CorporateKpiTile label="Open deals" value={openDeals.length} hint="Active pipeline" />
-        <CorporateKpiTile label="Pipeline value" value={formatGbp(pipelineGbp)} hint="Excludes passed" />
+        <CorporateKpiTile label="Pipeline value" value={formatMoney(pipelineGbp)} hint="Excludes passed" />
         <CorporateKpiTile
           label="Seed target"
-          value={formatGbp(NORTHSTAR_SEED_TARGET_GBP)}
+          value={formatMoney(NORTHSTAR_SEED_TARGET_GBP)}
           hint={`Expected close ${formatDate(NORTHSTAR_SEED_EXPECTED_CLOSE)}`}
         />
       </section>
@@ -711,7 +708,7 @@ export function DemoFundraisingPipelineWorkspace() {
                   <td className={tdClass()}>
                     <CorporateStatusPill className={stagePillClass(deal.stage)}>{deal.stage}</CorporateStatusPill>
                   </td>
-                  <td className={cn(tdClass(), "tabular-nums")}>{formatGbp(deal.amountGbp)}</td>
+                  <td className={cn(tdClass(), "tabular-nums")}>{formatMoney(deal.amountGbp)}</td>
                   <td className={tdClass()}>{deal.introDate ? formatDate(deal.introDate) : "—"}</td>
                   <td className={tdClass()}>{deal.pitchSentDate ? formatDate(deal.pitchSentDate) : "—"}</td>
                   <td className={tdClass()}>{deal.owner}</td>
@@ -743,7 +740,7 @@ export function DemoFundraisingPipelineWorkspace() {
                 [
                   ["investor", "Investor contact"],
                   ["firm", "Firm"],
-                  ["amountGbp", "Amount (GBP)"],
+                  ["amountGbp", "Amount (USD)"],
                   ["owner", "Owner"],
                   ["lastTouch", "Last touch"],
                   ["introDate", "Intro date"],
