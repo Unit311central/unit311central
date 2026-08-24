@@ -1,4 +1,18 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 40" role="img" aria-label="Interface Worx">
-  <text x="0" y="30" font-family="Inter, system-ui, -apple-system, Segoe UI, sans-serif" font-size="24" font-weight="700" fill="#ffffff">Interface</text>
-  <text x="130" y="30" font-family="Inter, system-ui, -apple-system, Segoe UI, sans-serif" font-size="24" font-weight="700" fill="#CC5500">Worx</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 72" role="img" aria-label="Interface Worx">
+  <title>Interface Worx</title>
+  <defs>
+    <linearGradient id="iw-mark-gradient" x1="0%" y1="50%" x2="100%" y2="50%">
+      <stop offset="0%" stop-color="#CC5500"/>
+      <stop offset="55%" stop-color="#E8873F"/>
+      <stop offset="100%" stop-color="#FCBD8F"/>
+    </linearGradient>
+  </defs>
+  <g transform="translate(4 8)">
+  <!-- iW monogram -->
+  <rect x="6" y="4" width="9" height="9" rx="1.5" transform="rotate(-18 10.5 8.5)" fill="#CC5500"/>
+  <rect x="10" y="16" width="11" height="34" rx="2" transform="rotate(-12 15.5 33)" fill="#FCBD8F"/>
+  <path fill="url(#iw-mark-gradient)" d="M34 50 L48 8 L62 50 L74 8 L88 50 L74 50 L62 18 L48 50 L34 50 Z"/>
+  </g>
+  <text x="108" y="30" fill="#FFFFFF" font-family="Inter,Segoe UI,Helvetica Neue,Arial,sans-serif" font-size="22" font-weight="600">Interface</text>
+  <text x="108" y="56" fill="#CC5500" font-family="Inter,Segoe UI,Helvetica Neue,Arial,sans-serif" font-size="22" font-weight="700">Worx</text>
 </svg>

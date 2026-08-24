@@ -38,11 +38,11 @@ export const INTERFACE_WORX_EMAIL = "info@interfaceworx.com";
 export const INTERFACE_WORX_LINKEDIN_URL =
   "https://www.linkedin.com/company/interfaceworx";
 
-export const INTERFACE_WORX_WEBSITE_LOGO_INTRINSIC_WIDTH = 320;
-export const INTERFACE_WORX_WEBSITE_LOGO_INTRINSIC_HEIGHT = 48;
+export const INTERFACE_WORX_WEBSITE_LOGO_INTRINSIC_WIDTH = 360;
+export const INTERFACE_WORX_WEBSITE_LOGO_INTRINSIC_HEIGHT = 72;
 
-export const INTERFACE_WORX_WORKSPACE_LOGO_INTRINSIC_WIDTH = 280;
-export const INTERFACE_WORX_WORKSPACE_LOGO_INTRINSIC_HEIGHT = 40;
+export const INTERFACE_WORX_WORKSPACE_LOGO_INTRINSIC_WIDTH = 360;
+export const INTERFACE_WORX_WORKSPACE_LOGO_INTRINSIC_HEIGHT = 72;
 
 export function isInterfaceWorxSlug(slug: string | null | undefined): boolean {
   return (
