@@ -90,6 +90,9 @@ async function checkMigration159(origin, cookie) {
 }
 
 async function checkWorkPackageCrud(origin, cookie) {
+  const whoami = await fetchJson(origin, "/api/auth/whoami", cookie);
+  const ownerUserId = whoami.json?.userId ?? null;
+
   const create = await fetchJson(origin, "/api/internal-work-packages", cookie, {
     method: "POST",
     body: JSON.stringify({
@@ -104,8 +107,8 @@ async function checkWorkPackageCrud(origin, cookie) {
     `Work package create should not be read-only blocked: ${JSON.stringify(create.json).slice(0, 200)}`,
   );
   assert.equal(create.status, 201, `Work package create expected 201, got ${create.status}`);
-  const pkg = create.json?.package;
-  assert.ok(pkg?.id, "created package id required");
+  const pkg = create.json?.workPackage ?? create.json?.package;
+  assert.ok(pkg?.id, "created workPackage id required");
 
   const addMember = await fetchJson(
     origin,
@@ -114,7 +117,7 @@ async function checkWorkPackageCrud(origin, cookie) {
     {
       method: "PUT",
       body: JSON.stringify({
-        members: [{ userId: "demo-owner", displayName: "Demo Owner" }],
+        members: [{ userId: ownerUserId, displayName: "Demo Owner" }],
       }),
     },
   );
@@ -173,8 +176,8 @@ async function checkApis(origin, cookie) {
   assert.equal(tf.status, 200, "Technical Files API");
   const sop = await fetchJson(origin, "/api/engineering/sops/dashboard", cookie);
   assert.equal(sop.status, 200, "SOP dashboard API");
-  const sales = await fetchJson(origin, "/api/sales-management", cookie);
-  assert.equal(sales.status, 200, "Sales management API");
+  const sales = await fetchJson(origin, "/api/sales-management/workspace", cookie);
+  assert.equal(sales.status, 200, "Sales management workspace API");
 }
 
 async function checkWhoami(origin, cookie) {

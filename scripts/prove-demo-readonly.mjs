@@ -97,8 +97,8 @@ async function expectWorkPackageCreateAllowed(origin, cookie) {
     );
   }
   assert.equal(res.status, 201, `expected 201 create, got ${res.status}`);
-  const id = payload.package?.id;
-  assert.ok(id, "package id required");
+  const id = payload.workPackage?.id ?? payload.package?.id;
+  assert.ok(id, "workPackage id required");
   await fetch(`${origin}/api/internal-work-packages/${id}`, {
     method: "DELETE",
     headers: { Cookie: cookie },
