@@ -20,6 +20,7 @@ import {
 } from "@/components/onwardair/FundraisingWorkspaces";
 import { resolveFundraisingSurfaceKind } from "@/lib/fundraising-workspace-surface";
 
+import { useOperatorEntitlements } from "./OperatorEntitlementsProvider";
 import { FundraisingCustomerEmptyWorkspace } from "./FundraisingCustomerEmptyWorkspace";
 
 function Host({
@@ -33,7 +34,16 @@ function Host({
   customerTitle: string;
   customerSubtitle: string;
 }) {
-  const surface = resolveFundraisingSurfaceKind();
+  const { workspaceSlug, ready } = useOperatorEntitlements();
+  if (!ready) {
+    return (
+      <FundraisingCustomerEmptyWorkspace
+        title={customerTitle}
+        subtitle="Loading workspace context…"
+      />
+    );
+  }
+  const surface = resolveFundraisingSurfaceKind(workspaceSlug);
   if (surface === "demo") return <>{demo}</>;
   if (surface === "onwardair" || surface === "workspace") return <>{onwardair}</>;
   return <FundraisingCustomerEmptyWorkspace title={customerTitle} subtitle={customerSubtitle} />;

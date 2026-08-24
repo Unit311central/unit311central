@@ -407,7 +407,7 @@ export function loadSidebarNavCustom(
     }
 
     if (storedVersion < 4) {
-      return buildNavCustomPayload(sections, parsed, false);
+      return buildNavCustomPayload(sections, parsed, parsed.customized === true);
     }
 
     if (isTalantonLockedSectionBundle(sections) && storedVersion < 5) {
@@ -452,13 +452,13 @@ export function reconcileSidebarNavCustom(
     const lockedHost = isLockedHostSectionBundle(sections);
 
     if (
-      storedVersion < 4 ||
+      (storedVersion < 4 && parsed.customized !== true) ||
       (isTalantonLockedSectionBundle(sections) && storedVersion < TALANTON_SIDEBAR_FACTORY_REVISION) ||
       (isAbhiLockedSectionBundle(sections) &&
         storedVersion < ABHI_SIDEBAR_FACTORY_REVISION &&
         parsed.customized !== true) ||
-      (isOnwardAirLockedSectionBundle(sections) && storedVersion < 5) ||
-      (lockedHost && storedVersion < 6)
+      (isOnwardAirLockedSectionBundle(sections) && storedVersion < 5 && parsed.customized !== true) ||
+      (lockedHost && storedVersion < 6 && parsed.customized !== true)
     ) {
       saveSidebarNavCustom(next);
       return next;

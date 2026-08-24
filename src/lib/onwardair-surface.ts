@@ -3,6 +3,8 @@
  * Short alias host `onward.unit311central.com` is accepted and canonicalized.
  */
 
+import { DEMO_WORKSPACE_SLUG } from "@/lib/app-domains";
+
 export const ONWARDAIR_SLUG = "onwardair";
 
 /** Accepted host/workspace slugs that map to the OnwardAir tenant. */
@@ -96,11 +98,13 @@ export function isOnwardAirSlug(slug: string | null | undefined): boolean {
 export function getBrowserOnwardAirWorkspaceSlug(): string {
   if (typeof window === "undefined") return "";
   try {
-    const { isOnDemoHostBrowser, readBrowserDemoPreviewSlug } =
-      require("@/lib/demo/workspace-preview") as typeof import("@/lib/demo/workspace-preview");
-    if (isOnDemoHostBrowser()) {
-      const preview = readBrowserDemoPreviewSlug();
-      if (canonicalizeOnwardAirSlug(preview)) return ONWARDAIR_SLUG;
+    const { readEffectiveBrowserWorkspaceSlug } =
+      require("@/lib/demo-enterprise/workspace-tenancy-surface") as typeof import("@/lib/demo-enterprise/workspace-tenancy-surface");
+    const effective = readEffectiveBrowserWorkspaceSlug();
+    if (effective) {
+      const canonical = canonicalizeOnwardAirSlug(effective);
+      if (canonical) return canonical;
+      if (effective === DEMO_WORKSPACE_SLUG || effective === "demo") return "";
     }
   } catch {
     /* ignore */

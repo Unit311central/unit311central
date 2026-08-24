@@ -11,9 +11,10 @@ export const TALANTON_HOST_ALIAS_SLUG = "talanton";
 export function getBrowserWorkspaceSlug(): string {
   if (typeof window === "undefined") return "";
   try {
-    const { isOnDemoHostBrowser, readBrowserDemoPreviewSlug } =
-      require("@/lib/demo/workspace-preview") as typeof import("@/lib/demo/workspace-preview");
-    if (isOnDemoHostBrowser()) return readBrowserDemoPreviewSlug();
+    const { readEffectiveBrowserWorkspaceSlug } =
+      require("@/lib/demo-enterprise/workspace-tenancy-surface") as typeof import("@/lib/demo-enterprise/workspace-tenancy-surface");
+    const effective = readEffectiveBrowserWorkspaceSlug();
+    if (effective) return effective;
   } catch {
     /* ignore */
   }

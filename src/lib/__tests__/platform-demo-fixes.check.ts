@@ -43,7 +43,6 @@ const bcLabels = buildCentralBusinessCentralNavSection().items.map((item) => ite
 assert.deepEqual(bcLabels, [
   "Dashboard",
   "Clients",
-  "Customer Management",
   "Management",
   "Grants",
 ]);

@@ -40,6 +40,7 @@ import {
   WorkspaceEmpty,
   WorkspaceSection,
   WorkspaceStatusPill,
+  workspacePrimaryButtonClass,
   workspaceSecondaryButtonClass,
 } from "@/components/workspace-ui";
 import { useOperatorEntitlements } from "@/components/testflighthub/OperatorEntitlementsProvider";
@@ -253,12 +254,29 @@ export default function ContentStudioWorkspace() {
     <div className="space-y-5">
       <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-[#07111f] p-5 sm:p-6">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_0%_0%,rgba(168,85,247,0.16),transparent_55%),radial-gradient(ellipse_70%_50%_at_100%_0%,rgba(56,189,248,0.12),transparent_60%)]" />
-        <div className="relative">
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-fuchsia-200/80">Business Productivity</p>
-          <h1 className="mt-1 text-2xl font-semibold tracking-tight text-white sm:text-[1.75rem]">
-            Content Studio
-          </h1>
-          <p className="mt-2 max-w-3xl text-sm leading-relaxed text-white/55">{CONTENT_STUDIO_SUBTITLE}</p>
+        <div className="relative flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-fuchsia-200/80">Business Productivity</p>
+            <h1 className="mt-1 text-2xl font-semibold tracking-tight text-white sm:text-[1.75rem]">
+              Content Studio
+            </h1>
+            <p className="mt-2 max-w-3xl text-sm leading-relaxed text-white/55">{CONTENT_STUDIO_SUBTITLE}</p>
+          </div>
+          {templates.length > 0 && selectedId ? (
+            <button
+              type="button"
+              className={workspacePrimaryButtonClass()}
+              onClick={() => {
+                const first =
+                  templates.find((template) => template.status === "approved") ?? templates[0] ?? null;
+                if (!first) return;
+                setCreateTemplate(first);
+                setEditContentId(null);
+              }}
+            >
+              New content
+            </button>
+          ) : null}
         </div>
       </div>
 

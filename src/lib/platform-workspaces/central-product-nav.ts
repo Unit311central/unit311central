@@ -76,17 +76,6 @@ export function buildCentralBusinessCentralNavSection(): InternalNavSection {
           { label: "Member Intelligence", view: "member-intelligence" },
         ],
       },
-      {
-        label: "Customer Management",
-        icon: "ContactRound",
-        children: [
-          { label: "Pipeline", view: "crm" },
-          { label: "Discovery", view: "crm-meetings" },
-          { label: "Sales Quotes", view: "sales-quotes" },
-          { label: "Client Onboarding", view: "client-onboarding" },
-          { label: "Potential Clients", view: "potential-clients" },
-        ],
-      },
       { label: "Management", icon: "ClipboardList", view: "management" },
       { label: "Grants", icon: "ScrollText", view: "grants" },
     ],

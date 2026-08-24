@@ -1,9 +1,6 @@
-import { isDemoDomainHost } from "@/lib/app-domains";
-import { readBrowserDemoPreviewSlug, DEMO_WORKSPACE_SLUG } from "@/lib/demo/workspace-preview";
+import { isBrowserNorthstarDemoTenancy } from "@/lib/demo-enterprise/workspace-tenancy-surface";
 
-/** Client-side Demo host detection for mock-store fixture gating. */
+/** Client-side Northstar Demo workspace tenancy (fixtures, currency, module hosts). */
 export function isBrowserDemoSurface(): boolean {
-  if (typeof window === "undefined") return false;
-  if (!isDemoDomainHost(window.location.hostname)) return false;
-  return readBrowserDemoPreviewSlug() === DEMO_WORKSPACE_SLUG;
+  return isBrowserNorthstarDemoTenancy();
 }

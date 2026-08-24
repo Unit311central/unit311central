@@ -22,8 +22,13 @@ import OnwardAirMarketingEventsWorkspace, {
 import type { InternalOperationsView } from "@/lib/internal-operations-data";
 import { isMarketingModuleView } from "@/lib/marketing/views";
 import { resolveMarketingView } from "@/lib/marketing/view-resolver";
-import { resolveBrowserMarketingWorkspaceKey } from "@/lib/marketing/workspace-context";
+import {
+  resolveBrowserMarketingWorkspaceKey,
+  resolveMarketingWorkspaceKey,
+} from "@/lib/marketing/workspace-context";
 import { MARKETING_RENDERER_IDS } from "@/lib/marketing/workspace-packs/types";
+
+import { useOperatorEntitlements } from "@/components/testflighthub/OperatorEntitlementsProvider";
 
 import { MarketingWorkspaceUnavailable } from "./MarketingWorkspaceUnavailable";
 import {
@@ -224,13 +229,16 @@ function MarketingRenderer({
 }
 
 export function MarketingViewHost({ view }: { view: InternalOperationsView }) {
+  const { workspaceSlug } = useOperatorEntitlements();
   const resolution = useMemo(() => {
     if (!isMarketingModuleView(view)) return null;
+    const workspaceKey = resolveMarketingWorkspaceKey(workspaceSlug);
     return resolveMarketingView({
       view,
-      workspaceKey: resolveBrowserMarketingWorkspaceKey(),
+      workspaceKey,
+      workspaceSlug,
     });
-  }, [view]);
+  }, [view, workspaceSlug]);
 
   if (!resolution) return null;
 

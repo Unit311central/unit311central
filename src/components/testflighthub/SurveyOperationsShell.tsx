@@ -1,7 +1,7 @@
 "use client";
 
-import { startTransition, useEffect, useLayoutEffect, useState } from "react";
-import { usePathname } from "next/navigation";
+import { startTransition, useEffect, useLayoutEffect, useMemo, useState } from "react";
+import { usePathname, useSearchParams } from "next/navigation";
 import TutorialShellButton from "@/components/guided-tutorials/TutorialShellButton";
 import { Menu, Sparkles, X } from "lucide-react";
 import {
@@ -37,6 +37,7 @@ import { WorkspaceBreadcrumb } from "./workspace-chrome";
 import { prefetchViewOnIntent } from "@/lib/workspace-prefetch";
 import DemoWorkspacePreviewSwitcher from "@/components/demo/DemoWorkspacePreviewSwitcher";
 import { demoPreviewWorkspaceLabel, readBrowserDemoPreviewSlug } from "@/lib/demo/workspace-preview";
+import { resolveSalesManagementShellTitles } from "@/lib/sales-management-nav";
 import QaWorkspaceProvider from "@/components/qa-workspace/QaWorkspaceProvider";
 import QaModeButton from "@/components/qa-workspace/QaModeButton";
 import { useOperatorEntitlements } from "./OperatorEntitlementsProvider";
@@ -61,6 +62,8 @@ export default function SurveyOperationsShell({
   basePath = "/testflighthub",
 }: SurveyOperationsShellProps) {
   const { workspaceSlug } = useOperatorEntitlements();
+  const searchParams = useSearchParams();
+  const salesTab = searchParams.get("tab");
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [assistantOpen, setAssistantOpen] = useState(false);
   const pathname = usePathname() ?? "";
@@ -125,7 +128,9 @@ export default function SurveyOperationsShell({
       ? mode === "internal" && isInternalOperationsView(activeView)
         ? activeView === "billing" && !isInternalHost
           ? "Billing"
-          : resolveInternalViewTitles(activeView).title
+          : activeView === "sales-management"
+            ? resolveSalesManagementShellTitles(salesTab).title
+            : resolveInternalViewTitles(activeView).title
         : surveyViewTitles[activeView as SurveyOperationsView].title
       : title;
   const resolvedSubtitle =
@@ -133,7 +138,9 @@ export default function SurveyOperationsShell({
       ? mode === "internal" && isInternalOperationsView(activeView)
         ? activeView === "billing" && !isInternalHost
           ? "Your subscription"
-          : resolveInternalViewTitles(activeView).subtitle
+          : activeView === "sales-management"
+            ? resolveSalesManagementShellTitles(salesTab).subtitle
+            : resolveInternalViewTitles(activeView).subtitle
         : surveyViewTitles[activeView as SurveyOperationsView].subtitle
       : subtitle;
 
@@ -143,7 +150,9 @@ export default function SurveyOperationsShell({
     mode === "internal" &&
     activeView != null &&
     isInternalOperationsView(activeView)
-      ? getInternalNavBreadcrumb(activeView)
+      ? activeView === "sales-management"
+        ? resolveSalesManagementShellTitles(salesTab).breadcrumb
+        : getInternalNavBreadcrumb(activeView)
       : null;
 
   const sectionAccent =

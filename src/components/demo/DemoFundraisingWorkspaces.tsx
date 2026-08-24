@@ -11,6 +11,7 @@ import {
   corporatePrimaryButtonClass,
   corporateSecondaryButtonClass,
 } from "@/components/testflighthub/corporate-ui";
+import { formatReportingMoney } from "@/lib/financial-reporting-currency";
 import {
   NORTHSTAR_FUNDING_ROUNDS,
   NORTHSTAR_FUNDRAISING_PIPELINE_SEED,
@@ -35,7 +36,6 @@ import {
   getNorthstarFundraisingMeetings,
   getNorthstarPitchDecks,
 } from "@/lib/demo/module-fixtures";
-import { formatSalesMoney } from "@/lib/sales-management-insights";
 import { cn } from "@/lib/utils";
 
 const FUNDRAISING_TILE_STORAGE_KEY = "northstar-fundraising-dashboard-tiles-v1";
@@ -48,7 +48,7 @@ type DashboardTile = {
 };
 
 function formatMoney(value: number) {
-  return formatSalesMoney(value);
+  return formatReportingMoney(value, "USD");
 }
 
 function formatDate(value: string) {

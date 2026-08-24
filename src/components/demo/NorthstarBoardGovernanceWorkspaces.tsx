@@ -576,7 +576,7 @@ export function NorthstarBoardPacksWorkspace() {
           <img
             src={NORTHSTAR_LOGO_SRC}
             alt="Northstar Industrial Technologies"
-            className="hidden h-10 w-auto max-w-[140px] object-contain sm:block"
+            className="hidden h-10 w-auto max-w-[140px] object-contain sm:block rounded-md bg-white px-2 py-1"
           />
           <PageHeader
             title="Board Decks"

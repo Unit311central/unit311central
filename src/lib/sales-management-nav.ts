@@ -5,12 +5,39 @@ import type {
 } from "@/lib/internal-operations-data";
 import type { InternalOperationsView } from "@/lib/internal-operations-data";
 import {
+  DEFAULT_SALES_MANAGEMENT_TAB,
   SALES_MANAGEMENT_NAV_GROUPS,
   SALES_MANAGEMENT_ROOT_TAB,
+  getSalesManagementNavGroupForTab,
+  getSalesManagementTabLabel,
+  isSalesManagementTab,
   type SalesManagementTabId,
 } from "@/lib/sales-management-tabs";
 
 export const SALES_MANAGEMENT_MODULE_LABEL = "Sales Management";
+
+/** Shell chrome for Sales Management deep links (`?view=sales-management&tab=`). */
+export function resolveSalesManagementShellTitles(tabParam: string | null | undefined): {
+  title: string;
+  subtitle: string;
+  breadcrumb: readonly string[];
+} {
+  const tab = isSalesManagementTab(tabParam) ? tabParam : DEFAULT_SALES_MANAGEMENT_TAB;
+  const tabLabel = getSalesManagementTabLabel(tab);
+  const groupLabel = getSalesManagementNavGroupForTab(tab);
+  if (tab === "dashboard") {
+    return {
+      title: "Dashboard",
+      subtitle: SALES_MANAGEMENT_MODULE_LABEL,
+      breadcrumb: [SALES_MANAGEMENT_MODULE_LABEL, "Dashboard"],
+    };
+  }
+  return {
+    title: tabLabel,
+    subtitle: SALES_MANAGEMENT_MODULE_LABEL,
+    breadcrumb: [SALES_MANAGEMENT_MODULE_LABEL, groupLabel, tabLabel],
+  };
+}
 
 const DEFAULT_SALES_MANAGEMENT_COLOR = "#7C3AED";
 

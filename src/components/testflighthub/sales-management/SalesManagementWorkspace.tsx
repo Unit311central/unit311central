@@ -124,15 +124,17 @@ export default function SalesManagementWorkspace() {
 
   return (
     <div className="w-full min-w-0 space-y-4" aria-label="Sales Management">
-      <header className="border-b border-white/10 pb-4">
-        <div className="flex items-center gap-2.5 text-white/90">
-          <Target className="h-5 w-5 text-violet-300" aria-hidden />
-          <h1 className="text-xl font-semibold tracking-tight">Sales Management</h1>
-        </div>
-        <p className="mt-1.5 text-sm leading-relaxed text-white/50">
-          Pipeline, team performance, discovery, quotes, and commercial reporting for your workspace.
-        </p>
-      </header>
+      {activeTab === "dashboard" ? (
+        <header className="border-b border-white/10 pb-4">
+          <div className="flex items-center gap-2.5 text-white/90">
+            <Target className="h-5 w-5 text-violet-300" aria-hidden />
+            <h1 className="text-xl font-semibold tracking-tight">Sales Management</h1>
+          </div>
+          <p className="mt-1.5 text-sm leading-relaxed text-white/50">
+            Pipeline, team performance, discovery, quotes, and commercial reporting for your workspace.
+          </p>
+        </header>
+      ) : null}
 
       <div
         id={`sales-management-panel-${activeTab}`}

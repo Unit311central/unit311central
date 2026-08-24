@@ -32,7 +32,7 @@ import {
 
 } from "recharts";
 
-import { BadgePercent, CalendarRange, ClipboardList } from "lucide-react";
+import { BadgePercent, CalendarRange, ClipboardList, Pencil, Plus, Trash2 } from "lucide-react";
 
 
 
@@ -40,7 +40,7 @@ import { formatSalesMoney } from "@/lib/sales-management-insights";
 
 import { cn } from "@/lib/utils";
 
-import { WsSection } from "../domain-workspace-ui";
+import { WsInputClass, WsPrimaryButtonClass, WsSecondaryButtonClass, WsSection } from "../domain-workspace-ui";
 
 import {
 
@@ -881,6 +881,68 @@ export function SalesManagementForecastTab() {
 export function SalesManagementCommissionsTab() {
 
   const { data, loading, error, reload } = useSalesWorkspaceSection("commissions");
+  const [createOpen, setCreateOpen] = useState(false);
+  const [draftName, setDraftName] = useState("");
+  const [draftRate, setDraftRate] = useState("8");
+  const [draftAppliesTo, setDraftAppliesTo] = useState("won_deal");
+  const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+
+  async function handleCreateRule() {
+    setSaving(true);
+    setFormError(null);
+    try {
+      const res = await fetch("/api/sales-management/commission-rules", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: draftName,
+          ratePct: Number(draftRate),
+          appliesTo: draftAppliesTo,
+        }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(body.error ?? "Unable to create rule.");
+      setCreateOpen(false);
+      setDraftName("");
+      setDraftRate("8");
+      setDraftAppliesTo("won_deal");
+      await reload();
+    } catch (err) {
+      setFormError(err instanceof Error ? err.message : "Unable to create rule.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleDeleteRule(ruleId: string) {
+    if (!window.confirm("Delete this commission rule?")) return;
+    const res = await fetch(`/api/sales-management/commission-rules?id=${encodeURIComponent(ruleId)}`, {
+      method: "DELETE",
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      window.alert(body.error ?? "Unable to delete rule.");
+      return;
+    }
+    await reload();
+  }
+
+  async function handleToggleRule(
+    rule: { id: string; name: string; ratePct: number; appliesTo: string; isActive: boolean },
+  ) {
+    const res = await fetch("/api/sales-management/commission-rules", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: rule.id, isActive: !rule.isActive }),
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      window.alert(body.error ?? "Unable to update rule.");
+      return;
+    }
+    await reload();
+  }
 
   if (loading) return <SalesManagementLoading label="Loading commissions…" />;
 
@@ -930,6 +992,66 @@ export function SalesManagementCommissionsTab() {
 
         <div data-tutorial-target="sm-commissions-rules">
         <WsSection title="Commission rules" subtitle="Configured calculation rules" className="p-4 sm:p-5">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <p className="text-xs text-white/45">Add rules for won deals, accepted quotes, or paid invoices.</p>
+            <button
+              type="button"
+              className={WsPrimaryButtonClass()}
+              onClick={() => setCreateOpen((open) => !open)}
+            >
+              <Plus className="h-3.5 w-3.5" />
+              Add rule
+            </button>
+          </div>
+
+          {createOpen ? (
+            <div className="mb-4 space-y-3 rounded-xl border border-white/10 bg-white/[0.03] p-4">
+              <div className="grid gap-3 sm:grid-cols-3">
+                <label className="block space-y-1 sm:col-span-2">
+                  <span className="text-[10px] font-semibold uppercase tracking-wide text-white/45">Rule name</span>
+                  <input
+                    className={WsInputClass()}
+                    value={draftName}
+                    onChange={(event) => setDraftName(event.target.value)}
+                    placeholder="Enterprise won deal"
+                  />
+                </label>
+                <label className="block space-y-1">
+                  <span className="text-[10px] font-semibold uppercase tracking-wide text-white/45">Rate %</span>
+                  <input
+                    className={WsInputClass()}
+                    type="number"
+                    min={0}
+                    max={100}
+                    step={0.1}
+                    value={draftRate}
+                    onChange={(event) => setDraftRate(event.target.value)}
+                  />
+                </label>
+              </div>
+              <label className="block space-y-1">
+                <span className="text-[10px] font-semibold uppercase tracking-wide text-white/45">Applies to</span>
+                <select
+                  className={WsInputClass()}
+                  value={draftAppliesTo}
+                  onChange={(event) => setDraftAppliesTo(event.target.value)}
+                >
+                  <option value="won_deal">Won deal</option>
+                  <option value="accepted_quote">Accepted quote</option>
+                  <option value="invoice_paid">Invoice paid</option>
+                </select>
+              </label>
+              {formError ? <p className="text-xs text-rose-300">{formError}</p> : null}
+              <div className="flex flex-wrap gap-2">
+                <button type="button" className={WsPrimaryButtonClass()} disabled={saving} onClick={() => void handleCreateRule()}>
+                  {saving ? "Saving…" : "Save rule"}
+                </button>
+                <button type="button" className={WsSecondaryButtonClass()} onClick={() => setCreateOpen(false)}>
+                  Cancel
+                </button>
+              </div>
+            </div>
+          ) : null}
 
           {!rules.length ? (
 
@@ -951,13 +1073,32 @@ export function SalesManagementCommissionsTab() {
 
                 <SalesRegisterCard key={rule.id}>
 
-                  <p className="text-sm font-medium text-white">{rule.name}</p>
-
-                  <p className="mt-1 text-xs text-white/45">
-
-                    {rule.ratePct}% · {rule.appliesTo.replaceAll("_", " ")} · {rule.isActive ? "Active" : "Inactive"}
-
-                  </p>
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <p className="text-sm font-medium text-white">{rule.name}</p>
+                      <p className="mt-1 text-xs text-white/45">
+                        {rule.ratePct}% · {rule.appliesTo.replaceAll("_", " ")} · {rule.isActive ? "Active" : "Inactive"}
+                      </p>
+                    </div>
+                    <div className="flex shrink-0 gap-1">
+                      <button
+                        type="button"
+                        className={WsSecondaryButtonClass()}
+                        onClick={() => void handleToggleRule(rule)}
+                        title={rule.isActive ? "Deactivate rule" : "Activate rule"}
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        className={WsSecondaryButtonClass()}
+                        onClick={() => void handleDeleteRule(rule.id)}
+                        title="Delete rule"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  </div>
 
                 </SalesRegisterCard>
 
