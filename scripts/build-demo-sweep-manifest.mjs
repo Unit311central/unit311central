@@ -49,6 +49,19 @@ function appendSupplemental(rows, enablement) {
   }
 }
 
+const INTELLIGENCE_VIEW_BY_SUBMODULE = {
+  "company-intelligence": "demo-company-intelligence",
+  "client-intelligence": "demo-client-intelligence",
+  "market-intelligence": "demo-market-intelligence",
+};
+
+function resolveViewId(moduleId, subModuleId, sub) {
+  if (moduleId === "intelligence" && INTELLIGENCE_VIEW_BY_SUBMODULE[subModuleId]) {
+    return INTELLIGENCE_VIEW_BY_SUBMODULE[subModuleId];
+  }
+  return sub?.viewId ?? subModuleId;
+}
+
 async function main() {
   const login = await fetch(`${ORIGIN}/api/auth/login`, {
     method: "POST",
@@ -78,7 +91,7 @@ async function main() {
     if (!parsed) continue;
     const entry = getWorkspaceModuleEntry(parsed.moduleId);
     const sub = entry?.subModules.find((s) => s.id === parsed.subModuleId);
-    const view = sub?.viewId ?? parsed.subModuleId;
+    const view = resolveViewId(parsed.moduleId, parsed.subModuleId, sub);
     rows.push({
       module: entry?.label ?? parsed.moduleId,
       moduleId: parsed.moduleId,

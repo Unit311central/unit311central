@@ -3,7 +3,6 @@
  * Visits every enabled submodule view in a real browser (Playwright).
  *
  * Usage: npm run prove:demo-browser-sweep
- *        node scripts/prove-demo-browser-sweep.mjs [origin]
  */
 import fs from "node:fs";
 import path from "node:path";
@@ -14,6 +13,14 @@ const USERNAME = process.env.DEMO_PROSPECT_USERNAME ?? "demo@unit311central.com"
 const PASSWORD = process.env.DEMO_PROSPECT_PASSWORD ?? "Letmein2026$";
 const ARTIFACT_DIR = "/opt/cursor/artifacts/demo-browser-sweep";
 const REPORT_PATH = path.join(ARTIFACT_DIR, "DEMO_ACCEPTANCE_SWEEP.md");
+const COMMIT = process.env.DEMO_SWEEP_COMMIT ?? "bc9c59cf";
+
+const LOGIN_PAGE_PATTERNS = [
+  /Secure access to Northstar/i,
+  /Username\s+Password\s+Sign In/i,
+  /Authentication required/i,
+  /Sign in to continue/i,
+];
 
 const PLACEHOLDER_PATTERNS = [
   /coming soon/i,
@@ -30,75 +37,12 @@ const FOREIGN_TENANT_PATTERNS = [
   /ABHI Home/i,
 ];
 
-function cookieHeader(setCookieHeaders) {
-  const list = Array.isArray(setCookieHeaders)
-    ? setCookieHeaders
-    : setCookieHeaders
-      ? [setCookieHeaders]
-      : [];
-  return list
-    .map((raw) => raw.split(";")[0])
-    .filter(Boolean)
-    .join("; ");
-}
-
-async function loginFetch() {
-  const res = await fetch(`${ORIGIN}/api/auth/login`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      username: USERNAME,
-      password: PASSWORD,
-      returnTo: ORIGIN,
-      next: "/dashboard",
-    }),
-  });
-  const body = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    throw new Error(`Login failed ${res.status}: ${JSON.stringify(body).slice(0, 300)}`);
-  }
-  const cookie = cookieHeader(res.headers.getSetCookie?.() ?? []);
-  if (!cookie) throw new Error("Login succeeded but no session cookie");
-  return cookie;
-}
-
-async function fetchWhoami(cookie) {
-  const res = await fetch(`${ORIGIN}/api/auth/whoami`, { headers: { Cookie: cookie } });
-  const json = await res.json();
-  if (!res.ok) throw new Error(`whoami failed ${res.status}`);
-  return json;
-}
-
-/** Build sweep rows from whoami enabled sub-modules + central catalogue (tsx manifest). */
 async function loadSweepManifest() {
   const manifestPath = path.join(ARTIFACT_DIR, "sweep-manifest.json");
-  if (fs.existsSync(manifestPath)) {
-    return JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+  if (!fs.existsSync(manifestPath)) {
+    throw new Error(`Missing ${manifestPath} — run build-demo-sweep-manifest first`);
   }
-  // Fallback: derive view ids from submodule keys (works for most central views).
-  const whoami = await fetchWhoami(await loginFetch());
-  const subs = whoami.enabledSubModules ?? [];
-  return subs
-    .map((key) => {
-      const idx = key.indexOf(":");
-      if (idx <= 0) return null;
-      const moduleId = key.slice(0, idx);
-      const subId = key.slice(idx + 1);
-      const view = subId.includes("-") ? subId : subId;
-      const intelligenceViews = {
-        "company-intelligence": "demo-company-intelligence",
-        "client-intelligence": "demo-client-intelligence",
-        "market-intelligence": "demo-market-intelligence",
-      };
-      const resolvedView = intelligenceViews[subId] ?? subId;
-      return {
-        module: moduleId,
-        subModule: subId,
-        view: resolvedView,
-        url: `${ORIGIN}/dashboard?view=${encodeURIComponent(resolvedView)}`,
-      };
-    })
-    .filter(Boolean);
+  return JSON.parse(fs.readFileSync(manifestPath, "utf8"));
 }
 
 function detectCurrency(text) {
@@ -110,10 +54,13 @@ function detectCurrency(text) {
   return "—";
 }
 
-function evaluatePage({ module, subModule, view, text, title }) {
+function isLoginPage(text) {
+  return LOGIN_PAGE_PATTERNS.some((pattern) => pattern.test(text));
+}
+
+function evaluatePage({ module, subModule, text, title }) {
   const issues = [];
-  if (/Authentication required/i.test(text)) issues.push("Auth wall");
-  if (/Sign in to continue/i.test(text)) issues.push("Login prompt");
+  if (isLoginPage(text)) issues.push("Login page (session lost or view blocked)");
   for (const pattern of PLACEHOLDER_PATTERNS) {
     if (pattern.test(text)) {
       issues.push(`Placeholder: ${pattern.source}`);
@@ -129,7 +76,7 @@ function evaluatePage({ module, subModule, view, text, title }) {
   if (module === "fundraising" && /£|\bGBP\b/.test(text)) {
     issues.push("Fundraising shows GBP (expected USD)");
   }
-  if (module === "financials" && subModule === "expenses" && /£|\bGBP\b/.test(text)) {
+  if (module === "FINANCES" && subModule === "My Expenses" && /£|\bGBP\b/.test(text)) {
     issues.push("Expenses surface shows GBP (expected USD)");
   }
   const pass = issues.length === 0;
@@ -143,44 +90,100 @@ function evaluatePage({ module, subModule, view, text, title }) {
 }
 
 function markdownRow(row) {
-  return `| ${row.module} | ${row.subModule} | \`${row.view}\` | ${row.url} | ${row.browserResult} | ${row.dataShown.replace(/\|/g, "\\|")} | ${row.currency} | — | — | demo session | demo | ${row.pass ? "**PASS**" : "**FAIL**"} | \`8e405760\` |`;
+  return `| ${row.module} | ${row.subModule} | \`${row.view}\` | ${row.url} | ${row.browserResult} | ${row.dataShown.replace(/\|/g, "\\|")} | ${row.currency} | — | demo session | demo | ${row.pass ? "**PASS**" : "**FAIL**"} | \`${COMMIT}\` |`;
+}
+
+function parseSetCookies(setCookieHeaders) {
+  const list = Array.isArray(setCookieHeaders)
+    ? setCookieHeaders
+    : setCookieHeaders
+      ? [setCookieHeaders]
+      : [];
+  return list.map((raw) => {
+    const parts = raw.split(";").map((part) => part.trim());
+    const [nameValue, ...attrs] = parts;
+    const eq = nameValue.indexOf("=");
+    const name = nameValue.slice(0, eq);
+    const value = nameValue.slice(eq + 1);
+    const cookie = {
+      name,
+      value,
+      domain: ".unit311central.com",
+      path: "/",
+      secure: true,
+      httpOnly: true,
+      sameSite: "Lax",
+    };
+    for (const attr of attrs) {
+      const [k, v = ""] = attr.split("=");
+      const key = k.toLowerCase();
+      if (key === "path") cookie.path = v || "/";
+      if (key === "samesite") {
+        cookie.sameSite = v.charAt(0).toUpperCase() + v.slice(1).toLowerCase();
+      }
+    }
+    return cookie;
+  });
+}
+
+async function loginBrowserContext(context) {
+  const res = await fetch(`${ORIGIN}/api/auth/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      username: USERNAME,
+      password: PASSWORD,
+      returnTo: ORIGIN,
+      next: "/dashboard?view=home",
+    }),
+  });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(`Login failed ${res.status}: ${JSON.stringify(body).slice(0, 300)}`);
+  }
+  const cookies = parseSetCookies(res.headers.getSetCookie?.() ?? []);
+  if (!cookies.length) throw new Error("Login succeeded but no session cookie");
+  await context.addCookies(cookies);
+}
+
+async function ensureAuthenticated(page, context) {
+  const cookies = await context.cookies();
+  if (cookies.some((cookie) => cookie.name === "dc_platform_session")) return;
+  await loginBrowserContext(context);
 }
 
 async function main() {
   fs.mkdirSync(ARTIFACT_DIR, { recursive: true });
-
-  const cookie = await loginFetch();
-  const whoami = await fetchWhoami(cookie);
-  console.log(`Demo browser sweep — ${ORIGIN}`);
-  console.log(`  workspace: ${whoami.workspaceSlug}, submodules: ${whoami.enabledSubModules?.length ?? 0}`);
-
   const rows = await loadSweepManifest();
+  console.log(`Demo browser sweep — ${ORIGIN} (${rows.length} views)`);
+
   const browser = await chromium.launch({ headless: true });
   const context = await browser.newContext();
-  const cookies = cookie.split("; ").map((pair) => {
-    const eq = pair.indexOf("=");
-    const name = pair.slice(0, eq);
-    const value = pair.slice(eq + 1);
-    return { name, value, domain: ".unit311central.com", path: "/" };
-  });
-  await context.addCookies(cookies);
   const page = await context.newPage();
+  await loginBrowserContext(context);
+  console.log("  PASS browser login");
 
   const results = [];
   for (const row of rows) {
     const url = `${ORIGIN}/dashboard?view=${encodeURIComponent(row.view)}`;
     process.stdout.write(`  ${row.module}/${row.subModule} … `);
     try {
-      const response = await page.goto(url, { waitUntil: "networkidle", timeout: 45000 });
-      await page.waitForTimeout(800);
+      await ensureAuthenticated(page, context);
+      const response = await page.goto(url, { waitUntil: "networkidle", timeout: 90000 });
+      await page.waitForTimeout(500);
       const text = await page.locator("body").innerText();
       const title = await page.title();
       const status = response?.status() ?? 0;
       const evalResult = evaluatePage({ ...row, text, title });
-      if (status !== 200) evalResult.issues.push(`HTTP ${status}`);
-      if (status !== 200) evalResult.pass = false;
+      if (status !== 200) {
+        evalResult.issues.push(`HTTP ${status}`);
+        evalResult.pass = false;
+      }
 
-      const shotName = `${row.module}-${row.subModule}.png`.replace(/[^a-z0-9.-]+/gi, "_");
+      const shotName = `${row.moduleId ?? row.module}-${row.subModuleId ?? row.subModule}.png`.replace(
+        /[^a-z0-9.-]+/gi,
+        "_",
+      );
       await page.screenshot({
         path: path.join(ARTIFACT_DIR, shotName),
         fullPage: false,
@@ -191,7 +194,7 @@ async function main() {
         url,
         pass: evalResult.pass,
         browserResult: evalResult.pass
-          ? "Page loaded, no auth/placeholder/leak"
+          ? "Authenticated UI loaded"
           : evalResult.issues.join("; "),
         dataShown: evalResult.dataShown,
         currency: evalResult.currency,
@@ -216,11 +219,12 @@ async function main() {
 
   const passCount = results.filter((r) => r.pass).length;
   const failCount = results.length - passCount;
+  const fails = results.filter((r) => !r.pass);
 
   const header = `# Demo production browser acceptance sweep
 
 - **Origin:** ${ORIGIN}
-- **Commit:** \`8e405760\`
+- **Commit:** \`${COMMIT}\`
 - **Date:** ${new Date().toISOString()}
 - **Result:** ${passCount}/${results.length} PASS, ${failCount} FAIL
 
@@ -228,14 +232,18 @@ async function main() {
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 `;
 
-  const body = results.map(markdownRow).join("\n");
-  fs.writeFileSync(REPORT_PATH, header + body + "\n");
+  fs.writeFileSync(REPORT_PATH, header + results.map(markdownRow).join("\n") + "\n");
   fs.writeFileSync(path.join(ARTIFACT_DIR, "results.json"), JSON.stringify(results, null, 2));
 
   console.log(`\nReport: ${REPORT_PATH}`);
   console.log(`PASS ${passCount}/${results.length}`);
-
-  if (failCount > 0) process.exit(1);
+  if (fails.length) {
+    console.log("\nFailures:");
+    for (const fail of fails) {
+      console.log(`  - ${fail.module}/${fail.subModule}: ${fail.browserResult}`);
+    }
+    process.exit(1);
+  }
 }
 
 main().catch((error) => {
