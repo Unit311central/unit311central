@@ -2,7 +2,6 @@
 
 import { useEffect } from "react";
 
-import { isBrowserDemoSurface } from "@/lib/demo-enterprise";
 import { ENGINEERING_SOP_CHILD_VIEWS, type EngineeringSopChildView } from "@/lib/engineering-nav";
 import { engSopStatusClass } from "@/lib/engineering-sop-data";
 
@@ -38,13 +37,6 @@ export default function EngineeringSopRouter({ view }: Props) {
     void refresh();
   }, [refresh, resolved]);
 
-  useEffect(() => {
-    if (!isBrowserDemoSurface()) return;
-    void fetch("/api/internal/engineering-sops/seed-northstar", { method: "POST" })
-      .then((res) => (res.ok ? refresh() : null))
-      .catch(() => null);
-  }, [refresh]);
-
   if (resolved === "engineering-sops-library") {
     return <EngineeringSopWorkspace />;
   }
@@ -75,7 +67,7 @@ export default function EngineeringSopRouter({ view }: Props) {
               <MetricCard label="Reviews overdue" value={totals.overdueReviews} />
             </div>
           ) : (
-            <WsEmpty message="Create SOPs in the library or seed demo data on Northstar." />
+            <WsEmpty message="Create SOPs in the library or open this workspace again after central starter data loads." />
           )}
         </WsSection>
         {dashboard?.activeRuns?.length ? (

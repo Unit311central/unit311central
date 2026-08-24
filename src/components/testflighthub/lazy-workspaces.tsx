@@ -135,6 +135,7 @@ export const SoftwareSaasDashboardWorkspace = lazyWorkspace(
   () => import("./SoftwareSaasDashboardWorkspace"),
 );
 export const TechnologyPlaceholderWorkspace = lazyWorkspace(() => import("./TechnologyPlaceholderWorkspace"));
+export const TelecommunicationsWorkspace = lazyWorkspace(() => import("./TelecommunicationsWorkspace"));
 export const ExternalClientAccessWorkspace = lazyWorkspace(() => import("./ExternalClientAccessWorkspace"));
 export const WebsiteManagementWorkspace = lazyWorkspace(() => import("./WebsiteManagementWorkspace"));
 export const IntegrationsWorkspace = lazyWorkspace(() => import("./IntegrationsWorkspace"));

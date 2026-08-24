@@ -262,6 +262,7 @@ import {
   TechnologyDashboardWorkspace,
   TechnologyArchitectureWorkspace,
   TechnologyPlaceholderWorkspace,
+  TelecommunicationsWorkspace,
   TechnologySoftwareWorkspace,
   SoftwareSaasDashboardWorkspace,
   TrainingDashboardWorkspace,
@@ -1381,9 +1382,7 @@ export default function InternalOperationsDashboard({
 
           {activeView === "technology-software" && <TechnologySoftwareWorkspace />}
 
-          {activeView === "technology-telecommunications" && (
-            <TechnologyPlaceholderWorkspace module="telecommunications" />
-          )}
+          {activeView === "technology-telecommunications" && <TelecommunicationsWorkspace />}
 
           {activeView === "technology-infrastructure" && (
             <TechnologyPlaceholderWorkspace module="infrastructure" />

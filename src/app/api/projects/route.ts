@@ -3,8 +3,6 @@ import { NextRequest, NextResponse } from "next/server";
 
 import type { ProjectPhase } from "@/lib/projects-data";
 import { createProject, listProjects } from "@/lib/internal-projects-service";
-import { isDemoApiRequest } from "@/lib/demo/demo-request";
-import { getNorthstarProjects } from "@/lib/demo/module-fixtures";
 import { requirePlatformSession } from "@/lib/platform-session";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
 import { requireCurrentWorkspace } from "@/lib/workspace-context";
@@ -12,10 +10,6 @@ import { requireCurrentWorkspace } from "@/lib/workspace-context";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  if (await isDemoApiRequest()) {
-    return NextResponse.json({ projects: getNorthstarProjects() });
-  }
-
   if (!isSupabaseConfigured()) {
     return NextResponse.json({ error: "Supabase is not configured." }, { status: 503 });
   }

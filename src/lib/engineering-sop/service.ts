@@ -16,6 +16,7 @@ import {
   mapDbSopListItem,
   sopToDbInsert,
 } from "@/lib/engineering-sop/mappers";
+import { ensureEngineeringSopStarterCatalogue } from "@/lib/engineering-sop/ensure-starter-catalogue";
 import type { EngineeringSopDashboard, EngineeringSopReport, EngineeringSopTaskItem } from "@/lib/engineering-sop/types";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
 import { createTenancyServerClient } from "@/lib/supabase/tenancy-server";
@@ -64,6 +65,7 @@ export async function listEngineeringSops(
   filters?: { search?: string; status?: string; templatesOnly?: boolean; excludeTemplates?: boolean },
 ) {
   const ws = await workspaceId(scope);
+  await ensureEngineeringSopStarterCatalogue(ws);
   let query = db().from("engineering_sops").select("*").eq("workspace_id", ws).order("updated_at", { ascending: false });
   if (filters?.templatesOnly) query = query.eq("is_template", true);
   if (filters?.excludeTemplates) query = query.eq("is_template", false);

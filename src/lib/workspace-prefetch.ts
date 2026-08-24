@@ -68,7 +68,7 @@ export const WORKSPACE_CHUNK_LOADERS: Partial<
   "technology-software-dashboard": () =>
     import("@/components/testflighthub/SoftwareSaasDashboardWorkspace"),
   "technology-telecommunications": () =>
-    import("@/components/testflighthub/TechnologyPlaceholderWorkspace"),
+    import("@/components/testflighthub/TelecommunicationsWorkspace"),
   "technology-infrastructure": () =>
     import("@/components/testflighthub/TechnologyPlaceholderWorkspace"),
   "technology-reports": () =>

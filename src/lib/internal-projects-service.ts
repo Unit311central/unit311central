@@ -3,6 +3,7 @@ import {
   type InternalProject,
   type ProjectPhase,
 } from "@/lib/projects-data";
+import { ensureInternalProjectsStarterCatalogue } from "@/lib/internal-projects/starter-catalogue";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
 import { createTenancyServerClient } from "@/lib/supabase/tenancy-server";
 import { requireCurrentWorkspace } from "@/lib/workspace-context";
@@ -122,6 +123,7 @@ async function resolveClientLink(
 
 export async function listProjects(scope?: ProjectsWorkspaceScope): Promise<InternalProject[]> {
   const workspaceId = await resolveProjectsWorkspaceId(scope);
+  await ensureInternalProjectsStarterCatalogue(workspaceId);
   const supabase = requireProjectsSupabase();
   const { data, error } = await supabase
     .from("internal_projects")

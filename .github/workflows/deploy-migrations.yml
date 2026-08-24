@@ -106,6 +106,15 @@ jobs:
               (.pending | index("supabase/migrations/162_expense_management_foundation.sql")) == null
             )
           ' >/dev/null
+          echo "$response" | jq -e '
+            (
+              ([.applied[]? | select(.migration == "supabase/migrations/163_technology_telecom_services.sql")] | length) == 1
+            ) or (
+              ([.skipped[]? | select(.migration == "supabase/migrations/163_technology_telecom_services.sql")] | length) == 1
+            ) or (
+              (.pending | index("supabase/migrations/163_technology_telecom_services.sql")) == null
+            )
+          ' >/dev/null
 
       - name: GET verify migration plan after apply
         env:
@@ -134,6 +143,9 @@ jobs:
           ' >/dev/null
           echo "$response" | jq -e '
             (.plan.satisfied | index("supabase/migrations/162_expense_management_foundation.sql")) != null
+          ' >/dev/null
+          echo "$response" | jq -e '
+            (.plan.satisfied | index("supabase/migrations/163_technology_telecom_services.sql")) != null
           ' >/dev/null
           echo "$response" | jq -e '
             ([.plan.actions[] | select(.kind == "apply")] | length) == 0

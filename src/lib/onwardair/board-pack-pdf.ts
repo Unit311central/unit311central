@@ -120,32 +120,40 @@ function drawLogo(
   brand?: AbhiBoardPackData | null,
   placement: "header" | "cover" = "header",
 ) {
-  if (isNorthstarBoardPack(brand)) {
-    if (placement === "cover") {
-      drawNorthstarWordmark(doc, MARGIN, 7, 78, "left");
-      return;
+  if (!logoDataUrl) {
+    if (isNorthstarBoardPack(brand)) {
+      if (placement === "cover") {
+        drawNorthstarWordmark(doc, MARGIN, 7, 78, "left");
+        return;
+      }
+      drawNorthstarWordmark(doc, SLIDE_W - MARGIN, 4, 44, "right");
     }
-    drawNorthstarWordmark(doc, SLIDE_W - MARGIN, 4, 44, "right");
     return;
   }
-  if (!logoDataUrl) return;
   try {
+    const format = logoImageFormat(logoDataUrl);
     if (placement === "cover") {
       const coverW = LOGO_W * 2.2;
       const coverH = LOGO_H * 2.2;
-      doc.addImage(logoDataUrl, logoImageFormat(logoDataUrl), MARGIN, 6, coverW, coverH);
+      doc.addImage(logoDataUrl, format, MARGIN, 6, coverW, coverH);
       return;
     }
     doc.addImage(
       logoDataUrl,
-      logoImageFormat(logoDataUrl),
+      format,
       SLIDE_W - MARGIN - LOGO_W,
       4,
       LOGO_W,
       LOGO_H,
     );
   } catch {
-    // optional
+    if (isNorthstarBoardPack(brand)) {
+      if (placement === "cover") {
+        drawNorthstarWordmark(doc, MARGIN, 7, 78, "left");
+        return;
+      }
+      drawNorthstarWordmark(doc, SLIDE_W - MARGIN, 4, 44, "right");
+    }
   }
 }
 
