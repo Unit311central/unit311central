@@ -209,6 +209,7 @@ import {
   EngineeringDashboardWorkspace,
   EngineeringResourcesWorkspace,
   EngineeringSopRouter,
+  EngineeringTechnicalFilesWorkspace,
   ExecutiveAssistantWorkspace,
   ExpensesWorkspace,
   ExternalClientAccessWorkspace,
@@ -1333,6 +1334,12 @@ export default function InternalOperationsDashboard({
             ) : (
               <EngineeringCapacityWorkspace />
             ))}
+
+          {activeView === "engineering-technical-files" && (
+            <WorkspaceErrorBoundary title="Technical Files">
+              <EngineeringTechnicalFilesWorkspace />
+            </WorkspaceErrorBoundary>
+          )}
 
           {isEngineeringSopView(activeView) && (
             <WorkspaceErrorBoundary title="Engineering SOPs">

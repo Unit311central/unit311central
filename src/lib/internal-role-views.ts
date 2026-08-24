@@ -1027,6 +1027,7 @@ const ONWARDAIR_ENGINEERING_NAV_SECTION: InternalNavSection = {
       icon: "Plug",
       view: "oa-engineering-integrations" as const,
     },
+    { label: "Technical Files", icon: "FolderKanban", view: "engineering-technical-files" as const },
     ENGINEERING_SOPS_NAV_ITEM,
   ],
 };

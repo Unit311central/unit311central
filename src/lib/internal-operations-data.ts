@@ -98,6 +98,7 @@ export type InternalOperationsView =
   | "files-client"
   | "productivity-dashboard"
   | "unit311-details"
+  | "information-repository"
   | "module-go-live"
   | "users"
   | "users-external"
@@ -141,6 +142,7 @@ export type InternalOperationsView =
   | "engineering-resources"
   | "engineering-capacity"
   | "engineering-risks"
+  | "engineering-technical-files"
   | "engineering-sops"
   | "engineering-sops-dashboard"
   | "engineering-sops-library"
@@ -389,6 +391,7 @@ export const internalOperationsViews: InternalOperationsView[] = [
   "files-client",
   "productivity-dashboard",
   "unit311-details",
+  "information-repository",
   "module-go-live",
   "users",
   "users-external",
@@ -432,6 +435,7 @@ export const internalOperationsViews: InternalOperationsView[] = [
   "engineering-resources",
   "engineering-capacity",
   "engineering-risks",
+  "engineering-technical-files",
   "engineering-sops",
   "engineering-sops-dashboard",
   "engineering-sops-library",
@@ -561,6 +565,7 @@ export const ENGINEERING_NAV_VIEWS = [
   "engineering-resources",
   "engineering-capacity",
   "engineering-risks",
+  "engineering-technical-files",
   "engineering-sops",
   "engineering-sops-dashboard",
   "engineering-sops-library",
@@ -606,6 +611,7 @@ export const OA_ENGINEERING_NAV_VIEWS = [
   "oa-assurance-certification",
   "oa-engineering-risks",
   "oa-engineering-integrations",
+  "engineering-technical-files",
 ] as const satisfies readonly InternalOperationsView[];
 
 export function isProjectsNavView(view: InternalOperationsView): boolean {
@@ -1180,6 +1186,10 @@ export const internalViewTitles: Record<
   "sales-management": { title: "Dashboard", subtitle: "Sales Management" },
   "files-internal": { title: "Internal Files", subtitle: "File Explorer" },
   "unit311-details": { title: "Dashboard", subtitle: "Unit311 Details" },
+  "information-repository": {
+    title: "Information Repository",
+    subtitle: "Business Central",
+  },
   "module-go-live": {
     title: "Module Go-Live",
     subtitle: "Unit311 Details",
@@ -1237,6 +1247,7 @@ export const internalViewTitles: Record<
   },
   "engineering-capacity": { title: "Team & Capacity", subtitle: "Engineering" },
   "engineering-risks": { title: "Risks", subtitle: "Engineering" },
+  "engineering-technical-files": { title: "Technical Files", subtitle: "Engineering" },
   "engineering-sops": { title: "Standard Operating Procedures", subtitle: "Engineering" },
   "engineering-sops-dashboard": { title: "SOP Dashboard", subtitle: "Engineering" },
   "engineering-sops-library": { title: "SOP Library", subtitle: "Engineering" },

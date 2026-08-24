@@ -206,6 +206,7 @@ export function buildCentralEngineeringNavSection(): InternalNavSection {
       { label: "Programs & Milestones", icon: "Milestone", view: "engineering-programs" },
       { label: "Team & Capacity", icon: "Users", view: "engineering-capacity" },
       { label: "Risks", icon: "AlertTriangle", view: "engineering-risks" },
+      { label: "Technical Files", icon: "FolderKanban", view: "engineering-technical-files" },
       ENGINEERING_SOPS_NAV_ITEM,
     ],
   };

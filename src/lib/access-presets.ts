@@ -193,6 +193,7 @@ export const MODULE_GRANT_GROUPS: ModuleGrantGroup[] = [
       "oa-assurance-certification",
       "oa-engineering-risks",
       "oa-engineering-integrations",
+      "engineering-technical-files",
     ],
   },
   {
@@ -252,6 +253,7 @@ export const MODULE_GRANT_GROUPS: ModuleGrantGroup[] = [
       "engineering-resources",
       "engineering-capacity",
       "engineering-risks",
+      "engineering-technical-files",
       "engineering-sops",
       "engineering-sops-dashboard",
       "engineering-sops-library",

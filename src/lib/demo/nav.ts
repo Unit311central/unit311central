@@ -65,6 +65,7 @@ const DEMO_ENGINEERING_NAV: InternalNavSection = {
     { label: "Programs & Milestones", icon: "Milestone", view: "engineering-programs" as const },
     { label: "Team & Capacity", icon: "Users", view: "engineering-capacity" as const },
     { label: "Risks", icon: "AlertTriangle", view: "engineering-risks" as const },
+    { label: "Technical Files", icon: "FolderKanban", view: "engineering-technical-files" as const },
     ENGINEERING_SOPS_NAV_ITEM,
   ],
 };
