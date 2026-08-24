@@ -74,4 +74,27 @@ assert.match(service, /engineering_technical_file_events/);
 assert.match(service, /is_current: false/);
 assert.match(service, /INTERNAL_FILES_BUCKET/);
 
+const apiHelpers = readFileSync(
+  join(process.cwd(), "src/lib/engineering-technical-files/api-helpers.ts"),
+  "utf8",
+);
+assert.match(apiHelpers, /requireEngineeringTechnicalFilesApiContext/);
+assert.match(apiHelpers, /requirePlatformSession/);
+assert.match(apiHelpers, /requireCurrentWorkspace/);
+assert.match(apiHelpers, /isModuleEnabledInWorkspace\("engineering"/);
+assert.match(apiHelpers, /apiErrorStatus/);
+
+const sessionGate = readFileSync(
+  join(process.cwd(), "src/lib/workspace-host-session-gate.ts"),
+  "utf8",
+);
+assert.match(sessionGate, /resolveDemoRole/);
+
+const clientApi = readFileSync(
+  join(process.cwd(), "src/lib/engineering-technical-files/client-api.ts"),
+  "utf8",
+);
+assert.match(clientApi, /credentials:\s*"include"/);
+assert.match(clientApi, /cache:\s*"no-store"/);
+
 console.log("ok  engineering-technical-files checks passed\n");

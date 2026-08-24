@@ -4,10 +4,20 @@ import type {
   TechnicalFileListItem,
 } from "@/lib/engineering-technical-files/types";
 
+const FETCH_INIT: RequestInit = {
+  cache: "no-store",
+  credentials: "include",
+};
+
 async function parseJson<T>(response: Response): Promise<T> {
   const body = (await response.json()) as T & { error?: string };
   if (!response.ok) throw new Error(body.error ?? `Request failed (${response.status})`);
   return body;
+}
+
+async function fetchJson<T>(input: RequestInfo | URL, init?: RequestInit): Promise<T> {
+  const response = await fetch(input, { ...FETCH_INIT, ...init });
+  return parseJson<T>(response);
 }
 
 export async function listTechnicalFilesApi(filters?: {
@@ -18,34 +28,32 @@ export async function listTechnicalFilesApi(filters?: {
 }) {
   const params = new URLSearchParams();
   if (filters?.search) params.set("search", filters.search);
-  if (filters?.category) params.set("category", filters.category);
-  if (filters?.status) params.set("status", filters.status);
+  if (filters?.category && filters.category !== "All") params.set("category", filters.category);
+  if (filters?.status && filters.status !== "All") params.set("status", filters.status);
   if (filters?.masterId) params.set("masterId", filters.masterId);
   const qs = params.toString();
-  const response = await fetch(`/api/engineering/technical-files${qs ? `?${qs}` : ""}`);
-  const body = await parseJson<{ files: TechnicalFileListItem[] }>(response);
+  const body = await fetchJson<{ files: TechnicalFileListItem[] }>(
+    `/api/engineering/technical-files${qs ? `?${qs}` : ""}`,
+  );
   return body.files;
 }
 
 export async function getTechnicalFileApi(id: string) {
-  const response = await fetch(`/api/engineering/technical-files/${id}`);
-  const body = await parseJson<{ file: TechnicalFileDetail }>(response);
+  const body = await fetchJson<{ file: TechnicalFileDetail }>(`/api/engineering/technical-files/${id}`);
   return body.file;
 }
 
 export async function listEngineeringMastersApi() {
-  const response = await fetch("/api/engineering/masters");
-  const body = await parseJson<{ masters: EngineeringMaster[] }>(response);
+  const body = await fetchJson<{ masters: EngineeringMaster[] }>("/api/engineering/masters");
   return body.masters;
 }
 
 export async function createEngineeringMasterApi(input: { title: string; description?: string }) {
-  const response = await fetch("/api/engineering/masters", {
+  const body = await fetchJson<{ master: EngineeringMaster }>("/api/engineering/masters", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(input),
   });
-  const body = await parseJson<{ master: EngineeringMaster }>(response);
   return body.master;
 }
 
@@ -54,67 +62,72 @@ export async function prepareTechnicalFileUploadApi(input: {
   sizeBytes: number;
   technicalFileId?: string;
 }) {
-  const response = await fetch("/api/engineering/technical-files/upload/prepare", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(input),
-  });
-  return parseJson<{
+  return fetchJson<{
     signedUrl: string;
     token: string;
     storagePath: string;
     versionId: string;
-  }>(response);
-}
-
-export async function createTechnicalFileApi(input: Record<string, unknown>) {
-  const response = await fetch("/api/engineering/technical-files", {
+  }>("/api/engineering/technical-files/upload/prepare", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(input),
   });
-  const body = await parseJson<{ file: TechnicalFileDetail }>(response);
+}
+
+export async function createTechnicalFileApi(input: Record<string, unknown>) {
+  const body = await fetchJson<{ file: TechnicalFileDetail }>("/api/engineering/technical-files", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
   return body.file;
 }
 
 export async function addTechnicalFileVersionApi(fileId: string, input: Record<string, unknown>) {
-  const response = await fetch(`/api/engineering/technical-files/${fileId}/versions`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(input),
-  });
-  const body = await parseJson<{ file: TechnicalFileDetail }>(response);
+  const body = await fetchJson<{ file: TechnicalFileDetail }>(
+    `/api/engineering/technical-files/${fileId}/versions`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(input),
+    },
+  );
   return body.file;
 }
 
 export async function updateTechnicalFileApi(fileId: string, input: Record<string, unknown>) {
-  const response = await fetch(`/api/engineering/technical-files/${fileId}`, {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(input),
-  });
-  const body = await parseJson<{ file: TechnicalFileDetail }>(response);
+  const body = await fetchJson<{ file: TechnicalFileDetail }>(
+    `/api/engineering/technical-files/${fileId}`,
+    {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(input),
+    },
+  );
   return body.file;
 }
 
 export async function archiveTechnicalFileApi(fileId: string) {
-  const response = await fetch(`/api/engineering/technical-files/${fileId}`, { method: "DELETE" });
-  const body = await parseJson<{ file: TechnicalFileDetail | null }>(response);
+  const body = await fetchJson<{ file: TechnicalFileDetail | null }>(
+    `/api/engineering/technical-files/${fileId}`,
+    { method: "DELETE" },
+  );
   return body.file;
 }
 
 export async function restoreTechnicalFileVersionApi(fileId: string, versionId: string) {
-  const response = await fetch(`/api/engineering/technical-files/${fileId}/versions/${versionId}/restore`, {
-    method: "POST",
-  });
-  const body = await parseJson<{ file: TechnicalFileDetail }>(response);
+  const body = await fetchJson<{ file: TechnicalFileDetail }>(
+    `/api/engineering/technical-files/${fileId}/versions/${versionId}/restore`,
+    { method: "POST" },
+  );
   return body.file;
 }
 
 export async function getTechnicalFileDownloadUrlApi(fileId: string, versionId?: string) {
   const qs = versionId ? `?versionId=${encodeURIComponent(versionId)}` : "";
-  const response = await fetch(`/api/engineering/technical-files/${fileId}/download${qs}`);
-  return parseJson<{ url: string; fileName: string; mimeType: string | null }>(response);
+  return fetchJson<{ url: string; fileName: string; mimeType: string | null }>(
+    `/api/engineering/technical-files/${fileId}/download${qs}`,
+  );
 }
 
 export async function uploadTechnicalFileBlob(signedUrl: string, file: File) {

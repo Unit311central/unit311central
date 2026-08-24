@@ -1,14 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import {
-  technicalFileActor,
+  requireEngineeringTechnicalFilesApiContext,
   technicalFileErrorResponse,
 } from "@/lib/engineering-technical-files/api-helpers";
 import {
   createEngineeringMaster,
   listEngineeringMasters,
 } from "@/lib/engineering-technical-files/service";
-import { requirePlatformSession } from "@/lib/platform-session";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -18,8 +17,8 @@ export async function GET() {
     return NextResponse.json({ error: "Supabase is not configured." }, { status: 503 });
   }
   try {
-    await requirePlatformSession();
-    const masters = await listEngineeringMasters();
+    const { workspace } = await requireEngineeringTechnicalFilesApiContext();
+    const masters = await listEngineeringMasters({ workspaceId: workspace.id });
     return NextResponse.json({ masters });
   } catch (error) {
     return technicalFileErrorResponse(error, "Failed to load engineering masters.");
@@ -31,7 +30,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Supabase is not configured." }, { status: 503 });
   }
   try {
-    const session = await requirePlatformSession();
+    const { workspace, actor } = await requireEngineeringTechnicalFilesApiContext();
     const body = (await request.json()) as Record<string, unknown>;
     const master = await createEngineeringMaster(
       {
@@ -40,7 +39,8 @@ export async function POST(request: NextRequest) {
         programRef: typeof body.programRef === "string" ? body.programRef : undefined,
         productRef: typeof body.productRef === "string" ? body.productRef : undefined,
       },
-      technicalFileActor(session),
+      actor,
+      { workspaceId: workspace.id },
     );
     return NextResponse.json({ master }, { status: 201 });
   } catch (error) {

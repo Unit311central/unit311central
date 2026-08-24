@@ -1,11 +1,10 @@
 import { NextResponse } from "next/server";
 
 import {
-  technicalFileActor,
+  requireEngineeringTechnicalFilesApiContext,
   technicalFileErrorResponse,
 } from "@/lib/engineering-technical-files/api-helpers";
 import { restoreTechnicalFileVersion } from "@/lib/engineering-technical-files/service";
-import { requirePlatformSession } from "@/lib/platform-session";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -17,9 +16,11 @@ export async function POST(_request: Request, context: RouteContext) {
     return NextResponse.json({ error: "Supabase is not configured." }, { status: 503 });
   }
   try {
-    const session = await requirePlatformSession();
+    const { workspace, actor } = await requireEngineeringTechnicalFilesApiContext();
     const { id, versionId } = await context.params;
-    const file = await restoreTechnicalFileVersion(id, versionId, technicalFileActor(session));
+    const file = await restoreTechnicalFileVersion(id, versionId, actor, {
+      workspaceId: workspace.id,
+    });
     return NextResponse.json({ file });
   } catch (error) {
     return technicalFileErrorResponse(error, "Failed to restore version.");

@@ -1,10 +1,13 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 import {
+  DEMO_WORKSPACE_SLUG,
   getRequestHost,
   parseClientPlatformSubdomainSafe,
   parseSafePostLoginNext,
 } from "@/lib/app-domains";
+import { resolveDemoRole } from "@/lib/demo/read-only";
+import { demoWorkspaceSlug } from "@/lib/runtime-surface";
 import {
   PLATFORM_SESSION_COOKIE,
   readPlatformSessionToken,
@@ -57,6 +60,20 @@ export async function evaluateCustomerHostSessionGate(
     slug: record.slug,
     name: record.name,
   };
+
+  const demoSlug = (demoWorkspaceSlug() || DEMO_WORKSPACE_SLUG).trim().toLowerCase();
+  const hostSlug = workspaceSlug.trim().toLowerCase();
+  if (
+    (hostSlug === demoSlug || hostSlug === DEMO_WORKSPACE_SLUG) &&
+    resolveDemoRole(session.username)
+  ) {
+    return {
+      status: "ok",
+      session,
+      workspace,
+      needsRebind: sessionNeedsWorkspaceRebind(session, workspace),
+    };
+  }
 
   const decision = await authorizeUserForWorkspace(session.sub, workspace.id, {
     workspace,

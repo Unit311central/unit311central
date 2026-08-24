@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import {
-  technicalFileActor,
+  requireEngineeringTechnicalFilesApiContext,
   technicalFileErrorResponse,
 } from "@/lib/engineering-technical-files/api-helpers";
 import {
@@ -9,7 +9,6 @@ import {
   listTechnicalFiles,
 } from "@/lib/engineering-technical-files/service";
 import type { TechnicalFileCategory, TechnicalFileStatus } from "@/lib/engineering-technical-files/file-types";
-import { requirePlatformSession } from "@/lib/platform-session";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -19,15 +18,18 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Supabase is not configured." }, { status: 503 });
   }
   try {
-    await requirePlatformSession();
+    const { workspace } = await requireEngineeringTechnicalFilesApiContext();
     const params = request.nextUrl.searchParams;
-    const files = await listTechnicalFiles(undefined, {
-      search: params.get("search") ?? undefined,
-      category: params.get("category") ?? undefined,
-      status: params.get("status") ?? undefined,
-      masterId: params.get("masterId") ?? undefined,
-      programRef: params.get("programRef") ?? undefined,
-    });
+    const files = await listTechnicalFiles(
+      { workspaceId: workspace.id },
+      {
+        search: params.get("search") ?? undefined,
+        category: params.get("category") ?? undefined,
+        status: params.get("status") ?? undefined,
+        masterId: params.get("masterId") ?? undefined,
+        programRef: params.get("programRef") ?? undefined,
+      },
+    );
     return NextResponse.json({ files });
   } catch (error) {
     return technicalFileErrorResponse(error, "Failed to load technical files.");
@@ -39,7 +41,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Supabase is not configured." }, { status: 503 });
   }
   try {
-    const session = await requirePlatformSession();
+    const { workspace, actor } = await requireEngineeringTechnicalFilesApiContext();
     const body = (await request.json()) as Record<string, unknown>;
     const file = await createTechnicalFileWithVersion(
       {
@@ -64,7 +66,8 @@ export async function POST(request: NextRequest) {
         relatedFileIds: Array.isArray(body.relatedFileIds) ? body.relatedFileIds.map(String) : undefined,
         sopId: typeof body.sopId === "string" ? body.sopId : null,
       },
-      technicalFileActor(session),
+      actor,
+      { workspaceId: workspace.id },
     );
     return NextResponse.json({ file }, { status: 201 });
   } catch (error) {

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import {
-  technicalFileActor,
+  requireEngineeringTechnicalFilesApiContext,
   technicalFileErrorResponse,
 } from "@/lib/engineering-technical-files/api-helpers";
 import type { TechnicalFileCategory, TechnicalFileStatus } from "@/lib/engineering-technical-files/file-types";
@@ -10,7 +10,6 @@ import {
   getTechnicalFileById,
   updateTechnicalFileMetadata,
 } from "@/lib/engineering-technical-files/service";
-import { requirePlatformSession } from "@/lib/platform-session";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -22,9 +21,9 @@ export async function GET(_request: NextRequest, context: RouteContext) {
     return NextResponse.json({ error: "Supabase is not configured." }, { status: 503 });
   }
   try {
-    await requirePlatformSession();
+    const { workspace } = await requireEngineeringTechnicalFilesApiContext();
     const { id } = await context.params;
-    const file = await getTechnicalFileById(id);
+    const file = await getTechnicalFileById(id, { workspaceId: workspace.id });
     if (!file) return NextResponse.json({ error: "Technical file not found." }, { status: 404 });
     return NextResponse.json({ file });
   } catch (error) {
@@ -37,7 +36,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
     return NextResponse.json({ error: "Supabase is not configured." }, { status: 503 });
   }
   try {
-    const session = await requirePlatformSession();
+    const { workspace, actor } = await requireEngineeringTechnicalFilesApiContext();
     const { id } = await context.params;
     const body = (await request.json()) as Record<string, unknown>;
     const file = await updateTechnicalFileMetadata(
@@ -58,7 +57,8 @@ export async function PUT(request: NextRequest, context: RouteContext) {
         relatedFileIds: Array.isArray(body.relatedFileIds) ? body.relatedFileIds.map(String) : undefined,
         sopId: body.sopId === null ? null : typeof body.sopId === "string" ? body.sopId : undefined,
       },
-      technicalFileActor(session),
+      actor,
+      { workspaceId: workspace.id },
     );
     return NextResponse.json({ file });
   } catch (error) {
@@ -71,9 +71,9 @@ export async function DELETE(_request: NextRequest, context: RouteContext) {
     return NextResponse.json({ error: "Supabase is not configured." }, { status: 503 });
   }
   try {
-    const session = await requirePlatformSession();
+    const { workspace, actor } = await requireEngineeringTechnicalFilesApiContext();
     const { id } = await context.params;
-    const file = await archiveTechnicalFile(id, technicalFileActor(session));
+    const file = await archiveTechnicalFile(id, actor, { workspaceId: workspace.id });
     return NextResponse.json({ file });
   } catch (error) {
     return technicalFileErrorResponse(error, "Failed to archive technical file.");
