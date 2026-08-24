@@ -1,10 +1,11 @@
 import type { FinancialExpense } from "@/lib/expenses-data";
+import { expenseFixture } from "@/lib/expenses-data";
 
 const now = "2026-08-08T09:00:00.000Z";
 
 /** ABHI T&E and operating expense claims — GBP only. August 2026 MTD populated. */
 export const ABHI_EXPENSE_FIXTURES: FinancialExpense[] = [
-  {
+  expenseFixture({
     id: "abhi-exp-whx-deposit",
     submitterUserId: "u-internal-1",
     submitterName: "Sarah Mitchell",
@@ -26,8 +27,8 @@ export const ABHI_EXPENSE_FIXTURES: FinancialExpense[] = [
     paymentJournalEntryId: null,
     createdAt: now,
     updatedAt: now,
-  },
-  {
+  }),
+  expenseFixture({
     id: "abhi-exp-regulatory",
     submitterUserId: "u-internal-1",
     submitterName: "James Okonkwo",
@@ -49,8 +50,8 @@ export const ABHI_EXPENSE_FIXTURES: FinancialExpense[] = [
     paymentJournalEntryId: null,
     createdAt: now,
     updatedAt: now,
-  },
-  {
+  }),
+  expenseFixture({
     id: "abhi-exp-member-forum",
     submitterUserId: "u-internal-1",
     submitterName: "Helen Price",
@@ -72,8 +73,8 @@ export const ABHI_EXPENSE_FIXTURES: FinancialExpense[] = [
     paymentJournalEntryId: null,
     createdAt: now,
     updatedAt: now,
-  },
-  {
+  }),
+  expenseFixture({
     id: "abhi-exp-linkedin",
     submitterUserId: "u-internal-1",
     submitterName: "Tom Bradley",
@@ -95,8 +96,8 @@ export const ABHI_EXPENSE_FIXTURES: FinancialExpense[] = [
     paymentJournalEntryId: null,
     createdAt: now,
     updatedAt: now,
-  },
-  {
+  }),
+  expenseFixture({
     id: "abhi-exp-manchester-travel",
     submitterUserId: "u-internal-1",
     submitterName: "Priya Shah",
@@ -118,8 +119,8 @@ export const ABHI_EXPENSE_FIXTURES: FinancialExpense[] = [
     paymentJournalEntryId: null,
     createdAt: now,
     updatedAt: now,
-  },
-  {
+  }),
+  expenseFixture({
     id: "abhi-exp-it-subs",
     submitterUserId: "u-internal-1",
     submitterName: "David Chen",
@@ -141,8 +142,8 @@ export const ABHI_EXPENSE_FIXTURES: FinancialExpense[] = [
     paymentJournalEntryId: null,
     createdAt: now,
     updatedAt: now,
-  },
-  {
+  }),
+  expenseFixture({
     id: "abhi-exp-staff-misc",
     submitterUserId: "u-internal-1",
     submitterName: "Jane Lewis",
@@ -164,8 +165,8 @@ export const ABHI_EXPENSE_FIXTURES: FinancialExpense[] = [
     paymentJournalEntryId: null,
     createdAt: now,
     updatedAt: now,
-  },
-  {
+  }),
+  expenseFixture({
     id: "abhi-exp-board-dinner",
     submitterUserId: "u-internal-1",
     submitterName: "Peter Ellingworth",
@@ -187,8 +188,8 @@ export const ABHI_EXPENSE_FIXTURES: FinancialExpense[] = [
     paymentJournalEntryId: null,
     createdAt: now,
     updatedAt: now,
-  },
-  {
+  }),
+  expenseFixture({
     id: "abhi-exp-utilities",
     submitterUserId: "u-internal-1",
     submitterName: "Operations",
@@ -210,8 +211,8 @@ export const ABHI_EXPENSE_FIXTURES: FinancialExpense[] = [
     paymentJournalEntryId: null,
     createdAt: now,
     updatedAt: now,
-  },
-  {
+  }),
+  expenseFixture({
     id: "abhi-exp-board-packs",
     submitterUserId: "u-internal-1",
     submitterName: "Board Secretariat",
@@ -233,5 +234,5 @@ export const ABHI_EXPENSE_FIXTURES: FinancialExpense[] = [
     paymentJournalEntryId: null,
     createdAt: now,
     updatedAt: now,
-  },
+  }),
 ];

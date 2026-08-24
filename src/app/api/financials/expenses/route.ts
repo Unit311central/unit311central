@@ -9,12 +9,13 @@ import { ensureFinancialExpensesTable } from "@/lib/internal-db-migrations";
 import { requirePlatformSession } from "@/lib/platform-session";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
 import { requireCurrentWorkspace } from "@/lib/workspace-context";
+import { resolveWorkspaceReportingCurrency } from "@/lib/workspace-reporting-currency-server";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   if (await isDemoApiRequest()) {
-    return NextResponse.json({ expenses: getNorthstarExpenses() });
+    return NextResponse.json({ expenses: getNorthstarExpenses(), currency: "USD" });
   }
 
   if (!isSupabaseConfigured()) {
@@ -31,15 +32,16 @@ export async function GET() {
       );
       await ensureOnwardAirExpensesReady(workspace.id);
     }
+    const currency = await resolveWorkspaceReportingCurrency(workspace.id, workspace.slug);
     const expenses = await listExpenses({ workspaceId: workspace.id });
-    return NextResponse.json({ expenses });
+    return NextResponse.json({ expenses, currency });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to load expenses";
     const status =
       message.includes("Authentication required") || message.includes("Workspace context")
         ? 401
         : 500;
-    return NextResponse.json({ error: message }, { status });
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
 
@@ -52,11 +54,12 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    await requirePlatformSession();
+    const session = await requirePlatformSession();
     const workspace = await requireCurrentWorkspace();
     const body = (await request.json()) as {
       submitterUserId?: string;
       purposeDescription?: string;
+      description?: string;
       amount?: number;
       currency?: ExpenseCurrency;
       dateSubmitted?: string;
@@ -69,46 +72,86 @@ export async function POST(request: NextRequest) {
       attachmentPath?: string | null;
       recordStatus?: "draft" | "finalized";
       reimbursable?: boolean;
+      claimantEmployeeId?: string | null;
+      expenseCategoryId?: string | null;
+      billingCodeId?: string | null;
+      expenseType?: "standard" | "mileage";
+      mileageFrom?: string | null;
+      mileageTo?: string | null;
+      mileageDistance?: number | null;
+      mileageDistanceUnit?: "miles" | "kilometres" | null;
+      mileageRate?: number | null;
+      mileageCalculatedAmount?: number | null;
+      submit?: boolean;
+      skipDuplicateReferenceCheck?: boolean;
     };
 
-    if (!body.submitterUserId?.trim()) {
-      return NextResponse.json({ error: "Submitter is required" }, { status: 400 });
-    }
-    if (!body.purposeDescription?.trim()) {
-      return NextResponse.json({ error: "Purpose description is required" }, { status: 400 });
+    const submitterUserId = body.submitterUserId?.trim() || session.sub;
+    const description = String(body.description ?? body.purposeDescription ?? "").trim();
+    if (!description) {
+      return NextResponse.json({ error: "Description is required" }, { status: 400 });
     }
     if (body.amount === undefined || Number.isNaN(body.amount) || body.amount < 0) {
       return NextResponse.json({ error: "Valid amount is required" }, { status: 400 });
     }
 
+    const currency =
+      body.currency ?? (await resolveWorkspaceReportingCurrency(workspace.id, workspace.slug));
+    const recordStatus = body.recordStatus ?? "draft";
+
     await ensureFinancialExpensesTable();
     const expense = await createExpense(
       {
-        submitterUserId: body.submitterUserId,
-        purposeDescription: body.purposeDescription,
+        submitterUserId,
+        description,
+        purposeDescription: description,
         amount: body.amount,
-        currency: body.currency,
+        currency,
         dateSubmitted: body.dateSubmitted,
-        paid: body.paid,
+        paid: body.paid ?? false,
         supplier: body.supplier,
         categoryAccountCode: body.categoryAccountCode,
         expenseDate: body.expenseDate,
         paymentMethod: body.paymentMethod,
         reference: body.reference,
         attachmentPath: body.attachmentPath,
-        recordStatus: body.recordStatus,
-        reimbursable: body.reimbursable,
+        recordStatus,
+        reimbursable: body.reimbursable ?? false,
+        claimantEmployeeId: body.claimantEmployeeId,
+        expenseCategoryId: body.expenseCategoryId,
+        billingCodeId: body.billingCodeId,
+        expenseType: body.expenseType,
+        mileageFrom: body.mileageFrom,
+        mileageTo: body.mileageTo,
+        mileageDistance: body.mileageDistance,
+        mileageDistanceUnit: body.mileageDistanceUnit,
+        mileageRate: body.mileageRate,
+        mileageCalculatedAmount: body.mileageCalculatedAmount,
+        skipDuplicateReferenceCheck: body.skipDuplicateReferenceCheck ?? true,
+        workflowStatus: "draft",
       },
-      { workspaceId: workspace.id },
+      { workspaceId: workspace.id, workspaceSlug: workspace.slug },
     );
 
-    return NextResponse.json({ expense });
+    if (body.submit) {
+      const { submitExpenseForApproval } = await import(
+        "@/lib/expense-management/approvals-service"
+      );
+      await submitExpenseForApproval(expense.id, workspace.id, {
+        userId: session.sub,
+        displayName: session.displayName,
+      });
+    }
+
+    const refreshed = await listExpenses({ workspaceId: workspace.id });
+    const saved = refreshed.find((row) => row.id === expense.id) ?? expense;
+    return NextResponse.json({ expense: saved });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to create expense";
     const status =
       message.includes("Authentication required") || message.includes("Workspace context")
         ? 401
         : 500;
-    return NextResponse.json({ error: message }, { status });
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

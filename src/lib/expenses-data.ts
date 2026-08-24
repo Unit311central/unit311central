@@ -8,11 +8,24 @@ export type ExpenseCurrency = "EUR" | "GBP" | "USD" | "AUD" | "CHF" | "HKD";
 
 export type ExpenseRecordStatus = "draft" | "finalized";
 
+export type ExpenseWorkflowStatus =
+  | "draft"
+  | "submitted"
+  | "changes_requested"
+  | "approved"
+  | "rejected"
+  | "scheduled"
+  | "paid"
+  | "cancelled";
+
+export type ExpenseType = "standard" | "mileage";
+
 export type FinancialExpense = {
   id: string;
   submitterUserId: string;
   submitterName: string;
   purposeDescription: string;
+  description: string;
   amount: number;
   currency: ExpenseCurrency;
   dateSubmitted: string;
@@ -28,6 +41,23 @@ export type FinancialExpense = {
   reimbursable: boolean;
   journalEntryId: string | null;
   paymentJournalEntryId: string | null;
+  workflowStatus: ExpenseWorkflowStatus;
+  claimantEmployeeId: string | null;
+  expenseCategoryId: string | null;
+  billingCodeId: string | null;
+  expenseRunId: string | null;
+  expenseNumber: string | null;
+  submittedAt: string | null;
+  approvedAt: string | null;
+  paidAt: string | null;
+  expectedPaymentDate: string | null;
+  expenseType: ExpenseType;
+  mileageFrom: string | null;
+  mileageTo: string | null;
+  mileageDistance: number | null;
+  mileageDistanceUnit: "miles" | "kilometres" | null;
+  mileageRate: number | null;
+  mileageCalculatedAmount: number | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -106,6 +136,7 @@ type DbExpense = {
   submitter_user_id: string;
   submitter_name: string;
   purpose_description: string;
+  description?: string | null;
   amount: number;
   currency: string;
   date_submitted: string;
@@ -121,16 +152,56 @@ type DbExpense = {
   reimbursable?: boolean | null;
   journal_entry_id?: string | null;
   payment_journal_entry_id?: string | null;
+  workflow_status?: string | null;
+  claimant_employee_id?: string | null;
+  expense_category_id?: string | null;
+  billing_code_id?: string | null;
+  expense_run_id?: string | null;
+  expense_number?: string | null;
+  submitted_at?: string | null;
+  approved_at?: string | null;
+  paid_at?: string | null;
+  expected_payment_date?: string | null;
+  expense_type?: string | null;
+  mileage_from?: string | null;
+  mileage_to?: string | null;
+  mileage_distance?: number | null;
+  mileage_distance_unit?: string | null;
+  mileage_rate?: number | null;
+  mileage_calculated_amount?: number | null;
   created_at: string;
   updated_at: string;
 };
 
+function normalizeWorkflowStatus(
+  row: DbExpense,
+): ExpenseWorkflowStatus {
+  const raw = String(row.workflow_status ?? "").trim().toLowerCase();
+  if (
+    raw === "draft" ||
+    raw === "submitted" ||
+    raw === "changes_requested" ||
+    raw === "approved" ||
+    raw === "rejected" ||
+    raw === "scheduled" ||
+    raw === "paid" ||
+    raw === "cancelled"
+  ) {
+    return raw;
+  }
+  if (row.record_status === "draft") return "draft";
+  if (row.paid) return "paid";
+  return "approved";
+}
+
 export function mapFinancialExpense(row: DbExpense): FinancialExpense {
+  const description = String(row.description ?? row.purpose_description ?? "").trim();
   return {
     id: row.id,
     submitterUserId: row.submitter_user_id,
     submitterName: row.submitter_name,
     purposeDescription: row.purpose_description,
+    description,
     amount: Number(row.amount),
     currency: row.currency as ExpenseCurrency,
     dateSubmitted: row.date_submitted,
@@ -146,9 +217,51 @@ export function mapFinancialExpense(row: DbExpense): FinancialExpense {
     reimbursable: Boolean(row.reimbursable),
     journalEntryId: row.journal_entry_id ?? null,
     paymentJournalEntryId: row.payment_journal_entry_id ?? null,
+    workflowStatus: normalizeWorkflowStatus(row),
+    claimantEmployeeId: row.claimant_employee_id ?? null,
+    expenseCategoryId: row.expense_category_id ?? null,
+    billingCodeId: row.billing_code_id ?? null,
+    expenseRunId: row.expense_run_id ?? null,
+    expenseNumber: row.expense_number ?? null,
+    submittedAt: row.submitted_at ?? null,
+    approvedAt: row.approved_at ?? null,
+    paidAt: row.paid_at ?? null,
+    expectedPaymentDate: row.expected_payment_date ?? null,
+    expenseType: row.expense_type === "mileage" ? "mileage" : "standard",
+    mileageFrom: row.mileage_from ?? null,
+    mileageTo: row.mileage_to ?? null,
+    mileageDistance: row.mileage_distance != null ? Number(row.mileage_distance) : null,
+    mileageDistanceUnit:
+      row.mileage_distance_unit === "kilometres" ? "kilometres" : row.mileage_distance_unit === "miles" ? "miles" : null,
+    mileageRate: row.mileage_rate != null ? Number(row.mileage_rate) : null,
+    mileageCalculatedAmount:
+      row.mileage_calculated_amount != null ? Number(row.mileage_calculated_amount) : null,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
+}
+
+export function expenseWorkflowLabel(status: ExpenseWorkflowStatus): string {
+  switch (status) {
+    case "draft":
+      return "Draft";
+    case "submitted":
+      return "Submitted";
+    case "changes_requested":
+      return "Changes requested";
+    case "approved":
+      return "Approved";
+    case "rejected":
+      return "Rejected";
+    case "scheduled":
+      return "Scheduled for payment";
+    case "paid":
+      return "Paid";
+    case "cancelled":
+      return "Cancelled";
+    default:
+      return status;
+  }
 }
 
 export function inferExpenseCategory(purpose: string) {
@@ -205,6 +318,7 @@ export function createBlankExpenseInput(): Omit<
     submitterUserId: defaultUser?.id ?? "",
     submitterName: defaultUser?.fullName ?? "",
     purposeDescription: "",
+    description: "",
     amount: 0,
     currency,
     dateSubmitted: new Date().toISOString().slice(0, 10),
@@ -220,6 +334,23 @@ export function createBlankExpenseInput(): Omit<
     reimbursable: false,
     journalEntryId: null,
     paymentJournalEntryId: null,
+    workflowStatus: "draft",
+    claimantEmployeeId: null,
+    expenseCategoryId: null,
+    billingCodeId: null,
+    expenseRunId: null,
+    expenseNumber: null,
+    submittedAt: null,
+    approvedAt: null,
+    paidAt: null,
+    expectedPaymentDate: null,
+    expenseType: "standard",
+    mileageFrom: null,
+    mileageTo: null,
+    mileageDistance: null,
+    mileageDistanceUnit: null,
+    mileageRate: null,
+    mileageCalculatedAmount: null,
   };
 }
 
@@ -336,4 +467,77 @@ export function sumReimbursableExpenses(expenses: FinancialExpense[]) {
         expense.paymentMethod === "personally_paid",
     )
     .reduce((sum, expense) => sum + expense.amount, 0);
+}
+
+/** Normalize legacy fixture rows to the expanded FinancialExpense shape. */
+export function expenseFixture(
+  row: Partial<FinancialExpense> &
+    Pick<
+      FinancialExpense,
+      | "id"
+      | "submitterUserId"
+      | "submitterName"
+      | "purposeDescription"
+      | "amount"
+      | "currency"
+      | "dateSubmitted"
+      | "paid"
+      | "recordStatus"
+      | "reimbursable"
+      | "createdAt"
+      | "updatedAt"
+    >,
+): FinancialExpense {
+  const description = String(row.description ?? row.purposeDescription ?? "").trim();
+  const workflowStatus =
+    row.workflowStatus ??
+    (row.paid
+      ? "paid"
+      : row.recordStatus === "draft"
+        ? "draft"
+        : row.reimbursable
+          ? "approved"
+          : "approved");
+
+  return {
+    id: row.id,
+    submitterUserId: row.submitterUserId,
+    submitterName: row.submitterName,
+    purposeDescription: row.purposeDescription,
+    description,
+    amount: row.amount,
+    currency: row.currency,
+    dateSubmitted: row.dateSubmitted,
+    paid: row.paid,
+    supplier: row.supplier ?? null,
+    categoryAccountCode: row.categoryAccountCode ?? "5090",
+    expenseDate: row.expenseDate ?? row.dateSubmitted,
+    paymentMethod: row.paymentMethod ?? null,
+    wiseBalanceId: row.wiseBalanceId ?? null,
+    attachmentPath: row.attachmentPath ?? null,
+    reference: row.reference ?? null,
+    recordStatus: row.recordStatus,
+    reimbursable: row.reimbursable,
+    journalEntryId: row.journalEntryId ?? null,
+    paymentJournalEntryId: row.paymentJournalEntryId ?? null,
+    workflowStatus,
+    claimantEmployeeId: row.claimantEmployeeId ?? null,
+    expenseCategoryId: row.expenseCategoryId ?? null,
+    billingCodeId: row.billingCodeId ?? null,
+    expenseRunId: row.expenseRunId ?? null,
+    expenseNumber: row.expenseNumber ?? null,
+    submittedAt: row.submittedAt ?? (workflowStatus !== "draft" ? row.dateSubmitted : null),
+    approvedAt: row.approvedAt ?? null,
+    paidAt: row.paidAt ?? (row.paid ? row.updatedAt : null),
+    expectedPaymentDate: row.expectedPaymentDate ?? null,
+    expenseType: row.expenseType ?? "standard",
+    mileageFrom: row.mileageFrom ?? null,
+    mileageTo: row.mileageTo ?? null,
+    mileageDistance: row.mileageDistance ?? null,
+    mileageDistanceUnit: row.mileageDistanceUnit ?? null,
+    mileageRate: row.mileageRate ?? null,
+    mileageCalculatedAmount: row.mileageCalculatedAmount ?? null,
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
+  };
 }

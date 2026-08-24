@@ -8,6 +8,8 @@ import {
   mapFinancialExpense,
   type ExpenseCurrency,
   type ExpenseRecordStatus,
+  type ExpenseType,
+  type ExpenseWorkflowStatus,
   type FinancialExpense,
 } from "@/lib/expenses-data";
 import type { BulkExpenseSaveMode } from "@/lib/expenses-bulk-entry";
@@ -15,6 +17,7 @@ import {
   resolveFinancialsWorkspaceId,
   type FinancialsWorkspaceScope,
 } from "@/lib/financials-workspace";
+import { resolveWorkspaceReportingCurrency } from "@/lib/workspace-reporting-currency-server";
 import { TALANTON_EXPENSE_FIXTURES } from "@/lib/talanton/expenses-fixtures";
 import { ABHI_EXPENSE_FIXTURES } from "@/lib/abhi/expenses-fixtures";
 import { isAbhiWorkspaceSlug } from "@/lib/abhi-financials";
@@ -27,6 +30,52 @@ import { createTenancyServerClient } from "@/lib/supabase/tenancy-server";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
 
 type DbExpense = Parameters<typeof mapFinancialExpense>[0];
+
+async function allocateExpenseNumber(workspaceId: string): Promise<string> {
+  const supabase = requireExpensesSupabase();
+  const { data: existing } = await supabase
+    .from("expense_number_seq")
+    .select("next_value")
+    .eq("workspace_id", workspaceId)
+    .maybeSingle();
+
+  let next = existing?.next_value ?? 1;
+  if (!existing) {
+    await supabase.from("expense_number_seq").insert({
+      workspace_id: workspaceId,
+      next_value: 2,
+    });
+  } else {
+    await supabase
+      .from("expense_number_seq")
+      .update({ next_value: next + 1 })
+      .eq("workspace_id", workspaceId);
+  }
+  return `EXP-${String(next).padStart(5, "0")}`;
+}
+
+export async function findHrEmployeeIdForPlatformUser(
+  workspaceId: string,
+  platformUserId: string,
+): Promise<string | null> {
+  const supabase = requireExpensesSupabase();
+  const { data, error } = await supabase
+    .from("hr_employees")
+    .select("id")
+    .eq("workspace_id", workspaceId)
+    .eq("platform_user_id", platformUserId)
+    .maybeSingle();
+  if (error) return null;
+  return data?.id ? String(data.id) : null;
+}
+
+export async function listMyExpenses(
+  platformUserId: string,
+  scope?: ExpensesWorkspaceScope,
+): Promise<FinancialExpense[]> {
+  const all = await listExpenses(scope);
+  return all.filter((expense) => expense.submitterUserId === platformUserId);
+}
 
 export type ExpensesWorkspaceScope = FinancialsWorkspaceScope;
 
@@ -138,14 +187,28 @@ async function findDuplicateExpense(
 export async function createExpense(
   input: Partial<ReturnType<typeof createBlankExpenseInput>> & {
     submitterUserId: string;
-    purposeDescription: string;
+    purposeDescription?: string;
+    description?: string;
     amount: number;
     workspaceId?: string;
     recordStatus?: ExpenseRecordStatus;
+    workflowStatus?: ExpenseWorkflowStatus;
     reimbursable?: boolean;
     paymentMethod?: string | null;
     reference?: string | null;
     attachmentPath?: string | null;
+    claimantEmployeeId?: string | null;
+    expenseCategoryId?: string | null;
+    billingCodeId?: string | null;
+    expectedPaymentDate?: string | null;
+    expenseType?: ExpenseType;
+    mileageFrom?: string | null;
+    mileageTo?: string | null;
+    mileageDistance?: number | null;
+    mileageDistanceUnit?: "miles" | "kilometres" | null;
+    mileageRate?: number | null;
+    mileageCalculatedAmount?: number | null;
+    skipDuplicateReferenceCheck?: boolean;
   },
   scope?: ExpensesWorkspaceScope,
 ): Promise<FinancialExpense> {
@@ -160,21 +223,34 @@ export async function createExpense(
     const expenseDate =
       input.expenseDate ?? input.dateSubmitted ?? new Date().toISOString().slice(0, 10);
     const categoryAccountCode = input.categoryAccountCode ?? "5090";
-    const recordStatus = input.recordStatus ?? "finalized";
+    const recordStatus = input.recordStatus ?? "draft";
+    const workflowStatus = input.workflowStatus ?? (recordStatus === "draft" ? "draft" : "submitted");
     const paid = input.paid ?? false;
     const paymentMethod =
       input.paymentMethod ?? (paid && recordStatus === "finalized" ? "wise" : null);
     const reimbursable = input.reimbursable ?? false;
-
-    const duplicateId = await findDuplicateExpense(workspaceId, {
-      reference: input.reference ?? null,
-      supplier: input.supplier ?? null,
-    });
-    if (duplicateId) {
-      throw new Error(
-        `Duplicate expense: invoice/reference "${input.reference}" already recorded.`,
-      );
+    const description =
+      String(input.description ?? input.purposeDescription ?? "").trim();
+    if (!description) {
+      throw new Error("Description is required.");
     }
+
+    if (!input.skipDuplicateReferenceCheck) {
+      const duplicateId = await findDuplicateExpense(workspaceId, {
+        reference: input.reference ?? null,
+        supplier: input.supplier ?? null,
+      });
+      if (duplicateId) {
+        throw new Error(
+          `Duplicate expense: reference "${input.reference}" already recorded.`,
+        );
+      }
+    }
+
+    const expenseNumber = await allocateExpenseNumber(workspaceId);
+    const currency =
+      input.currency ??
+      (await resolveWorkspaceReportingCurrency(workspaceId, scope?.workspaceSlug));
 
     const { data, error } = await supabase
       .from("financial_expenses")
@@ -182,9 +258,10 @@ export async function createExpense(
         workspace_id: workspaceId,
         submitter_user_id: input.submitterUserId,
         submitter_name: submitterName,
-        purpose_description: input.purposeDescription.trim(),
+        purpose_description: description,
+        description,
         amount: input.amount,
-        currency: input.currency ?? "EUR",
+        currency,
         date_submitted: input.dateSubmitted ?? expenseDate,
         paid,
         supplier: input.supplier ?? null,
@@ -196,13 +273,27 @@ export async function createExpense(
         reference: input.reference ?? null,
         record_status: recordStatus,
         reimbursable,
+        workflow_status: workflowStatus,
+        claimant_employee_id: input.claimantEmployeeId ?? null,
+        expense_category_id: input.expenseCategoryId ?? null,
+        billing_code_id: input.billingCodeId ?? null,
+        expense_number: expenseNumber,
+        expected_payment_date: input.expectedPaymentDate ?? null,
+        expense_type: input.expenseType ?? "standard",
+        mileage_from: input.mileageFrom ?? null,
+        mileage_to: input.mileageTo ?? null,
+        mileage_distance: input.mileageDistance ?? null,
+        mileage_distance_unit: input.mileageDistanceUnit ?? null,
+        mileage_rate: input.mileageRate ?? null,
+        mileage_calculated_amount: input.mileageCalculatedAmount ?? null,
+        submitted_at: workflowStatus === "submitted" ? new Date().toISOString() : null,
       })
       .select("*")
       .single();
 
     if (error) throw new Error(error.message);
 
-    if (recordStatus === "draft") {
+    if (recordStatus === "draft" || workflowStatus === "draft") {
       return mapFinancialExpense(data as DbExpense);
     }
 
@@ -240,6 +331,7 @@ export async function updateExpense(
   patch: Partial<{
     submitterUserId: string;
     purposeDescription: string;
+    description: string;
     amount: number;
     currency: ExpenseCurrency;
     dateSubmitted: string;
@@ -251,7 +343,19 @@ export async function updateExpense(
     reference: string | null;
     attachmentPath: string | null;
     recordStatus: ExpenseRecordStatus;
+    workflowStatus: ExpenseWorkflowStatus;
     reimbursable: boolean;
+    claimantEmployeeId: string | null;
+    expenseCategoryId: string | null;
+    billingCodeId: string | null;
+    expectedPaymentDate: string | null;
+    expenseType: ExpenseType;
+    mileageFrom: string | null;
+    mileageTo: string | null;
+    mileageDistance: number | null;
+    mileageDistanceUnit: "miles" | "kilometres" | null;
+    mileageRate: number | null;
+    mileageCalculatedAmount: number | null;
   }>,
   scope?: ExpensesWorkspaceScope,
 ): Promise<FinancialExpense> {
@@ -278,6 +382,11 @@ export async function updateExpense(
     }
     if (patch.purposeDescription !== undefined) {
       payload.purpose_description = patch.purposeDescription.trim();
+      payload.description = patch.purposeDescription.trim();
+    }
+    if (patch.description !== undefined) {
+      payload.description = patch.description.trim();
+      payload.purpose_description = patch.description.trim();
     }
     if (patch.amount !== undefined) payload.amount = patch.amount;
     if (patch.currency !== undefined) payload.currency = patch.currency;
@@ -293,6 +402,24 @@ export async function updateExpense(
     if (patch.attachmentPath !== undefined) payload.attachment_path = patch.attachmentPath;
     if (patch.recordStatus !== undefined) payload.record_status = patch.recordStatus;
     if (patch.reimbursable !== undefined) payload.reimbursable = patch.reimbursable;
+    if (patch.workflowStatus !== undefined) payload.workflow_status = patch.workflowStatus;
+    if (patch.claimantEmployeeId !== undefined) payload.claimant_employee_id = patch.claimantEmployeeId;
+    if (patch.expenseCategoryId !== undefined) payload.expense_category_id = patch.expenseCategoryId;
+    if (patch.billingCodeId !== undefined) payload.billing_code_id = patch.billingCodeId;
+    if (patch.expectedPaymentDate !== undefined) {
+      payload.expected_payment_date = patch.expectedPaymentDate;
+    }
+    if (patch.expenseType !== undefined) payload.expense_type = patch.expenseType;
+    if (patch.mileageFrom !== undefined) payload.mileage_from = patch.mileageFrom;
+    if (patch.mileageTo !== undefined) payload.mileage_to = patch.mileageTo;
+    if (patch.mileageDistance !== undefined) payload.mileage_distance = patch.mileageDistance;
+    if (patch.mileageDistanceUnit !== undefined) {
+      payload.mileage_distance_unit = patch.mileageDistanceUnit;
+    }
+    if (patch.mileageRate !== undefined) payload.mileage_rate = patch.mileageRate;
+    if (patch.mileageCalculatedAmount !== undefined) {
+      payload.mileage_calculated_amount = patch.mileageCalculatedAmount;
+    }
 
     if (patch.reference !== undefined || patch.supplier !== undefined) {
       const duplicateId = await findDuplicateExpense(workspaceId, {

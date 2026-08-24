@@ -1,10 +1,11 @@
 import type { FinancialExpense } from "@/lib/expenses-data";
+import { expenseFixture } from "@/lib/expenses-data";
 
 const now = "2026-08-01T10:00:00.000Z";
 
 /** Talanton T&E fixtures — USD only (fund management travel & diligence). */
 export const TALANTON_EXPENSE_FIXTURES: FinancialExpense[] = [
-  {
+  expenseFixture({
     id: "ti-exp-nairobi-diligence",
     submitterUserId: "u-internal-1",
     submitterName: "Kenneth Muchina",
@@ -26,8 +27,8 @@ export const TALANTON_EXPENSE_FIXTURES: FinancialExpense[] = [
     paymentJournalEntryId: null,
     createdAt: now,
     updatedAt: now,
-  },
-  {
+  }),
+  expenseFixture({
     id: "ti-exp-lp-meeting",
     submitterUserId: "u-internal-1",
     submitterName: "Michelle Ochieng",
@@ -49,8 +50,8 @@ export const TALANTON_EXPENSE_FIXTURES: FinancialExpense[] = [
     paymentJournalEntryId: null,
     createdAt: now,
     updatedAt: now,
-  },
-  {
+  }),
+  expenseFixture({
     id: "ti-exp-compliance-software",
     submitterUserId: "u-internal-1",
     submitterName: "Mercy Nelima",
@@ -72,8 +73,8 @@ export const TALANTON_EXPENSE_FIXTURES: FinancialExpense[] = [
     paymentJournalEntryId: null,
     createdAt: now,
     updatedAt: now,
-  },
-  {
+  }),
+  expenseFixture({
     id: "ti-exp-east-africa-office",
     submitterUserId: "u-internal-1",
     submitterName: "Carol Rubiro",
@@ -95,8 +96,8 @@ export const TALANTON_EXPENSE_FIXTURES: FinancialExpense[] = [
     paymentJournalEntryId: null,
     createdAt: now,
     updatedAt: now,
-  },
-  {
+  }),
+  expenseFixture({
     id: "ti-exp-impact-measurement",
     submitterUserId: "u-internal-1",
     submitterName: "Linda Kiraithe, CFA",
@@ -118,5 +119,5 @@ export const TALANTON_EXPENSE_FIXTURES: FinancialExpense[] = [
     paymentJournalEntryId: null,
     createdAt: now,
     updatedAt: now,
-  },
+  }),
 ];

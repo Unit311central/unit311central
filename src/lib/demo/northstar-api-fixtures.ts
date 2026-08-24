@@ -9,6 +9,7 @@ import type { CrmConnection } from "@/lib/connections-data";
 import { NORTHSTAR_BOARD_DIRECTORS } from "@/lib/demo/board-data";
 import { getDemoEnterpriseFixtures } from "@/lib/demo-enterprise";
 import type { FinancialExpense } from "@/lib/expenses-data";
+import { expenseFixture } from "@/lib/expenses-data";
 import { type HrEmployee } from "@/lib/hr-data";
 import type { MarketingDashboardKpis } from "@/lib/marketing/types";
 import type { SoftwareAsset, SoftwareAssetsSummary } from "@/lib/software-assets-data";
@@ -131,29 +132,31 @@ function buildNorthstarExpenseHistory(): FinancialExpense[] {
       const expenseDate = `${month}-${day}`;
       const dateSubmitted = `${month}-${String(Math.min(28, 6 + i * 5)).padStart(2, "0")}`;
       counter += 1;
-      expenses.push({
-        id: `nst-exp-${month}-${i}`,
-        submitterUserId: submitter.id,
-        submitterName: submitter.name,
-        purposeDescription: `${template.purpose} — ${month}`,
-        amount,
-        currency: "USD",
-        dateSubmitted,
-        paid: i !== 1 || month < "2026-08",
-        supplier: template.supplier,
-        categoryAccountCode: template.category,
-        expenseDate,
-        paymentMethod: i % 2 === 0 ? "Wise" : "Card",
-        wiseBalanceId: i % 2 === 0 ? 1 : null,
-        attachmentPath: null,
-        reference: `NST-${month.replace("-", "")}-${String(counter).padStart(3, "0")}`,
-        recordStatus: "finalized",
-        reimbursable: template.category === "5080",
-        journalEntryId: null,
-        paymentJournalEntryId: null,
-        createdAt: `${expenseDate}T10:00:00.000Z`,
-        updatedAt: NOW,
-      });
+      expenses.push(
+        expenseFixture({
+          id: `nst-exp-${month}-${i}`,
+          submitterUserId: submitter.id,
+          submitterName: submitter.name,
+          purposeDescription: `${template.purpose} — ${month}`,
+          amount,
+          currency: "USD",
+          dateSubmitted,
+          paid: i !== 1 || month < "2026-08",
+          supplier: template.supplier,
+          categoryAccountCode: template.category,
+          expenseDate,
+          paymentMethod: i % 2 === 0 ? "Wise" : "Card",
+          wiseBalanceId: i % 2 === 0 ? 1 : null,
+          attachmentPath: null,
+          reference: `NST-${month.replace("-", "")}-${String(counter).padStart(3, "0")}`,
+          recordStatus: "finalized",
+          reimbursable: template.category === "5080",
+          journalEntryId: null,
+          paymentJournalEntryId: null,
+          createdAt: `${expenseDate}T10:00:00.000Z`,
+          updatedAt: NOW,
+        }),
+      );
     }
   }
 

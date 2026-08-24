@@ -26,6 +26,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     const body = (await request.json()) as {
       submitterUserId?: string;
       purposeDescription?: string;
+      description?: string;
       amount?: number;
       currency?: ExpenseCurrency;
       dateSubmitted?: string;
@@ -38,6 +39,16 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       attachmentPath?: string | null;
       recordStatus?: "draft" | "finalized";
       reimbursable?: boolean;
+      claimantEmployeeId?: string | null;
+      expenseCategoryId?: string | null;
+      billingCodeId?: string | null;
+      expenseType?: "standard" | "mileage";
+      mileageFrom?: string | null;
+      mileageTo?: string | null;
+      mileageDistance?: number | null;
+      mileageDistanceUnit?: "miles" | "kilometres" | null;
+      mileageRate?: number | null;
+      mileageCalculatedAmount?: number | null;
     };
 
     const expense = await updateExpense(id, body, { workspaceId: workspace.id });
@@ -48,7 +59,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       message.includes("Authentication required") || message.includes("Workspace context")
         ? 401
         : 500;
-    return NextResponse.json({ error: message }, { status });
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
 
@@ -72,6 +83,6 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
       message.includes("Authentication required") || message.includes("Workspace context")
         ? 401
         : 500;
-    return NextResponse.json({ error: message }, { status });
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
