@@ -520,6 +520,26 @@ function seedState(): HrMockState {
     } catch {
       // Fall through to Internal mock seed.
     }
+
+    try {
+      const { isBrowserCustomerWorkspaceSurface } =
+        require("@/lib/customer-workspace-surface") as typeof import("@/lib/customer-workspace-surface");
+      if (isBrowserCustomerWorkspaceSurface()) {
+        return {
+          leaveRequests: [],
+          leaveBalances: [],
+          publicHolidays: [],
+          vacancies: [],
+          candidates: [],
+          reviews: [],
+          goals: [],
+          reports: [],
+          activity: [],
+        };
+      }
+    } catch {
+      // Fall through to Internal mock seed.
+    }
   }
 
   const leaveRequests: HrLeaveRequest[] = [

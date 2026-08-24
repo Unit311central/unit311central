@@ -197,11 +197,26 @@ export const MODULE_GRANT_GROUPS: ModuleGrantGroup[] = [
     ],
   },
   {
+    id: "fundraising",
+    label: "Fundraising",
+    section: "Fundraising",
+    views: [
+      "fundraising-dashboard",
+      "fundraising-cap-table",
+      "fundraising-investors",
+      "fundraising-pipeline",
+      "fundraising-meetings",
+      "fundraising-pitch-decks",
+      "fundraising-data-rooms",
+    ],
+  },
+  {
     id: "onwardair-fundraising",
     label: "Fundraising",
     section: "Fundraising",
     views: [
       "fundraising-dashboard",
+      "fundraising-cap-table",
       "corporate-cap-table",
       "fundraising-investors",
       "fundraising-pipeline",
@@ -299,6 +314,7 @@ export const MODULE_GRANT_GROUPS: ModuleGrantGroup[] = [
       "files-client",
       "productivity-dashboard",
       "content-studio",
+      "internal-work-packages",
       "social",
     ],
   },
@@ -307,6 +323,12 @@ export const MODULE_GRANT_GROUPS: ModuleGrantGroup[] = [
     label: "Content Studio",
     section: "Business Productivity",
     views: ["content-studio"],
+  },
+  {
+    id: "internal-work-packages",
+    label: "Internal Work Packages",
+    section: "Business Productivity",
+    views: ["internal-work-packages"],
   },
   {
     id: "support-desk",
@@ -352,7 +374,7 @@ export const MODULE_GRANT_GROUPS: ModuleGrantGroup[] = [
 ];
 
 const FINANCE_GROUP_IDS = new Set(["financials"]);
-const SALES_GROUP_IDS = new Set(["clients", "crm", "projects", "sales-management"]);
+const SALES_GROUP_IDS = new Set(["clients", "crm", "projects", "sales-management", "fundraising"]);
 const ENGINEERING_GROUP_IDS = new Set([
   "operations-assets",
   "engineering",
@@ -528,7 +550,7 @@ export function defaultAllowedViews(
     } else if (department === "Sales") {
       groupIds = ["clients", "crm", "projects", "calendar", "productivity"];
     } else if (department === "Finance") {
-      groupIds = ["financials", "clients", "projects", "productivity"];
+      groupIds = ["financials", "clients", "projects", "productivity", "fundraising"];
     } else if (department === "HR") {
       groupIds = ["hr", "training", "productivity"];
     } else if (department === "Operations") {
@@ -536,7 +558,7 @@ export function defaultAllowedViews(
     } else if (department === "Technology") {
       groupIds = ["technology", "engineering", "projects", "productivity"];
     } else if (department === "Board" || department === "Exec" || department === "Manager" || department === "Corporate") {
-      groupIds = ["strategy", "corporate", "clients", "projects", "productivity", "management"];
+      groupIds = ["strategy", "corporate", "clients", "projects", "productivity", "management", "fundraising", "board-governance"];
     }
   } else {
     // Manager

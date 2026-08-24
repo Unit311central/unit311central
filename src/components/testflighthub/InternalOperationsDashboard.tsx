@@ -58,8 +58,8 @@ import {
 import {
   ABHI_HIDDEN_VIEWS,
   CUSTOMER_PLATFORM_HIDDEN_VIEWS,
-  isViewAllowedForGrants,
 } from "@/lib/internal-role-views";
+import { isViewAllowedForWorkspaceGrants } from "@/lib/workspace-enabled-views";
 import {
   FINANCES_QUERY_PARAM_VIEWS,
   isFinancesShellView,
@@ -226,6 +226,7 @@ import {
   InfoEmailWorkspace,
   InternalAuditsWorkspace,
   InternalDesignMockups,
+  InternalWorkPackagesWorkspace,
   LeaveManagementWorkspace,
   LogisticsWorkspace,
   ManagementReviewWorkspace,
@@ -1251,6 +1252,7 @@ export default function InternalOperationsDashboard({
           {activeView === "productivity-dashboard" && <ProductivityDashboardWorkspace />}
           {activeView === "management" && <ManagementWorkspace />}
           {activeView === "content-studio" && <ContentStudioWorkspace />}
+          {activeView === "internal-work-packages" && <InternalWorkPackagesWorkspace />}
 
           {activeView === "support-overview" && <SupportWorkspace scope="overview" />}
 
@@ -1593,7 +1595,8 @@ function AccessViewGuard({
   onRedirect: (view: InternalOperationsView) => void;
   isInternalHost: boolean;
 }) {
-  const { allowedViews, ready, workspaceSlug, enabledModules } = useOperatorEntitlements();
+  const { allowedViews, ready, workspaceSlug, enabledModules, enabledSubModules } =
+    useOperatorEntitlements();
 
   useEffect(() => {
     if (!ready) return;
@@ -1620,10 +1623,14 @@ function AccessViewGuard({
       onRedirect("home");
       return;
     }
-    if (!isViewAllowedForGrants(activeView, allowedViews)) {
+    if (!isViewAllowedForWorkspaceGrants(activeView, allowedViews, {
+      workspaceSlug,
+      enabledModules,
+      enabledSubModules,
+    })) {
       onRedirect("home");
     }
-  }, [activeView, allowedViews, enabledModules, isInternalHost, onRedirect, ready, workspaceSlug]);
+  }, [activeView, allowedViews, enabledModules, enabledSubModules, isInternalHost, onRedirect, ready, workspaceSlug]);
 
   return null;
 }

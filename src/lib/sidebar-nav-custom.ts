@@ -473,7 +473,10 @@ export function reconcileSidebarNavCustom(
       ...next,
       sectionOrder: next.customized
         ? appendNewSectionKeys(prev, sections)
-        : resolveSectionOrderForSections(defaultSectionOrder(sections), sections),
+        : appendNewSectionKeys(
+            prev.length ? prev : defaultSectionOrder(sections),
+            sections,
+          ),
     };
     saveSidebarNavCustom(payload);
     return payload;

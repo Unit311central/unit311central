@@ -11,6 +11,7 @@ import { isSupabaseConfigured } from "@/lib/supabase/server";
 import { createTenancyServerClient } from "@/lib/supabase/tenancy-server";
 import { getCurrentWorkspace } from "@/lib/workspace-context";
 import { resolveWorkspaceTenantEntitlements } from "@/lib/workspace-tenant-entitlements";
+import { applyDemoWorkspaceAllowedViews } from "@/lib/workspace-enabled-views";
 import type { CommandCentreHomeTileId } from "@/lib/command-centre-home-tiles";
 import type { InternalOperationsView } from "@/lib/internal-operations-data";
 
@@ -126,6 +127,13 @@ export async function loadOperatorEntitlementsSnapshot(
       snapshot.enabledSubModules = metadata?.enabled_sub_modules?.length
         ? [...metadata.enabled_sub_modules]
         : null;
+
+      snapshot.allowedViews = applyDemoWorkspaceAllowedViews(
+        snapshot.allowedViews ?? null,
+        snapshot.workspaceSlug,
+        snapshot.enabledModules,
+        snapshot.enabledSubModules,
+      );
     } catch {
       /* optional nav enablement */
     }

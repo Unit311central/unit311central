@@ -59,6 +59,8 @@ function moduleKeysForView(viewId: string | undefined, moduleId: string): string
 
   if (view === "management" || view === "content-studio") return ["strategy"];
 
+  if (view === "internal-work-packages") return ["file-explorer", "email-calendar-messaging"];
+
   if (view === "grants" || view.startsWith("projects")) return ["projects"];
 
   if (
@@ -74,7 +76,7 @@ function moduleKeysForView(viewId: string | undefined, moduleId: string): string
     return ["financials"];
   }
 
-  if (view.startsWith("fundraising") || view === "corporate-cap-table") return ["strategy"];
+  if (view.startsWith("fundraising") || view === "corporate-cap-table") return ["fundraising"];
 
   if (
     view.startsWith("board-") ||
@@ -168,7 +170,7 @@ function moduleKeysForView(viewId: string | undefined, moduleId: string): string
     "business-central": ["clients", "crm"],
     "sales-management": ["crm"],
     financials: ["financials"],
-    fundraising: ["strategy"],
+    fundraising: ["fundraising"],
     board: ["strategy"],
     "corporate-information": ["strategy"],
     operations: ["assets-inventory"],

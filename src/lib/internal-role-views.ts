@@ -106,6 +106,22 @@ export function isViewAllowedForGrants(
 ): boolean {
   if (allowedViews == null) return true;
   if (allowedViews.includes(view)) return true;
+  // Fundraising cap table moved from Corporate Information to Fundraising module.
+  if (
+    (view === "fundraising-cap-table" && allowedViews.includes("corporate-cap-table")) ||
+    (view === "corporate-cap-table" && allowedViews.includes("fundraising-cap-table"))
+  ) {
+    return true;
+  }
+  // Sales Management deep links share the sales-management grant.
+  if (
+    view === "sales-management" &&
+    (allowedViews.includes("crm") ||
+      allowedViews.includes("sales-quotes") ||
+      allowedViews.includes("crm-meetings"))
+  ) {
+    return true;
+  }
   // Member Intelligence ships with the Members / Client Directory module surface.
   if (
     view === "member-intelligence" &&

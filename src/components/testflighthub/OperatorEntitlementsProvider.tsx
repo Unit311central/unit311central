@@ -14,6 +14,7 @@ import { parseClientPlatformSubdomainSafe } from "@/lib/app-domains";
 import type { CommandCentreHomeTileId } from "@/lib/command-centre-home-tiles";
 import type { InternalOperationsView } from "@/lib/internal-operations-data";
 import { isViewAllowedForGrants } from "@/lib/internal-role-views";
+import { isViewAllowedForWorkspaceGrants } from "@/lib/workspace-enabled-views";
 import { usesInternalPlatformNav } from "@/lib/platform-workspaces/workspace-nav-resolver";
 import { isSpecialistWorkspaceSlug } from "@/lib/platform-workspaces/workspace-product-nav";
 import type { OperatorEntitlementsSnapshot } from "@/lib/operator-entitlements-server";
@@ -265,7 +266,12 @@ export function useOperatorEntitlements() {
 }
 
 export function useCanAccessView(view: InternalOperationsView) {
-  const { allowedViews, ready } = useOperatorEntitlements();
+  const { allowedViews, ready, workspaceSlug, enabledModules, enabledSubModules } =
+    useOperatorEntitlements();
   if (!ready) return true;
-  return isViewAllowedForGrants(view, allowedViews);
+  return isViewAllowedForWorkspaceGrants(view, allowedViews, {
+    workspaceSlug,
+    enabledModules,
+    enabledSubModules,
+  });
 }

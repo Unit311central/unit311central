@@ -757,8 +757,35 @@ function seedTalantonProcurementState(): ProcurementMockState {
   };
 }
 
+function seedCustomerWorkspaceEmptyState(): ProcurementMockState {
+  return {
+    suppliers: [],
+    requisitions: [],
+    purchaseOrders: [],
+    goodsReceipts: [],
+    invoiceMatches: [],
+    approvalRules: [],
+    contracts: [],
+    aiInsights: [],
+    integrations: [],
+    rolePermissions: DEFAULT_ROLE_PERMISSIONS,
+    currentRole: "purchasing_officer",
+    monthlyBudget: 0,
+  };
+}
+
 function seedState(): ProcurementMockState {
   if (typeof window !== "undefined") {
+    try {
+      const { isBrowserCustomerWorkspaceSurface } =
+        require("@/lib/customer-workspace-surface") as typeof import("@/lib/customer-workspace-surface");
+      if (isBrowserCustomerWorkspaceSurface()) {
+        return seedCustomerWorkspaceEmptyState();
+      }
+    } catch {
+      // Fall through.
+    }
+
     try {
       const { isBrowserOnwardAirSurface } =
         require("@/lib/onwardair-surface") as typeof import("@/lib/onwardair-surface");

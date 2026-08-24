@@ -19,6 +19,8 @@ import { getPlatformSession } from "@/lib/platform-session";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
 import { getCurrentWorkspace } from "@/lib/workspace-context";
 import { resolveWorkspaceTenantEntitlements } from "@/lib/workspace-tenant-entitlements";
+import { applyDemoWorkspaceAllowedViews } from "@/lib/workspace-enabled-views";
+import type { InternalOperationsView } from "@/lib/internal-operations-data";
 
 export const dynamic = "force-dynamic";
 
@@ -195,6 +197,13 @@ export async function GET() {
       /* optional branding / nav enablement */
     }
   }
+
+  allowedViews = applyDemoWorkspaceAllowedViews(
+    allowedViews as InternalOperationsView[] | null,
+    workspace?.slug ?? null,
+    enabledModules,
+    enabledSubModules,
+  );
 
   return NextResponse.json(
     {
