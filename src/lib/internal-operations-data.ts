@@ -254,6 +254,7 @@ export type InternalOperationsView =
   | "business-central-dashboard"
   | "management"
   | "content-studio"
+  | "internal-work-packages"
   | "sales-management";
 
 /** App Router folder path (middleware may rewrite `/` → this on the internal host). */
@@ -547,6 +548,7 @@ export const internalOperationsViews: InternalOperationsView[] = [
   "business-central-dashboard",
   "management",
   "content-studio",
+  "internal-work-packages",
   "sales-management",
 ];
 
@@ -916,6 +918,11 @@ export const internalSurveyNavSections: readonly InternalNavSection[] = [
       { label: "Dashboard", icon: "LayoutDashboard", view: "productivity-dashboard" as const },
       { label: "Content Studio", icon: "Presentation", view: "content-studio" as const },
       {
+        label: "Internal Work Packages",
+        icon: "ClipboardList",
+        view: "internal-work-packages" as const,
+      },
+      {
         label: "File Explorer",
         icon: "FolderOpen",
         children: [
@@ -1183,6 +1190,10 @@ export const internalViewTitles: Record<
   "productivity-dashboard": { title: "Dashboard", subtitle: "Business Productivity" },
   management: { title: "Management", subtitle: "Business Central" },
   "content-studio": { title: "Content Studio", subtitle: "Business Productivity" },
+  "internal-work-packages": {
+    title: "Internal Work Packages",
+    subtitle: "Business Productivity",
+  },
   "sales-management": { title: "Dashboard", subtitle: "Sales Management" },
   "files-internal": { title: "Internal Files", subtitle: "File Explorer" },
   "unit311-details": { title: "Dashboard", subtitle: "Unit311 Details" },

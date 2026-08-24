@@ -146,6 +146,9 @@ export const ManagementWorkspace = lazyWorkspace(
 export const ContentStudioWorkspace = lazyWorkspace(
   () => import("@/components/central-capabilities/ContentStudioWorkspace"),
 );
+export const InternalWorkPackagesWorkspace = lazyWorkspace(
+  () => import("./InternalWorkPackagesWorkspace"),
+);
 
 export const SalesManagementWorkspace = lazyWorkspace(
   () => import("./sales-management/SalesManagementWorkspace"),
