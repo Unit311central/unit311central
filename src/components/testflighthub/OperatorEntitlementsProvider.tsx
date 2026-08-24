@@ -21,6 +21,7 @@ import {
   PLATFORM_CACHE_KEYS,
   fetchCachedJson,
   peekCachedJson,
+  scopedPlatformCacheKey,
 } from "@/lib/platform-fetch-cache";
 import { mapUserRoleToInternalRoleView } from "@/lib/ai-operating-assistant/operator-entitlements";
 import {
@@ -84,8 +85,8 @@ function readHostWorkspaceSlug(): string | null {
   return parseClientPlatformSubdomainSafe(window.location.hostname);
 }
 
-function readCachedWhoami(): WhoamiPayload | null {
-  return peekCachedJson<WhoamiPayload>(PLATFORM_CACHE_KEYS.whoami);
+function readCachedWhoami(hostSlug: string | null): WhoamiPayload | null {
+  return peekCachedJson<WhoamiPayload>(scopedPlatformCacheKey(PLATFORM_CACHE_KEYS.whoami, hostSlug));
 }
 
 function navCanRenderWithoutWhoami(snapshot: {
@@ -148,7 +149,7 @@ function buildInitialEntitlementsState(
   serverSnapshot?: OperatorEntitlementsSnapshot | null,
 ): OperatorEntitlements {
   const hostSlug = readHostWorkspaceSlug();
-  const cached = readCachedWhoami();
+  const cached = readCachedWhoami(hostSlug);
   const serverHydratesPermissions = serverSnapshotHydratesPermissions(serverSnapshot);
   const payload: WhoamiPayload = {
     ...(serverHydratesPermissions ? {} : cached),
@@ -215,8 +216,9 @@ export function OperatorEntitlementsProvider({
 
   const load = useCallback(async () => {
     try {
+      const hostSlug = readHostWorkspaceSlug();
       const data = await fetchCachedJson<WhoamiPayload>(
-        PLATFORM_CACHE_KEYS.whoami,
+        scopedPlatformCacheKey(PLATFORM_CACHE_KEYS.whoami, hostSlug),
         "/api/auth/whoami",
         { ttlMs: 60_000 },
       );
@@ -232,7 +234,6 @@ export function OperatorEntitlementsProvider({
         }
       }
 
-      const hostSlug = readHostWorkspaceSlug();
       setState(buildEntitlementsFromPayload(data, hostSlug, true));
     } catch {
       setState((current) => ({ ...current, ready: true }));

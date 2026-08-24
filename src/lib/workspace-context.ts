@@ -2,6 +2,7 @@ import { cache } from "react";
 import { headers } from "next/headers";
 
 import {
+  CENTRAL_SITE_HOST,
   DEMO_WORKSPACE_SLUG,
   getRequestHost,
   isDemoDomainHost,
@@ -83,6 +84,23 @@ function toCurrentWorkspace(record: WorkspaceHostRecord): CurrentWorkspace {
     name: record.name,
     workspaceType: record.workspaceType ?? null,
   };
+}
+
+/**
+ * Resolve customer workspace slug from Host, then middleware `x-unit311-workspace-slug`.
+ * APIs on customer hosts always receive the header even when forwarded Host is missing/wrong.
+ */
+function resolveCustomerHostSlug(
+  requestHeaders: Headers,
+  host: string | null,
+): string | null {
+  const fromHost = parseClientPlatformSubdomainSafe(host);
+  if (fromHost) return fromHost;
+
+  const headerSlug = requestHeaders.get("x-unit311-workspace-slug")?.trim().toLowerCase() || null;
+  if (!headerSlug) return null;
+
+  return parseClientPlatformSubdomainSafe(`${headerSlug}.${CENTRAL_SITE_HOST}`);
 }
 
 function sessionWorkspaceClaim(session: PlatformSession | null): CurrentWorkspace | null {
@@ -233,7 +251,7 @@ export const getWorkspaceContextDiagnostics = cache(
       };
     }
 
-    const customerSlug = parseClientPlatformSubdomainSafe(host);
+    const customerSlug = resolveCustomerHostSlug(requestHeaders, host);
     if (customerSlug) {
       const record = await findWorkspaceBySlug(customerSlug);
       if (!record) {

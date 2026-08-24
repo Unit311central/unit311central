@@ -19,6 +19,7 @@ import {
   upsertShareholder,
 } from "@/lib/corporate-mock-store";
 import { isBrowserOnwardAirSurface } from "@/lib/onwardair-surface";
+import { isBrowserCustomerWorkspaceSurface } from "@/lib/customer-workspace-surface";
 import { useCorporateMockStore } from "./useCorporateMockStore";
 import {
   CorporateFieldLabel,
@@ -63,6 +64,7 @@ function formatShares(value: number) {
 
 function defaultCompanyName() {
   if (typeof window !== "undefined" && isBrowserOnwardAirSurface()) return "OnwardAir";
+  if (typeof window !== "undefined" && isBrowserCustomerWorkspaceSurface()) return "Company";
   return "Company";
 }
 

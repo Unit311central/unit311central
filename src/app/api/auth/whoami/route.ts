@@ -18,6 +18,7 @@ import { resolveOperatorEntitlementsFromOperatorRow } from "@/lib/operator-entit
 import { getPlatformSession } from "@/lib/platform-session";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
 import { getCurrentWorkspace } from "@/lib/workspace-context";
+import { resolveWorkspaceTenantEntitlements } from "@/lib/workspace-tenant-entitlements";
 
 export const dynamic = "force-dynamic";
 
@@ -119,6 +120,24 @@ export async function GET() {
     department = department ?? "Corporate";
     departments = departments?.length ? departments : ["Corporate"];
     allowedViews = null;
+  }
+
+  if (workspace?.id) {
+    const tenantEntitlements = await resolveWorkspaceTenantEntitlements({
+      userId: session.sub,
+      username: session.username,
+      workspace,
+    });
+    if (tenantEntitlements) {
+      role = tenantEntitlements.role;
+      roles = tenantEntitlements.roles;
+      department = tenantEntitlements.department;
+      departments = tenantEntitlements.departments;
+      allowedViews = tenantEntitlements.allowedViews;
+      dashboardPrefs = tenantEntitlements.homeTiles
+        ? { homeTiles: tenantEntitlements.homeTiles }
+        : dashboardPrefs;
+    }
   }
 
   const host = getRequestHost({ headers: await headers() });

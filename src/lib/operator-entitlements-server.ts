@@ -10,6 +10,7 @@ import { isUnit311GlobalAdminUsername } from "@/lib/demo/read-only";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
 import { createTenancyServerClient } from "@/lib/supabase/tenancy-server";
 import { getCurrentWorkspace } from "@/lib/workspace-context";
+import { resolveWorkspaceTenantEntitlements } from "@/lib/workspace-tenant-entitlements";
 import type { CommandCentreHomeTileId } from "@/lib/command-centre-home-tiles";
 import type { InternalOperationsView } from "@/lib/internal-operations-data";
 
@@ -93,6 +94,22 @@ export async function loadOperatorEntitlementsSnapshot(
       ? snapshot.departments
       : ["Corporate"];
     snapshot.allowedViews = null;
+  }
+
+  if (workspace?.id) {
+    const tenantEntitlements = await resolveWorkspaceTenantEntitlements({
+      userId: session.sub,
+      username: session.username,
+      workspace,
+    });
+    if (tenantEntitlements) {
+      snapshot.role = tenantEntitlements.role;
+      snapshot.roles = tenantEntitlements.roles;
+      snapshot.department = tenantEntitlements.department;
+      snapshot.departments = tenantEntitlements.departments;
+      snapshot.allowedViews = tenantEntitlements.allowedViews;
+      snapshot.homeTiles = tenantEntitlements.homeTiles;
+    }
   }
 
   if (workspace?.id && isSupabaseConfigured()) {

@@ -11,6 +11,7 @@ import {
 import { createTenancyServerClient } from "@/lib/supabase/tenancy-server";
 import { userHasRole } from "@/lib/user-management-data";
 import { isDemoWorkspaceSlug, isUnit311GlobalAdminUsername } from "@/lib/demo/read-only";
+import { isCustomerWorkspaceSlug } from "@/lib/customer-workspace-surface";
 import {
   WorkspaceAccessError,
   requireCurrentWorkspace,
@@ -159,16 +160,6 @@ export async function requireInternalAdministratorWorkspaceSession(): Promise<
   if ("error" in adminAuth) return adminAuth;
 
   return { session: adminAuth.session, workspace: workspaceAuth.workspace };
-}
-
-function isCustomerWorkspaceSlug(slug: string) {
-  const normalized = slug.trim().toLowerCase();
-  return (
-    normalized.length > 0 &&
-    normalized !== "unit311" &&
-    normalized !== "internal" &&
-    normalized !== "demo"
-  );
 }
 
 /**

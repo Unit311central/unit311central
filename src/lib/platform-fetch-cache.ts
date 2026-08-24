@@ -132,3 +132,12 @@ export const PLATFORM_CACHE_KEYS = {
   settings: "platform:settings",
   permissions: "platform:permissions",
 } as const;
+
+/** Scope in-memory cache keys by workspace host slug so entitlements cannot leak across tenants. */
+export function scopedPlatformCacheKey(
+  baseKey: string,
+  hostSlug?: string | null,
+): string {
+  const slug = String(hostSlug ?? "").trim().toLowerCase();
+  return slug ? `${baseKey}:${slug}` : baseKey;
+}

@@ -288,7 +288,7 @@ export function mergeWorkspaceTenantUserRecord(input: {
   };
 }
 
-function mapWorkspaceRoleToUserRole(role: string | null | undefined, isOwner: boolean): UserRole {
+export function mapWorkspaceRoleToUserRole(role: string | null | undefined, isOwner: boolean): UserRole {
   if (isOwner) return "Admin";
   const normalized = String(role ?? "").toLowerCase();
   if (normalized === "owner" || normalized === "admin") return "Admin";

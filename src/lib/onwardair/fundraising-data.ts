@@ -122,10 +122,24 @@ export const FUNDING_ROUNDS: FundingRoundSummary[] = [
 /** External capital investors on the OnwardAir cap table (excludes founders + ESOP). */
 export function isCapTableExternalInvestor(row: CorporateShareholder): boolean {
   const id = String(row.id).toLowerCase();
-  if (id.includes("founder") || id.includes("esop")) return false;
+  if (
+    id.includes("founder") ||
+    id.includes("esop") ||
+    id === "sh-paul" ||
+    id === "sh-hannes"
+  ) {
+    return false;
+  }
   if (row.shareClass === "Options") return false;
   const name = row.shareholder.toLowerCase();
-  if (name.includes("founding team") || name.includes("employee option")) return false;
+  if (
+    name.includes("founding team") ||
+    name.includes("employee option") ||
+    name.includes("paul fotheringham") ||
+    name.includes("hannes weber")
+  ) {
+    return false;
+  }
   return true;
 }
 

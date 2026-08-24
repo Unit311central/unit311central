@@ -1191,6 +1191,29 @@ function seedTalantonState(): CorporateMockState {
   };
 }
 
+function seedCustomerWorkspaceEmptyState(): CorporateMockState {
+  return {
+    offices: [],
+    banks: [],
+    advisors: [],
+    contracts: [],
+    shareholders: [],
+    optionPool: {
+      authorised: 0,
+      issued: 0,
+      reserved: 0,
+      lastUpdated: isoDaysFromNow(0),
+    },
+    capital: {
+      authorisedShareCapital: "0",
+      issuedShareCapital: "0",
+      currency: "USD",
+    },
+    licences: [],
+    activity: [],
+  };
+}
+
 function seedState(): CorporateMockState {
   if (typeof window !== "undefined") {
     try {
@@ -1335,6 +1358,16 @@ function seedState(): CorporateMockState {
       }
     } catch {
       // Fall through to Internal mock seed when Demo fixtures unavailable.
+    }
+
+    try {
+      const { isBrowserCustomerWorkspaceSurface } =
+        require("@/lib/customer-workspace-surface") as typeof import("@/lib/customer-workspace-surface");
+      if (isBrowserCustomerWorkspaceSurface()) {
+        return seedCustomerWorkspaceEmptyState();
+      }
+    } catch {
+      // Fall through to legacy default seed.
     }
   }
 
@@ -1888,6 +1921,25 @@ function ensureState(): CorporateMockState {
           state.advisors.length === 0 ||
           state.contracts.length === 0 ||
           !state.offices.some((office) => /morningside/i.test(office.address)))
+      ) {
+        state = seedState();
+        seededHost = hostKey;
+      }
+    } catch {
+      /* ignore */
+    }
+    try {
+      const { isBrowserCustomerWorkspaceSurface } =
+        require("@/lib/customer-workspace-surface") as typeof import("@/lib/customer-workspace-surface");
+      if (
+        isBrowserCustomerWorkspaceSurface() &&
+        (state.shareholders.some((row) =>
+          /nakama|paul fotheringham|hannes weber|stefan braun|ashley cole/i.test(
+            `${row.company} ${row.shareholder}`,
+          ),
+        ) ||
+          state.capital.currency === "EUR" ||
+          state.offices.some((office) => /barcelona|madrid|valencia/i.test(`${office.city} ${office.country}`)))
       ) {
         state = seedState();
         seededHost = hostKey;
