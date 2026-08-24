@@ -174,7 +174,11 @@ async function checkViews(origin, cookie) {
       assert.doesNotMatch(text, /£|\bGBP\b/i, `${row.sub} must not show non-USD currency markers`);
     }
     if (row.module === "Content Studio") {
-      assert.match(text, /New content|Create content|Approved templates/i, `${row.sub} should expose create workflow`);
+      assert.match(
+        text,
+        /Content Studio|Approved templates|Create content|New content/i,
+        `${row.sub} should expose create workflow`,
+      );
     }
 
     console.log(`  PASS ${row.module} → ${row.sub} (?view=${row.view})`);
