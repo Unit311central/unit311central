@@ -1,5 +1,5 @@
 import type { DashboardTileDefinition } from "@/lib/dashboard-view-tiles";
-import { roundReportingPercent } from "@/lib/financial-reporting-currency";
+import { roundReportingPercent, resolveBrowserReportingCurrency, type ReportingCurrency } from "@/lib/financial-reporting-currency";
 import {
   isClientPreActiveStatus,
   type ManagedClient,
@@ -408,22 +408,16 @@ export const CREDITORS_DASHBOARD_TILES: DashboardTileDefinition[] = [
 ];
 
 export const EXPENSES_DASHBOARD_TILES: DashboardTileDefinition[] = [
-  { id: "spend-mtd", label: "Spend MTD", value: "£0", hint: "From expense journals" },
+  { id: "spend-mtd", label: "Spend MTD", value: "—", hint: "From expense journals" },
   { id: "pending-approval", label: "Unpaid", value: "0", hint: "Open payables" },
   { id: "travel", label: "Categories", value: "0", hint: "Ledger-linked" },
   { id: "budget-remaining", label: "Posted", value: "0", hint: "With journal links" },
 ];
 
-function expensesReportingCurrency(expenses: FinancialExpense[]): string {
+function expensesReportingCurrency(expenses: FinancialExpense[]): ReportingCurrency {
   try {
     if (typeof window !== "undefined") {
-      const host = window.location.hostname.toLowerCase();
-      if (host.includes("onwardair") || host === "onward.unit311central.com") return "USD";
-      if (host.includes("talantonimpact") || host === "talanton.unit311central.com") return "USD";
-      if (isBrowserOnwardAirSurface()) return "USD";
-      if (isBrowserTalantonImpactSurface()) return "USD";
-      if (isBrowserCorpCentreSurface()) return "AUD";
-      if (isBrowserAbhiSurface()) return "GBP";
+      return resolveBrowserReportingCurrency();
     }
   } catch {
     // SSR / non-browser
@@ -438,7 +432,7 @@ function expensesReportingCurrency(expenses: FinancialExpense[]): string {
   if (usd > 0 && usd >= gbp && usd >= eur) return "USD";
   if (gbp >= usd && gbp >= eur && gbp > 0) return "GBP";
   if (eur > gbp && eur > usd) return "EUR";
-  return "GBP";
+  return resolveBrowserReportingCurrency();
 }
 
 function emptyExpensesDashboardTiles(currency: string): DashboardTileDefinition[] {

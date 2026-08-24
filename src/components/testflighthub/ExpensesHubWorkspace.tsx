@@ -24,6 +24,7 @@ import {
 import DashboardTopTilesBar from "@/components/testflighthub/DashboardTopTilesBar";
 import { useOperatorEntitlements } from "@/components/testflighthub/OperatorEntitlementsProvider";
 import { isBrowserOnwardAirSurface } from "@/lib/onwardair-surface";
+import { useWorkspaceReportingCurrency } from "@/lib/workspace-reporting-currency";
 
 import ExpenseDetailDrawer from "./expenses/ExpenseDetailDrawer";
 import ExpenseAddForm from "./expenses/ExpenseAddForm";
@@ -78,6 +79,7 @@ export default function ExpensesHubWorkspace({ onBackToFinancials }: ExpensesHub
   const [mileageRates, setMileageRates] = useState<ExpenseMileageRate[]>([]);
   const [schedule, setSchedule] = useState<ExpensePaymentSchedule | null>(null);
   const [currency, setCurrency] = useState("USD");
+  const reportingCurrency = useWorkspaceReportingCurrency(currency);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -96,8 +98,8 @@ export default function ExpensesHubWorkspace({ onBackToFinancials }: ExpensesHub
   );
 
   const workflowTiles = useMemo(
-    () => buildExpenseWorkflowDashboardCatalog(claimExpenses, currency),
-    [claimExpenses, currency],
+    () => buildExpenseWorkflowDashboardCatalog(claimExpenses, reportingCurrency),
+    [claimExpenses, reportingCurrency],
   );
 
   const defaultEmployeeId = useMemo(() => {
@@ -338,7 +340,7 @@ export default function ExpensesHubWorkspace({ onBackToFinancials }: ExpensesHub
       {!loading && section === "add" && sessionUser.userId && (
         <section className="rounded-2xl border border-white/15 bg-white/[0.04] p-5 sm:p-6">
           <ExpenseAddForm
-            currency={currency}
+            currency={reportingCurrency}
             employees={employees}
             categories={categories}
             billingCodes={billingCodes}
