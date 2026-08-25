@@ -26,6 +26,15 @@ export async function resolveWorkspaceReportingCurrency(
   workspaceSlug?: string | null,
 ): Promise<ReportingCurrency> {
   const slug = String(workspaceSlug ?? "").trim().toLowerCase();
+
+  try {
+    const { isDemoWorkspaceSlug } =
+      require("@/lib/demo/read-only") as typeof import("@/lib/demo/read-only");
+    if (isDemoWorkspaceSlug(slug)) return "USD";
+  } catch {
+    /* optional */
+  }
+
   const slugCurrency = resolveSlugReportingCurrency(slug);
   if (slugCurrency !== DEFAULT_REPORTING_CURRENCY) {
     return slugCurrency;
