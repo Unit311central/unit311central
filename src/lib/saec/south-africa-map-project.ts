@@ -37,8 +37,8 @@ export type SaMapLayers = {
 };
 
 export const SA_MAP_GEO_URLS = {
-  provinces: "/geo/saec/south-africa-provinces.geojson",
-  country: "/geo/saec/south-africa-country.geojson",
+  provinces: "/api/saec/installations/map-geography?layer=provinces",
+  country: "/api/saec/installations/map-geography?layer=country",
 } as const;
 
 export const SA_MAP_ATTRIBUTION =
