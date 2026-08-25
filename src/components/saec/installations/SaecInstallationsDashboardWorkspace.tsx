@@ -116,7 +116,7 @@ export default function SaecInstallationsDashboardWorkspace({
         <>
           <SaecInstallationsKpiBar kpis={dashboard.kpis} assetTypeLabel={assetLabel} />
 
-          <div className="grid gap-4 xl:grid-cols-[minmax(0,7fr)_minmax(280px,3fr)]">
+          <div className="grid gap-4 xl:grid-cols-1 min-h-[820px]:xl:grid-cols-[minmax(0,7fr)_minmax(280px,3fr)]">
             <SaecSouthAfricaMap
               cities={dashboard.cities}
               selectedCityId={selectedCityId}
