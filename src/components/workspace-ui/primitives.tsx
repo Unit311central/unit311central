@@ -58,12 +58,12 @@ export function WorkspaceKpiTile({
   valueClassName?: string;
 }) {
   return (
-    <div className="rounded-xl border border-white/10 bg-[#0b1524]/80 px-3 py-3">
-      <p className="text-[10px] font-medium uppercase tracking-[0.12em] text-white/45">{label}</p>
-      <p className={cn("mt-1.5 text-2xl font-semibold tabular-nums text-white", valueClassName)}>
+    <div className="rounded-2xl border border-white/12 bg-gradient-to-br from-white/[0.05] to-white/[0.02] px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+      <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/45">{label}</p>
+      <p className={cn("mt-2 text-3xl font-semibold tabular-nums tracking-tight text-white", valueClassName)}>
         {value}
       </p>
-      {hint ? <p className="mt-1 text-xs text-white/40">{hint}</p> : null}
+      {hint ? <p className="mt-1.5 text-[11px] leading-snug text-white/45">{hint}</p> : null}
     </div>
   );
 }

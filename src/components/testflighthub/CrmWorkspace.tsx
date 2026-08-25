@@ -657,8 +657,8 @@ export default function CrmWorkspace({
         backLabel="Back to leads"
         columnsClassName={
           embedded
-            ? "lg:grid-cols-[minmax(320px,36%)_minmax(0,1fr)] xl:grid-cols-[minmax(360px,34%)_minmax(0,1fr)]"
-            : "xl:grid-cols-[minmax(0,340px)_minmax(0,1fr)]"
+            ? "lg:grid-cols-[minmax(280px,32%)_minmax(0,1fr)] xl:grid-cols-[minmax(300px,30%)_minmax(0,1fr)]"
+            : "xl:grid-cols-[minmax(0,320px)_minmax(0,1fr)]"
         }
         master={
         <section className={cn(

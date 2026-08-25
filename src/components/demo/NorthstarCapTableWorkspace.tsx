@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Pencil, Plus, Trash2 } from "lucide-react";
+import { Pencil, Plus, Trash2, ExternalLink } from "lucide-react";
 
 import {
   buildNorthstarCapTableSnapshot,
@@ -227,6 +227,7 @@ export default function NorthstarCapTableWorkspace() {
                 <th className={thClass()}>Shares</th>
                 <th className={thClass()}>Ownership</th>
                 <th className={thClass()}>Investment</th>
+                <th className={thClass()}>SHA</th>
                 <th className={thClass()} />
               </tr>
             </thead>
@@ -240,6 +241,21 @@ export default function NorthstarCapTableWorkspace() {
                   <td className={cn(tdClass(), "tabular-nums")}>{formatShares(row.shares)}</td>
                   <td className={cn(tdClass(), "tabular-nums")}>{row.ownershipPct}%</td>
                   <td className={cn(tdClass(), "tabular-nums")}>{formatMoney(row.investmentGbp)}</td>
+                  <td className={tdClass()}>
+                    {row.shareholderAgreementUrl ? (
+                      <a
+                        href={row.shareholderAgreementUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1 rounded-md border border-white/10 bg-white/[0.04] px-2 py-0.5 text-[11px] text-sky-300 hover:text-sky-200"
+                      >
+                        SHA
+                        <ExternalLink className="h-3 w-3 opacity-60" />
+                      </a>
+                    ) : (
+                      <span className="text-white/35">—</span>
+                    )}
+                  </td>
                   <td className={tdClass()}>
                     <div className="flex gap-1">
                       <button
@@ -276,7 +292,7 @@ export default function NorthstarCapTableWorkspace() {
                 <td className={cn(tdClass(), "tabular-nums font-semibold text-white")}>
                   {totalOwnershipPct.toFixed(1).replace(/\.0$/, "")}%
                 </td>
-                <td colSpan={2} className={tdClass()} />
+                <td colSpan={3} className={tdClass()} />
               </tr>
             </tfoot>
           </table>

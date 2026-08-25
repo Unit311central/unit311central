@@ -95,7 +95,7 @@ export function buildSectionPayload(section: SalesManagementSection, auth: Await
       bundle.targets,
       bundle.context.displayNameForUserId,
     ),
-    forecast: buildForecastSummary(bundle.leads, bundle.quotes),
+    forecast: buildForecastSummary(bundle.leads, bundle.quotes, bundle.context.people.length),
     commissionRules: bundle.commissionRules,
     commissions: bundle.commissions,
     reports: buildReportsSummary(bundle),

@@ -17,7 +17,6 @@ import {
 import { computeManagementSummary } from "@/lib/central-capabilities/management-store";
 import {
   resolveManagementSection,
-  resolveManagementShellTitle,
 } from "@/lib/central-capabilities/management-nav";
 import type {
   ManagementActionPlaceholder,
@@ -28,7 +27,6 @@ import type { ManagementFunctionPackRecord } from "@/lib/central-capabilities/ma
 import {
   WorkspaceEmpty,
   WorkspaceKpiTile,
-  WorkspaceModuleHeader,
   WorkspaceSection,
   WorkspaceStatusPill,
   workspaceInputClass,
@@ -805,12 +803,6 @@ export default function ManagementWorkspace() {
 
   return (
     <div className="space-y-5">
-      <WorkspaceModuleHeader
-        brandLabel="Business Central"
-        moduleLabel="Management"
-        title={resolveManagementShellTitle(section)}
-        description={MANAGEMENT_SUBTITLE}
-      />
       {section === "dashboard" ? (
         <ManagementDashboard
           meetings={state.meetings}

@@ -8,7 +8,7 @@ import {
   type NorthstarOptionGrant,
 } from "@/lib/demo/northstar-cap-table-data";
 
-const STORAGE_KEY = "unit311-demo-cap-table-v1";
+const STORAGE_KEY = "unit311-demo-cap-table-v2";
 
 type CapTableStore = {
   shareholders: NorthstarCapTableRow[];

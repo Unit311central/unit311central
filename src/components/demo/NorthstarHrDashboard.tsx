@@ -97,17 +97,17 @@ export default function NorthstarHrDashboard({ employees }: NorthstarHrDashboard
 
   return (
     <div className="space-y-5">
-      <header className="relative overflow-hidden rounded-2xl border border-white/12 bg-[radial-gradient(ellipse_at_top_left,_rgba(20,184,166,0.18),_transparent_55%),linear-gradient(135deg,#0b1826_0%,#0a1420_55%,#070d14_100%)] px-5 py-5 sm:px-6">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-teal-300/85">
+      <header className="rounded-2xl border border-white/12 bg-[radial-gradient(ellipse_at_top_left,_rgba(20,184,166,0.14),_transparent_55%),linear-gradient(135deg,#0b1826_0%,#0a1420_100%)] px-4 py-4 sm:px-5">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-teal-300/85">
           Northstar · Human Resources
         </p>
-        <h1 className="mt-1 text-2xl font-semibold tracking-tight text-white">Dashboard</h1>
+        <h1 className="mt-0.5 text-xl font-semibold tracking-tight text-white sm:text-2xl">Dashboard</h1>
         <p className="mt-1 max-w-2xl text-sm text-white/55">
-          25 people across Manchester, Bristol, and Austin — headcount, leave, and hiring at a glance.
+          25 employees across Manchester, Bristol, and Austin — headcount, leave, and hiring at a glance.
         </p>
       </header>
 
-      <section className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-4">
+      <section className="grid auto-rows-fr gap-2.5 sm:grid-cols-2 lg:grid-cols-4">
         <HrKpiTile label="Total Employees" value={kpis.totalEmployees} hint="Active headcount 25" tone="teal" />
         <HrKpiTile label="Active Employees" value={kpis.activeEmployees} tone="emerald" />
         <HrKpiTile label="Employees On Leave" value={kpis.onLeave} hint="3 on leave today" tone="sky" />
@@ -115,22 +115,25 @@ export default function NorthstarHrDashboard({ employees }: NorthstarHrDashboard
         <HrKpiTile label="Open Vacancies" value={kpis.openVacancies} hint="3 open roles" tone="amber" />
         <HrKpiTile label="Performance Reviews Due" value={kpis.reviewsDue} tone="violet" />
         <HrKpiTile label="Probation Reviews Due" value={kpis.probationReviews} tone="rose" />
-        <div className="rounded-2xl border border-rose-400/25 bg-rose-500/10 p-4">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-rose-200/80">
-            Employee flight risk
-          </p>
-          <p className="mt-2 text-3xl font-semibold tabular-nums text-white">{flightRisks.length}</p>
-          <ul className="mt-3 space-y-2">
+        <HrKpiTile label="Employee flight risk" value={flightRisks.length} hint="Retention watch list" tone="rose" />
+      </section>
+
+      {flightRisks.length > 0 ? (
+        <HrSection title="Flight risk watch list" subtitle="People flagged for retention conversations.">
+          <ul className="grid gap-2 sm:grid-cols-2">
             {flightRisks.map((risk) => (
-              <li key={risk.id} className="text-xs text-white/70">
-                <span className="font-medium text-white">{risk.name}</span>
-                <span className="text-white/40"> · {risk.role}</span>
-                <p className="mt-0.5 text-[11px] leading-snug text-white/45">{risk.detail}</p>
+              <li
+                key={risk.id}
+                className="rounded-xl border border-rose-400/20 bg-rose-500/10 px-3 py-2.5"
+              >
+                <p className="text-sm font-medium text-white">{risk.name}</p>
+                <p className="text-xs text-white/45">{risk.role}</p>
+                <p className="mt-1 text-[11px] leading-snug text-white/55">{risk.detail}</p>
               </li>
             ))}
           </ul>
-        </div>
-      </section>
+        </HrSection>
+      ) : null}
 
       <section className="grid gap-4 xl:grid-cols-3">
         <HrSection title="People by location" subtitle="UK & US offices — 25 total.">

@@ -394,6 +394,9 @@ export default function UserManagementWorkspace({ onUsersChange }: UserManagemen
                 <div>
                   <h2 className="text-lg font-semibold text-white">Internal Users</h2>
                   <p className="mt-1 text-xs text-white/45">{users.length} internal accounts</p>
+                  <p className="mt-1 text-[11px] text-white/40">
+                    Platform login accounts for this workspace. HR Employees (25) is the authoritative people register; extra rows are workspace admin logins only.
+                  </p>
                 </div>
                 <button
                   type="button"
