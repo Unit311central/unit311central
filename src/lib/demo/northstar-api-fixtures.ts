@@ -139,7 +139,7 @@ function buildNorthstarExpenseHistory(): FinancialExpense[] {
           submitterName: submitter.name,
           purposeDescription: `${template.purpose} — ${month}`,
           amount,
-          currency: NORTHSTAR_REPORTING_CURRENCY,
+          currency: NORTHSTAR_REPORTING_CURRENCY as FinancialExpense["currency"],
           dateSubmitted,
           paid: i !== 1 || month < "2026-08",
           supplier: template.supplier,

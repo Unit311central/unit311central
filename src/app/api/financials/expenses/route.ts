@@ -99,8 +99,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Valid amount is required" }, { status: 400 });
     }
 
-    const currency =
-      body.currency ?? (await resolveWorkspaceReportingCurrency(workspace.id, workspace.slug));
+    const currency = (
+      body.currency ?? (await resolveWorkspaceReportingCurrency(workspace.id, workspace.slug))
+    ) as ExpenseCurrency;
     const recordStatus = body.recordStatus ?? "draft";
 
     await ensureFinancialExpensesTable();
