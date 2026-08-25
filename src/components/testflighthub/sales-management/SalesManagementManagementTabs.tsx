@@ -442,6 +442,14 @@ export function SalesManagementTargetsTab() {
 
     "mt-1 w-full rounded-lg border border-white/10 bg-black/20 px-3 py-2 text-sm text-white outline-none focus:border-violet-400/40";
 
+  const quarterChartData = targets.map((target) => ({
+    name: (target.ownerName ?? target.teamName ?? "Team").split(" ")[0],
+    target: target.targetValue,
+    actual: target.actualValue,
+  }));
+
+  const currency = targets[0]?.currency ?? (data.context.currency as "GBP" | "USD" | "AUD") ?? "GBP";
+
 
 
   return (
@@ -592,6 +600,47 @@ export function SalesManagementTargetsTab() {
 
         </WsSection>
 
+      ) : null}
+
+
+
+      {targets.length ? (
+        <WsSection
+          title="Actual vs target"
+          subtitle="Quarter progress by salesperson or team — actuals from Won deals and accepted quotes"
+          className="p-4 sm:p-5"
+        >
+          <SalesChartFrame heightClassName="h-64">
+            <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+              <BarChart data={quarterChartData} margin={{ top: 8, right: 8, left: -8, bottom: 0 }}>
+                <CartesianGrid stroke="rgba(255,255,255,0.06)" vertical={false} />
+                <XAxis
+                  dataKey="name"
+                  tick={{ fill: "rgba(255,255,255,0.45)", fontSize: 11 }}
+                  axisLine={false}
+                  tickLine={false}
+                />
+                <YAxis
+                  tick={{ fill: "rgba(255,255,255,0.35)", fontSize: 10 }}
+                  axisLine={false}
+                  tickLine={false}
+                  tickFormatter={(value: number) => formatSalesMoney(value, currency).replace(/\.\d{2}$/, "")}
+                />
+                <Tooltip
+                  content={
+                    <ChartTooltip
+                      valueFormatter={(value, name) =>
+                        formatSalesMoney(value, currency) + (name === "actual" ? " (actual)" : name === "target" ? " (target)" : "")
+                      }
+                    />
+                  }
+                />
+                <Bar dataKey="target" name="Target" fill="rgba(139,92,246,0.35)" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="actual" name="Actual" fill="#a78bfa" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </SalesChartFrame>
+        </WsSection>
       ) : null}
 
 

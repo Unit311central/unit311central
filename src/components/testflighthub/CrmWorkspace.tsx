@@ -26,6 +26,7 @@ import CrmLeadLogoUpload from "@/components/testflighthub/CrmLeadLogoUpload";
 import CrmLeadQuestionsPanel from "@/components/testflighthub/CrmLeadQuestionsPanel";
 import CrmLeadTimelinePanel from "@/components/testflighthub/CrmLeadTimelinePanel";
 import { isDiscoveryCallLead } from "@/lib/discovery-questions-data";
+import { isBrowserDemoSurface } from "@/lib/demo-enterprise";
 import {
   DEFAULT_CRM_TILE_LAYOUT,
   buildCrmDashboardCatalog,
@@ -241,6 +242,9 @@ export default function CrmWorkspace({
     setError(null);
 
     const blank = createBlankLeadInput();
+    const isDemo = isBrowserDemoSurface();
+    const draftCompany = isDemo ? "Draft Prospect Ltd" : "New Company";
+    const draftContact = isDemo ? "Contact TBC" : "New Contact";
 
     try {
       const response = await fetch("/api/crm/leads", {
@@ -248,8 +252,8 @@ export default function CrmWorkspace({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...blank,
-          companyName: "New Company",
-          contactName: "New Contact",
+          companyName: draftCompany,
+          contactName: draftContact,
         }),
       });
 

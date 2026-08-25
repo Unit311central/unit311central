@@ -78,6 +78,14 @@ export function northstarBoardDeckPdfFileName(meetingDate: string): string {
   return `demo-board-deck-${meetingDate}.pdf`;
 }
 
+/** Static sample filenames to try when on-demand generation fails (legacy + current naming). */
+export function northstarBoardDeckSampleFileNames(meetingDate: string): string[] {
+  return [
+    northstarBoardDeckPdfFileName(meetingDate),
+    `northstar-board-deck-${meetingDate}.pdf`,
+  ];
+}
+
 export function northstarBoardDeckPdfUrl(meetingDate: string, disposition: "inline" | "attachment" = "inline") {
   return `/api/demo/board-deck?meetingDate=${encodeURIComponent(meetingDate)}&disposition=${disposition}`;
 }

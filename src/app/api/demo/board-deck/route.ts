@@ -3,7 +3,10 @@ import { join } from "node:path";
 import { NextRequest, NextResponse } from "next/server";
 
 import { generateNorthstarBoardDeck } from "@/lib/demo/northstar-board-deck-generator";
-import { northstarBoardDeckPdfFileName } from "@/lib/demo/northstar-board-pack-model";
+import {
+  northstarBoardDeckPdfFileName,
+  northstarBoardDeckSampleFileNames,
+} from "@/lib/demo/northstar-board-pack-model";
 import { isDemoApiRequest } from "@/lib/demo/demo-request";
 
 export const runtime = "nodejs";
@@ -27,34 +30,43 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     const filename = northstarBoardDeckPdfFileName(meetingDate);
+    const sampleNames = northstarBoardDeckSampleFileNames(meetingDate);
     const origin = request.nextUrl.origin;
-    try {
-      const staticRes = await fetch(`${origin}/samples/${filename}`, { cache: "no-store" });
-      const contentType = staticRes.headers.get("content-type") ?? "";
-      if (staticRes.ok && contentType.includes("pdf")) {
-        const bytes = new Uint8Array(await staticRes.arrayBuffer());
+
+    for (const sampleName of sampleNames) {
+      try {
+        const staticRes = await fetch(`${origin}/samples/${sampleName}`, { cache: "no-store" });
+        const contentType = staticRes.headers.get("content-type") ?? "";
+        if (staticRes.ok && contentType.includes("pdf")) {
+          const bytes = new Uint8Array(await staticRes.arrayBuffer());
+          return pdfResponse(bytes, filename, disposition, {
+            packName: `Northstar Board Pack — ${meetingDate}`,
+            meetingDate,
+            build: "static-fallback",
+          });
+        }
+      } catch {
+        /* try next sample name */
+      }
+    }
+
+    for (const sampleName of sampleNames) {
+      try {
+        const bytes = await readFile(join(process.cwd(), "public", "samples", sampleName));
         return pdfResponse(bytes, filename, disposition, {
           packName: `Northstar Board Pack — ${meetingDate}`,
           meetingDate,
           build: "static-fallback",
         });
+      } catch {
+        /* try next sample name */
       }
-    } catch {
-      /* try disk */
     }
-    try {
-      const bytes = await readFile(join(process.cwd(), "public", "samples", filename));
-      return pdfResponse(bytes, filename, disposition, {
-        packName: `Northstar Board Pack — ${meetingDate}`,
-        meetingDate,
-        build: "static-fallback",
-      });
-    } catch {
-      return NextResponse.json(
-        { error: error instanceof Error ? error.message : "Failed to generate board deck." },
-        { status: 500 },
-      );
-    }
+
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Failed to generate board deck." },
+      { status: 500 },
+    );
   }
 }
 
