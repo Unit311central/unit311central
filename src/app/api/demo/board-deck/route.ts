@@ -2,7 +2,6 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { NextRequest, NextResponse } from "next/server";
 
-import { generateNorthstarBoardDeck } from "@/lib/demo/northstar-board-deck-generator";
 import {
   northstarBoardDeckPdfFileName,
   northstarBoardDeckSampleFileNames,
@@ -12,16 +11,38 @@ import { isDemoApiRequest } from "@/lib/demo/demo-request";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export async function GET(request: NextRequest) {
-  if (!(await isDemoApiRequest())) {
-    return NextResponse.json({ error: "Demo host only." }, { status: 403 });
+async function loadStaticBoardDeckSample(meetingDate: string): Promise<Buffer | null> {
+  for (const sampleName of northstarBoardDeckSampleFileNames(meetingDate)) {
+    try {
+      return await readFile(join(process.cwd(), "public", "samples", sampleName));
+    } catch {
+      /* try next sample name */
+    }
   }
+  return null;
+}
 
-  const meetingDate = request.nextUrl.searchParams.get("meetingDate")?.trim() || "2026-03-20";
-  const disposition =
-    request.nextUrl.searchParams.get("disposition") === "attachment" ? "attachment" : "inline";
-
+export async function GET(request: NextRequest) {
   try {
+    if (!(await isDemoApiRequest())) {
+      return NextResponse.json({ error: "Demo host only." }, { status: 403 });
+    }
+
+    const meetingDate = request.nextUrl.searchParams.get("meetingDate")?.trim() || "2026-03-20";
+    const disposition =
+      request.nextUrl.searchParams.get("disposition") === "attachment" ? "attachment" : "inline";
+    const filename = northstarBoardDeckPdfFileName(meetingDate);
+
+    const staticBytes = await loadStaticBoardDeckSample(meetingDate);
+    if (staticBytes) {
+      return pdfResponse(staticBytes, filename, disposition, {
+        packName: `Northstar Board Pack — ${meetingDate}`,
+        meetingDate,
+        build: "static-sample",
+      });
+    }
+
+    const { generateNorthstarBoardDeck } = await import("@/lib/demo/northstar-board-deck-generator");
     const result = await generateNorthstarBoardDeck(meetingDate);
     return pdfResponse(result.pdfBytes, result.filename, disposition, {
       packName: result.data.packName,
@@ -29,40 +50,6 @@ export async function GET(request: NextRequest) {
       build: result.build,
     });
   } catch (error) {
-    const filename = northstarBoardDeckPdfFileName(meetingDate);
-    const sampleNames = northstarBoardDeckSampleFileNames(meetingDate);
-    const origin = request.nextUrl.origin;
-
-    for (const sampleName of sampleNames) {
-      try {
-        const staticRes = await fetch(`${origin}/samples/${sampleName}`, { cache: "no-store" });
-        const contentType = staticRes.headers.get("content-type") ?? "";
-        if (staticRes.ok && contentType.includes("pdf")) {
-          const bytes = new Uint8Array(await staticRes.arrayBuffer());
-          return pdfResponse(bytes, filename, disposition, {
-            packName: `Northstar Board Pack — ${meetingDate}`,
-            meetingDate,
-            build: "static-fallback",
-          });
-        }
-      } catch {
-        /* try next sample name */
-      }
-    }
-
-    for (const sampleName of sampleNames) {
-      try {
-        const bytes = await readFile(join(process.cwd(), "public", "samples", sampleName));
-        return pdfResponse(bytes, filename, disposition, {
-          packName: `Northstar Board Pack — ${meetingDate}`,
-          meetingDate,
-          build: "static-fallback",
-        });
-      } catch {
-        /* try next sample name */
-      }
-    }
-
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Failed to generate board deck." },
       { status: 500 },
