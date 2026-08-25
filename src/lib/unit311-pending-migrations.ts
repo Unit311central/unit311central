@@ -107,6 +107,7 @@ export const UNIT311_PENDING_MIGRATIONS = [
   "supabase/migrations/165_demo_executive_home_reporting_currency_gbp.sql",
   "supabase/migrations/166_saec_reporting_currency_zar.sql",
   "supabase/migrations/167_saec_logo_and_purge_northstar_seed.sql",
+  "supabase/migrations/168_demo_complete_catalogue_enablement.sql",
 ] as const;
 
 export const SALES_MANAGEMENT_FOUNDATION_MIGRATION =
