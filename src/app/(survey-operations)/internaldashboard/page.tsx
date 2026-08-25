@@ -8,7 +8,10 @@ import { resolveInternalOperationsBasePath } from "@/lib/internal-operations-dat
 import { loadOperatorEntitlementsSnapshot } from "@/lib/operator-entitlements-server";
 import { getCurrentWorkspace } from "@/lib/workspace-context";
 import { WorkspaceReportingCurrencyProvider } from "@/lib/workspace-reporting-currency";
-import { resolveWorkspaceReportingCurrency } from "@/lib/workspace-reporting-currency-server";
+import {
+  resolveExecutiveHomeReportingCurrency,
+  resolveWorkspaceReportingCurrency,
+} from "@/lib/workspace-reporting-currency-server";
 
 export default async function InternalDashboardPage() {
   const requestHeaders = await headers();
@@ -16,9 +19,11 @@ export default async function InternalDashboardPage() {
   const basePath = resolveInternalOperationsBasePath(host);
   const workspaceSlug = parseClientPlatformSubdomainSafe(host) ?? "";
   const workspace = await getCurrentWorkspace().catch(() => null);
-  const reportingCurrency = await resolveWorkspaceReportingCurrency(
+  const resolvedSlug = workspace?.slug ?? workspaceSlug;
+  const reportingCurrency = await resolveWorkspaceReportingCurrency(workspace?.id, resolvedSlug);
+  const executiveHomeReportingCurrency = await resolveExecutiveHomeReportingCurrency(
     workspace?.id,
-    workspace?.slug ?? workspaceSlug,
+    resolvedSlug,
   );
   const initialEntitlementsSnapshot = await loadOperatorEntitlementsSnapshot(host);
 
@@ -27,6 +32,7 @@ export default async function InternalDashboardPage() {
       <Suspense fallback={<WorkspaceLoadingFallback variant="page" label="Loading operations shell" />}>
         <InternalOperationsDashboard
           basePath={basePath}
+          executiveHomeReportingCurrency={executiveHomeReportingCurrency}
           initialEntitlementsSnapshot={initialEntitlementsSnapshot}
         />
       </Suspense>

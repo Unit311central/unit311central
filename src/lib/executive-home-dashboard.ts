@@ -4,7 +4,7 @@ import {
   ABHI_MONTHLY_BURN_PRIOR_GBP,
 } from "@/lib/abhi-financials";
 import { formatMoney, withPreferredCurrencySymbol } from "@/lib/accounting/chart-of-accounts";
-import { formatReportingMoney, roundReportingPercent } from "@/lib/financial-reporting-currency";
+import { formatReportingMoney, roundReportingPercent, type ReportingCurrency } from "@/lib/financial-reporting-currency";
 import type { FinancialOverviewSnapshot } from "@/lib/accounting/types";
 import type { ManagedClient } from "@/lib/client-management-data";
 import { normalizeKpiRow } from "@/lib/dashboard-framework";
@@ -280,7 +280,14 @@ function formatCompactMoney(amount: number, currency = "GBP") {
   return formatMoney(rounded, code);
 }
 
-function resolveHomeDisplayCurrency(financialCurrency?: string | null): string {
+function resolveHomeDisplayCurrency(
+  financialCurrency?: string | null,
+  workspaceReportingCurrency?: ReportingCurrency | null,
+): string {
+  if (workspaceReportingCurrency) {
+    return workspaceReportingCurrency;
+  }
+
   const fromFinancials = String(financialCurrency ?? "")
     .trim()
     .toUpperCase();
@@ -488,12 +495,16 @@ export function buildExecutiveHomeLiveKpis(input: {
   projects: InternalProject[];
   clients: ManagedClient[];
   onboardingPipelineCount?: number;
+  reportingCurrency?: ReportingCurrency;
 }): DashboardKpiItem[] {
   if (isBrowserTalantonHome()) {
     return buildTalantonExecutiveHomeKpis();
   }
 
-  const currency = resolveHomeDisplayCurrency(input.financials?.burnRate?.currency);
+  const currency = resolveHomeDisplayCurrency(
+    input.financials?.burnRate?.currency,
+    input.reportingCurrency,
+  );
   const revenuePeriods = buildRevenuePeriodOptions({ financials: input.financials, currency });
   const revenueYtd = input.financials?.revenueYtd ?? 0;
   const cash = resolveHomeCashPosition(input.financials, input.clients);
@@ -654,6 +665,7 @@ function alignMonthlySeries(
 /** Live Business Performance chart + annotations from ledger monthly series. */
 export function buildExecutiveHomeLiveAnalytics(input: {
   financials: FinancialOverviewSnapshot | null;
+  reportingCurrency?: ReportingCurrency;
 }): {
   title?: string;
   caption: string;
@@ -724,7 +736,10 @@ export function buildExecutiveHomeLiveAnalytics(input: {
     };
   }
 
-  const currency = resolveHomeDisplayCurrency(input.financials?.burnRate?.currency);
+  const currency = resolveHomeDisplayCurrency(
+    input.financials?.burnRate?.currency,
+    input.reportingCurrency,
+  );
   const revenueSeries = input.financials?.charts.monthlyRevenue ?? [];
   const points = alignMonthlySeries(
     revenueSeries,
@@ -862,8 +877,12 @@ export function buildExecutiveHomeLiveNarrative(input: {
   projects: InternalProject[];
   clients: ManagedClient[];
   onboardingPipelineCount?: number;
+  reportingCurrency?: ReportingCurrency;
 }) {
-  const currency = resolveHomeDisplayCurrency(input.financials?.burnRate?.currency);
+  const currency = resolveHomeDisplayCurrency(
+    input.financials?.burnRate?.currency,
+    input.reportingCurrency,
+  );
   const cash = resolveHomeCashPosition(input.financials, input.clients);
   const overdue = input.financials?.ar.overdue ?? 0;
   const overdueCount =
@@ -1248,6 +1267,7 @@ export function withExecutiveHomeLiveData(
     projects: InternalProject[];
     clients: ManagedClient[];
     onboardingPipelineCount?: number;
+    reportingCurrency?: ReportingCurrency;
   },
 ): WorkspaceDashboardConfig {
   return withExecutiveHomeLiveNarrative(
