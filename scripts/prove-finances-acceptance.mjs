@@ -1,5 +1,5 @@
 /**
- * Authenticated Finances acceptance for Demo (USD) — nav, views, currency, no Coming Soon.
+ * Authenticated Finances acceptance for Demo (GBP) — nav, views, currency, no Coming Soon.
  *
  * Usage: npm run prove:finances-acceptance
  */
