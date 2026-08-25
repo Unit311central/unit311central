@@ -18,6 +18,7 @@ import { isCorpCentreSlug } from "@/components/layout/CorpCentreLogoMark";
 import { isAbhiSlug } from "@/lib/abhi-surface";
 import { isOnwardAirSlug } from "@/lib/onwardair-surface";
 import { isSaecSlug } from "@/lib/saec-surface";
+import { isTalantonImpactSlug } from "@/lib/talanton-surface";
 import { loadWorkspaceLoginBrandingBySlug } from "@/lib/platform-workspaces/workspace-login-page-service";
 import { findWorkspaceBySlug } from "@/lib/workspace-host";
 
