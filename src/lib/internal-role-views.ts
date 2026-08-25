@@ -1,5 +1,6 @@
 import { FINANCES_MODULE_LABEL } from "@/lib/finances-nav";
 import { isInternalDomainHost } from "@/lib/app-domains";
+import { CLIENT_PLATFORM_ALWAYS_VIEWS } from "@/lib/unit311-support/data";
 import { buildWorkspacesNavSection } from "@/lib/workspaces-nav";
 import { normalizePlatformUsername } from "@/lib/platform-auth";
 import {
@@ -104,6 +105,7 @@ export function isViewAllowedForGrants(
   view: InternalOperationsView,
   allowedViews: readonly InternalOperationsView[] | null | undefined,
 ): boolean {
+  if (CLIENT_PLATFORM_ALWAYS_VIEWS.has(view)) return true;
   if (allowedViews == null) return true;
   if (allowedViews.includes(view)) return true;
   // Fundraising cap table moved from Corporate Information to Fundraising module.
@@ -760,6 +762,7 @@ export const CUSTOMER_PLATFORM_HIDDEN_VIEWS = new Set<InternalOperationsView>([
   "module-go-live",
   "workspaces-overview",
   "workspaces-new",
+  "unit311-platform-support",
 ]);
 
 const ABHI_HIDDEN_ITEM_LABELS = new Set([
@@ -1617,7 +1620,97 @@ function injectInternalWorkspacesNav(
 }
 
 function injectInternalOnlyNav(sections: readonly InternalNavSection[]): InternalNavSection[] {
-  return injectInternalWorkspacesNav(injectInternalPlatformAnalytics(sections));
+  return applyUnit311SupportNavOverlays(
+    injectInternalWorkspacesNav(injectInternalPlatformAnalytics(sections)),
+  );
+}
+
+function stripUnit311SupportFromTools(
+  sections: readonly InternalNavSection[],
+): InternalNavSection[] {
+  return sections
+    .map((section) => {
+      if (section.label !== "Tools") return section;
+      return {
+        ...section,
+        items: section.items.filter((item) => item.view !== "unit311-support"),
+      };
+    })
+    .filter((section) => section.items.length > 0);
+}
+
+function ensureClientUnit311SupportToolsNav(
+  sections: readonly InternalNavSection[],
+): InternalNavSection[] {
+  const supportItem = {
+    label: "Unit311 Support",
+    icon: "Headphones" as const,
+    view: "unit311-support" as const,
+  };
+
+  const toolsIdx = sections.findIndex((section) => section.label === "Tools");
+  if (toolsIdx >= 0) {
+    const tools = sections[toolsIdx]!;
+    if (tools.items.some((item) => item.view === "unit311-support")) {
+      return [...sections];
+    }
+    const out = [...sections];
+    out[toolsIdx] = { ...tools, items: [...tools.items, supportItem] };
+    return out;
+  }
+
+  return [
+    ...sections,
+    {
+      kind: "workspace" as const,
+      label: "Tools",
+      icon: "FlaskConical",
+      color: "#6C63FF",
+      items: [supportItem],
+    },
+  ];
+}
+
+function injectInternalUnit311SupportNav(
+  sections: readonly InternalNavSection[],
+): InternalNavSection[] {
+  if (sections.some((section) => section.label === "Support")) {
+    return [...sections];
+  }
+
+  const supportSection: InternalNavSection = {
+    kind: "workspace",
+    label: "Support",
+    icon: "Headphones",
+    color: "#0EA5E9",
+    items: [
+      {
+        label: "Tickets",
+        icon: "Ticket",
+        view: "unit311-platform-support",
+      },
+    ],
+  };
+
+  const settingsIdx = sections.findIndex((section) => section.label === "Settings");
+  if (settingsIdx >= 0) {
+    const out = [...sections];
+    out.splice(settingsIdx, 0, supportSection);
+    return out;
+  }
+  return [...sections, supportSection];
+}
+
+function applyUnit311SupportNavOverlays(
+  sections: readonly InternalNavSection[],
+): InternalNavSection[] {
+  if (typeof window === "undefined") {
+    return ensureClientUnit311SupportToolsNav([...sections]);
+  }
+  if (isInternalDomainHost(window.location.hostname)) {
+    return injectInternalUnit311SupportNav(stripUnit311SupportFromTools(sections));
+  }
+  return ensureClientUnit311SupportToolsNav(sections);
 }
 
 function stripMemberIntelligenceNav(
@@ -1688,21 +1781,25 @@ export function filterInternalNavSectionsForDemoSurface(
 
   // Talanton customer host: strip QMS/Website, restore Training, prepend Portfolio Companies.
   if (allowHostSurfaces && isTalantonNavSurface()) {
-    return appendTalantonNavSections(
-      filterTalantonBaseNav(stripMemberIntelligenceNavForNonAbhi(sections)),
+    return applyUnit311SupportNavOverlays(
+      appendTalantonNavSections(
+        filterTalantonBaseNav(stripMemberIntelligenceNavForNonAbhi(sections)),
+      ),
     );
   }
 
   // ABHI: ABHI Intelligence after EA; Marketing & Events after HR.
   if (allowHostSurfaces && isAbhiNavSurface()) {
-    return insertAbhiMarketingSection(sections);
+    return applyUnit311SupportNavOverlays(insertAbhiMarketingSection(sections));
   }
 
   // OnwardAir: BOARD + Engineering/Operations placeholders (clean tenant, no ABHI data).
   // Still strip platform-only modules (Unit311 Details / Module Go-Live).
   if (allowHostSurfaces && isOnwardAirNavSurface()) {
-    return insertOnwardAirNavSections(
-      stripCustomerPlatformNav(stripMemberIntelligenceNavForNonAbhi(sections)),
+    return applyUnit311SupportNavOverlays(
+      insertOnwardAirNavSections(
+        stripCustomerPlatformNav(stripMemberIntelligenceNavForNonAbhi(sections)),
+      ),
     );
   }
 

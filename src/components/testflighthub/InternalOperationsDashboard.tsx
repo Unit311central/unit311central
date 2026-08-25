@@ -280,6 +280,8 @@ import {
   WebODMWorkspace,
   WebsiteManagementWorkspace,
   IntegrationsWorkspace,
+  Unit311SupportWorkspace,
+  Unit311PlatformSupportWorkspace,
   PlatformAnalyticsWorkspace,
   WebsiteAnalyticsWorkspace,
   ManagementWorkspace,
@@ -1312,6 +1314,18 @@ export default function InternalOperationsDashboard({
           {activeView === "integrations" && (
             <WorkspaceErrorBoundary title="Integrations">
               <IntegrationsWorkspace />
+            </WorkspaceErrorBoundary>
+          )}
+
+          {activeView === "unit311-support" && (
+            <WorkspaceErrorBoundary title="Unit311 Support">
+              <Unit311SupportWorkspace />
+            </WorkspaceErrorBoundary>
+          )}
+
+          {activeView === "unit311-platform-support" && isInternalHost && (
+            <WorkspaceErrorBoundary title="Unit311 Platform Support">
+              <Unit311PlatformSupportWorkspace />
             </WorkspaceErrorBoundary>
           )}
 

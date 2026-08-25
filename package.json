@@ -72,6 +72,7 @@
     "prove:engineering-sop-central": "node --import tsx src/lib/__tests__/engineering-sop-central.check.ts",
     "prove:engineering-technical-files": "node --import tsx src/lib/__tests__/engineering-technical-files.check.ts",
     "prove:engineering-technical-files:prod": "node scripts/prove-engineering-technical-files-prod-auth.mjs",
+    "prove:unit311-support": "node --import tsx src/lib/__tests__/unit311-support.check.ts",
     "prove:initial-admin-password": "node --import tsx src/lib/__tests__/initial-admin-password.check.ts",
     "prove:customer-nav-parity": "node --import tsx src/lib/__tests__/customer-nav-parity.check.ts",
     "prove:internal-nav-regression": "node --import tsx src/lib/__tests__/internal-nav-regression.check.ts",

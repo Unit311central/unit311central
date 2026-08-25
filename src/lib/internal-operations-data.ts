@@ -136,6 +136,8 @@ export type InternalOperationsView =
   | "website-management"
   | "website-uk-pavilion"
   | "integrations"
+  | "unit311-support"
+  | "unit311-platform-support"
   | "engineering"
   | "engineering-dashboard"
   | "engineering-programs"
@@ -433,6 +435,8 @@ export const internalOperationsViews: InternalOperationsView[] = [
   "website-management",
   "website-uk-pavilion",
   "integrations",
+  "unit311-support",
+  "unit311-platform-support",
   "engineering",
   "engineering-dashboard",
   "engineering-programs",
@@ -1060,6 +1064,11 @@ export const internalSurveyNavSections: readonly InternalNavSection[] = [
       { label: "Testing", icon: "FlaskConical", view: "testing" as const },
       { label: "Telemetry", icon: "Radio", view: "telemetry" as const },
       { label: "Users", icon: "Users", view: "users" as const },
+      {
+        label: "Unit311 Support",
+        icon: "Headphones",
+        view: "unit311-support" as const,
+      },
     ],
   },
   {
@@ -1260,6 +1269,8 @@ export const internalViewTitles: Record<
     subtitle: "Website Management",
   },
   integrations: { title: "Integrations", subtitle: "Tools" },
+  "unit311-support": { title: "Unit311 Support", subtitle: "Tools" },
+  "unit311-platform-support": { title: "Tickets", subtitle: "Support" },
   engineering: { title: "Dashboard", subtitle: "Engineering" },
   "engineering-dashboard": { title: "Dashboard", subtitle: "Engineering" },
   "engineering-programs": { title: "Programs & Milestones", subtitle: "Engineering" },

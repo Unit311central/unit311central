@@ -18,7 +18,7 @@ declare
 begin
   select id into v_demo_id from public.workspaces where slug = 'demo' limit 1;
   if v_demo_id is null then
-    raise notice '173_demo_sales_team_expansion: demo workspace missing — skipped';
+    raise notice '174_demo_sales_team_expansion: demo workspace missing — skipped';
     return;
   end if;
 
@@ -28,7 +28,7 @@ begin
   limit 1;
 
   if v_team_id is null then
-    raise notice '173_demo_sales_team_expansion: sales team missing — run 169 first';
+    raise notice '174_demo_sales_team_expansion: sales team missing — run 169 first';
     return;
   end if;
 

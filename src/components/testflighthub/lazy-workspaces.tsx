@@ -139,6 +139,10 @@ export const TelecommunicationsWorkspace = lazyWorkspace(() => import("./Telecom
 export const ExternalClientAccessWorkspace = lazyWorkspace(() => import("./ExternalClientAccessWorkspace"));
 export const WebsiteManagementWorkspace = lazyWorkspace(() => import("./WebsiteManagementWorkspace"));
 export const IntegrationsWorkspace = lazyWorkspace(() => import("./IntegrationsWorkspace"));
+export const Unit311SupportWorkspace = lazyWorkspace(() => import("./Unit311SupportWorkspace"));
+export const Unit311PlatformSupportWorkspace = lazyWorkspace(
+  () => import("./Unit311PlatformSupportWorkspace"),
+);
 export const PlatformAnalyticsWorkspace = lazyWorkspace(() => import("./PlatformAnalyticsWorkspace"));
 export const WebsiteAnalyticsWorkspace = lazyWorkspace(() => import("./WebsiteAnalyticsWorkspace"));
 export const WebODMWorkspace = lazyWorkspace(() => import("./WebODMWorkspace"));
