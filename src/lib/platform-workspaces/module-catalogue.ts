@@ -152,6 +152,7 @@ function moduleKeysForView(viewId: string | undefined, moduleId: string): string
 
   if (view === "website-management") return ["website-management"];
   if (view === "integrations") return ["users"];
+  if (view === "unit311-support") return ["users"];
   if (view === "testing") return ["testing"];
   if (view === "telemetry") return ["telemetry"];
   if (view === "users" || view === "users-external" || view === "external-client-access") {

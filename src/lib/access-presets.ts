@@ -337,6 +337,12 @@ export const MODULE_GRANT_GROUPS: ModuleGrantGroup[] = [
     views: ["support-overview", "support", "support-mine", "whatsapp-integration"],
   },
   {
+    id: "unit311-platform-support",
+    label: "Unit311 Platform Support",
+    section: "Support",
+    views: ["unit311-platform-support"],
+  },
+  {
     id: "technology",
     label: "Technology",
     section: "Technology Management",

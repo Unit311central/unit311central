@@ -4,9 +4,10 @@
  */
 
 import { DEMO_WORKSPACE_SLUG } from "@/lib/app-domains";
-import { buildFinancesNavSection } from "@/lib/finances-nav";
 import { isSaecSlug } from "@/lib/saec-surface";
 import { augmentSaecOperationsNav } from "@/lib/saec/installations-nav";
+import { CLIENT_PLATFORM_ALWAYS_VIEWS } from "@/lib/unit311-support/data";
+import { buildFinancesNavSection } from "@/lib/finances-nav";
 import type {
   InternalNavChildItem,
   InternalNavItem,
@@ -176,6 +177,7 @@ function childAllowed(
 ): boolean {
   if (!filterSubs) return true;
   if (!child.view) return true;
+  if (CLIENT_PLATFORM_ALWAYS_VIEWS.has(child.view)) return true;
   const key = viewMap.get(child.view);
   return !key || enabledSubModules.has(key);
 }
@@ -222,6 +224,11 @@ function filterNavItems(
     }
 
     if (!item.view) {
+      result.push(item);
+      continue;
+    }
+
+    if (CLIENT_PLATFORM_ALWAYS_VIEWS.has(item.view)) {
       result.push(item);
       continue;
     }
