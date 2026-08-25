@@ -51,13 +51,8 @@ export function resolveSlugReportingCurrency(slug: string | null | undefined): R
     /* optional at build edges */
   }
 
-  try {
-    const { isSaecSlug, SAEC_REPORTING_CURRENCY } =
-      require("@/lib/saec-surface") as typeof import("@/lib/saec-surface");
-    if (isSaecSlug(normalized)) return SAEC_REPORTING_CURRENCY as ReportingCurrency;
-  } catch {
-    /* optional at build edges */
-  }
+  // Inline slug check — avoid require("@/lib/saec-surface") (Turbopack SSR chunk collision).
+  if (normalized === "saec") return "ZAR";
 
   return DEFAULT_REPORTING_CURRENCY;
 }
@@ -110,13 +105,8 @@ export function resolveBrowserReportingCurrency(): ReportingCurrency {
     /* optional at build edges */
   }
 
-  try {
-    const { isBrowserSaecSurface, SAEC_REPORTING_CURRENCY } =
-      require("@/lib/saec-surface") as typeof import("@/lib/saec-surface");
-    if (isBrowserSaecSurface()) return SAEC_REPORTING_CURRENCY as ReportingCurrency;
-  } catch {
-    /* optional at build edges */
-  }
+  const host = window.location.hostname.split(":")[0].trim().toLowerCase();
+  if (host === "saec.unit311central.com" || host === "saec.localhost") return "ZAR";
 
   return DEFAULT_REPORTING_CURRENCY;
 }
