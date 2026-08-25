@@ -94,7 +94,7 @@ function assertDemoNav(enabledModules: string[], enabledSubModules: string[]) {
   }
 
   const required = [
-    "Intelligence",
+    "Northstar Intelligence",
     "Sales Management",
     "Support Desk",
     "QMS",
