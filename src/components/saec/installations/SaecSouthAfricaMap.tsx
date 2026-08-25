@@ -181,10 +181,15 @@ export default function SaecSouthAfricaMap({
         )}
 
         {mapLayers && (
+        <div
+          className="saec-installations-map-stage mx-auto w-full"
+          style={{ height: "min(42vh, 400px)" }}
+        >
         <svg
           viewBox={`0 0 ${SA_MAP_VIEWBOX.width} ${SA_MAP_VIEWBOX.height}`}
           preserveAspectRatio="xMidYMid meet"
-          className="mx-auto w-full aspect-[820/940] max-h-[min(50vh,540px)] min-h-[200px] sm:max-h-[min(55vh,580px)] xl:max-h-[min(58vh,600px)]"
+          width="100%"
+          height="100%"
           role="img"
           aria-label="Geographic map of South Africa showing SAEC installation clusters"
         >
@@ -278,6 +283,7 @@ export default function SaecSouthAfricaMap({
             );
           })}
         </svg>
+        </div>
         )}
 
         {mapLayers && hoveredCity && (
