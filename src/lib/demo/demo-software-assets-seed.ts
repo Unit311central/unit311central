@@ -2,7 +2,8 @@
  * Demo (Northstar) — Technology Management Software & SaaS register (GBP, workspace-scoped).
  */
 
-import type { SoftwareAsset } from "@/lib/software-assets-data";
+import type { SoftwareAsset, SoftwareAssetsSummary } from "@/lib/software-assets-data";
+import { computeSoftwareAssetsSummary } from "@/lib/software-assets-data";
 import { getNorthstarSoftwareAssets } from "@/lib/demo/northstar-api-fixtures";
 import {
   createSoftwareAsset,
@@ -44,7 +45,7 @@ function buildDemoSoftwareSeeds(): Array<
     monthlyCost: convertUsdToGbp(row.monthlyCost),
     annualCost: convertUsdToGbp(row.annualCost),
     currency: DEMO_REPORTING_CURRENCY,
-        lastPaymentAmount: convertUsdToGbp(row.lastPaymentAmount) ?? undefined,
+    lastPaymentAmount: convertUsdToGbp(row.lastPaymentAmount) ?? undefined,
     lastPaymentDate: row.lastPaymentDate,
     nextRenewalDate: row.nextRenewalDate,
     renewalFrequency: row.renewalFrequency,
@@ -99,6 +100,92 @@ async function clearWorkspaceSoftwareAssets(workspaceId: string): Promise<void> 
   await supabase.from("software_asset_audit_events").delete().eq("workspace_id", workspaceId);
   const { error } = await supabase.from("software_assets").delete().eq("workspace_id", workspaceId);
   if (error) throw new Error(error.message);
+}
+
+/** In-memory GBP fallback when DB seed has not completed yet (demo workspace only). */
+export function buildDemoSoftwareAssetsFallback(workspaceId: string): {
+  assets: SoftwareAsset[];
+  summary: SoftwareAssetsSummary;
+} {
+  const now = new Date().toISOString();
+  const seeds = buildDemoSoftwareSeeds();
+  const assets: SoftwareAsset[] = seeds.map((seed, index) => ({
+    ...createBlankSoftwareAssetFallback(seed),
+    id: `demo-sw-fallback-${index + 1}`,
+    workspaceId,
+    createdAt: now,
+    updatedAt: now,
+  }));
+  const summary = computeSoftwareAssetsSummary(assets, 25);
+  summary.currency = DEMO_REPORTING_CURRENCY;
+  return { assets, summary };
+}
+
+function createBlankSoftwareAssetFallback(
+  seed: Partial<SoftwareAsset> & { name: string; supplierCompany: string },
+): SoftwareAsset {
+  return {
+    id: "",
+    workspaceId: "",
+    name: seed.name,
+    vendor: seed.vendor ?? "",
+    purpose: seed.purpose ?? "",
+    category: seed.category ?? "",
+    websiteUrl: seed.websiteUrl ?? "",
+    supportUrl: seed.supportUrl ?? "",
+    documentationUrl: seed.documentationUrl ?? "",
+    status: seed.status ?? "Active",
+    licencesPurchased: seed.licencesPurchased ?? 0,
+    licencesAllocated: seed.licencesAllocated ?? 0,
+    licenceType: seed.licenceType ?? "Named",
+    monthlyCost: seed.monthlyCost ?? 0,
+    annualCost: seed.annualCost ?? 0,
+    currency: DEMO_REPORTING_CURRENCY,
+    lastPaymentAmount: seed.lastPaymentAmount ?? null,
+    lastPaymentDate: seed.lastPaymentDate ?? null,
+    nextRenewalDate: seed.nextRenewalDate ?? null,
+    renewalFrequency: seed.renewalFrequency ?? "Annually",
+    contractLength: seed.contractLength ?? "",
+    costCentre: seed.costCentre ?? "",
+    budgetOwner: seed.budgetOwner ?? "",
+    supplierName: seed.supplierName ?? "",
+    invoiceReference: seed.invoiceReference ?? "",
+    financialAccountCode: seed.financialAccountCode ?? "5010",
+    businessOwner: seed.businessOwner ?? "",
+    technicalOwner: seed.technicalOwner ?? "",
+    department: seed.department ?? "",
+    approver: seed.approver ?? "",
+    supplierCompany: seed.supplierCompany,
+    accountManager: seed.accountManager ?? "",
+    supportEmail: seed.supportEmail ?? "",
+    supportPhone: seed.supportPhone ?? "",
+    customerNumber: seed.customerNumber ?? "",
+    integrationConnected: seed.integrationConnected ?? false,
+    integrationApiKeySet: seed.integrationApiKeySet ?? false,
+    integrationWebhookUrl: seed.integrationWebhookUrl ?? "",
+    integrationOauthStatus: seed.integrationOauthStatus ?? "",
+    integrationSyncStatus: seed.integrationSyncStatus ?? "",
+    providerSlug: seed.providerSlug ?? null,
+    linkedExpenseId: null,
+    filesFolderId: null,
+    credentials: {
+      primaryAccountEmail: "",
+      portalUrl: "",
+      username: "",
+      passwordSet: false,
+      mfaEnabled: false,
+      recoveryEmail: "",
+      recoveryPhone: "",
+      notes: "",
+    },
+    files: [],
+    createdAt: nowIso(),
+    updatedAt: nowIso(),
+  };
+}
+
+function nowIso() {
+  return new Date().toISOString();
 }
 
 /** Idempotent Demo software register — all rows GBP. */

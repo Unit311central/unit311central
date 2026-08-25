@@ -10,7 +10,7 @@ import {
 import type { SoftwareAsset } from "@/lib/software-assets-data";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
 import { requireCurrentWorkspace } from "@/lib/workspace-context";
-import { ensureDemoSoftwareAssetsSeeded } from "@/lib/demo/demo-software-assets-seed";
+import { ensureDemoSoftwareAssetsSeeded, buildDemoSoftwareAssetsFallback } from "@/lib/demo/demo-software-assets-seed";
 import { isDemoWorkspaceSlug } from "@/lib/demo/read-only";
 import { isTalantonImpactSlug } from "@/lib/talanton-surface";
 import { ensureTalantonSoftwareAssetsSeeded } from "@/lib/talanton/software-assets-seed";
@@ -27,11 +27,20 @@ export async function GET() {
     const workspace = await requireCurrentWorkspace();
     await ensureSoftwareAssetRegisterTables();
     if (isDemoWorkspaceSlug(workspace.slug)) {
-      await ensureDemoSoftwareAssetsSeeded(workspace.id).catch(() => undefined);
+      await ensureDemoSoftwareAssetsSeeded(workspace.id);
     } else if (isTalantonImpactSlug(workspace.slug)) {
       await ensureTalantonSoftwareAssetsSeeded(workspace.id).catch(() => undefined);
     }
-    const { assets, summary } = await getSoftwareAssetsSummary({ workspaceId: workspace.id });
+    let { assets, summary } = await getSoftwareAssetsSummary({ workspaceId: workspace.id });
+    if (isDemoWorkspaceSlug(workspace.slug) && assets.length === 0) {
+      await ensureDemoSoftwareAssetsSeeded(workspace.id);
+      ({ assets, summary } = await getSoftwareAssetsSummary({ workspaceId: workspace.id }));
+    }
+    if (isDemoWorkspaceSlug(workspace.slug) && assets.length === 0) {
+      const fallback = buildDemoSoftwareAssetsFallback(workspace.id);
+      assets = fallback.assets;
+      summary = fallback.summary;
+    }
     if (isDemoWorkspaceSlug(workspace.slug)) {
       summary.currency = "GBP";
     } else if (isTalantonImpactSlug(workspace.slug)) {
