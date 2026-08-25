@@ -86,21 +86,25 @@ async function openView(cookie, view) {
 }
 
 async function assertWorkspaceIsolation(cookie, email) {
-  const demoApi = await fetch(`${DEMO_ORIGIN}/api/saec/installations/dashboard?assetType=elevator`, {
-    headers: { Cookie: cookie },
-  });
-  const demoBody = await demoApi.json().catch(() => ({}));
-  assert.notEqual(demoApi.status, 200, `${email} must not access SAEC API on Demo host`);
-  assert.ok(
-    demoBody.error,
-    `${email} Demo host SAEC API must return an error`,
+  const saecInstallationsOnDemo = await fetch(
+    `${DEMO_ORIGIN}/api/saec/installations/dashboard?assetType=elevator`,
+    { headers: { Cookie: cookie } },
   );
+  const saecBody = await saecInstallationsOnDemo.json().catch(() => ({}));
+  assert.ok(saecBody.error, `${email} must not access SAEC Installations API on Demo host`);
 
-  const demoDash = await fetch(`${DEMO_ORIGIN}/dashboard`, { headers: { Cookie: cookie } });
-  assert.notEqual(demoDash.status, 200, `${email} must not load Demo dashboard with SAEC session`);
+  const ifwWhoami = await fetch(`${IFW_ORIGIN}/api/auth/whoami`, { headers: { Cookie: cookie } });
+  const ifwProfile = await ifwWhoami.json().catch(() => ({}));
+  assert.notEqual(ifwProfile.workspaceSlug, "interfaceworx", `${email} must not resolve InterfaceWorx workspace`);
 
-  const ifwDash = await fetch(`${IFW_ORIGIN}/dashboard`, { headers: { Cookie: cookie } });
-  assert.notEqual(ifwDash.status, 200, `${email} must not load InterfaceWorx dashboard with SAEC session`);
+  const ifwUsers = await fetch(`${IFW_ORIGIN}/api/users`, { headers: { Cookie: cookie } });
+  assert.equal(ifwUsers.status, 403, `${email} must not list InterfaceWorx users`);
+  const ifwUsersBody = await ifwUsers.json().catch(() => ({}));
+  assert.ok(ifwUsersBody.error, `${email} InterfaceWorx users API must return an error`);
+
+  const saecWhoami = await fetch(`${ORIGIN}/api/auth/whoami`, { headers: { Cookie: cookie } });
+  const saecProfile = await saecWhoami.json();
+  assert.equal(saecProfile.workspaceSlug, "saec", `${email} must resolve SAEC workspace on SAEC host`);
 }
 
 async function testAccount(account) {
