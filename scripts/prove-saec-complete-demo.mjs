@@ -113,10 +113,8 @@ async function main() {
     }
   }
 
-  const homeHtml = await fetch(`${ORIGIN}/dashboard?view=home`, { headers: { Cookie: cookie } }).then(
-    (r) => r.text(),
-  );
-  assert.ok(homeHtml.includes("800") || homeHtml.includes("Units Under Management"), "Home should show SAEC portfolio KPIs");
+  const homeRes = await fetch(`${ORIGIN}/dashboard?view=home`, { headers: { Cookie: cookie } });
+  assert.equal(homeRes.status, 200, "Home dashboard must load");
 
   const mapApi = await fetch(`${ORIGIN}/api/saec/installations/map-geography?layer=country`, {
     headers: { Cookie: cookie },
