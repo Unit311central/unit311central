@@ -20,6 +20,7 @@ import {
   NORTHSTAR_AP_OUTSTANDING,
   NORTHSTAR_BURN_PREVIOUS_MONTHLY,
   NORTHSTAR_CASH_GBP,
+  NORTHSTAR_REPORTING_CURRENCY,
   NORTHSTAR_MONTHLY_OPEX,
   NORTHSTAR_MONTHLY_REVENUE,
   NORTHSTAR_NET_PROFIT_YTD,
@@ -566,7 +567,7 @@ export function buildNorthstarFinancialOverview(): FinancialOverviewSnapshot {
     annualExpenses: monthlyExpenses * 12,
     burnRate: {
       source: "demo",
-      currency: "GBP",
+      currency: NORTHSTAR_REPORTING_CURRENCY,
       monthly: monthlyExpenses,
       quarterly: burnQuarterly,
       annual: burnAnnual,
@@ -734,7 +735,7 @@ export function getNorthstarLedgerAccounts(): LedgerAccount[] {
     name: row.name,
     type: row.type,
     balance: row.balance,
-    currency: "GBP",
+    currency: NORTHSTAR_REPORTING_CURRENCY,
     isActive: true,
     transactionCount: 6 + (index % 5),
   }));

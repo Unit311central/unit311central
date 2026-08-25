@@ -53,6 +53,7 @@
     "prove:sales-management-insights": "node --import tsx src/lib/__tests__/sales-management-insights.check.ts",
     "prove:pending-migrations-runner": "node --import tsx src/lib/__tests__/pending-migrations-runner.check.ts && node --import tsx src/lib/__tests__/migration-query-client.check.ts",
     "prove:finances-nav": "node --import tsx src/lib/__tests__/finances-nav.check.ts",
+    "prove:finances-acceptance": "node scripts/prove-finances-acceptance.mjs",
     "prove:workspaces-nav": "node --require ./scripts/test-server-only-hook.cjs --import tsx src/lib/__tests__/workspaces-nav.check.ts",
     "prove:workspaces-phase2": "node --require ./scripts/test-server-only-hook.cjs --import tsx src/lib/__tests__/workspaces-phase2.check.ts",
     "prove:workspaces-phase3": "node --require ./scripts/test-server-only-hook.cjs --import tsx src/lib/__tests__/workspaces-phase3.check.ts",

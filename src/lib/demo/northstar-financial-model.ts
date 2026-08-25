@@ -1,8 +1,12 @@
 /**
- * Northstar Demo — single source of truth for financial fixtures (GBP, UK FY Apr–Mar).
+ * Northstar Demo — single source of truth for financial fixtures (USD reporting, UK FY Apr–Mar).
  */
 
+import type { ReportingCurrency } from "@/lib/financial-reporting-currency";
 import { NORTHSTAR_TOTAL_RENT_MONTHLY_GBP } from "@/lib/demo/northstar-office-rent";
+
+/** Workspace reporting currency for Demo / Northstar Finances surfaces. */
+export const NORTHSTAR_REPORTING_CURRENCY: ReportingCurrency = "USD";
 
 /** Current-month operating expense breakdown (matches burn / GL expense accounts). */
 export const NORTHSTAR_OPEX_BREAKDOWN = {
