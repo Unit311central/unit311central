@@ -38,7 +38,8 @@ export function useWorkspaceReportingCurrency(
     fromApi === "USD" ||
     fromApi === "GBP" ||
     fromApi === "EUR" ||
-    fromApi === "AUD"
+    fromApi === "AUD" ||
+    fromApi === "ZAR"
   ) {
     return fromApi;
   }

@@ -1,6 +1,6 @@
 export const DEFAULT_REPORTING_CURRENCY = "USD";
 
-export type ReportingCurrency = "AUD" | "GBP" | "USD" | "EUR";
+export type ReportingCurrency = "AUD" | "GBP" | "USD" | "EUR" | "ZAR";
 
 /** Server / slug-based reporting currency (Financials API, ledger overview). */
 export function resolveSlugReportingCurrency(slug: string | null | undefined): ReportingCurrency {
@@ -47,6 +47,14 @@ export function resolveSlugReportingCurrency(slug: string | null | undefined): R
     if (isInterfaceWorxSlug(normalized)) {
       return INTERFACE_WORX_REPORTING_CURRENCY as ReportingCurrency;
     }
+  } catch {
+    /* optional at build edges */
+  }
+
+  try {
+    const { isSaecSlug, SAEC_REPORTING_CURRENCY } =
+      require("@/lib/saec-surface") as typeof import("@/lib/saec-surface");
+    if (isSaecSlug(normalized)) return SAEC_REPORTING_CURRENCY as ReportingCurrency;
   } catch {
     /* optional at build edges */
   }
@@ -102,6 +110,14 @@ export function resolveBrowserReportingCurrency(): ReportingCurrency {
     /* optional at build edges */
   }
 
+  try {
+    const { isBrowserSaecSurface, SAEC_REPORTING_CURRENCY } =
+      require("@/lib/saec-surface") as typeof import("@/lib/saec-surface");
+    if (isBrowserSaecSurface()) return SAEC_REPORTING_CURRENCY as ReportingCurrency;
+  } catch {
+    /* optional at build edges */
+  }
+
   return DEFAULT_REPORTING_CURRENCY;
 }
 
@@ -127,7 +143,8 @@ export function formatReportingMoney(
 ): string {
   const code = String(currency ?? resolveBrowserReportingCurrency()).toUpperCase();
   const rounded = Math.ceil(Number(amount) || 0);
-  const locale = code === "USD" ? "en-US" : code === "AUD" ? "en-AU" : "en-GB";
+  const locale =
+    code === "USD" ? "en-US" : code === "AUD" ? "en-AU" : code === "ZAR" ? "en-ZA" : "en-GB";
   const formatted = new Intl.NumberFormat(locale, {
     style: "currency",
     currency: code,

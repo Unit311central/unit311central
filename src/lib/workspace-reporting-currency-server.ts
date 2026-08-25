@@ -13,7 +13,7 @@ function normalizeReportingCurrency(value: string | null | undefined): Reporting
   const code = String(value ?? "")
     .trim()
     .toUpperCase();
-  if (code === "USD" || code === "GBP" || code === "EUR" || code === "AUD") {
+  if (code === "USD" || code === "GBP" || code === "EUR" || code === "AUD" || code === "ZAR") {
     return code;
   }
   return null;
