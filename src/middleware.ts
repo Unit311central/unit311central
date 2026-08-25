@@ -1240,6 +1240,6 @@ export const config = {
     // Explicitly include `/` — catch-all patterns do not match the site root.
     "/",
     // Skip static media so tenant hosts serve /videos/*.mp4 (and similar) as files, not HTML.
-    "/((?!_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|txt|xml|pdf|mp4|webm|mov|mp3|wav|ogg)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|txt|xml|pdf|mp4|webm|mov|mp3|wav|ogg|geojson|json)$).*)",
   ],
 };
