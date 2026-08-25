@@ -155,4 +155,13 @@ export const InternalWorkPackagesWorkspace = lazyWorkspace(
 export const SalesManagementWorkspace = lazyWorkspace(
   () => import("./sales-management/SalesManagementWorkspace"),
 );
+export const SaecInstallationsDashboardWorkspace = lazyWorkspace(
+  () => import("@/components/saec/installations/SaecInstallationsDashboardWorkspace"),
+);
+export const SaecInstallationsElevatorsWorkspace = lazyWorkspace(
+  () => import("@/components/saec/installations/SaecInstallationsElevatorsWorkspace"),
+);
+export const SaecInstallationsEscalatorsWorkspace = lazyWorkspace(
+  () => import("@/components/saec/installations/SaecInstallationsEscalatorsWorkspace"),
+);
 export const TelemetryDashboard = lazyWorkspace(() => import("@/components/telemetry/TelemetryDashboard"));

@@ -255,7 +255,10 @@ export type InternalOperationsView =
   | "management"
   | "content-studio"
   | "internal-work-packages"
-  | "sales-management";
+  | "sales-management"
+  | "saec-installations-dashboard"
+  | "saec-installations-elevators"
+  | "saec-installations-escalators";
 
 /** App Router folder path (middleware may rewrite `/` → this on the internal host). */
 export const INTERNAL_OPERATIONS_APP_PATH = "/internaldashboard";
@@ -522,6 +525,9 @@ export const internalOperationsViews: InternalOperationsView[] = [
   "oa-change-management",
   "oa-release-tracking",
   "operations-dashboard",
+  "saec-installations-dashboard",
+  "saec-installations-elevators",
+  "saec-installations-escalators",
   "fundraising-dashboard",
   "fundraising-investors",
   "fundraising-cap-table",
@@ -550,6 +556,9 @@ export const internalOperationsViews: InternalOperationsView[] = [
   "content-studio",
   "internal-work-packages",
   "sales-management",
+  "saec-installations-dashboard",
+  "saec-installations-elevators",
+  "saec-installations-escalators",
 ];
 
 /** Nav aliases that share one implementation until modules are redesigned. */
@@ -1430,6 +1439,9 @@ export const internalViewTitles: Record<
   "oa-change-management": { title: "Change Management", subtitle: "Operations" },
   "oa-release-tracking": { title: "Release Tracking", subtitle: "Operations" },
   "operations-dashboard": { title: "Dashboard", subtitle: "Operations" },
+  "saec-installations-dashboard": { title: "Dashboard", subtitle: "Operations · Installations" },
+  "saec-installations-elevators": { title: "Elevators", subtitle: "Operations · Installations" },
+  "saec-installations-escalators": { title: "Escalators", subtitle: "Operations · Installations" },
   "fundraising-dashboard": { title: "Dashboard", subtitle: "Fundraising" },
   "fundraising-investors": { title: "Investors", subtitle: "Fundraising" },
   "fundraising-cap-table": { title: "Cap Table Management", subtitle: "Fundraising" },

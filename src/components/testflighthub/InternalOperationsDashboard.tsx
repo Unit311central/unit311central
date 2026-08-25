@@ -285,6 +285,9 @@ import {
   ContentStudioWorkspace,
   WhiteboardWorkspace,
   WiseWorkspace,
+  SaecInstallationsDashboardWorkspace,
+  SaecInstallationsElevatorsWorkspace,
+  SaecInstallationsEscalatorsWorkspace,
 } from "./lazy-workspaces";
 import { type ManagedUser } from "@/lib/user-management-data";
 import { useInfoEmailWhatsAppPoller } from "@/hooks/useInfoEmailWhatsAppPoller";
@@ -1419,6 +1422,10 @@ export default function InternalOperationsDashboard({
           )}
 
           {activeView === "operations-dashboard" && <OperationsDashboardWorkspace />}
+
+          {activeView === "saec-installations-dashboard" && <SaecInstallationsDashboardWorkspace />}
+          {activeView === "saec-installations-elevators" && <SaecInstallationsElevatorsWorkspace />}
+          {activeView === "saec-installations-escalators" && <SaecInstallationsEscalatorsWorkspace />}
 
           {activeView === "fundraising-dashboard" && <FundraisingDashboardHost />}
           {activeView === "fundraising-investors" && <FundraisingInvestorsHost />}

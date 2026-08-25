@@ -4,9 +4,9 @@
  */
 
 import { DEMO_WORKSPACE_SLUG } from "@/lib/app-domains";
-import {
-  buildFinancesNavSection,
-} from "@/lib/finances-nav";
+import { buildFinancesNavSection } from "@/lib/finances-nav";
+import { isSaecSlug } from "@/lib/saec-surface";
+import { augmentSaecOperationsNav } from "@/lib/saec/installations-nav";
 import type {
   InternalNavChildItem,
   InternalNavItem,
@@ -281,7 +281,12 @@ export function buildWorkspaceProductNavSections(
 
     if (filteredItems.length === 0) continue;
 
-    sections.push({ ...section, items: filteredItems });
+    const items =
+      spec.id === "operations" && isSaecSlug(options.workspaceSlug)
+        ? augmentSaecOperationsNav(filteredItems)
+        : filteredItems;
+
+    sections.push({ ...section, items });
   }
 
   return sections;
