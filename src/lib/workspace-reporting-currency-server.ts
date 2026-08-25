@@ -7,6 +7,7 @@ import {
 } from "@/lib/financial-reporting-currency";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
 import { createTenancyServerClient } from "@/lib/supabase/tenancy-server";
+import { findWorkspaceBySlug } from "@/lib/workspace-host";
 
 function normalizeReportingCurrency(value: string | null | undefined): ReportingCurrency | null {
   const code = String(value ?? "")
@@ -69,7 +70,18 @@ export async function resolveExecutiveHomeReportingCurrency(
   workspaceId?: string | null,
   workspaceSlug?: string | null,
 ): Promise<ReportingCurrency> {
-  const id = String(workspaceId ?? "").trim();
+  const slug = String(workspaceSlug ?? "").trim().toLowerCase();
+  let id = String(workspaceId ?? "").trim();
+
+  if (!id && slug && isSupabaseConfigured()) {
+    try {
+      const record = await findWorkspaceBySlug(slug);
+      if (record?.id) id = record.id;
+    } catch {
+      /* optional */
+    }
+  }
+
   if (id && isSupabaseConfigured()) {
     try {
       const supabase = createTenancyServerClient();
@@ -85,7 +97,6 @@ export async function resolveExecutiveHomeReportingCurrency(
     }
   }
 
-  const slug = String(workspaceSlug ?? "").trim().toLowerCase();
   const slugCurrency = resolveSlugReportingCurrency(slug);
   if (slugCurrency !== DEFAULT_REPORTING_CURRENCY) {
     return slugCurrency;
