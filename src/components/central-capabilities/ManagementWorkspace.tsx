@@ -38,6 +38,7 @@ import { useOperatorEntitlements } from "@/components/testflighthub/OperatorEnti
 import { cn } from "@/lib/utils";
 
 import { useManagementStore } from "./useManagementStore";
+import { isBrowserSaecSurface, SAEC_COMPANY_NAME } from "@/lib/saec-surface";
 
 const MANAGEMENT_SUBTITLE =
   "Recurring meetings, function packs, actions, and decisions for your leadership team.";
@@ -791,6 +792,7 @@ export default function ManagementWorkspace() {
     [access, state.functionPacks],
   );
   const meetingNames = useMemo(() => state.meetings.map((meeting) => meeting.name), [state.meetings]);
+  const isSaec = isBrowserSaecSurface();
 
   if (!canAccessManagementWorkspace(access)) {
     return (
@@ -806,7 +808,7 @@ export default function ManagementWorkspace() {
   return (
     <div className="space-y-5">
       <WorkspaceModuleHeader
-        brandLabel="Business Central"
+        brandLabel={isSaec ? SAEC_COMPANY_NAME : "Business Central"}
         moduleLabel="Management"
         title={resolveManagementShellTitle(section)}
         description={MANAGEMENT_SUBTITLE}

@@ -1,9 +1,16 @@
 import { buildClientSalesInvoiceEmail } from "@/lib/accounting/client-invoice-emails";
 import { buildClientInvoicePdfFromQuote } from "@/lib/accounting/client-invoice-pdf";
 import type { SalesQuote } from "@/lib/accounting/types";
-import { getNorthstarSalesQuoteById, upsertNorthstarSalesQuote } from "@/lib/demo/northstar-sales-quotes-fixtures";
+import {
+  getNorthstarSalesQuoteById,
+  upsertNorthstarSalesQuote,
+} from "@/lib/demo/northstar-sales-quotes-fixtures";
+import {
+  getSaecSalesQuoteById,
+  upsertSaecSalesQuote,
+} from "@/lib/saec/demo/saec-sales-quotes-fixtures";
 import { resolveFinancialsWorkspaceId, type FinancialsWorkspaceScope } from "@/lib/financials-workspace";
-import { usesNorthstarStyleAccountingFixtures } from "@/lib/workspace-accounting-fixtures";
+import { resolveAccountingFixtureSource } from "@/lib/workspace-accounting-fixtures";
 import { sendMailboxEmail } from "@/lib/email/smtp";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
 import { createTenancyServerClient } from "@/lib/supabase/tenancy-server";
@@ -41,17 +48,34 @@ function resolveInvoiceMeta(quote: SalesQuote) {
   return { issueDate, dueDate, invoiceNumber, paymentReference };
 }
 
+async function loadQuoteForClientInvoice(
+  quoteId: string,
+  scope: FinancialsWorkspaceScope,
+): Promise<SalesQuote | null> {
+  const fixture = resolveAccountingFixtureSource(scope.workspaceSlug);
+  if (fixture === "northstar") return getNorthstarSalesQuoteById(quoteId);
+  if (fixture === "saec") return getSaecSalesQuoteById(quoteId);
+  return import("@/lib/accounting/sales-quotes-service").then((mod) =>
+    mod.getSalesQuoteById(quoteId, scope),
+  );
+}
+
+function upsertFixtureQuote(
+  scope: FinancialsWorkspaceScope,
+  quote: SalesQuote,
+): SalesQuote {
+  const fixture = resolveAccountingFixtureSource(scope.workspaceSlug);
+  if (fixture === "saec") return upsertSaecSalesQuote(quote);
+  return upsertNorthstarSalesQuote(quote);
+}
+
 export async function attachPaymentLinkToQuote(
   quoteId: string,
   scope: FinancialsWorkspaceScope,
   origin?: string | null,
 ): Promise<SalesQuote> {
-  const quote =
-    usesNorthstarStyleAccountingFixtures(scope.workspaceSlug)
-      ? getNorthstarSalesQuoteById(quoteId)
-      : await import("@/lib/accounting/sales-quotes-service").then((mod) =>
-          mod.getSalesQuoteById(quoteId, scope),
-        );
+  const fixture = resolveAccountingFixtureSource(scope.workspaceSlug);
+  const quote = await loadQuoteForClientInvoice(quoteId, scope);
   if (!quote) throw new Error("Quote not found.");
   if (quote.status !== "accepted") {
     throw new Error("Accept the quote before creating a payment link.");
@@ -65,8 +89,8 @@ export async function attachPaymentLinkToQuote(
     currency: quote.currency,
   });
 
-  if (usesNorthstarStyleAccountingFixtures(scope.workspaceSlug)) {
-    return upsertNorthstarSalesQuote({
+  if (fixture === "northstar" || fixture === "saec") {
+    return upsertFixtureQuote(scope, {
       ...quote,
       paymentReference,
       stripePaymentLinkUrl: paymentUrl,
@@ -99,12 +123,8 @@ export async function sendClientInvoiceForQuote(
   scope: FinancialsWorkspaceScope,
   origin?: string | null,
 ): Promise<{ quote: SalesQuote; messageId: string | null; simulated: boolean }> {
-  const quote =
-    usesNorthstarStyleAccountingFixtures(scope.workspaceSlug)
-      ? getNorthstarSalesQuoteById(quoteId)
-      : await import("@/lib/accounting/sales-quotes-service").then((mod) =>
-          mod.getSalesQuoteById(quoteId, scope),
-        );
+  const fixture = resolveAccountingFixtureSource(scope.workspaceSlug);
+  const quote = await loadQuoteForClientInvoice(quoteId, scope);
   if (!quote) throw new Error("Quote not found.");
   if (quote.status !== "accepted") {
     throw new Error("Accept the quote before sending the client invoice.");
@@ -143,31 +163,10 @@ export async function sendClientInvoiceForQuote(
   let messageId: string | null = null;
   let simulated = false;
 
-  if (usesNorthstarStyleAccountingFixtures(scope.workspaceSlug)) {
+  if (fixture === "northstar" || fixture === "saec") {
     simulated = true;
     messageId = `demo-msg-${Date.now()}`;
-  } else {
-    const workspaceId = await resolveFinancialsWorkspaceId(scope);
-    const info = await sendMailboxEmail({
-      account: "info",
-      workspaceId,
-      to: quote.contactEmail,
-      subject: email.subject,
-      html: email.html,
-      text: email.text,
-      attachments: [
-        {
-          filename: `${invoiceNumber}.pdf`,
-          content: Buffer.from(pdf),
-          contentType: "application/pdf",
-        },
-      ],
-    });
-    messageId = info.messageId ?? null;
-  }
-
-  if (usesNorthstarStyleAccountingFixtures(scope.workspaceSlug)) {
-    const updated = upsertNorthstarSalesQuote({
+    const updated = upsertFixtureQuote(scope, {
       ...quote,
       paymentReference,
       stripePaymentLinkUrl: paymentUrl,
@@ -177,8 +176,25 @@ export async function sendClientInvoiceForQuote(
     return { quote: updated, messageId, simulated };
   }
 
-  if (!isSupabaseConfigured()) throw new Error("Supabase is not configured.");
   const workspaceId = await resolveFinancialsWorkspaceId(scope);
+  const info = await sendMailboxEmail({
+    account: "info",
+    workspaceId,
+    to: quote.contactEmail,
+    subject: email.subject,
+    html: email.html,
+    text: email.text,
+    attachments: [
+      {
+        filename: `${invoiceNumber}.pdf`,
+        content: Buffer.from(pdf),
+        contentType: "application/pdf",
+      },
+    ],
+  });
+  messageId = info.messageId ?? null;
+
+  if (!isSupabaseConfigured()) throw new Error("Supabase is not configured.");
   const supabase = createTenancyServerClient();
   const { error } = await supabase
     .from("sales_quotes")

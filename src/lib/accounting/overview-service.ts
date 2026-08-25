@@ -30,6 +30,18 @@ import {
   isOnwardAirWorkspaceSlug,
 } from "@/lib/onwardair-financials";
 import {
+  SAEC_ACCOUNTS_PAYABLE_ZAR,
+  SAEC_ACCOUNTS_RECEIVABLE_ZAR,
+  SAEC_CASH_BALANCE_ZAR,
+  SAEC_REVENUE_YTD_ZAR,
+  getSaecMonthlyCashSeries,
+  getSaecMonthlyOutgoingsSeries,
+  getSaecMonthlyRevenueSeries,
+  getSaecRevenueForMonth,
+  isSaecWorkspaceSlug,
+} from "@/lib/saec/saec-financials";
+import { isSaecSlug, SAEC_REPORTING_CURRENCY } from "@/lib/saec-surface";
+import {
   getTalantonFixturePayrollObligation,
   getTalantonMonthlyCashSeries,
   isTalantonWorkspaceSlug,
@@ -84,6 +96,9 @@ async function resolveReportingCurrency(workspaceId: string): Promise<string> {
     }
     if (isTalantonImpactSlug(slug)) {
       return TALANTON_REPORTING_CURRENCY;
+    }
+    if (isSaecSlug(slug)) {
+      return SAEC_REPORTING_CURRENCY;
     }
 
     const currency = String(settings?.currency ?? "")
@@ -190,6 +205,7 @@ export async function resolveTreasuryCash(glWiseCash = 0): Promise<number> {
         .trim()
         .toLowerCase();
       if (isAbhiWorkspaceSlug(slug)) return ABHI_CASH_BALANCE_GBP;
+      if (isSaecWorkspaceSlug(slug)) return SAEC_CASH_BALANCE_ZAR;
       if (isCorpCentreWorkspaceSlug(slug)) return CORPCENTRE_CASH_BALANCE_AUD;
       if (isOnwardAirWorkspaceSlug(slug)) return ONWARDAIR_CASH_BALANCE_USD;
       // Customer workspaces: GL cash only — never platform Wise.
@@ -402,12 +418,32 @@ export async function getFinancialOverview(
           };
         }),
       };
+    } else if (isSaecWorkspaceSlug(workspaceSlug)) {
+      const saecRevenue = getSaecMonthlyRevenueSeries();
+      const saecOutgoings = getSaecMonthlyOutgoingsSeries();
+      charts = {
+        ...charts,
+        monthlyRevenue: saecRevenue,
+        monthlyOutgoings: saecOutgoings,
+        cashPosition: getSaecMonthlyCashSeries(),
+        monthlyProfitLoss: saecRevenue.map((point) => {
+          const spend =
+            saecOutgoings.find((row) => row.month === point.month)?.amount ?? 0;
+          return {
+            month: point.month,
+            profit: Math.max(0, roundMoney(point.amount - spend)),
+            loss: Math.max(0, roundMoney(spend - point.amount)),
+          };
+        }),
+      };
     }
     let cashPosition: number;
     if (isCorpCentreWorkspaceSlug(workspaceSlug)) {
       cashPosition = CORPCENTRE_CASH_BALANCE_AUD;
     } else if (isAbhiWorkspaceSlug(workspaceSlug)) {
       cashPosition = ABHI_CASH_BALANCE_GBP;
+    } else if (isSaecWorkspaceSlug(workspaceSlug)) {
+      cashPosition = SAEC_CASH_BALANCE_ZAR;
     } else if (isOnwardAirWorkspaceSlug(workspaceSlug)) {
       cashPosition = ONWARDAIR_CASH_BALANCE_USD;
     } else if (isTalantonWorkspaceSlug(workspaceSlug)) {
@@ -499,6 +535,9 @@ export async function getFinancialOverview(
     if (isAbhiWorkspaceSlug(workspaceSlug)) {
       annualRevenue = ABHI_REVENUE_YTD_GBP;
     }
+    if (isSaecWorkspaceSlug(workspaceSlug)) {
+      annualRevenue = SAEC_REVENUE_YTD_ZAR;
+    }
     const annualExpenses = roundMoney(
       charts.monthlyOutgoings
         .filter((point) => point.month.startsWith(yearPrefix))
@@ -506,7 +545,9 @@ export async function getFinancialOverview(
     );
     const monthlyRevenue = isAbhiWorkspaceSlug(workspaceSlug)
       ? getAbhiRevenueForMonth(monthPrefix)
-      : roundMoney(monthlyRevenuePoint?.amount ?? 0);
+      : isSaecWorkspaceSlug(workspaceSlug)
+        ? getSaecRevenueForMonth(monthPrefix)
+        : roundMoney(monthlyRevenuePoint?.amount ?? 0);
 
     const abhiFixtureBurn = isAbhiWorkspaceSlug(workspaceSlug)
       ? getAbhiFixtureBurnObligation(monthPrefix)
@@ -562,9 +603,11 @@ export async function getFinancialOverview(
     // Calendar YTD from monthly series when available; else all-time income balance.
     const revenueYtd = isAbhiWorkspaceSlug(workspaceSlug)
       ? ABHI_REVENUE_YTD_GBP
-      : annualRevenue > 0
-        ? annualRevenue
-        : roundMoney(glRevenue);
+      : isSaecWorkspaceSlug(workspaceSlug)
+        ? SAEC_REVENUE_YTD_ZAR
+        : annualRevenue > 0
+          ? annualRevenue
+          : roundMoney(glRevenue);
 
     const payrollPoint =
       burnRate.series.find((point) => point.month === monthPrefix) ??
@@ -716,16 +759,20 @@ export async function getFinancialOverview(
     );
     const effectiveArOutstanding = isAbhiWorkspaceSlug(workspaceSlug)
       ? ABHI_ACCOUNTS_RECEIVABLE_GBP
-      : arOutstanding;
+      : isSaecWorkspaceSlug(workspaceSlug)
+        ? SAEC_ACCOUNTS_RECEIVABLE_ZAR
+        : arOutstanding;
     const softwareApUpcoming = roundMoney(
       obligations.software.upcoming.reduce((sum, line) => sum + line.monthlyCost, 0),
     );
-    const apOutstanding = roundMoney(
-      unpaidExpenses.reduce((sum, expense) => sum + (Number(expense.amount) || 0), 0) +
-        softwareApUpcoming +
-        // Demo: next payroll is an obligation, not already-booked AP outstanding.
-        (isDemoTreasury ? 0 : payrollEmployees > 0 ? payrollLiability : 0),
-    );
+    const apOutstanding = isSaecWorkspaceSlug(workspaceSlug)
+      ? SAEC_ACCOUNTS_PAYABLE_ZAR
+      : roundMoney(
+          unpaidExpenses.reduce((sum, expense) => sum + (Number(expense.amount) || 0), 0) +
+            softwareApUpcoming +
+            // Demo: next payroll is an obligation, not already-booked AP outstanding.
+            (isDemoTreasury ? 0 : payrollEmployees > 0 ? payrollLiability : 0),
+        );
 
     const softwareApRecent = obligations.software.upcoming.slice(0, 6).map((line) => ({
       id: `software-${line.id}`,
@@ -895,7 +942,9 @@ export async function getFinancialOverview(
         // ABHI uses a GBP operating-cash series so Home MoM is not artificially flat.
         cashPosition: isAbhiWorkspaceSlug(workspaceSlug)
           ? getAbhiMonthlyCashSeries()
-          : isOnwardAirWorkspaceSlug(workspaceSlug)
+          : isSaecWorkspaceSlug(workspaceSlug)
+            ? getSaecMonthlyCashSeries()
+            : isOnwardAirWorkspaceSlug(workspaceSlug)
             ? getOnwardAirMonthlyCashSeries()
             : isTalantonWorkspaceSlug(workspaceSlug)
               ? getTalantonMonthlyCashSeries()

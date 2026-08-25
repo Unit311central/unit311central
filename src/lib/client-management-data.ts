@@ -55,7 +55,10 @@ export type ClientRegion =
   | "Wollongong, NSW"
   | "Geelong, VIC"
   | "Cairns, QLD"
-  | "Broken Hill, NSW";
+  | "Broken Hill, NSW"
+  | "Gauteng, South Africa"
+  | "Western Cape, South Africa"
+  | "Limpopo, South Africa";
 
 export type ClientSubscriptionStatus =
   | "inactive"
@@ -235,6 +238,9 @@ export const CLIENT_REGION_OPTIONS: ClientRegion[] = [
   "Geelong, VIC",
   "Cairns, QLD",
   "Broken Hill, NSW",
+  "Gauteng, South Africa",
+  "Western Cape, South Africa",
+  "Limpopo, South Africa",
 ];
 
 /** Country + city resolved from legacy `region` values (e.g. Brisbane, QLD → Australia / Brisbane). */
@@ -263,6 +269,9 @@ const REGION_TO_LOCATION: Record<string, ClientLocation> = {
   "Geelong, VIC": { country: "Australia", city: "Geelong" },
   "Cairns, QLD": { country: "Australia", city: "Cairns" },
   "Broken Hill, NSW": { country: "Australia", city: "Broken Hill" },
+  "Gauteng, South Africa": { country: "South Africa", city: "Gauteng" },
+  "Western Cape, South Africa": { country: "South Africa", city: "Western Cape" },
+  "Limpopo, South Africa": { country: "South Africa", city: "Limpopo" },
 };
 
 const LOCATION_TO_REGION = new Map<string, ClientRegion>(

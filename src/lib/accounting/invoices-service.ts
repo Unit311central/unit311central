@@ -9,6 +9,8 @@ import {
 } from "@/lib/financials-workspace";
 import { listAbhiFixtureInvoices } from "@/lib/abhi/ar-invoices-fixtures";
 import { isAbhiWorkspaceSlug } from "@/lib/abhi-financials";
+import { listSaecFixtureInvoices } from "@/lib/saec/ar-invoices-fixtures";
+import { isSaecSlug } from "@/lib/saec-surface";
 import { findWorkspaceById } from "@/lib/workspace-host";
 import { PAYMENT_AMOUNT_NUMERIC } from "@/lib/payment-data";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
@@ -81,6 +83,9 @@ export async function listInvoices(scope?: FinancialsWorkspaceScope): Promise<Le
   const workspaceSlug = await resolveWorkspaceSlugForInvoices(scope);
   if (isAbhiWorkspaceSlug(workspaceSlug)) {
     return listAbhiFixtureInvoices();
+  }
+  if (isSaecSlug(workspaceSlug)) {
+    return listSaecFixtureInvoices();
   }
 
   const workspaceId = await resolveFinancialsWorkspaceId(scope);

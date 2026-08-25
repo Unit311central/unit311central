@@ -5,9 +5,14 @@ import {
   getNorthstarSupplierInvoiceDrafts,
   upsertNorthstarSupplierInvoiceDraft,
 } from "@/lib/demo/northstar-supplier-invoices-fixtures";
+import {
+  getSaecSupplierInvoiceDraftById,
+  getSaecSupplierInvoiceDrafts,
+  upsertSaecSupplierInvoiceDraft,
+} from "@/lib/saec/demo/saec-supplier-invoices-fixtures";
 import { createExpense, listExpenses, updateExpense } from "@/lib/financial-expenses-service";
 import { getInternalUserById, type ExpenseCurrency } from "@/lib/expenses-data";
-import { usesNorthstarStyleAccountingFixtures } from "@/lib/workspace-accounting-fixtures";
+import { resolveAccountingFixtureSource } from "@/lib/workspace-accounting-fixtures";
 import { resolveFinancialsWorkspaceId, type FinancialsWorkspaceScope } from "@/lib/financials-workspace";
 import { requirePlatformSession } from "@/lib/platform-session";
 
@@ -52,9 +57,9 @@ function mapExpenseToDraft(expense: {
 export async function listSupplierInvoiceDrafts(
   scope: FinancialsWorkspaceScope,
 ): Promise<SupplierInvoiceDraft[]> {
-  if (usesNorthstarStyleAccountingFixtures(scope.workspaceSlug)) {
-    return getNorthstarSupplierInvoiceDrafts();
-  }
+  const fixture = resolveAccountingFixtureSource(scope.workspaceSlug);
+  if (fixture === "northstar") return getNorthstarSupplierInvoiceDrafts();
+  if (fixture === "saec") return getSaecSupplierInvoiceDrafts();
 
   const expenses = await listExpenses(scope);
   return expenses
@@ -88,11 +93,14 @@ export async function ingestSupplierInvoice(
   if (!amount || amount <= 0) throw new Error("A valid invoice amount is required.");
 
   const now = new Date().toISOString();
+  const fixture = resolveAccountingFixtureSource(scope.workspaceSlug);
 
-  if (usesNorthstarStyleAccountingFixtures(scope.workspaceSlug)) {
+  if (fixture === "northstar" || fixture === "saec") {
+    const workspaceId = fixture === "saec" ? "saec-workspace" : "demo-workspace";
+    const idPrefix = fixture === "saec" ? "saec-ap-draft" : "nst-ap-draft";
     const draft: SupplierInvoiceDraft = {
-      id: `nst-ap-draft-${Date.now()}`,
-      workspaceId: "demo-workspace",
+      id: `${idPrefix}-${Date.now()}`,
+      workspaceId,
       supplier: supplier.trim(),
       reference,
       amount,
@@ -106,7 +114,9 @@ export async function ingestSupplierInvoice(
       createdAt: now,
       updatedAt: now,
     };
-    return upsertNorthstarSupplierInvoiceDraft(draft);
+    return fixture === "saec"
+      ? upsertSaecSupplierInvoiceDraft(draft)
+      : upsertNorthstarSupplierInvoiceDraft(draft);
   }
 
   const session = await requirePlatformSession();
@@ -136,16 +146,23 @@ export async function approveSupplierInvoiceDraft(
   id: string,
   scope: FinancialsWorkspaceScope,
 ): Promise<SupplierInvoiceDraft> {
-  if (usesNorthstarStyleAccountingFixtures(scope.workspaceSlug)) {
-    const draft = getNorthstarSupplierInvoiceDraftById(id);
+  const fixture = resolveAccountingFixtureSource(scope.workspaceSlug);
+  if (fixture === "northstar" || fixture === "saec") {
+    const draft =
+      fixture === "saec"
+        ? getSaecSupplierInvoiceDraftById(id)
+        : getNorthstarSupplierInvoiceDraftById(id);
     if (!draft) throw new Error("Supplier invoice not found.");
     if (draft.status === "approved") return draft;
-    return upsertNorthstarSupplierInvoiceDraft({
+    const approved = {
       ...draft,
-      status: "approved",
-      journalEntryId: `nst-je-ap-${id}`,
+      status: "approved" as const,
+      journalEntryId: `${fixture === "saec" ? "saec" : "nst"}-je-ap-${id}`,
       updatedAt: new Date().toISOString(),
-    });
+    };
+    return fixture === "saec"
+      ? upsertSaecSupplierInvoiceDraft(approved)
+      : upsertNorthstarSupplierInvoiceDraft(approved);
   }
 
   const updated = await updateExpense(

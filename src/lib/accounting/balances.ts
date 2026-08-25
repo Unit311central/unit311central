@@ -13,6 +13,7 @@ import {
   ONWARDAIR_CASH_BALANCE_USD,
   isOnwardAirWorkspaceSlug,
 } from "@/lib/onwardair-financials";
+import { SAEC_CASH_BALANCE_ZAR, isSaecWorkspaceSlug } from "@/lib/saec/saec-financials";
 import {
   resolveFinancialsWorkspaceId,
   type FinancialsWorkspaceScope,
@@ -150,6 +151,8 @@ export async function getTypeTotals(scope?: FinancialsWorkspaceScope) {
       cashPosition = CORPCENTRE_CASH_BALANCE_AUD;
     } else if (isAbhiWorkspaceSlug(String(workspace?.slug ?? ""))) {
       cashPosition = ABHI_CASH_BALANCE_GBP;
+    } else if (isSaecWorkspaceSlug(String(workspace?.slug ?? ""))) {
+      cashPosition = SAEC_CASH_BALANCE_ZAR;
     } else if (isOnwardAirWorkspaceSlug(String(workspace?.slug ?? ""))) {
       cashPosition = ONWARDAIR_CASH_BALANCE_USD;
     }

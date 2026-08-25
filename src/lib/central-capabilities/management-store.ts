@@ -4,6 +4,12 @@
 
 import { DEMO_WORKSPACE_SLUG, isDemoDomainHost, parseClientPlatformSubdomainSafe } from "@/lib/app-domains";
 import { readEffectiveBrowserWorkspaceSlug } from "@/lib/demo-enterprise/workspace-tenancy-surface";
+import { isSaecSlug } from "@/lib/saec-surface";
+import {
+  SAEC_MANAGEMENT_ACTIONS,
+  SAEC_MANAGEMENT_FUNCTION_PACKS,
+  SAEC_MANAGEMENT_MEETINGS,
+} from "@/lib/saec/saec-management-seed";
 
 import {
   MANAGEMENT_ACTIONS,
@@ -67,7 +73,17 @@ function legacyStorageKey(hostname: string): string {
   return storageKey(hostname.trim().toLowerCase(), LEGACY_STORAGE_VERSION);
 }
 
-function seedState(): ManagementWorkspaceState {
+function seedState(slug?: string): ManagementWorkspaceState {
+  if (isSaecSlug(slug)) {
+    return {
+      meetings: SAEC_MANAGEMENT_MEETINGS.map((meeting) => ({
+        ...meeting,
+        readiness: [...meeting.readiness],
+      })),
+      functionPacks: SAEC_MANAGEMENT_FUNCTION_PACKS.map((pack) => ({ ...pack })),
+      actions: SAEC_MANAGEMENT_ACTIONS.map((action) => ({ ...action })),
+    };
+  }
   return {
     meetings: MANAGEMENT_MEETINGS.map((meeting) => ({ ...meeting, readiness: [...meeting.readiness] })),
     functionPacks: MANAGEMENT_FUNCTION_PACKS.map((pack) => ({ ...pack })),
@@ -91,7 +107,7 @@ function getBucket(slug: string): WorkspaceBucket {
   const key = resolveManagementWorkspaceSlug(slug);
   let bucket = buckets.get(key);
   if (!bucket) {
-    const seeded = seedState();
+    const seeded = seedState(key);
     bucket = {
       state: cloneState(seeded),
       serverSnapshot: cloneState(seeded),

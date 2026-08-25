@@ -21,6 +21,7 @@ import {
 
 import { isBrowserAbhiSurface } from "@/lib/abhi-surface";
 import { isBrowserDemoSurface, getDemoEnterpriseFixtures } from "@/lib/demo-enterprise";
+import { isBrowserSaecSurface } from "@/lib/saec-surface";
 import NorthstarProductivityDashboard from "@/components/demo/NorthstarProductivityDashboard";
 import { useInternalOperationsBasePath } from "@/components/testflighthub/InternalOperationsBasePathContext";
 import { getInternalNavHref, type InternalOperationsView } from "@/lib/internal-operations-data";
@@ -99,6 +100,53 @@ const ABHI_SNAPSHOT: ProductivitySnapshot = {
 };
 
 /** Placeholder Internal snapshot — Demo uses Meridian Atlas fixtures. */
+const SAEC_SNAPSHOT: ProductivitySnapshot = {
+  summary: {
+    attention: 4,
+    changed: 11,
+    nextUp: "09:30 — Gauteng install coordination stand-up",
+    headline:
+      "Three live mall programmes, Centurion mobilisation, and two overdue AR collections need attention today.",
+  },
+  emails: [
+    { from: "Hyprop Investments", subject: "Centurion Mall KLK site readiness", time: "08:12", unread: true },
+    { from: "Growthpoint Properties", subject: "Ponte City outage window approval", time: "07:45", unread: true },
+    { from: "V&A Waterfront", subject: "Lift commissioning schedule — Dock Road", time: "Yesterday", unread: false },
+  ],
+  schedule: [
+    { time: "09:30", title: "Gauteng install coordination", meta: "Teams · Field ops" },
+    { time: "11:00", title: "Killarney escalator commissioning review", meta: "Site · Johannesburg" },
+    { time: "14:30", title: "Commercial pipeline — mall portfolio", meta: "Boardroom" },
+  ],
+  messages: [
+    { channel: "Field Ops", text: "Brooklyn Mall PM checklist signed off.", time: "08:05" },
+    { channel: "Engineering", text: "KLK training cohort 3 — module 4 complete.", time: "07:50" },
+  ],
+  files: [
+    { name: "Centurion-Mall-KLK-scope.pdf", action: "Uploaded", by: "Linda van Wyk", time: "Today" },
+    { name: "Ponte-City-outage-plan.pdf", action: "Revised", by: "Riaan Pretorius", time: "Yesterday" },
+  ],
+  support: {
+    open: 6,
+    waiting: 2,
+    resolvedToday: 4,
+    critical: 1,
+    items: [
+      { id: "TK-SAEC-42", title: "Escalator fault — Killarney Mall", status: "Critical" },
+      { id: "TK-SAEC-38", title: "Lift inspection certificate upload", status: "Waiting" },
+      { id: "TK-SAEC-35", title: "Brooklyn Mall service callback", status: "Open" },
+    ],
+  },
+  social: [
+    { network: "LinkedIn", text: "SAEC mall modernisation post — 890 impressions.", time: "Today" },
+    { network: "Facebook", text: "V&A Waterfront case study scheduled.", time: "Yesterday" },
+  ],
+  approvals: [
+    { title: "Centurion Mall mobilisation PO", meta: "Procurement", due: "Due today" },
+    { title: "Weekend outage — Emperors Palace", meta: "COO sign-off", due: "Due tomorrow" },
+  ],
+};
+
 const INTERNAL_SNAPSHOT: ProductivitySnapshot = {
   summary: {
     attention: 7,
@@ -162,6 +210,9 @@ function resolveProductivitySnapshot(displayName?: string | null): ProductivityS
   }
   if (typeof window !== "undefined" && isBrowserAbhiSurface()) {
     return ABHI_SNAPSHOT;
+  }
+  if (typeof window !== "undefined" && isBrowserSaecSurface()) {
+    return SAEC_SNAPSHOT;
   }
   if (typeof window !== "undefined" && isBrowserDemoSurface()) {
     const fixtures = getDemoEnterpriseFixtures();

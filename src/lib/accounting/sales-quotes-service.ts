@@ -8,7 +8,13 @@ import {
   nextNorthstarQuoteNumber,
   upsertNorthstarSalesQuote,
 } from "@/lib/demo/northstar-sales-quotes-fixtures";
-import { usesNorthstarStyleAccountingFixtures } from "@/lib/workspace-accounting-fixtures";
+import {
+  getSaecSalesQuoteById,
+  getSaecSalesQuotes,
+  upsertSaecSalesQuote,
+} from "@/lib/saec/demo/saec-sales-quotes-fixtures";
+import { SAEC_REPORTING_CURRENCY } from "@/lib/saec-surface";
+import { resolveAccountingFixtureSource } from "@/lib/workspace-accounting-fixtures";
 import { resolveFinancialsWorkspaceId, type FinancialsWorkspaceScope } from "@/lib/financials-workspace";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
 import { createTenancyServerClient } from "@/lib/supabase/tenancy-server";
@@ -89,9 +95,9 @@ async function loadQuoteLines(quoteIds: string[], workspaceId: string) {
 }
 
 export async function listSalesQuotes(scope: FinancialsWorkspaceScope): Promise<SalesQuote[]> {
-  if (usesNorthstarStyleAccountingFixtures(scope.workspaceSlug)) {
-    return getNorthstarSalesQuotes();
-  }
+  const fixture = resolveAccountingFixtureSource(scope.workspaceSlug);
+  if (fixture === "northstar") return getNorthstarSalesQuotes();
+  if (fixture === "saec") return getSaecSalesQuotes();
 
   const workspaceId = await resolveFinancialsWorkspaceId(scope);
   const supabase = requireSupabase();
@@ -109,9 +115,9 @@ export async function listSalesQuotes(scope: FinancialsWorkspaceScope): Promise<
 }
 
 export async function getSalesQuoteById(id: string, scope: FinancialsWorkspaceScope): Promise<SalesQuote | null> {
-  if (usesNorthstarStyleAccountingFixtures(scope.workspaceSlug)) {
-    return getNorthstarSalesQuoteById(id);
-  }
+  const fixture = resolveAccountingFixtureSource(scope.workspaceSlug);
+  if (fixture === "northstar") return getNorthstarSalesQuoteById(id);
+  if (fixture === "saec") return getSaecSalesQuoteById(id);
 
   const workspaceId = await resolveFinancialsWorkspaceId(scope);
   const supabase = requireSupabase();
@@ -146,20 +152,24 @@ export async function createSalesQuote(
   const taxAmount = Math.round(subtotal * 0.2 * 100) / 100;
   const totalAmount = subtotal + taxAmount;
   const now = new Date().toISOString();
+  const fixture = resolveAccountingFixtureSource(scope.workspaceSlug);
 
-  if (usesNorthstarStyleAccountingFixtures(scope.workspaceSlug)) {
-    const id = `nst-quote-${Date.now()}`;
+  if (fixture === "northstar" || fixture === "saec") {
+    const id = `${fixture === "saec" ? "saec" : "nst"}-quote-${Date.now()}`;
     const quote: SalesQuote = {
       id,
-      workspaceId: "demo-workspace",
-      quoteNumber: nextNorthstarQuoteNumber(),
+      workspaceId: fixture === "saec" ? "saec-workspace" : "demo-workspace",
+      quoteNumber:
+        fixture === "saec"
+          ? `Q-2026-SAEC-${String(Date.now()).slice(-4)}`
+          : nextNorthstarQuoteNumber(),
       crmLeadId: input.crmLeadId ?? null,
       clientId: input.clientId ?? null,
       companyName: input.companyName,
       contactName: input.contactName ?? null,
       contactEmail: input.contactEmail ?? null,
       title: input.title ?? "Sales quote",
-      currency: input.currency ?? "GBP",
+      currency: input.currency ?? (fixture === "saec" ? SAEC_REPORTING_CURRENCY : "GBP"),
       subtotal,
       taxAmount,
       totalAmount,
@@ -180,7 +190,7 @@ export async function createSalesQuote(
       createdAt: now,
       updatedAt: now,
     };
-    return upsertNorthstarSalesQuote(quote);
+    return fixture === "saec" ? upsertSaecSalesQuote(quote) : upsertNorthstarSalesQuote(quote);
   }
 
   const workspaceId = await resolveFinancialsWorkspaceId(scope);
@@ -228,8 +238,9 @@ export async function createSalesQuoteFromLead(
   scope: FinancialsWorkspaceScope,
   input: { leadId: string; title?: string; currency?: string },
 ): Promise<SalesQuote> {
+  const fixture = resolveAccountingFixtureSource(scope.workspaceSlug);
   const lead =
-    usesNorthstarStyleAccountingFixtures(scope.workspaceSlug)
+    fixture === "northstar"
       ? getNorthstarCrmLeads().find((row) => row.id === input.leadId) ?? null
       : await getLeadById(input.leadId, { workspaceId: scope.workspaceId });
 
@@ -245,7 +256,7 @@ export async function createSalesQuoteFromLead(
     contactName: lead.contactName,
     contactEmail: lead.email,
     title: input.title ?? `${lead.companyName} — platform proposal`,
-    currency: input.currency ?? "GBP",
+    currency: input.currency ?? (fixture === "saec" ? SAEC_REPORTING_CURRENCY : "GBP"),
     lineItems: [
       {
         description: "Atlas platform licence & onboarding",
@@ -345,24 +356,30 @@ export async function acceptSalesQuote(
     throw new Error(`Quote is ${quote.status} and cannot be accepted.`);
   }
 
-  if (usesNorthstarStyleAccountingFixtures(scope.workspaceSlug)) {
-    const invoiceId = `nst-inv-quote-${quote.id}`;
+  const fixture = resolveAccountingFixtureSource(scope.workspaceSlug);
+  if (fixture === "northstar" || fixture === "saec") {
+    const defaultClientId = fixture === "saec" ? "saec-cli-hyprop" : "nst-cli-001";
+    const invoiceId = `${fixture === "saec" ? "saec" : "nst"}-inv-quote-${quote.id}`;
     const paymentReference = `INV-${generateInvoiceNumber()}`;
     const accepted: SalesQuote = {
       ...quote,
       status: "accepted",
       invoiceId,
-      clientId: quote.clientId ?? "nst-cli-001",
+      clientId: quote.clientId ?? defaultClientId,
       paymentReference,
       updatedAt: new Date().toISOString(),
     };
-    upsertNorthstarSalesQuote(accepted);
+    if (fixture === "saec") upsertSaecSalesQuote(accepted);
+    else upsertNorthstarSalesQuote(accepted);
     return {
       quote: accepted,
       invoice: {
         id: invoiceId,
-        invoiceNumber: `NST-2026-${generateInvoiceNumber()}`,
-        clientId: quote.clientId ?? "nst-cli-001",
+        invoiceNumber:
+          fixture === "saec"
+            ? `SAEC-2026-${generateInvoiceNumber()}`
+            : `NST-2026-${generateInvoiceNumber()}`,
+        clientId: quote.clientId ?? defaultClientId,
         clientName: quote.companyName,
         organisationId: null,
         workspaceId: quote.workspaceId,
@@ -406,10 +423,13 @@ export function renderSalesQuotePdf(quote: SalesQuote) {
 }
 
 export async function markSalesQuoteSent(id: string, scope: FinancialsWorkspaceScope) {
-  if (usesNorthstarStyleAccountingFixtures(scope.workspaceSlug)) {
-    const quote = getNorthstarSalesQuoteById(id);
+  const fixture = resolveAccountingFixtureSource(scope.workspaceSlug);
+  if (fixture === "northstar" || fixture === "saec") {
+    const quote =
+      fixture === "saec" ? getSaecSalesQuoteById(id) : getNorthstarSalesQuoteById(id);
     if (!quote) throw new Error("Quote not found.");
-    return upsertNorthstarSalesQuote({ ...quote, status: "sent", updatedAt: new Date().toISOString() });
+    const updated = { ...quote, status: "sent" as const, updatedAt: new Date().toISOString() };
+    return fixture === "saec" ? upsertSaecSalesQuote(updated) : upsertNorthstarSalesQuote(updated);
   }
 
   const workspaceId = await resolveFinancialsWorkspaceId(scope);
