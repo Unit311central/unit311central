@@ -90,15 +90,20 @@ function paidAtMonth(invoice: LedgerInvoice, monthPrefix: string) {
   return Boolean(stamp && stamp.slice(0, 7) === monthPrefix);
 }
 
-export default function AccountsReceivableWorkspace() {
+export default function AccountsReceivableWorkspace({
+  variant = "default",
+}: {
+  variant?: "default" | "collections" | "reporting";
+}) {
   const searchParams = useSearchParams();
-  const listFilter = searchParams.get("filter");
+  const listFilter = variant === "default" ? searchParams.get("filter") : null;
   const [invoices, setInvoices] = useState<LedgerInvoice[]>([]);
   const [loading, setLoading] = useState(true);
   const [reconciling, setReconciling] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [ageing, setAgeing] = useState<Array<{ bucket: string; amount: number }>>([]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -108,12 +113,22 @@ export default function AccountsReceivableWorkspace() {
       const data = await response.json();
       if (!response.ok) throw new Error(data.error ?? "Failed to load invoices");
       setInvoices(data.invoices ?? []);
+
+      if (variant === "reporting") {
+        const overviewResponse = await fetch("/api/financials/ledger/overview", {
+          cache: "no-store",
+        });
+        const overviewData = await overviewResponse.json();
+        if (overviewResponse.ok) {
+          setAgeing(overviewData.overview?.ar?.ageing ?? []);
+        }
+      }
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : "Failed to load invoices");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [variant]);
 
   async function reconcileWise() {
     setReconciling(true);
@@ -197,6 +212,15 @@ export default function AccountsReceivableWorkspace() {
     : null;
 
   const visibleInvoices = useMemo(() => {
+    if (variant === "collections") {
+      return invoices
+        .filter((invoice) => isUnpaid(invoice.status))
+        .sort((a, b) => {
+          const daysA = daysBetween(a.dueDate, todayIso);
+          const daysB = daysBetween(b.dueDate, todayIso);
+          return daysB - daysA;
+        });
+    }
     if (listFilter === "outstanding") {
       return invoices.filter((invoice) => isUnpaid(invoice.status));
     }
@@ -208,14 +232,25 @@ export default function AccountsReceivableWorkspace() {
       );
     }
     return invoices;
-  }, [invoices, listFilter, todayIso]);
+  }, [invoices, listFilter, todayIso, variant]);
 
   const filterLabel =
-    listFilter === "outstanding"
-      ? "Showing outstanding invoices"
-      : listFilter === "overdue"
-        ? "Showing overdue invoices"
-        : null;
+    variant === "collections"
+      ? "Collections queue — unpaid invoices prioritized by age"
+      : variant === "reporting"
+        ? "AR reporting — ageing and collection metrics"
+        : listFilter === "outstanding"
+          ? "Showing outstanding invoices"
+          : listFilter === "overdue"
+            ? "Showing overdue invoices"
+            : null;
+
+  const pageTitle =
+    variant === "collections"
+      ? "Collections"
+      : variant === "reporting"
+        ? "AR Reporting"
+        : "Accounts Receivable";
 
   const cards = [
     {
@@ -236,6 +271,7 @@ export default function AccountsReceivableWorkspace() {
       <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
+            <h2 className="text-lg font-semibold text-white">{pageTitle}</h2>
             <p className="text-sm text-white/55">Client invoices posted to the General Ledger.</p>
             {filterLabel ? (
               <p className="mt-1 text-xs font-medium text-sky-200/90">{filterLabel}</p>
@@ -281,6 +317,25 @@ export default function AccountsReceivableWorkspace() {
           ))}
         </div>
       </section>
+
+      {variant === "reporting" && ageing.length > 0 ? (
+        <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+          <h3 className="text-sm font-semibold text-white">Ageing summary</h3>
+          <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {ageing.map((row) => (
+              <div
+                key={row.bucket}
+                className="rounded-xl border border-white/10 bg-[#0b1524]/70 px-4 py-3"
+              >
+                <p className="text-[10px] uppercase tracking-[0.12em] text-white/45">{row.bucket}</p>
+                <p className="mt-1 text-lg font-semibold tabular-nums text-white">
+                  {money(row.amount)}
+                </p>
+              </div>
+            ))}
+          </div>
+        </section>
+      ) : null}
 
       {error ? (
         <p className="rounded-xl border border-rose-400/25 bg-rose-500/10 px-4 py-3 text-sm text-rose-100">

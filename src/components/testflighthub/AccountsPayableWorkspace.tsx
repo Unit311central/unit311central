@@ -34,10 +34,17 @@ const CATEGORY_LABELS: Record<NorthstarPayableCategory, string> = {
   expense: "Operating expenses",
 };
 
-type ApSection = "invoices" | "approvals" | "outstanding" | "due-dates";
+type ApSection = "invoices" | "approvals" | "outstanding" | "due-dates" | "payments";
 
-function resolveApSection(value: string | null): ApSection {
-  if (value === "approvals" || value === "outstanding" || value === "due-dates" || value === "invoices") {
+function resolveApSection(value: string | null, forced?: ApSection): ApSection {
+  if (forced) return forced;
+  if (
+    value === "approvals" ||
+    value === "outstanding" ||
+    value === "due-dates" ||
+    value === "invoices" ||
+    value === "payments"
+  ) {
     return value;
   }
   return "invoices";
@@ -60,11 +67,19 @@ const SECTION_COPY: Record<ApSection, { title: string; description: string }> = 
     title: "Due dates",
     description: "Open payables ordered by due date, including overdue items.",
   },
+  payments: {
+    title: "Supplier payments",
+    description: "Recorded supplier settlements and payment references.",
+  },
 };
 
-export default function AccountsPayableWorkspace() {
+export default function AccountsPayableWorkspace({
+  forcedSection,
+}: {
+  forcedSection?: ApSection;
+}) {
   const searchParams = useSearchParams();
-  const section = resolveApSection(searchParams.get("section"));
+  const section = resolveApSection(searchParams.get("section"), forcedSection);
   const [rows, setRows] = useState<PayableRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -233,11 +248,16 @@ export default function AccountsPayableWorkspace() {
 
   const filteredRows = useMemo(() => {
     let next = categoryFilter === "all" ? rows : rows.filter((row) => row.category === categoryFilter);
-    if (section === "outstanding" || section === "due-dates") {
+    if (section === "payments") {
+      next = next.filter((row) => row.paid);
+    } else if (section === "outstanding" || section === "due-dates") {
       next = next.filter((row) => !row.paid);
     }
     if (section === "due-dates") {
       next = [...next].sort((a, b) => String(a.dueDate).localeCompare(String(b.dueDate)));
+    }
+    if (section === "payments") {
+      next = [...next].sort((a, b) => String(b.dueDate).localeCompare(String(a.dueDate)));
     }
     return next;
   }, [categoryFilter, rows, section]);

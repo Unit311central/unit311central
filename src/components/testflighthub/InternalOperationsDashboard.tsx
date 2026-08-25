@@ -69,7 +69,10 @@ import {
 import type { OperatorEntitlementsSnapshot } from "@/lib/operator-entitlements-server";
 import { SALES_MANAGEMENT_QUERY_PARAM_VIEWS } from "@/lib/sales-management-nav";
 import { MANAGEMENT_QUERY_PARAM_VIEWS } from "@/lib/central-capabilities/management-nav";
-import FinancesSubsectionShell from "./FinancesSubsectionShell";
+import FinancesPlanningWorkspace, {
+  type FinancesPlanningView,
+} from "./FinancesPlanningWorkspace";
+import FinancesBankingWorkspace from "./FinancesBankingWorkspace";
 import WorkspaceLoadingFallback from "./WorkspaceLoadingFallback";
 import WorkspacePane from "./WorkspacePane";
 import WorkspaceErrorBoundary from "./WorkspaceErrorBoundary";
@@ -1073,8 +1076,21 @@ export default function InternalOperationsDashboard({
 
           {activeView === "expenses" && <ExpensesHubWorkspace />}
 
-          {isFinancesShellView(activeView) ? (
-            <FinancesSubsectionShell view={activeView} basePath={basePath} />
+          {activeView === "finances-ar-collections" && (
+            <AccountsReceivableWorkspace variant="collections" />
+          )}
+          {activeView === "finances-ar-reporting" && (
+            <AccountsReceivableWorkspace variant="reporting" />
+          )}
+          {activeView === "finances-ap-payments" && (
+            <AccountsPayableWorkspace forcedSection="payments" />
+          )}
+          {(activeView === "finances-banking-cash-position" ||
+            activeView === "finances-banking-reconciliation") && (
+            <FinancesBankingWorkspace view={activeView} />
+          )}
+          {activeView.startsWith("finances-planning-") ? (
+            <FinancesPlanningWorkspace view={activeView as FinancesPlanningView} />
           ) : null}
 
           {activeView === "hr" && <HrWorkspace mode="employees" />}

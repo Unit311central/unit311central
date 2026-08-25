@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useState, startTransition } from "reac
 import TreasuryShell from "@/components/treasury/TreasuryShell";
 import { isBrowserDemoSurface } from "@/lib/demo-enterprise";
 import { resolveBrowserReportingCurrency } from "@/lib/financial-reporting-currency";
+import type { TreasuryView } from "@/lib/treasury/treasury-types";
 import type { WiseConnectionStatus } from "@/lib/wise-service";
 
 async function readApiJson<T>(response: Response): Promise<T> {
@@ -26,7 +27,15 @@ function isOnwardAirHost() {
   }
 }
 
-export default function WiseWorkspace() {
+export default function WiseWorkspace({
+  treasuryView = "dashboard",
+  areaTitle,
+  areaDescription,
+}: {
+  treasuryView?: TreasuryView;
+  areaTitle?: string;
+  areaDescription?: string;
+}) {
   const [status, setStatus] = useState<
     (WiseConnectionStatus & { demoMode?: boolean }) | null
   >(null);
@@ -79,6 +88,9 @@ export default function WiseWorkspace() {
       isAdmin
       demoMode={demoMode}
       reportingCurrency={reportingCurrency as "GBP" | "USD" | "EUR"}
+      initialView={treasuryView}
+      areaTitle={areaTitle}
+      areaDescription={areaDescription}
     />
   );
 }

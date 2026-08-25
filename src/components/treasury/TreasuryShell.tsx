@@ -53,6 +53,9 @@ type TreasuryShellProps = {
   demoMode?: boolean;
   /** Dashboard totals / charts reporting currency. Defaults to GBP. */
   reportingCurrency?: "GBP" | "USD" | "EUR";
+  initialView?: TreasuryView;
+  areaTitle?: string;
+  areaDescription?: string;
 };
 
 type SummaryPayload = {
@@ -148,9 +151,12 @@ function TreasuryShellContent({
   isAdmin = true,
   demoMode = false,
   reportingCurrency = "GBP",
+  initialView = "dashboard",
+  areaTitle,
+  areaDescription,
 }: TreasuryShellProps) {
   const { setNotifications } = useTreasuryContext();
-  const [view, setView] = useState<TreasuryView>("dashboard");
+  const [view, setView] = useState<TreasuryView>(initialView);
   const [selectedBalance, setSelectedBalance] = useState<{ balanceId: number; currency: string } | null>(
     null,
   );
@@ -269,18 +275,20 @@ function TreasuryShellContent({
                     : "Treasury Management"}
               </p>
               <h2 className="mt-0.5 text-lg font-semibold text-white">
-                {error?.toLowerCase().includes("not enabled")
-                  ? "Connections"
-                  : demoMode
-                    ? "Demo treasury"
-                    : "Wise"}
+                {areaTitle ??
+                  (error?.toLowerCase().includes("not enabled")
+                    ? "Connections"
+                    : demoMode
+                      ? "Demo treasury"
+                      : "Wise")}
               </h2>
               <p className="mt-1 max-w-2xl text-sm text-white/55">
-                {error?.toLowerCase().includes("not enabled")
-                  ? "Bank connections are managed per workspace. Contact your administrator if you need access."
-                  : demoMode
-                    ? `Simulated ${reportingCurrency} balances and activity — example of the Bank module (not a live connection).`
-                    : "Live balances, transaction history, transfers, conversions, analytics, and approvals."}
+                {areaDescription ??
+                  (error?.toLowerCase().includes("not enabled")
+                    ? "Bank connections are managed per workspace. Contact your administrator if you need access."
+                    : demoMode
+                      ? `Simulated ${reportingCurrency} balances and activity — example of the Bank module (not a live connection).`
+                      : "Live balances, transaction history, transfers, conversions, analytics, and approvals.")}
               </p>
             </div>
           </div>

@@ -7,7 +7,6 @@ import { DEMO_WORKSPACE_SLUG } from "@/lib/app-domains";
 import { isInterfaceWorxSlug } from "@/lib/interface-worx-surface";
 import {
   buildFinancesNavSection,
-  shouldHideFinancesShellLeaves,
 } from "@/lib/finances-nav";
 import type {
   InternalNavChildItem,
@@ -245,12 +244,12 @@ export function buildWorkspaceProductNavSections(
       section = { ...section, label: intelligenceLabel };
     }
 
-    if (spec.id === "financials" && shouldHideFinancesShellLeaves({
-      workspaceSlug: options.workspaceSlug,
-      workspaceType: options.workspaceType,
-    })) {
-      section = buildFinancesNavSection({ hideUnfinishedLeaves: true });
+    if (spec.id === "financials") {
+      section = buildFinancesNavSection();
     }
+
+    const filterSubsForModule =
+      spec.id === "financials" && enabledModuleSet.has("financials") ? false : filterSubs;
 
     if (section.kind === "pin") {
       sections.push(section);
@@ -262,7 +261,7 @@ export function buildWorkspaceProductNavSections(
       spec.id,
       section.items,
       enabledSubModuleSet,
-      filterSubs,
+      filterSubsForModule,
       viewMap,
     );
 

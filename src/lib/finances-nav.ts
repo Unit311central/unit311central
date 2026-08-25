@@ -24,7 +24,7 @@ export const FINANCES_QUERY_PARAM_VIEWS: ReadonlySet<InternalOperationsView> = n
   "financial-reports",
 ]);
 
-/** Placeholder leaves — professional empty state until underlying workflows ship. */
+/** Extended Finances leaves (planning, collections, treasury sub-areas). */
 export const FINANCES_SHELL_VIEWS = [
   "finances-ar-collections",
   "finances-ar-reporting",
@@ -41,141 +41,20 @@ export const FINANCES_SHELL_VIEWS = [
 
 export type FinancesShellView = (typeof FINANCES_SHELL_VIEWS)[number];
 
-export type FinancesShellConfig = {
-  areaLabel: string;
-  sectionLabel: string;
-  summary: string;
-  relatedView?: InternalOperationsView;
-  relatedLabel?: string;
-};
-
-export const FINANCES_SHELL_CONFIG: Record<FinancesShellView, FinancesShellConfig> = {
-  "finances-ar-collections": {
-    areaLabel: "Accounts Receivable",
-    sectionLabel: "Collections",
-    summary:
-      "Collections workflows will consolidate chase activity, payment plans, and Wise payment matching here. Use Accounts Receivable today to sync Wise payments against open invoices.",
-    relatedView: "accounts-receivable",
-    relatedLabel: "Open Accounts Receivable",
-  },
-  "finances-ar-reporting": {
-    areaLabel: "Accounts Receivable",
-    sectionLabel: "AR Reporting",
-    summary:
-      "Dedicated AR reporting packs are planned. Use Financial Reports for published statements and the Finances dashboard for live AR ageing.",
-    relatedView: "financial-reports",
-    relatedLabel: "Open Financial Reports",
-  },
-  "finances-ap-payments": {
-    areaLabel: "Accounts Payable",
-    sectionLabel: "Payments",
-    summary:
-      "Supplier payment runs and treasury funding will surface here. Review outstanding payables and supplier invoice drafts in Accounts Payable today.",
-    relatedView: "accounts-payable",
-    relatedLabel: "Open Accounts Payable",
-  },
-  "finances-banking-cash-position": {
-    areaLabel: "Banking & Cash",
-    sectionLabel: "Cash Position",
-    summary:
-      "Consolidated cash position dashboards will roll up Wise balances and manual accounts here. Use Bank for live Wise balances and treasury activity today.",
-    relatedView: "wise",
-    relatedLabel: "Open Bank",
-  },
-  "finances-banking-reconciliation": {
-    areaLabel: "Banking & Cash",
-    sectionLabel: "Reconciliation",
-    summary:
-      "Bank reconciliation tooling is planned. Match customer receipts via Accounts Receivable Wise sync and review treasury activity under Bank.",
-    relatedView: "accounts-receivable",
-    relatedLabel: "Open Accounts Receivable",
-  },
-  "finances-planning-budget": {
-    areaLabel: "Planning & Management",
-    sectionLabel: "Budget",
-    summary: "Budget authoring and departmental envelopes are not configured for this workspace yet.",
-  },
-  "finances-planning-actual-vs-budget": {
-    areaLabel: "Planning & Management",
-    sectionLabel: "Actual vs Budget",
-    summary: "Variance analysis against approved budgets will appear here once budget baselines exist.",
-  },
-  "finances-planning-cash-flow": {
-    areaLabel: "Planning & Management",
-    sectionLabel: "Cash Flow",
-    summary: "Rolling cash-flow forecasts will build on ledger, AR, and AP feeds when planning is enabled.",
-  },
-  "finances-planning-forecast": {
-    areaLabel: "Planning & Management",
-    sectionLabel: "Forecast",
-    summary: "Scenario forecasting is not available yet. Use the Finances dashboard for current-month movement.",
-    relatedView: "financials",
-    relatedLabel: "Open Finances dashboard",
-  },
-  "finances-planning-kpis": {
-    areaLabel: "Planning & Management",
-    sectionLabel: "Financial KPIs",
-    summary: "Executive KPI packs for finance will be curated here alongside the Finances dashboard tiles.",
-    relatedView: "financials",
-    relatedLabel: "Open Finances dashboard",
-  },
-  "finances-planning-management-accounts": {
-    areaLabel: "Planning & Management",
-    sectionLabel: "Management Accounts",
-    summary:
-      "Management account packs will complement Financial Reports. Published statements remain under Financial Reports today.",
-    relatedView: "financial-reports",
-    relatedLabel: "Open Financial Reports",
-  },
-};
-
 export function isFinancesShellView(view: string | null | undefined): view is FinancesShellView {
   return (FINANCES_SHELL_VIEWS as readonly string[]).includes(String(view ?? ""));
-}
-
-/** Unfinished Finances leaves stay off customer and Demo nav until implemented. Internal host may preview shells. */
-export function shouldHideFinancesShellLeaves(input: {
-  workspaceSlug?: string | null;
-  workspaceType?: string | null;
-}): boolean {
-  const type = String(input.workspaceType ?? "")
-    .trim()
-    .toLowerCase();
-  if (type === "internal") return false;
-  return true;
-}
-
-function filterFinancesNavItem(
-  item: InternalNavItem,
-  hideUnfinishedLeaves: boolean,
-): InternalNavItem | null {
-  if (!item.children?.length) {
-    if (!hideUnfinishedLeaves || !item.view || !isFinancesShellView(item.view)) {
-      return item;
-    }
-    return null;
-  }
-
-  const children = item.children.filter(
-    (child) => !hideUnfinishedLeaves || !child.view || !isFinancesShellView(child.view),
-  );
-  if (children.length === 0) return null;
-  return { ...item, children };
 }
 
 export function buildFinancesNavSection(options?: {
   color?: string;
   icon?: string;
-  hideUnfinishedLeaves?: boolean;
 }): InternalNavSection {
-  const hideUnfinishedLeaves = options?.hideUnfinishedLeaves === true;
   const items: InternalNavItem[] = [
     { label: "Dashboard", icon: "LayoutDashboard", view: "financials" },
     {
-      label: "Accounting",
+      label: "General Ledger",
       icon: "ScrollText",
       children: [
-        { label: "General Ledger", view: "general-ledger", query: { tab: "journal" } },
         { label: "Chart of Accounts", view: "general-ledger", query: { tab: "accounts" } },
         { label: "Trial Balance", view: "general-ledger", query: { tab: "trial" } },
         { label: "Journals", view: "general-ledger", query: { tab: "journal" } },
@@ -232,25 +111,19 @@ export function buildFinancesNavSection(options?: {
         { label: "Actual vs Budget", view: "finances-planning-actual-vs-budget" },
         { label: "Cash Flow", view: "finances-planning-cash-flow" },
         { label: "Forecast", view: "finances-planning-forecast" },
-        { label: "Financial KPIs", view: "finances-planning-kpis" },
+        { label: "KPIs", view: "finances-planning-kpis" },
         { label: "Management Accounts", view: "finances-planning-management-accounts" },
       ],
     },
     { label: "Financial Reports", icon: "FileText", view: "financial-reports" },
   ];
 
-  const filteredItems = hideUnfinishedLeaves
-    ? items
-        .map((item) => filterFinancesNavItem(item, hideUnfinishedLeaves))
-        .filter((item): item is InternalNavItem => item !== null)
-    : items;
-
   return {
     kind: "workspace",
     label: FINANCES_MODULE_LABEL,
     icon: options?.icon ?? "Wallet",
     color: options?.color ?? FINANCES_ACCENT,
-    items: filteredItems,
+    items,
   };
 }
 
@@ -262,8 +135,8 @@ export const FINANCES_DASHBOARD_AREAS: readonly {
   query?: Record<string, string>;
 }[] = [
   {
-    label: "Accounting",
-    description: "General ledger, chart of accounts, trial balance, and journals.",
+    label: "General Ledger",
+    description: "Chart of accounts, trial balance, and journals.",
     view: "general-ledger",
     query: { tab: "journal" },
   },
@@ -285,13 +158,13 @@ export const FINANCES_DASHBOARD_AREAS: readonly {
   },
   {
     label: "Banking & Cash",
-    description: "Wise treasury, balances, and payment activity.",
+    description: "Bank balances, cash position, and reconciliation.",
     view: "wise",
   },
   {
     label: "Planning & Management",
-    description: "Budget, forecast, and management reporting (planned — not in current release).",
-    view: "financial-reports",
+    description: "Budget, forecast, cash flow, and management reporting.",
+    view: "finances-planning-budget",
   },
   {
     label: "Financial Reports",
