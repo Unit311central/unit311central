@@ -56,6 +56,61 @@ export function resolveNorthstarExecutiveIntelligenceIntent(
 
   if (looksLikeExplicitWriteIntent(text)) return null;
 
+  if (/\banything i should know\b/.test(lower)) {
+    return {
+      tool: "northstar.getBoardInsights",
+      args: { focus: "general", question: text },
+      reason: "northstar_anything_to_know",
+    };
+  }
+
+  if (/\bwhat'?s worrying you\b/.test(lower) || /\bwhat should i be worried about\b/.test(lower)) {
+    return {
+      tool: "northstar.getBoardInsights",
+      args: { focus: "risks", question: text },
+      reason: "northstar_worrying_you",
+    };
+  }
+
+  if (
+    /\bprioriti[sz]e this week\b/.test(lower) ||
+    /\bwhat should i focus on today\b/.test(lower) ||
+    /\bwhat should management be concerned about\b/.test(lower)
+  ) {
+    return {
+      tool: "northstar.getExecutiveBriefing",
+      args: { question: text },
+      reason: "northstar_priorities_this_week",
+    };
+  }
+
+  if (/\bmaterial(ly)?\s+changed\b/.test(lower) || /\bwhat has materially changed\b/.test(lower)) {
+    return {
+      tool: "northstar.getExecutiveBriefing",
+      args: { question: text },
+      reason: "northstar_material_change",
+    };
+  }
+
+  if (
+    /\brisks?\b/.test(lower) &&
+    /\b(greatest|biggest|largest|potential).*\b(business\s+)?impact\b/.test(lower)
+  ) {
+    return {
+      tool: "northstar.getBoardInsights",
+      args: { focus: "risks", question: text },
+      reason: "northstar_risk_business_impact",
+    };
+  }
+
+  if (/\bgive me a management summary\b/.test(lower) || /\bneeds my attention\b/.test(lower)) {
+    return {
+      tool: "northstar.getExecutiveBriefing",
+      args: { question: text },
+      reason: "northstar_management_summary",
+    };
+  }
+
   if (
     /\b(give|get|provide|show|send)\s+(me\s+)?(an?\s+)?executive\s+(sales|financial|finance|hr|human resources|operations|engineering|management)\s+update\b/.test(
       lower,

@@ -10,6 +10,7 @@ import { resolveNorthstarModuleId, type NorthstarModuleId } from "@/lib/demo/nor
 import { parseScopedPdfRequest } from "@/lib/ai-operating-assistant/scoped-pdf-metrics";
 import { resolveNorthstarExecutiveIntelligenceIntent } from "@/lib/demo/executive-intelligence-intent";
 import { resolveAbhiBoardPackIntent } from "@/lib/abhi/board-pack-intent";
+import { isDemoChartRequest, shouldBypassDemoModuleSpine } from "@/lib/demo/demo-ea-routing-guards";
 import { isLiveFinancialBalanceQuestion } from "@/lib/ai-operating-assistant/knowledge-domains";
 import { hasExplicitWriteIntent } from "@/lib/ai-operating-assistant/intent-action-resolver";
 
@@ -258,6 +259,8 @@ export function resolveNorthstarEaDataRoute(message: string): NorthstarEaRoute |
   const lower = text.toLowerCase();
 
   if (hasExplicitWriteIntent(text)) return null;
+
+  if (isDemoChartRequest(text) || shouldBypassDemoModuleSpine(text)) return null;
 
   if (isPlatformNavigationQuestion(lower)) {
     return null;

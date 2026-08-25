@@ -48,7 +48,7 @@ const COMPARATIVE_SIGNALS =
   /\b(compare|contrast|explain\s+(?:any|the|why)|difference|differences|affect|affecting|impact|impacting|relate|relationship|between|why\s+(?:is|are|does|do)|how\s+does|align|misalign|gap|diverge|feels?\s+flat|doesn'?t\s+match|what\s+concerns?\s+you|concerns?\s+me|concern\s+you|reconcile|justify|relative\s+to|versus|vs\.?)\b/i;
 
 const ANALYTICAL_INVESTIGATION_SIGNALS =
-  /\b(driving\s+the\s+change|what\s+is\s+driving|why\s+is\b.{0,48}\bchang|warning\s+signs?|(?:what\s+should\s+)?management\s+(?:should\s+)?know|most\s+important\s+things|priorities?\s+this\s+month|management\s+priorities?|management\s+briefing|executive\s+briefing|leadership\s+briefing|biggest\s+risks?|financial\s+performance|performing\s+financially|financially\b|financial\s+position|company\s+position|business\s+position|financial\s+picture|full\s+(?:\w+\s+){0,2}picture|walk\s+me\s+through)\b/i;
+  /\b(driving\s+the\s+change|what\s+is\s+driving|why\s+is\b.{0,48}\bchang|warning\s+signs?|(?:what\s+should\s+)?management\s+(?:should\s+)?know|most\s+important\s+things|priorities?\s+this\s+month|management\s+priorities?|management\s+briefing|executive\s+briefing|leadership\s+briefing|biggest\s+risks?|financial\s+performance|performing\s+financially|financially\b|financial\s+position|company\s+position|business\s+position|financial\s+picture|full\s+(?:\w+\s+){0,2}picture|walk\s+me\s+through|commercial\s+value|unresolved\s+issues|financial\s+impact|behind\s+schedule|management\s+summary|needs\s+my\s+attention|important\s+enough\s+to\s+affect)\b/i;
 
 const SOFT_CONCERN_SIGNALS =
   /\b(feels?\s+tight|stretched|too\s+thin|losing\s+people|turnover\s+risk|burnout|overworked|can'?t\s+make\s+payroll|make\s+payroll|payroll\s+next)\b/i;
@@ -108,6 +108,8 @@ export function enrichEvidenceDomains(message: string, domains: EvidenceDomain[]
 
 export function isOpenEndedConcern(message: string): boolean {
   const lower = message.toLowerCase();
+  if (/\bwhat'?s worrying you\b/.test(lower)) return true;
+  if (/\banything i should know\b/.test(lower)) return true;
   if (CONCERN_SIGNALS.test(lower)) return true;
   if (SOFT_CONCERN_SIGNALS.test(lower) && /\b(worried|concerned|not\s+sure|anxious|help|risk|should\s+i\s+know)\b/i.test(lower)) {
     return true;

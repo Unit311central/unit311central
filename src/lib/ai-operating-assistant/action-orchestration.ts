@@ -63,6 +63,7 @@ import {
   detectAmbiguousEaQuery,
 } from "@/lib/central-application-model";
 import { DEMO_WORKSPACE_SLUG } from "@/lib/app-domains";
+import { parseScopedPdfRequest } from "@/lib/ai-operating-assistant/scoped-pdf-metrics";
 
 export { formatActionSuccess, formatPlanReadyMessage };
 /** @deprecated Prefer formatActionSuccess */
@@ -278,19 +279,73 @@ export async function resolveOrchestrationRoute(
     if (writeRoute) return writeRoute;
   }
 
+  let demoSpinePreview: OrchestrationRoute | null = null;
+  let orchestrationMessage = message;
+
   if (String(business.workspace.slug ?? "").trim().toLowerCase() === DEMO_WORKSPACE_SLUG) {
-    const navigationRoute = resolveCatalogueNavigationRoute(message, business);
+    const {
+      enrichDemoOrchestrationMessage,
+      resolveDemoMissingEntityRoute,
+      resolveDemoOpenEndedExecutiveRoute,
+      resolveDemoCrossModuleExecutiveRoute,
+      resolveDemoConversationFollowUpRoute,
+      shouldBypassDemoModuleSpine,
+    } = await import("@/lib/demo/demo-ea-routing-guards");
+
+    orchestrationMessage = enrichDemoOrchestrationMessage(message, history);
+
+    const missingEntityRoute = resolveDemoMissingEntityRoute(orchestrationMessage, business);
+    if (missingEntityRoute) {
+      eaStage("Demo missing-entity guard", { kind: missingEntityRoute.kind });
+      return missingEntityRoute;
+    }
+
+    const conversationRoute = resolveDemoConversationFollowUpRoute(orchestrationMessage, history);
+    if (conversationRoute) {
+      eaStage("Demo conversation follow-up", {
+        tool: conversationRoute.kind === "tool" ? conversationRoute.intent.tool : conversationRoute.kind,
+      });
+      return conversationRoute;
+    }
+
+    const openEndedRoute = resolveDemoOpenEndedExecutiveRoute(orchestrationMessage);
+    if (openEndedRoute) {
+      eaStage("Demo open-ended executive route", {
+        tool: openEndedRoute.kind === "tool" ? openEndedRoute.intent.tool : openEndedRoute.kind,
+      });
+      return openEndedRoute;
+    }
+
+    const crossModuleRoute = resolveDemoCrossModuleExecutiveRoute(orchestrationMessage);
+    if (crossModuleRoute) {
+      eaStage("Demo cross-module executive route", {
+        tool: crossModuleRoute.kind === "tool" ? crossModuleRoute.intent.tool : crossModuleRoute.kind,
+      });
+      return crossModuleRoute;
+    }
+
+    const navigationRoute = resolveCatalogueNavigationRoute(orchestrationMessage, business);
     if (navigationRoute) {
       eaStage("Platform navigation (catalogue)", { kind: navigationRoute.kind });
       return navigationRoute;
     }
-  }
 
-  const demoSpinePreview = await previewDemoModuleSpineRoute(message, business);
+    demoSpinePreview = shouldBypassDemoModuleSpine(orchestrationMessage)
+      ? null
+      : await previewDemoModuleSpineRoute(orchestrationMessage, business);
+  } else {
+    demoSpinePreview = await previewDemoModuleSpineRoute(orchestrationMessage, business);
+  }
 
   // General investigation / cross-module evidence — before single-capability routing.
   {
-    const investigationPlan = planInvestigation(message, business);
+    const scopedPdfEarly = parseScopedPdfRequest(orchestrationMessage);
+    const skipInvestigationForPdf =
+      scopedPdfEarly.wantsDocument &&
+      (scopedPdfEarly.useScopedPath || scopedPdfEarly.metrics.length > 0);
+
+    if (!skipInvestigationForPdf) {
+    const investigationPlan = planInvestigation(orchestrationMessage, business);
     if (
       investigationPlan &&
       !demoSpinePreview &&
@@ -321,6 +376,7 @@ export async function resolveOrchestrationRoute(
       });
       return { kind: "evidence_gpt", plan: investigationPlan, message };
     }
+    }
   }
 
   // CENTRAL SEMANTIC MODEL — deterministic-first; defer when Demo module spine already matched.
@@ -328,7 +384,7 @@ export async function resolveOrchestrationRoute(
     const deferForDemoSpine = Boolean(demoSpinePreview);
 
     if (!deferForDemoSpine) {
-      const semantic = resolveSemanticCapability(message, business);
+      const semantic = resolveSemanticCapability(orchestrationMessage, business);
     if (semantic && "denied" in semantic) {
       eaStage("Semantic capability denied", {
         reason: semantic.reason,
@@ -337,7 +393,7 @@ export async function resolveOrchestrationRoute(
       return { kind: "capability_answer", message: semantic.message };
     }
     if (semantic) {
-      const crossPlan = planCrossModuleEvidence(message, business);
+      const crossPlan = planCrossModuleEvidence(orchestrationMessage, business);
       const isCompositeMultiTool =
         semantic.binding.executionStrategy === "multi_tool" && semantic.binding.crossModule;
       if (
@@ -423,16 +479,16 @@ export async function resolveOrchestrationRoute(
   }
 
   {
-    const crossPlan = planCrossModuleEvidence(message, business);
-    if (crossPlan && isEaGeneralIntentMode() && !hasExplicitWriteIntent(message)) {
-      return { kind: "evidence_gpt", plan: crossPlan, message };
+    const crossPlan = planCrossModuleEvidence(orchestrationMessage, business);
+    if (crossPlan && isEaGeneralIntentMode() && !hasExplicitWriteIntent(orchestrationMessage)) {
+      return { kind: "evidence_gpt", plan: crossPlan, message: orchestrationMessage };
     }
   }
 
   {
-    const strategicPlan = planEvidenceGathering(message, business);
-    if (strategicPlan && isEaGeneralIntentMode() && !hasExplicitWriteIntent(message)) {
-      return { kind: "evidence_gpt", plan: strategicPlan, message };
+    const strategicPlan = planEvidenceGathering(orchestrationMessage, business);
+    if (strategicPlan && isEaGeneralIntentMode() && !hasExplicitWriteIntent(orchestrationMessage)) {
+      return { kind: "evidence_gpt", plan: strategicPlan, message: orchestrationMessage };
     }
   }
 

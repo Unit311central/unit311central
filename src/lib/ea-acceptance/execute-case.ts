@@ -2,7 +2,7 @@ import { resolveOrchestrationRoute } from "@/lib/ai-operating-assistant/action-o
 import { getReadCapability } from "@/lib/ai-operating-assistant/capabilities/read-registry";
 import type { EaResponseBlock } from "@/lib/ai-operating-assistant/capabilities/types";
 import { executeAssistantTool } from "@/lib/ai-operating-assistant/tool-service";
-import type { AssistantBusinessContext } from "@/lib/ai-operating-assistant/types";
+import type { AssistantBusinessContext, AssistantChatMessage } from "@/lib/ai-operating-assistant/types";
 import type { AssistantToolResult } from "@/lib/ai-operating-assistant/tool-result";
 import { adaptExecutiveOrchestrationResult } from "@/lib/ai-operating-assistant/artifact-output";
 import { getSemanticCapability } from "@/lib/central-application-model/registry";
@@ -19,6 +19,8 @@ import type { EaAcceptanceCaseInput, EaAcceptanceCaseResult, EaAcceptanceExecuti
 export type EaAcceptanceExecuteOptions = {
   /** Execute tools and validate live answers. Default true for API routes. */
   executeTools?: boolean;
+  /** Conversation history for multi-turn acceptance cases. */
+  history?: AssistantChatMessage[];
 };
 
 function extractSummary(result: unknown): string {
@@ -66,8 +68,9 @@ export async function executeEaAcceptanceCase(
   options: EaAcceptanceExecuteOptions = {},
 ): Promise<EaAcceptanceExecution> {
   const executeTools = options.executeTools !== false;
+  const history = options.history ?? [];
   const kind = mapQuestionKind(question.kind, question.prompt);
-  const route = await resolveOrchestrationRoute(question.prompt, [], business);
+  const route = await resolveOrchestrationRoute(question.prompt, history, business);
 
   let tool: string | undefined;
   let capabilityId: string | undefined;

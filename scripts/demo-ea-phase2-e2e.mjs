@@ -56,7 +56,7 @@ function scoreAnswer(text, checks = {}) {
   if (checks.requirePdfBytes && (checks.pdfBytes ?? 0) < 1500) {
     return { verdict: "FAIL", reason: `PDF too small (${checks.pdfBytes ?? 0} bytes)` };
   }
-  if (checks.requireHonestGap && !/cannot find|don'?t have|not available|no record|unable to find|insufficient/i.test(t)) {
+  if (checks.requireHonestGap && !/cannot find|couldn't find|don'?t have|not available|no record|unable to find|insufficient|no .+ in the demo/i.test(t)) {
     return { verdict: "FAIL", reason: "Did not honestly report missing data" };
   }
   return { verdict: "PASS", reason: "Substantive answer with expected signals" };
@@ -110,10 +110,11 @@ async function runConversation() {
   const history = [];
   const results = [];
   for (const prompt of turns) {
-    const route = await resolveOrchestrationRoute(prompt, history, business);
-    const execution = await executeEaAcceptanceCase({ id: `conv-${results.length}`, prompt, kind: "data" }, business, {
-      executeTools: true,
-    });
+    const execution = await executeEaAcceptanceCase(
+      { id: `conv-${results.length}`, prompt, kind: "data" },
+      business,
+      { executeTools: true, history: [...history] },
+    );
     history.push({ role: "user", content: prompt, id: `u${results.length}`, createdAt: new Date().toISOString() });
     history.push({
       role: "assistant",

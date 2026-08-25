@@ -14,6 +14,12 @@ import {
   resolveNorthstarEaDataRoute,
   type NorthstarEaRoute,
 } from "@/lib/demo/northstar-ea-route-resolver";
+import {
+  isDemoChartRequest,
+  isDemoCrossModuleSynthesisQuestion,
+  isDemoOpenEndedExecutiveQuestion,
+  shouldBypassDemoModuleSpine,
+} from "@/lib/demo/demo-ea-routing-guards";
 
 export type DemoEaSpineContext = {
   workspaceSlug?: string | null;
@@ -27,7 +33,9 @@ export function preferDemoModuleSpineOverSemantic(message: string, workspaceSlug
   if (!text) return false;
   const lower = text.toLowerCase();
 
-  if (/\b(graph|chart|plot|visuali[sz]e|pie chart|bar chart|line chart)\b/.test(lower)) return false;
+  if (isDemoChartRequest(text)) return false;
+  if (isDemoCrossModuleSynthesisQuestion(text)) return false;
+  if (isDemoOpenEndedExecutiveQuestion(text)) return false;
   if (isLiveFinancialBalanceQuestion(text)) return false;
 
   if (
@@ -76,5 +84,6 @@ export function resolveDemoEaModuleSpineRoute(
 ): NorthstarEaRoute | null {
   if (!isDemoWorkspaceSlug(ctx.workspaceSlug)) return null;
   if (ctx.hasWriteIntent ?? hasExplicitWriteIntent(message)) return null;
+  if (shouldBypassDemoModuleSpine(message)) return null;
   return resolveNorthstarEaDataRoute(message);
 }
