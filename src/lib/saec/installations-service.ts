@@ -16,6 +16,7 @@ import type {
   SaecInstallationsDashboardSnapshot,
   SaecInstallationsKpis,
   SaecMaintenanceRecord,
+  SaecModelBreakdownItem,
 } from "@/lib/saec/installations-types";
 import { SAEC_INSTALLATION_CITIES } from "@/lib/saec/installations-cities";
 import { SAEC_INSTALLATION_ENGINEERS } from "@/lib/saec/installations-engineers";
@@ -324,6 +325,22 @@ function buildEngineerAssignments(assets: SaecInstallationAsset[]): SaecEngineer
   return summaries.slice(0, 12);
 }
 
+function buildModelBreakdown(assets: SaecInstallationAsset[]): SaecModelBreakdownItem[] {
+  const total = assets.length;
+  if (!total) return [];
+  const counts = new Map<string, number>();
+  for (const asset of assets) {
+    counts.set(asset.model, (counts.get(asset.model) ?? 0) + 1);
+  }
+  return [...counts.entries()]
+    .map(([model, count]) => ({
+      model,
+      count,
+      percentage: Math.round((count / total) * 100),
+    }))
+    .sort((a, b) => b.count - a.count);
+}
+
 export async function buildSaecInstallationsDashboard(
   workspaceId: string,
   assetType: SaecInstallationAssetType,
@@ -335,6 +352,7 @@ export async function buildSaecInstallationsDashboard(
     kpis: buildKpis(assets),
     cities: buildCityAggregates(assets, assetType),
     engineersOnRoad: buildEngineerAssignments(assets),
+    modelBreakdown: buildModelBreakdown(assets),
   };
 }
 

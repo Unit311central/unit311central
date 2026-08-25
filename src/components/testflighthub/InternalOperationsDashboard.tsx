@@ -45,6 +45,7 @@ import { OperatorEntitlementsProvider, useOperatorEntitlements } from "./Operato
 import { isBrowserAbhiSurface } from "@/lib/abhi-surface";
 import { isBrowserTalantonImpactSurface } from "@/lib/talanton-surface";
 import { isBrowserOnwardAirSurface } from "@/lib/onwardair-surface";
+import { isBrowserSaecSurface } from "@/lib/saec-surface";
 import NorthstarCorporateDashboard from "@/components/demo/NorthstarCorporateDashboard";
 import { isBrowserDemoSurface } from "@/lib/demo-enterprise";
 import type { ReportingCurrency } from "@/lib/financial-reporting-currency";
@@ -337,6 +338,7 @@ import {
 } from "@/components/demo/NorthstarEngineeringWorkspaces";
 import WorkspaceBusinessCentralDashboard from "@/components/business-central/WorkspaceBusinessCentralDashboard";
 import OnwardAirBusinessCentralDashboard from "@/components/onwardair/OnwardAirBusinessCentralDashboard";
+import SaecBusinessCentralDashboard from "@/components/saec/SaecBusinessCentralDashboard";
 
 const VIEWS_NEEDING_SIMULATOR = new Set<InternalOperationsView>([
   "fleet",
@@ -990,6 +992,8 @@ export default function InternalOperationsDashboard({
               <NorthstarBusinessCentralDashboard />
             ) : isBrowserOnwardAirSurface() ? (
               <OnwardAirBusinessCentralDashboard />
+            ) : isBrowserSaecSurface() ? (
+              <SaecBusinessCentralDashboard />
             ) : (
               <WorkspaceBusinessCentralDashboard />
             ))}

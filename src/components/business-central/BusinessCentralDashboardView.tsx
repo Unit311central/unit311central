@@ -29,6 +29,7 @@ import {
   type InternalOperationsView,
 } from "@/lib/internal-operations-data";
 import type { OaBcDashboardSummary } from "@/lib/onwardair/business-central-data";
+import type { ReportingCurrency } from "@/lib/financial-reporting-currency";
 
 const chartTooltipStyle = {
   background: "#0b1524",
@@ -39,10 +40,6 @@ const chartTooltipStyle = {
 } as const;
 
 const STAGE_COLORS = ["#38bdf8", "#34d399", "#fbbf24", "#a78bfa", "#f472b6", "#94a3b8", "#22d3ee"];
-
-function usd(amount: number) {
-  return formatMoney(amount, "USD");
-}
 
 type Tile = {
   label: string;
@@ -62,30 +59,46 @@ type BusinessCentralDashboardViewProps = {
   description: string;
   summary: OaBcDashboardSummary;
   grantsTile: GrantsTile;
+  currency?: ReportingCurrency | "USD" | "GBP" | "ZAR";
 };
+
+function formatCurrencyAmount(amount: number, currency: string) {
+  return formatMoney(amount, currency);
+}
+
+function compactThousandsLabel(amount: number, currency: string) {
+  const thousands = Math.round(amount / 1000);
+  if (currency === "ZAR") return `R${thousands}k`;
+  if (currency === "GBP") return `£${thousands}k`;
+  return `$${thousands}k`;
+}
 
 export default function BusinessCentralDashboardView({
   eyebrow,
   description,
   summary,
   grantsTile,
+  currency = "USD",
 }: BusinessCentralDashboardViewProps) {
   const basePath = useInternalOperationsBasePath();
   const href = (view: InternalOperationsView) => getInternalNavHref(view, basePath);
   const salesPartnersHref = getInternalNavHref("sales-management", basePath, { tab: "partners" });
+  const money = (amount: number) => formatCurrencyAmount(amount, currency);
+  const valueAxisLabel =
+    currency === "ZAR" ? "Rk" : currency === "GBP" ? "£k" : "$k";
 
   const tiles: Tile[] = [
     {
       label: "Clients",
       value: String(summary.clientsCount),
-      hint: `${summary.activeClients} active · ARR ${usd(summary.arrUsd)}`,
+      hint: `${summary.activeClients} active · ARR ${money(summary.arrUsd)}`,
       href: href("clients-dashboard"),
       icon: Building2,
     },
     {
       label: "Pipeline value",
-      value: usd(summary.pipelineValueUsd),
-      hint: `${summary.pipelineByStage.reduce((n, row) => n + row.count, 0)} open deals (USD)`,
+      value: money(summary.pipelineValueUsd),
+      hint: `${summary.pipelineByStage.reduce((n, row) => n + row.count, 0)} open deals (${currency})`,
       href: href("crm"),
       icon: ContactRound,
     },
@@ -112,8 +125,8 @@ export default function BusinessCentralDashboardView({
     },
     {
       label: "Commission pipeline",
-      value: usd(summary.commissionPipelineUsd),
-      hint: "Outstanding + upcoming (USD)",
+      value: money(summary.commissionPipelineUsd),
+      hint: `Outstanding + upcoming (${currency})`,
       href: salesPartnersHref,
       icon: Handshake,
     },
@@ -172,7 +185,7 @@ export default function BusinessCentralDashboardView({
       <div className="grid gap-4 xl:grid-cols-2">
         <section className="rounded-2xl border border-white/12 bg-white/[0.03] p-4 sm:p-5">
           <h2 className="text-sm font-semibold text-white">Pipeline by stage</h2>
-          <p className="mt-1 text-xs text-white/45">Deal count and value ($k)</p>
+          <p className="mt-1 text-xs text-white/45">Deal count and value ({valueAxisLabel})</p>
           <div className="mt-4 h-56">
             <ResponsiveContainer width="100%" height="100%" minWidth={0}>
               <BarChart data={stageBars} margin={{ top: 8, right: 4, left: -12, bottom: 0 }}>
@@ -192,7 +205,7 @@ export default function BusinessCentralDashboardView({
                   contentStyle={chartTooltipStyle}
                   formatter={(value, name) =>
                     name === "valueUsd"
-                      ? [`$${Number(value)}k`, "Value"]
+                      ? [compactThousandsLabel(Number(value) * 1000, currency), "Value"]
                       : [String(value), "Deals"]
                   }
                 />

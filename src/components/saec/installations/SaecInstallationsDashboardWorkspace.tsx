@@ -1,10 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Loader2, MapPin, Users, Wrench } from "lucide-react";
-import Link from "next/link";
+import { Loader2, Users, Wrench } from "lucide-react";
 
-import SaecInstallationsKpiBar from "@/components/saec/installations/SaecInstallationsKpiBar";
+import SaecCityInstallationPopup from "@/components/saec/installations/SaecCityInstallationPopup";
+import SaecEquipmentBreakdownPanel from "@/components/saec/installations/SaecEquipmentBreakdownPanel";
+import SaecInstallationsKpiBar, {
+  type SaecKpiNavigateTarget,
+} from "@/components/saec/installations/SaecInstallationsKpiBar";
+import SaecOperationalSnapshotPanel from "@/components/saec/installations/SaecOperationalSnapshotPanel";
 import SaecSouthAfricaMap from "@/components/saec/installations/SaecSouthAfricaMap";
 import type {
   SaecCityAggregate,
@@ -65,6 +69,29 @@ export default function SaecInstallationsDashboardWorkspace({
     dashboard?.cities.find((city) => city.cityId === selectedCityId) ?? null;
 
   const assetLabel = assetType === "elevator" ? "Elevators" : "Escalators / Moving Walks";
+  const registerView =
+    assetType === "elevator" ? "saec-installations-elevators" : "saec-installations-escalators";
+
+  function handleKpiNavigate(target: SaecKpiNavigateTarget) {
+    const base = `/dashboard?view=${registerView}`;
+    switch (target) {
+      case "offline":
+        window.location.assign(`${base}&status=offline`);
+        return;
+      case "maintenance-due":
+        window.location.assign(`${base}&maintenance=due`);
+        return;
+      case "overdue":
+        window.location.assign(`${base}&maintenance=overdue`);
+        return;
+      case "open-service":
+        window.location.assign(`${base}&filter=open-service`);
+        return;
+      case "engineers-on-road":
+        document.getElementById("saec-engineers-on-road")?.scrollIntoView({ behavior: "smooth", block: "start" });
+        return;
+    }
+  }
 
   return (
     <div className="space-y-5">
@@ -115,9 +142,13 @@ export default function SaecInstallationsDashboardWorkspace({
 
       {dashboard && !loading && (
         <>
-          <SaecInstallationsKpiBar kpis={dashboard.kpis} assetTypeLabel={assetLabel} />
+          <SaecInstallationsKpiBar
+            kpis={dashboard.kpis}
+            assetTypeLabel={assetLabel}
+            onNavigate={handleKpiNavigate}
+          />
 
-          <div className="grid gap-4 grid-cols-1 [@media(min-height:900px)]:xl:grid-cols-[minmax(0,7fr)_minmax(280px,3fr)]">
+          <div className="grid gap-4 lg:grid-cols-[minmax(0,1.45fr)_minmax(240px,1fr)]">
             <SaecSouthAfricaMap
               cities={dashboard.cities}
               selectedCityId={selectedCityId}
@@ -125,82 +156,33 @@ export default function SaecInstallationsDashboardWorkspace({
               onSelectCity={setSelectedCityId}
             />
 
-            <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 xl:min-h-[560px]">
-              {selectedCity ? (
-                <div className="space-y-4">
-                  <div>
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/40">
-                      Selected city
-                    </p>
-                    <h3 className="mt-1 text-base font-semibold text-white">{selectedCity.cityLabel}</h3>
-                    <p className="mt-1 text-sm text-white/55">
-                      {selectedCity.total} {assetType === "elevator" ? "Elevators" : "Escalators"}
-                    </p>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2 text-xs">
-                    <Stat label="Online" value={selectedCity.online} />
-                    <Stat label="Offline" value={selectedCity.offline} />
-                    <Stat label="Maintenance Due" value={selectedCity.maintenanceDue} />
-                    <Stat label="Overdue" value={selectedCity.overdue} />
-                    <Stat label="Engineers Assigned" value={selectedCity.engineersAssigned} />
-                    <Stat label="On The Road" value={selectedCity.engineersOnRoad} />
-                  </div>
-                  <div>
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/40">
-                      Recent installations
-                    </p>
-                    <ul className="mt-2 space-y-2">
-                      {selectedCity.recentAssets.map((asset) => (
-                        <li
-                          key={asset.id}
-                          className="rounded-lg border border-white/8 bg-[#0b1524]/60 px-3 py-2"
-                        >
-                          <p className="text-sm font-medium text-white">
-                            <span className="text-sky-300/90">{asset.assetCode}</span>
-                            <span className="text-white/40"> · </span>
-                            {asset.siteName}
-                          </p>
-                          <p className="text-[11px] text-white/45 capitalize">{asset.status}</p>
-                        </li>
-                      ))}
-                    </ul>
-                    <Link
-                      href={`/dashboard?view=${assetType === "elevator" ? "saec-installations-elevators" : "saec-installations-escalators"}`}
-                      className="mt-3 inline-flex text-xs font-semibold text-sky-300 hover:text-sky-200"
-                    >
-                      View all installations →
-                    </Link>
-                  </div>
-                  <div>
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/40">
-                      Representative sites (demo)
-                    </p>
-                    <ul className="mt-2 space-y-2">
-                      {selectedCity.sites.slice(0, 6).map((site) => (
-                        <li
-                          key={site.id}
-                          className="rounded-lg border border-white/8 bg-[#0b1524]/60 px-3 py-2"
-                        >
-                          <p className="text-sm font-medium text-white">{site.siteName}</p>
-                          <p className="text-[11px] text-white/45">
-                            {site.customerName} · {site.unitCount} units
-                          </p>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
-              ) : (
-                <div className="flex h-full min-h-[280px] flex-col items-center justify-center text-center text-white/40 xl:min-h-[480px]">
-                  <MapPin className="mb-2 h-8 w-8 opacity-50" />
-                  <p className="text-sm">Select a city on the map to view installation detail.</p>
-                </div>
-              )}
-            </section>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1">
+              <SaecEquipmentBreakdownPanel
+                assetType={assetType}
+                items={dashboard.modelBreakdown}
+                total={dashboard.kpis.total}
+              />
+              <SaecOperationalSnapshotPanel
+                kpis={dashboard.kpis}
+                cities={dashboard.cities}
+                assetTypeLabel={assetLabel}
+              />
+            </div>
           </div>
 
+          {selectedCity && (
+            <SaecCityInstallationPopup
+              city={selectedCity}
+              assetType={assetType}
+              onClose={() => setSelectedCityId(null)}
+            />
+          )}
+
           {dashboard.engineersOnRoad.length > 0 && (
-            <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+            <section
+              id="saec-engineers-on-road"
+              className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 scroll-mt-4"
+            >
               <div className="flex items-center gap-2">
                 <Users className="h-4 w-4 text-sky-300" />
                 <h3 className="text-sm font-semibold text-white">Engineers on the road (demo)</h3>
@@ -230,15 +212,6 @@ export default function SaecInstallationsDashboardWorkspace({
           </p>
         </>
       )}
-    </div>
-  );
-}
-
-function Stat({ label, value }: { label: string; value: number }) {
-  return (
-    <div className="rounded-lg border border-white/8 bg-[#0b1524]/40 px-2.5 py-2">
-      <p className="text-[10px] uppercase tracking-wide text-white/40">{label}</p>
-      <p className="text-sm font-semibold text-white tabular-nums">{value}</p>
     </div>
   );
 }

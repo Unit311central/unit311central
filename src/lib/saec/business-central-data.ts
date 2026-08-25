@@ -5,7 +5,14 @@
 
 import type { ManagedClient } from "@/lib/client-management-data";
 import type { InternalProject } from "@/lib/projects-data";
-import { isBrowserSaecSurface, isSaecSlug, SAEC_COMPANY_NAME } from "@/lib/saec-surface";
+import type { LeadStatus } from "@/lib/crm-data";
+import type { OaBcDashboardSummary } from "@/lib/onwardair/business-central-data";
+import {
+  isBrowserSaecSurface,
+  isSaecSlug,
+  SAEC_COMPANY_NAME,
+  SAEC_REPORTING_CURRENCY,
+} from "@/lib/saec-surface";
 
 const FIXTURE_NOW = "2026-08-01T12:00:00.000Z";
 
@@ -269,4 +276,43 @@ export function getSaecFixtureClients(): ManagedClient[] {
 
 export function getSaecFixtureProjects(): InternalProject[] {
   return SAEC_PROJECTS.map((row) => ({ ...row }));
+}
+
+const SAEC_BC_PIPELINE_STAGES: Array<{
+  stage: LeadStatus;
+  count: number;
+  valueZar: number;
+}> = [
+  { stage: "Cold", count: 2, valueZar: 4_200_000 },
+  { stage: "Warm", count: 3, valueZar: 6_800_000 },
+  { stage: "Hot", count: 2, valueZar: 5_100_000 },
+  { stage: "Active Customer", count: 1, valueZar: 2_300_000 },
+];
+
+/** SAEC Business Central dashboard summary — values in ZAR (reporting currency). */
+export function getSaecBcDashboardSummary(): OaBcDashboardSummary {
+  const clients = getSaecFixtureClients();
+  const activeClients = clients.filter((row) => row.accountStatus === "Active").length;
+  const pipelineValueZar = SAEC_BC_PIPELINE_STAGES.reduce((sum, row) => sum + row.valueZar, 0);
+
+  return {
+    clientsCount: clients.length,
+    activeClients,
+    arrUsd: 42_500_000,
+    pipelineValueUsd: pipelineValueZar,
+    pipelineByStage: SAEC_BC_PIPELINE_STAGES.map((row) => ({
+      stage: row.stage,
+      count: row.count,
+      valueUsd: row.valueZar,
+    })),
+    discoveryCount: 4,
+    onboardingCount: 2,
+    partnersCount: 5,
+    partnerRegions: ["Gauteng", "Western Cape", "KwaZulu-Natal"],
+    commissionPipelineUsd: 2_400_000,
+  };
+}
+
+export function getSaecReportingCurrencyLabel(): string {
+  return SAEC_REPORTING_CURRENCY;
 }

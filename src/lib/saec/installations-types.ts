@@ -134,11 +134,18 @@ export type SaecCityAggregate = {
   recentAssets: SaecCityRecentAsset[];
 };
 
+export type SaecModelBreakdownItem = {
+  model: string;
+  count: number;
+  percentage: number;
+};
+
 export type SaecInstallationsDashboardSnapshot = {
   assetType: SaecInstallationAssetType;
   kpis: SaecInstallationsKpis;
   cities: SaecCityAggregate[];
   engineersOnRoad: SaecEngineerAssignmentSummary[];
+  modelBreakdown: SaecModelBreakdownItem[];
 };
 
 export type SaecInstallationsKpis = {

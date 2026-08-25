@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Loader2, Plus, Search, Trash2 } from "lucide-react";
+import { useSearchParams } from "next/navigation";
+import { Loader2, Plus, Search, Trash2, X } from "lucide-react";
 
 import SaecInstallationAssetDetail from "@/components/saec/installations/SaecInstallationAssetDetail";
 import {
@@ -42,11 +43,20 @@ const EMPTY_FORM: SaecInstallationAssetInput = {
   contractStatus: "active",
 };
 
+function assetMatchesOpenService(asset: SaecInstallationAsset): boolean {
+  return (
+    asset.maintenanceStatus === "due" ||
+    asset.maintenanceStatus === "overdue" ||
+    asset.status !== "online"
+  );
+}
+
 export default function SaecInstallationAssetRegister({
   assetType,
   title,
   subtitle,
 }: SaecInstallationAssetRegisterProps) {
+  const searchParams = useSearchParams();
   const [assets, setAssets] = useState<SaecInstallationAsset[]>([]);
   const [engineers, setEngineers] = useState<SaecInstallationEngineer[]>([]);
   const [loading, setLoading] = useState(true);
@@ -59,7 +69,9 @@ export default function SaecInstallationAssetRegister({
   const [contractFilter, setContractFilter] = useState("all");
   const [engineerFilter, setEngineerFilter] = useState("all");
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [detailOpen, setDetailOpen] = useState(false);
   const [detailMaintenance, setDetailMaintenance] = useState<SaecMaintenanceRecord[]>([]);
+  const [openServiceFilter, setOpenServiceFilter] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<SaecInstallationAssetInput>({ ...EMPTY_FORM, assetType });
@@ -95,9 +107,30 @@ export default function SaecInstallationAssetRegister({
     void load();
   }, [load]);
 
+  useEffect(() => {
+    const status = searchParams.get("status");
+    const maintenance = searchParams.get("maintenance");
+    const city = searchParams.get("city");
+    const filter = searchParams.get("filter");
+    if (status === "online" || status === "offline" || status === "maintenance") {
+      setStatusFilter(status);
+    }
+    if (
+      maintenance === "ok" ||
+      maintenance === "due" ||
+      maintenance === "overdue" ||
+      maintenance === "scheduled"
+    ) {
+      setMaintenanceFilter(maintenance);
+    }
+    if (city) setCityFilter(city);
+    setOpenServiceFilter(filter === "open-service");
+  }, [searchParams]);
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return assets.filter((asset) => {
+      if (openServiceFilter && !assetMatchesOpenService(asset)) return false;
       if (cityFilter !== "all" && asset.cityId !== cityFilter) return false;
       if (modelFilter !== "all" && asset.model !== modelFilter) return false;
       if (statusFilter !== "all" && asset.status !== statusFilter) return false;
@@ -126,12 +159,14 @@ export default function SaecInstallationAssetRegister({
     maintenanceFilter,
     contractFilter,
     engineerFilter,
+    openServiceFilter,
   ]);
 
   const selected = assets.find((asset) => asset.id === selectedId) ?? null;
 
   async function openDetail(asset: SaecInstallationAsset) {
     setSelectedId(asset.id);
+    setDetailOpen(true);
     try {
       const response = await fetch(`/api/saec/installations/assets/${asset.id}`, {
         cache: "no-store",
@@ -214,7 +249,10 @@ export default function SaecInstallationAssetRegister({
       });
       const payload = await readJson<{ error?: string }>(response);
       if (!response.ok) throw new Error(payload.error ?? "Delete failed");
-      if (selectedId === asset.id) setSelectedId(null);
+      if (selectedId === asset.id) {
+        setSelectedId(null);
+        setDetailOpen(false);
+      }
       await load();
     } catch (deleteError) {
       setError(deleteError instanceof Error ? deleteError.message : "Delete failed");
@@ -302,7 +340,7 @@ export default function SaecInstallationAssetRegister({
           Loading asset register…
         </div>
       ) : (
-        <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_22rem]">
+        <>
           <div className="overflow-hidden rounded-2xl border border-white/10">
             <table className="min-w-full text-left text-sm">
               <thead className="bg-[#0b1524] text-[10px] uppercase tracking-wide text-white/40">
@@ -360,23 +398,43 @@ export default function SaecInstallationAssetRegister({
             )}
           </div>
 
-          {selected ? (
-            <SaecInstallationAssetDetail
-              asset={selected}
-              maintenance={detailMaintenance}
-              engineers={engineers}
-              onEdit={() => openEdit(selected)}
-              onMaintenanceCreated={async () => {
-                await load();
-                await openDetail(selected);
-              }}
-            />
-          ) : (
-            <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-sm text-white/40">
-              Select an asset to view maintenance history and engineer assignment.
+          {detailOpen && selected && (
+            <div
+              className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 p-4"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="saec-asset-detail-title"
+              onClick={() => setDetailOpen(false)}
+            >
+              <div
+                className="relative w-full max-w-md max-h-[90vh] overflow-y-auto rounded-2xl border border-white/12 bg-[#0b1524] shadow-2xl"
+                onClick={(event) => event.stopPropagation()}
+              >
+                <button
+                  type="button"
+                  onClick={() => setDetailOpen(false)}
+                  className="absolute right-3 top-3 z-10 rounded-lg p-1.5 text-white/50 hover:bg-white/5 hover:text-white"
+                  aria-label="Close"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+                <div id="saec-asset-detail-title" className="sr-only">
+                  {selected.assetCode} asset detail
+                </div>
+                <SaecInstallationAssetDetail
+                  asset={selected}
+                  maintenance={detailMaintenance}
+                  engineers={engineers}
+                  onEdit={() => openEdit(selected)}
+                  onMaintenanceCreated={async () => {
+                    await load();
+                    await openDetail(selected);
+                  }}
+                />
+              </div>
             </div>
           )}
-        </div>
+        </>
       )}
 
       {formOpen && (
