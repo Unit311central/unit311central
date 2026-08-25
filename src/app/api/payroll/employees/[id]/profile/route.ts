@@ -10,6 +10,11 @@ import {
 import { getHrEmployee } from "@/lib/hr-employees-service";
 import { isDemoApiRequest } from "@/lib/demo/demo-request";
 import { getNorthstarEmployeePayrollProfile } from "@/lib/demo/northstar-hr-data";
+import {
+  getSaecEmployeePayrollProfile,
+  getSaecPayrollSettings,
+} from "@/lib/saec/saec-payroll-fixtures";
+import { isSaecSlug } from "@/lib/saec-surface";
 import { requirePlatformSession } from "@/lib/platform-session";
 import { requireCurrentWorkspace } from "@/lib/workspace-context";
 
@@ -31,6 +36,18 @@ export async function GET(_request: NextRequest, { params }: Params) {
     await requirePlatformSession();
     const workspace = await requireCurrentWorkspace();
     const { id } = await params;
+    if (isSaecSlug(workspace.slug)) {
+      const saecPayload = getSaecEmployeePayrollProfile(id);
+      if (saecPayload) {
+        return NextResponse.json({
+          profile: saecPayload.profile,
+          calculation: saecPayload.calculation,
+          settings: getSaecPayrollSettings(),
+          nextBonusPayDate: "2027-03-28",
+          bonusDueThisYear: saecPayload.profile.bonus,
+        });
+      }
+    }
     const [employee, profileRow, settings] = await Promise.all([
       getHrEmployee(id, { workspaceId: workspace.id }),
       getEmployeePayrollProfile(id, { workspaceId: workspace.id }),

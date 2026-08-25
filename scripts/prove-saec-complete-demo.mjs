@@ -122,7 +122,34 @@ async function main() {
   const mapBody = await mapApi.text();
   assert.ok(mapBody.includes("FeatureCollection"), "map geography API must return GeoJSON");
 
-  console.log("[prove:saec-complete-demo] PASS — 22 modules, 156 submodules, views routable, no legacy markers on key pages");
+  const dataChecks = [
+    { path: "/api/software-assets", key: "assets", min: 1 },
+    { path: "/api/financials/expenses", key: "expenses", min: 1 },
+    { path: "/api/financials/ledger/journals", key: "journals", min: 1 },
+    { path: "/api/marketing/dashboard", key: "kpis", minSubscribers: 100 },
+    { path: "/api/hr/employees", key: "employees", min: 50 },
+    { path: "/api/crm/leads", key: "leads", min: 10 },
+    { path: "/api/payroll/runs", key: "runs", min: 1 },
+    { path: "/api/support/tickets", key: "tickets", min: 1 },
+    { path: "/api/clients", key: "clients", min: 5 },
+  ];
+
+  for (const check of dataChecks) {
+    const res = await fetch(`${ORIGIN}${check.path}`, { headers: { Cookie: cookie } });
+    const body = await res.json();
+    assert.equal(res.status, 200, `${check.path} must return 200`);
+    if (check.key === "kpis") {
+      assert.ok(
+        (body.kpis?.mailingSubscribers ?? 0) >= check.minSubscribers,
+        `marketing KPIs must be populated (${check.path})`,
+      );
+    } else {
+      const rows = body[check.key];
+      assert.ok(Array.isArray(rows) && rows.length >= check.min, `${check.path} must have ≥${check.min} ${check.key}`);
+    }
+  }
+
+  console.log("[prove:saec-complete-demo] PASS — 22 modules, 156 submodules, views routable, no legacy markers, demo data populated");
 }
 
 main().catch((error) => {

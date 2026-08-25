@@ -4,7 +4,7 @@ import {
   withPreferredCurrencySymbol,
 } from "@/lib/accounting/chart-of-accounts";
 
-export type ExpenseCurrency = "EUR" | "GBP" | "USD" | "AUD" | "CHF" | "HKD";
+export type ExpenseCurrency = "EUR" | "GBP" | "USD" | "AUD" | "CHF" | "HKD" | "ZAR";
 
 export type ExpenseRecordStatus = "draft" | "finalized";
 
@@ -123,6 +123,7 @@ export const EXPENSE_CURRENCY_OPTIONS: ExpenseCurrency[] = [
   "HKD",
   "AUD",
   "CHF",
+  "ZAR",
 ];
 
 export const INTERNAL_EXPENSE_USERS = createInitialUsers().map((user) => ({
@@ -371,10 +372,18 @@ export function expenseFieldsEqual(a: FinancialExpense, b: FinancialExpense) {
 
 export function formatExpenseAmount(amount: number, currency: ExpenseCurrency) {
   const code = String(currency || "GBP").toUpperCase();
-  const fractionDigits = code === "AUD" ? 0 : 2;
+  const fractionDigits = code === "AUD" || code === "ZAR" ? 0 : 2;
   return withPreferredCurrencySymbol(
     new Intl.NumberFormat(
-      code === "AUD" ? "en-AU" : code === "USD" ? "en-US" : code === "HKD" ? "en-HK" : "en-GB",
+      code === "AUD"
+        ? "en-AU"
+        : code === "USD"
+          ? "en-US"
+          : code === "HKD"
+            ? "en-HK"
+            : code === "ZAR"
+              ? "en-ZA"
+              : "en-GB",
       {
         style: "currency",
         currency: code,

@@ -4,6 +4,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getPayrollSettings, updatePayrollSettings } from "@/lib/payroll/payroll-service";
 import { isDemoApiRequest } from "@/lib/demo/demo-request";
 import { getNorthstarPayrollSettings } from "@/lib/demo/northstar-hr-data";
+import { getSaecPayrollSettings } from "@/lib/saec/saec-payroll-fixtures";
+import { isSaecSlug } from "@/lib/saec-surface";
 import { requirePlatformSession } from "@/lib/platform-session";
 import { requireCurrentWorkspace } from "@/lib/workspace-context";
 
@@ -17,6 +19,9 @@ export async function GET() {
   try {
     await requirePlatformSession();
     const workspace = await requireCurrentWorkspace();
+    if (isSaecSlug(workspace.slug)) {
+      return NextResponse.json({ settings: getSaecPayrollSettings() });
+    }
     const settings = await getPayrollSettings({ workspaceId: workspace.id });
     return NextResponse.json({ settings });
   } catch (error) {

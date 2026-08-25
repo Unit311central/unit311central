@@ -6,6 +6,8 @@ import { createExpense, listExpenses } from "@/lib/financial-expenses-service";
 import { isDemoApiRequest } from "@/lib/demo/demo-request";
 import { DEMO_REPORTING_CURRENCY } from "@/lib/demo/read-only";
 import { getNorthstarExpenses } from "@/lib/demo/northstar-api-fixtures";
+import { getSaecExpenses } from "@/lib/saec/saec-gl-fixtures";
+import { isSaecSlug } from "@/lib/saec-surface";
 import { ensureFinancialExpensesTable } from "@/lib/internal-db-migrations";
 import { requirePlatformSession } from "@/lib/platform-session";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
@@ -29,6 +31,12 @@ export async function GET() {
   try {
     await requirePlatformSession();
     const workspace = await requireCurrentWorkspace();
+    if (isSaecSlug(workspace.slug)) {
+      return NextResponse.json({
+        expenses: getSaecExpenses(),
+        currency: "ZAR",
+      });
+    }
     const { isOnwardAirSlug } = await import("@/lib/onwardair-surface");
     if (isOnwardAirSlug(workspace.slug)) {
       const { ensureOnwardAirExpensesReady } = await import(

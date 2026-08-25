@@ -3,6 +3,8 @@ import { NextResponse } from "next/server";
 import { listAccounts } from "@/lib/accounting/journal-service";
 import { isDemoApiRequest } from "@/lib/demo/demo-request";
 import { getNorthstarLedgerAccounts } from "@/lib/demo/module-fixtures";
+import { getSaecLedgerAccounts } from "@/lib/saec/saec-gl-fixtures";
+import { isSaecSlug } from "@/lib/saec-surface";
 import { ensureOnwardAirFinancialsSeeded } from "@/lib/onwardair/financials-seed";
 import { isOnwardAirSlug } from "@/lib/onwardair-surface";
 import { requirePlatformSession } from "@/lib/platform-session";
@@ -18,6 +20,9 @@ export async function GET() {
 
     await requirePlatformSession();
     const workspace = await requireCurrentWorkspace();
+    if (isSaecSlug(workspace.slug)) {
+      return NextResponse.json({ accounts: getSaecLedgerAccounts() });
+    }
     if (isOnwardAirSlug(workspace.slug)) {
       await ensureOnwardAirFinancialsSeeded(workspace.id);
     }

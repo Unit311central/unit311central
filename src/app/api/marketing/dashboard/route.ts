@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 
 import { computeMarketingDashboardKpis, ensureMarketingWorkspaceSeeded } from "@/lib/marketing/marketing-service";
 import { getNorthstarMarketingKpis } from "@/lib/demo/northstar-api-fixtures";
+import { getSaecMarketingKpis } from "@/lib/saec/marketing-seed-data";
+import { isSaecSlug } from "@/lib/saec-surface";
 import { isDemoApiRequest } from "@/lib/demo/demo-request";
 
 import { withMarketingApiAuth } from "../_lib/with-marketing-api-auth";
@@ -14,6 +16,15 @@ export async function GET() {
   }
 
   return withMarketingApiAuth(async ({ workspaceId, workspaceSlug }) => {
+    if (isSaecSlug(workspaceSlug)) {
+      await ensureMarketingWorkspaceSeeded({ workspaceId, workspaceSlug });
+      const kpis = await computeMarketingDashboardKpis({ workspaceId });
+      const hasData =
+        kpis.mailingSubscribers != null ||
+        kpis.sentNewsletterCount != null ||
+        kpis.externalEventsTotal != null;
+      return NextResponse.json({ kpis: hasData ? kpis : getSaecMarketingKpis() });
+    }
     await ensureMarketingWorkspaceSeeded({ workspaceId, workspaceSlug });
     const kpis = await computeMarketingDashboardKpis({ workspaceId });
     return NextResponse.json({ kpis });

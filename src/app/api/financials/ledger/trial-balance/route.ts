@@ -3,6 +3,8 @@ import { NextResponse } from "next/server";
 import { getTrialBalance, getTypeTotals } from "@/lib/accounting/balances";
 import { isDemoApiRequest } from "@/lib/demo/demo-request";
 import { getNorthstarLedgerAccounts, getNorthstarTrialBalance } from "@/lib/demo/module-fixtures";
+import { getSaecLedgerAccounts, getSaecTrialBalance } from "@/lib/saec/saec-gl-fixtures";
+import { isSaecSlug } from "@/lib/saec-surface";
 import { requirePlatformSession } from "@/lib/platform-session";
 import { requireCurrentWorkspace } from "@/lib/workspace-context";
 
@@ -35,6 +37,28 @@ export async function GET() {
 
     await requirePlatformSession();
     const workspace = await requireCurrentWorkspace();
+    if (isSaecSlug(workspace.slug)) {
+      const rows = getSaecTrialBalance();
+      const accounts = getSaecLedgerAccounts();
+      const debitTotal = rows.reduce((sum, row) => sum + row.debit, 0);
+      const creditTotal = rows.reduce((sum, row) => sum + row.credit, 0);
+      const totals = {
+        assets: accounts.filter((a) => a.type === "asset").reduce((s, a) => s + a.balance, 0),
+        liabilities: accounts.filter((a) => a.type === "liability").reduce((s, a) => s + a.balance, 0),
+        equity: accounts.filter((a) => a.type === "equity").reduce((s, a) => s + a.balance, 0),
+        income: accounts.filter((a) => a.type === "income").reduce((s, a) => s + a.balance, 0),
+        expenses: accounts.filter((a) => a.type === "expense").reduce((s, a) => s + a.balance, 0),
+      };
+      return NextResponse.json({
+        trialBalance: {
+          rows,
+          debitTotal,
+          creditTotal,
+          difference: Math.round((debitTotal - creditTotal) * 100) / 100,
+        },
+        totals,
+      });
+    }
     const { isOnwardAirSlug } = await import("@/lib/onwardair-surface");
     if (isOnwardAirSlug(workspace.slug)) {
       const { ensureOnwardAirFinancialsSeeded } = await import(

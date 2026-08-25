@@ -4,6 +4,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAndPostJournal, listJournals } from "@/lib/accounting/journal-service";
 import { isDemoApiRequest } from "@/lib/demo/demo-request";
 import { getNorthstarJournalEntries } from "@/lib/demo/module-fixtures";
+import { getSaecJournalEntries } from "@/lib/saec/saec-gl-fixtures";
+import { isSaecSlug } from "@/lib/saec-surface";
 import { requirePlatformSession } from "@/lib/platform-session";
 import { requireCurrentWorkspace } from "@/lib/workspace-context";
 
@@ -17,6 +19,9 @@ export async function GET() {
 
     await requirePlatformSession();
     const workspace = await requireCurrentWorkspace();
+    if (isSaecSlug(workspace.slug)) {
+      return NextResponse.json({ journals: getSaecJournalEntries() });
+    }
     const { isOnwardAirSlug } = await import("@/lib/onwardair-surface");
     if (isOnwardAirSlug(workspace.slug)) {
       const { ensureOnwardAirFinancialsSeeded } = await import(

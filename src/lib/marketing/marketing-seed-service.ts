@@ -1,6 +1,13 @@
 import { isAbhiSlug } from "@/lib/abhi-surface";
 import { buildAbhiMarketingSeedState } from "@/lib/abhi-marketing-store";
 import {
+  SAEC_EXTERNAL_EVENTS,
+  SAEC_MANAGED_EVENTS,
+  SAEC_MARKETING_MAILING_LISTS,
+  SAEC_MARKETING_NEWSLETTERS,
+} from "@/lib/saec/marketing-seed-data";
+import { isSaecSlug } from "@/lib/saec-surface";
+import {
   ensureMarketingEventsTables,
   withMarketingEventsTables,
 } from "@/lib/marketing/ensure-marketing-tables-runtime";
@@ -49,6 +56,10 @@ export async function seedMarketingWorkspaceIfEmpty(workspaceId: string, slug: s
   }
   if (isOnwardAirSlug(slug)) {
     await seedOnwardAirWorkspace(workspaceId);
+    return;
+  }
+  if (isSaecSlug(slug)) {
+    await seedSaecWorkspace(workspaceId);
   }
 }
 
@@ -321,6 +332,86 @@ async function seedOnwardAirWorkspace(workspaceId: string) {
     owner_label: row.owner,
     status: "Planning",
     extension_data: { readOnly: true, budgetUsd: row.budgetUsd },
+  }));
+
+  await supabase.from("marketing_newsletters").upsert(newsletters);
+  await supabase.from("marketing_contacts").upsert(contacts);
+  await supabase.from("marketing_external_events").upsert(externalEvents);
+  await supabase.from("marketing_managed_events").upsert(managedEvents);
+}
+
+async function seedSaecWorkspace(workspaceId: string) {
+  const supabase = requireSupabase();
+
+  const newsletters = SAEC_MARKETING_NEWSLETTERS.map((row) => ({
+    id: row.id,
+    workspace_id: workspaceId,
+    title: row.title,
+    subject: row.subject,
+    html_body: row.preview,
+    status: row.status,
+    recipient_mode: "all",
+    recipient_ids: [],
+    manual_emails: [],
+    scheduled_at: row.scheduledAt,
+    sent_at: row.sentAt,
+    channels: { email: true },
+    metrics: {
+      openRate: row.openRate,
+      clickRate: row.clickRate,
+    },
+    content_sources: {},
+    extension_data: { audience: row.audience, readOnly: true },
+  }));
+
+  const contacts = SAEC_MARKETING_MAILING_LISTS.map((row) => ({
+    id: row.id,
+    workspace_id: workspaceId,
+    name: row.name,
+    email: `${row.id}@saec.fixture`,
+    organisation: row.segment,
+    segment: row.segment,
+    status: row.status === "Active" ? "active" : "paused",
+    extension_data: {
+      subscribers: row.subscribers,
+      growth30d: row.growth30d,
+      lastCampaign: row.lastCampaign,
+      readOnly: true,
+    },
+  }));
+
+  const externalEvents = SAEC_EXTERNAL_EVENTS.map((row) => ({
+    id: row.id,
+    workspace_id: workspaceId,
+    name: row.name,
+    start_date: row.startDate,
+    end_date: row.endDate,
+    city: row.city,
+    country: row.country,
+    website: row.website,
+    owner_label: row.owner,
+    owner_id: null,
+    status: row.status,
+    notes: row.notes,
+    member_ids: [],
+    calendar_synced: false,
+    extension_data: { readOnly: true },
+  }));
+
+  const managedEvents = SAEC_MANAGED_EVENTS.map((row) => ({
+    id: row.id,
+    workspace_id: workspaceId,
+    name: row.name,
+    venue: row.venue,
+    city: "Johannesburg",
+    event_date: row.date,
+    capacity: row.capacity,
+    registered: row.registered,
+    budget_label: `ZAR ${row.budgetZar.toLocaleString("en-ZA")}`,
+    stage: row.status,
+    owner_label: "Commercial team",
+    status: "Planning",
+    extension_data: { readOnly: true, budgetZar: row.budgetZar },
   }));
 
   await supabase.from("marketing_newsletters").upsert(newsletters);
