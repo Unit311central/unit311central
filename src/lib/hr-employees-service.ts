@@ -734,6 +734,67 @@ export async function ensureOnwardAirHrEmployeesSeeded(
   return listHrEmployees({ workspaceId });
 }
 
+/**
+ * Seed SAEC demo staff into hr_employees (SAEC workspace only).
+ * Idempotent by email.
+ */
+export async function ensureSaecHrEmployeesSeeded(workspaceId: string): Promise<HrEmployee[]> {
+  const { SAEC_HR_TEAM_EMPLOYEES } =
+    await import("@/lib/saec/demo/hr-team-data");
+
+  let existing = await listHrEmployees({ workspaceId, includeArchived: true });
+  if (existing.length >= 40) {
+    return existing;
+  }
+
+  const byEmail = new Set(
+    existing.map((e) => e.email.trim().toLowerCase()).filter(Boolean),
+  );
+
+  for (const member of SAEC_HR_TEAM_EMPLOYEES) {
+    const email = member.email.trim().toLowerCase();
+    if (byEmail.has(email)) continue;
+    try {
+      await createHrEmployee(
+        {
+          fullName: member.fullName,
+          preferredName: member.preferredName,
+          email: member.email,
+          phone: member.phone,
+          address: member.address,
+          nationality: member.nationality,
+          employmentStatus: member.employmentStatus,
+          employmentType: member.employmentType,
+          dateJoined: member.dateJoined,
+          location: member.location,
+          role: member.role,
+          department: member.department,
+          manager: member.manager ?? "",
+          currency: member.currency ?? "ZAR",
+          payFrequency: member.payFrequency ?? "monthly",
+          salaryCurrent: member.salaryCurrent ?? 500_000,
+          salaryPrevious: member.salaryPrevious ?? 480_000,
+          bonus: member.bonus ?? 0,
+          holidayCalendar: member.holidayCalendar,
+          vacationDaysPerYear: member.vacationDaysPerYear,
+          vacationDaysTaken: member.vacationDaysTaken ?? 0,
+        },
+        { workspaceId },
+      );
+      byEmail.add(email);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      if (/duplicate key|unique constraint/i.test(message)) {
+        byEmail.add(email);
+        continue;
+      }
+      throw error;
+    }
+  }
+
+  return listHrEmployees({ workspaceId });
+}
+
 const TALANTON_COMP_ANNUAL = 50_000;
 
 function talantonEmployeeCompensationReady(

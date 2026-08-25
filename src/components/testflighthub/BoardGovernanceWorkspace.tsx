@@ -34,6 +34,15 @@ export default function BoardGovernanceWorkspace({
   const isOnwardAir = isBrowserOnwardAirSurface();
   const isAbhi = isBrowserAbhiSurface();
   const isDemo = isBrowserDemoSurface();
+  const isSaec = (() => {
+    try {
+      const { isBrowserSaecSurface } =
+        require("@/lib/saec-surface") as typeof import("@/lib/saec-surface");
+      return isBrowserSaecSurface();
+    } catch {
+      return false;
+    }
+  })();
 
   if (isDemo) {
     if (section === "dashboard") return <NorthstarBoardDashboardWorkspace />;
@@ -76,6 +85,23 @@ export default function BoardGovernanceWorkspace({
     return (
       <div className="rounded-3xl border border-white/10 bg-[#07111f]/40 p-1 sm:p-2">
         <OnwardAirBoardMinutesWorkspace />
+      </div>
+    );
+  }
+
+  if (isSaec) {
+    const { SaecBoardGovernanceSection } =
+      require("@/components/saec/board/SaecBoardWorkspaces") as typeof import("@/components/saec/board/SaecBoardWorkspaces");
+    const saecSection: "dashboard" | "meetings" | "minutes" | "members" | "risks" =
+      section === "dashboard" ||
+      section === "meetings" ||
+      section === "minutes" ||
+      section === "members"
+        ? section
+        : "risks";
+    return (
+      <div className="rounded-3xl border border-white/10 bg-[#07111f]/40 p-1 sm:p-2">
+        <SaecBoardGovernanceSection section={saecSection} />
       </div>
     );
   }

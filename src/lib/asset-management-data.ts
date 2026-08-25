@@ -388,6 +388,16 @@ function seedsForLocation(
   ];
 }
 
+function createSaecAssetRegistry(): AssetRegistryState {
+  const { SAEC_ASSET_SEEDS, SAEC_ASSET_CATEGORIES, SAEC_ASSET_LOCATIONS } =
+    require("@/lib/saec/demo/assets") as typeof import("@/lib/saec/demo/assets");
+  return {
+    assets: SAEC_ASSET_SEEDS.map((seed) => buildSeedAsset({ ...seed })),
+    categories: [...SAEC_ASSET_CATEGORIES],
+    locations: [...SAEC_ASSET_LOCATIONS],
+  };
+}
+
 function createAbhiAssetRegistry(): AssetRegistryState {
   const categories = [
     "Laptop",
@@ -981,6 +991,16 @@ export function createInitialAssetRegistry(): AssetRegistryState {
         const { createOnwardAirAssetRegistry } =
           require("@/lib/onwardair/operations-data") as typeof import("@/lib/onwardair/operations-data");
         return createOnwardAirAssetRegistry();
+      }
+    } catch {
+      // Fall through.
+    }
+
+    try {
+      const { isBrowserSaecSurface } =
+        require("@/lib/saec-surface") as typeof import("@/lib/saec-surface");
+      if (isBrowserSaecSurface()) {
+        return createSaecAssetRegistry();
       }
     } catch {
       // Fall through.

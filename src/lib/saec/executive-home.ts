@@ -56,13 +56,5 @@ export function buildSaecExecutiveHomeKpis(): DashboardKpiItem[] {
       tone: "warning",
       hint: "Open service and fault assignments",
     },
-    {
-      id: "active-clients",
-      label: "Active Clients",
-      value: "12",
-      delta: "Commercial portfolio",
-      tone: "positive",
-      hint: "Property, retail, healthcare and public sector clients",
-    },
   ]);
 }

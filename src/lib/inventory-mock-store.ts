@@ -710,6 +710,18 @@ function seedState(): InventoryMockState {
     }
 
     try {
+      const { isBrowserSaecSurface } =
+        require("@/lib/saec-surface") as typeof import("@/lib/saec-surface");
+      if (isBrowserSaecSurface()) {
+        const { buildSaecInventoryState } =
+          require("@/lib/saec/demo/inventory-state") as typeof import("@/lib/saec/demo/inventory-state");
+        return buildSaecInventoryState();
+      }
+    } catch {
+      // Fall through.
+    }
+
+    try {
       const { isBrowserCorpCentreSurface } =
         require("@/lib/corpcentre-surface") as typeof import("@/lib/corpcentre-surface");
       if (isBrowserCorpCentreSurface()) {

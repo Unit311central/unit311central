@@ -80,6 +80,20 @@ export function getEcaMockSnapshot() {
     } catch {
       // Fall through.
     }
+    try {
+      const { isBrowserSaecSurface } =
+        require("@/lib/saec-surface") as typeof import("@/lib/saec-surface");
+      if (
+        isBrowserSaecSurface() &&
+        !state.portals.every((portal) => portal.id.startsWith("portal-saec-"))
+      ) {
+        const { buildSaecEcaState } =
+          require("@/lib/saec/demo/eca-state") as typeof import("@/lib/saec/demo/eca-state");
+        state = buildSaecEcaState();
+      }
+    } catch {
+      // Fall through.
+    }
   }
   return state;
 }

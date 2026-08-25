@@ -239,11 +239,22 @@ export default function EnterprisePlatformSidebar({
   /** Inject host-specific nav on first paint — do not wait for sidebar hydration. */
   const [customerHostNav] = useState(() => {
     if (typeof window === "undefined") return false;
-    return (
-      isBrowserTalantonImpactSurface() ||
-      isBrowserOnwardAirSurface() ||
-      isBrowserAbhiSurface()
-    );
+    try {
+      const { isBrowserSaecSurface } =
+        require("@/lib/saec-surface") as typeof import("@/lib/saec-surface");
+      return (
+        isBrowserTalantonImpactSurface() ||
+        isBrowserOnwardAirSurface() ||
+        isBrowserAbhiSurface() ||
+        isBrowserSaecSurface()
+      );
+    } catch {
+      return (
+        isBrowserTalantonImpactSurface() ||
+        isBrowserOnwardAirSurface() ||
+        isBrowserAbhiSurface()
+      );
+    }
   });
   /** Talanton / ABHI + overview embed: every load starts with modules collapsed; prefs stay session-local. */
   const sessionOnlyExpand = overviewEmbed || isTalantonSurface || isAbhiSurface;
@@ -626,7 +637,22 @@ export default function EnterprisePlatformSidebar({
 
   function renderWorkspace(section: InternalNavSection) {
     const workspaceKey = `workspace::${section.label ?? "workspace"}`;
-    const isOpen = hydrated ? Boolean(expanded[workspaceKey]) : false;
+    const workspaceSectionChildActive = section.items.some((item) => {
+      if (item.children?.length) {
+        return item.children.some(
+          (child) =>
+            isInternalNavChildActive(child, activeView, pathname, basePath, searchParams) ||
+            (child.children?.some((nested) =>
+              isInternalNavChildActive(nested, activeView, pathname, basePath, searchParams),
+            ) ??
+              false),
+        );
+      }
+      return isInternalNavItemActive(pathname, item, activeView, basePath, searchParams);
+    });
+    const isOpen = hydrated
+      ? Boolean(expanded[workspaceKey]) || workspaceSectionChildActive
+      : false;
     const Icon = resolveIcon(section.icon);
     const color =
       resolveOnwardAirNavAccent(section) ?? section.color ?? theme.accent;

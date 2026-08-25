@@ -58,6 +58,35 @@ function useFundraisingPresentation() {
   const surface = resolveFundraisingSurfaceKind(workspaceSlug);
   const isWorkspace = surface === "workspace";
 
+  try {
+    const { isSaecSlug } = require("@/lib/saec-surface") as typeof import("@/lib/saec-surface");
+    if (workspaceSlug && isSaecSlug(workspaceSlug)) {
+      const {
+        SAEC_FUNDING_ROUNDS,
+        SAEC_FUNDRAISING_DATA_ROOMS,
+        SAEC_FUNDRAISING_MEETINGS,
+        SAEC_FUNDRAISING_PIPELINE,
+        SAEC_FUNDRAISING_PITCH_DECKS,
+        SAEC_FUNDRAISING_EYEBROW,
+        getSaecPreSeedFromCapTable,
+      } = require("@/lib/saec/demo/fundraising-data") as typeof import("@/lib/saec/demo/fundraising-data");
+      return {
+        isWorkspace: true,
+        eyebrow: SAEC_FUNDRAISING_EYEBROW,
+        fundingRounds: SAEC_FUNDING_ROUNDS,
+        pipeline: SAEC_FUNDRAISING_PIPELINE,
+        meetings: SAEC_FUNDRAISING_MEETINGS,
+        pitchDecks: SAEC_FUNDRAISING_PITCH_DECKS,
+        dataRooms: SAEC_FUNDRAISING_DATA_ROOMS,
+        seedRaiseTargetUsd: null,
+        capitalCommittedUsd: null,
+        resolvePreSeed: getSaecPreSeedFromCapTable,
+      };
+    }
+  } catch {
+    // Fall through to default workspace presentation.
+  }
+
   return {
     isWorkspace,
     eyebrow: isWorkspace

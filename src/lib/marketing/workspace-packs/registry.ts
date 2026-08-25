@@ -6,6 +6,7 @@ import {
   demoMarketingPack,
   internalMarketingPack,
   onwardAirMarketingPack,
+  saecMarketingPack,
   talantonMarketingPack,
 } from "./packs";
 
@@ -35,6 +36,7 @@ export function ensureMarketingWorkspacePacksRegistered(): boolean {
     registerMarketingWorkspacePack(onwardAirMarketingPack);
     registerMarketingWorkspacePack(talantonMarketingPack);
     registerMarketingWorkspacePack(abhiMarketingPack);
+    registerMarketingWorkspacePack(saecMarketingPack);
     bootstrapped = true;
   }
   return bootstrapped;

@@ -40,7 +40,7 @@ import {
 
 type Listener = () => void;
 
-type HrMockState = {
+export type HrMockState = {
   leaveRequests: HrLeaveRequest[];
   leaveBalances: HrLeaveBalance[];
   publicHolidays: HrPublicHoliday[];
@@ -52,7 +52,7 @@ type HrMockState = {
   activity: Array<{ id: string; at: string; label: string; detail: string }>;
 };
 
-function isoDaysFromNow(offset: number) {
+export function isoDaysFromNow(offset: number) {
   const date = new Date();
   date.setHours(12, 0, 0, 0);
   date.setDate(date.getDate() + offset);
@@ -60,7 +60,7 @@ function isoDaysFromNow(offset: number) {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 }
 
-function uid(prefix: string) {
+export function uid(prefix: string) {
   return `${prefix}-${crypto.randomUUID().slice(0, 8)}`;
 }
 
@@ -519,6 +519,18 @@ function seedState(): HrMockState {
       }
     } catch {
       // Fall through to Internal mock seed.
+    }
+
+    try {
+      const { isBrowserSaecSurface } =
+        require("@/lib/saec-surface") as typeof import("@/lib/saec-surface");
+      if (isBrowserSaecSurface()) {
+        const { buildSaecHrMockState } =
+          require("@/lib/saec/demo/hr-mock-state") as typeof import("@/lib/saec/demo/hr-mock-state");
+        return buildSaecHrMockState();
+      }
+    } catch {
+      // Fall through.
     }
 
     try {

@@ -1361,6 +1361,18 @@ function seedState(): CorporateMockState {
     }
 
     try {
+      const { isBrowserSaecSurface } =
+        require("@/lib/saec-surface") as typeof import("@/lib/saec-surface");
+      if (isBrowserSaecSurface()) {
+        const { buildSaecCorporateMockState } =
+          require("@/lib/saec/demo/corporate-state") as typeof import("@/lib/saec/demo/corporate-state");
+        return buildSaecCorporateMockState();
+      }
+    } catch {
+      // Fall through.
+    }
+
+    try {
       const { isBrowserCustomerWorkspaceSurface } =
         require("@/lib/customer-workspace-surface") as typeof import("@/lib/customer-workspace-surface");
       if (isBrowserCustomerWorkspaceSurface()) {

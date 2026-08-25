@@ -5,6 +5,7 @@ import { abhiIntelligencePack } from "@/lib/intelligence/workspace-packs/abhi";
 import { customerIntelligencePack } from "@/lib/intelligence/workspace-packs/customer";
 import { demoIntelligencePack } from "@/lib/intelligence/workspace-packs/demo";
 import { onwardAirIntelligencePack } from "@/lib/intelligence/workspace-packs/onwardair";
+import { saecIntelligencePack } from "@/lib/intelligence/workspace-packs/saec";
 import { talantonIntelligencePack } from "@/lib/intelligence/workspace-packs/talanton";
 
 /**
@@ -16,6 +17,7 @@ const INTELLIGENCE_WORKSPACE_PACKS: readonly IntelligenceWorkspacePackRegistrati
   onwardAirIntelligencePack,
   talantonIntelligencePack,
   abhiIntelligencePack,
+  saecIntelligencePack,
   demoIntelligencePack,
   customerIntelligencePack,
 ];
@@ -40,5 +42,6 @@ export {
   customerIntelligencePack,
   demoIntelligencePack,
   onwardAirIntelligencePack,
+  saecIntelligencePack,
   talantonIntelligencePack,
 };

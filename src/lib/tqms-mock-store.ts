@@ -135,6 +135,18 @@ function createInitialTqmsState(): TqmsMockState {
     } catch {
       /* fall through */
     }
+
+    try {
+      const { isBrowserSaecSurface } =
+        require("@/lib/saec-surface") as typeof import("@/lib/saec-surface");
+      if (isBrowserSaecSurface()) {
+        const { applySaecTqmsSeed } =
+          require("@/lib/saec/saec-tqms-training") as typeof import("@/lib/saec/saec-tqms-training");
+        return applySaecTqmsSeed(base);
+      }
+    } catch {
+      /* fall through */
+    }
   }
 
   if (!fixtures) return base;

@@ -777,6 +777,18 @@ function seedCustomerWorkspaceEmptyState(): ProcurementMockState {
 function seedState(): ProcurementMockState {
   if (typeof window !== "undefined") {
     try {
+      const { isBrowserSaecSurface } =
+        require("@/lib/saec-surface") as typeof import("@/lib/saec-surface");
+      if (isBrowserSaecSurface()) {
+        const { buildSaecProcurementState } =
+          require("@/lib/saec/demo/procurement-state") as typeof import("@/lib/saec/demo/procurement-state");
+        return buildSaecProcurementState();
+      }
+    } catch {
+      // Fall through.
+    }
+
+    try {
       const { isBrowserCustomerWorkspaceSurface } =
         require("@/lib/customer-workspace-surface") as typeof import("@/lib/customer-workspace-surface");
       if (isBrowserCustomerWorkspaceSurface()) {

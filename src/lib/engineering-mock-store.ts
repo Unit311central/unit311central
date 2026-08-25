@@ -23,16 +23,33 @@ export type EngineeringMockState = {
   infraStatus: string;
 };
 
-let state: EngineeringMockState = {
-  engineers: createSeedEngineers(),
-  projects: createSeedEngProjects(),
-  activity: createSeedEngActivity(),
-  incidents: createSeedEngIncidents(),
-  debt: createSeedEngDebt(),
-  currentSprint: "Sprint 24 · 14–25 Jul 2026",
-  upcomingReleases: ["2.4.0 — 31 Jul", "2.4.1 — 14 Aug", "Portal GA — 28 Aug"],
-  infraStatus: "Healthy",
-};
+let state: EngineeringMockState = buildInitialEngineeringState();
+
+function buildInitialEngineeringState(): EngineeringMockState {
+  if (typeof window !== "undefined") {
+    try {
+      const { isBrowserSaecSurface } =
+        require("@/lib/saec-surface") as typeof import("@/lib/saec-surface");
+      if (isBrowserSaecSurface()) {
+        const { buildSaecEngineeringState } =
+          require("@/lib/saec/demo/engineering-state") as typeof import("@/lib/saec/demo/engineering-state");
+        return buildSaecEngineeringState();
+      }
+    } catch {
+      // Fall through.
+    }
+  }
+  return {
+    engineers: createSeedEngineers(),
+    projects: createSeedEngProjects(),
+    activity: createSeedEngActivity(),
+    incidents: createSeedEngIncidents(),
+    debt: createSeedEngDebt(),
+    currentSprint: "Sprint 24 · 14–25 Jul 2026",
+    upcomingReleases: ["2.4.0 — 31 Jul", "2.4.1 — 14 Aug", "Portal GA — 28 Aug"],
+    infraStatus: "Healthy",
+  };
+}
 
 const listeners = new Set<() => void>();
 function emit() {

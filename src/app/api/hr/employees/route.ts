@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 import {
   createHrEmployee,
   ensureOnwardAirHrEmployeesSeeded,
+  ensureSaecHrEmployeesSeeded,
   ensureTalantonHrEmployeesSeeded,
   listHrEmployees,
 } from "@/lib/hr-employees-service";
@@ -12,6 +13,7 @@ import { isDemoApiRequest } from "@/lib/demo/demo-request";
 import { getNorthstarEmployees } from "@/lib/demo/northstar-api-fixtures";
 import { ensureHrEmployeesTable } from "@/lib/internal-db-migrations";
 import { isOnwardAirSlug } from "@/lib/onwardair-surface";
+import { isSaecSlug } from "@/lib/saec-surface";
 import { isTalantonImpactSlug } from "@/lib/talanton-surface";
 import { requirePlatformSession } from "@/lib/platform-session";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
@@ -48,6 +50,13 @@ export async function GET(request: NextRequest) {
         await ensureTalantonHrEmployeesSeeded(workspace.id);
       } catch (seedError) {
         console.error("[hr/employees] Talanton team seed failed:", seedError);
+      }
+    }
+    if (isSaecSlug(workspace.slug)) {
+      try {
+        await ensureSaecHrEmployeesSeeded(workspace.id);
+      } catch (seedError) {
+        console.error("[hr/employees] SAEC team seed failed:", seedError);
       }
     }
     const includeArchived = request.nextUrl.searchParams.get("includeArchived") === "true";

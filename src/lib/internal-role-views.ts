@@ -405,6 +405,14 @@ function shouldHideDroneToolNavViews(): boolean {
     /* fall through */
   }
 
+  try {
+    const { isBrowserSaecSurface } =
+      require("@/lib/saec-surface") as typeof import("@/lib/saec-surface");
+    if (isBrowserSaecSurface()) return true;
+  } catch {
+    /* fall through */
+  }
+
   return false;
 }
 
