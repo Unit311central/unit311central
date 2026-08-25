@@ -24,6 +24,7 @@ import {
 import DashboardTopTilesBar from "@/components/testflighthub/DashboardTopTilesBar";
 import { useOperatorEntitlements } from "@/components/testflighthub/OperatorEntitlementsProvider";
 import { isBrowserOnwardAirSurface } from "@/lib/onwardair-surface";
+import type { ReportingCurrency } from "@/lib/financial-reporting-currency";
 import { useWorkspaceReportingCurrency } from "@/lib/workspace-reporting-currency";
 
 import ExpenseDetailDrawer from "./expenses/ExpenseDetailDrawer";
@@ -78,8 +79,8 @@ export default function ExpensesHubWorkspace({ onBackToFinancials }: ExpensesHub
   const [billingCodes, setBillingCodes] = useState<ExpenseBillingCode[]>([]);
   const [mileageRates, setMileageRates] = useState<ExpenseMileageRate[]>([]);
   const [schedule, setSchedule] = useState<ExpensePaymentSchedule | null>(null);
-  const [currency, setCurrency] = useState("USD");
-  const reportingCurrency = useWorkspaceReportingCurrency(currency);
+  const reportingCurrency = useWorkspaceReportingCurrency();
+  const [currency, setCurrency] = useState<ReportingCurrency>(reportingCurrency);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -145,7 +146,7 @@ export default function ExpensesHubWorkspace({ onBackToFinancials }: ExpensesHub
       }>(myResponse);
       if (!myResponse.ok) throw new Error(myData.error ?? "Failed to load my expenses");
       setMyExpenses(myData.expenses ?? []);
-      setCurrency(myData.currency ?? "USD");
+      setCurrency((myData.currency as ReportingCurrency | undefined) ?? reportingCurrency);
 
       const configData = await readApiJson<{
         categories?: ExpenseCategory[];
@@ -184,7 +185,7 @@ export default function ExpensesHubWorkspace({ onBackToFinancials }: ExpensesHub
         }>(allResponse);
         if (allResponse.ok) {
           setAllExpenses(allData.expenses ?? []);
-          if (allData.currency) setCurrency(allData.currency);
+          if (allData.currency) setCurrency(allData.currency as ReportingCurrency);
         }
       }
     } catch (loadError) {
@@ -394,7 +395,7 @@ export default function ExpensesHubWorkspace({ onBackToFinancials }: ExpensesHub
 
       {section === "my" && schedule && (
         <p className="text-[11px] text-white/35">
-          Workspace currency: <span className="text-white/55">{currency}</span>
+          Workspace currency: <span className="text-white/55">{reportingCurrency}</span>
           {" "}
           · Schedule: {schedule.frequency === "fortnightly" ? "Every 2 weeks" : "Monthly"}
           · Payment day {schedule.paymentDay} · Cut-off day {schedule.cutoffDay}

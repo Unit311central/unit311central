@@ -101,5 +101,5 @@ test("finance users can approve and configure expenses", () => {
 test("workspace reporting currency resolves InterfaceWorx to GBP", () => {
   const { resolveSlugReportingCurrency } = require("@/lib/financial-reporting-currency") as typeof import("@/lib/financial-reporting-currency");
   assert.equal(resolveSlugReportingCurrency("interfaceworx"), "GBP");
-  assert.equal(resolveSlugReportingCurrency("demo"), "USD");
+  assert.equal(resolveSlugReportingCurrency("demo"), "GBP");
 });

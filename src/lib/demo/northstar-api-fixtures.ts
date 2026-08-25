@@ -20,7 +20,7 @@ import { computeSoftwareAssetsSummary } from "@/lib/software-assets-data";
 import { DEMO_PROSPECT_USERNAME } from "@/lib/demo/read-only";
 import type { PlatformSession } from "@/lib/platform-session";
 
-import { northstarFinancialMonths } from "@/lib/demo/northstar-financial-model";
+import { NORTHSTAR_REPORTING_CURRENCY, northstarFinancialMonths } from "@/lib/demo/northstar-financial-model";
 
 const WS = "demo-workspace";
 const NOW = "2026-08-16T10:00:00.000Z";
@@ -139,7 +139,7 @@ function buildNorthstarExpenseHistory(): FinancialExpense[] {
           submitterName: submitter.name,
           purposeDescription: `${template.purpose} — ${month}`,
           amount,
-          currency: "USD",
+          currency: NORTHSTAR_REPORTING_CURRENCY,
           dateSubmitted,
           paid: i !== 1 || month < "2026-08",
           supplier: template.supplier,
