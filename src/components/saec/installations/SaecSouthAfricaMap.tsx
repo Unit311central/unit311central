@@ -1,95 +1,333 @@
 "use client";
 
-import { cn } from "@/lib/utils";
-import type { SaecCityAggregate } from "@/lib/saec/installations-types";
+import { useEffect, useMemo, useState } from "react";
+import { Loader2, Minus, Plus, RotateCcw } from "lucide-react";
 
-/** Simplified South Africa outline — demo cartography, not survey-grade. */
-const SA_OUTLINE =
-  "M 198 668 L 228 612 L 268 568 L 312 528 L 358 498 L 408 472 L 458 448 L 512 418 L 562 388 L 608 352 L 648 318 L 688 292 L 728 276 L 768 268 L 802 278 L 828 302 L 848 332 L 862 362 L 872 398 L 878 438 L 874 502 L 862 548 L 844 592 L 818 628 L 792 656 L 758 678 L 718 698 L 672 714 L 628 724 L 578 732 L 528 736 L 478 738 L 428 736 L 378 728 L 328 714 L 278 698 L 238 682 Z M 168 642 L 188 598 L 208 562 L 198 668 Z";
+import {
+  SA_MAP_ATTRIBUTION,
+  SA_MAP_CENTER,
+  SA_MAP_DEFAULT_TRANSFORM,
+  SA_MAP_VIEWBOX,
+  applyMapViewTransform,
+  loadSouthAfricaMapLayers,
+  projectSouthAfricaLonLat,
+  type SaMapLayers,
+  type SaMapViewTransform,
+} from "@/lib/saec/south-africa-map-project";
+import type { SaecCityAggregate, SaecInstallationAssetType } from "@/lib/saec/installations-types";
+import { cn } from "@/lib/utils";
 
 type SaecSouthAfricaMapProps = {
   cities: SaecCityAggregate[];
   selectedCityId: string | null;
+  assetType: SaecInstallationAssetType;
   onSelectCity: (cityId: string) => void;
 };
+
+type HoveredCity = SaecCityAggregate | null;
+
+const ZOOM_STEP = 0.22;
+const MIN_SCALE = 0.85;
+const MAX_SCALE = 2.4;
+
+function assetTypeLabel(assetType: SaecInstallationAssetType): string {
+  return assetType === "elevator" ? "Elevators" : "Escalators";
+}
+
+function assetTypeShort(assetType: SaecInstallationAssetType): string {
+  return assetType === "elevator" ? "Elevator" : "Escalator";
+}
 
 export default function SaecSouthAfricaMap({
   cities,
   selectedCityId,
+  assetType,
   onSelectCity,
 }: SaecSouthAfricaMapProps) {
-  return (
-    <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-[#071018]/80 p-3 sm:p-4">
-      <div className="mb-2 flex items-center justify-between gap-2">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-sky-300/80">
-          South Africa — installation footprint (demo)
-        </p>
-        <p className="text-[10px] text-white/35">Demonstration data only</p>
-      </div>
-      <svg
-        viewBox="0 0 1000 800"
-        className="mx-auto h-auto w-full max-h-[340px] min-h-[260px]"
-        role="img"
-        aria-label="South Africa installations map"
-      >
-        <defs>
-          <linearGradient id="saec-map-fill" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#0c4a6e" stopOpacity="0.55" />
-            <stop offset="100%" stopColor="#082f49" stopOpacity="0.85" />
-          </linearGradient>
-        </defs>
-        <rect x="0" y="0" width="1000" height="800" fill="#030712" rx="12" />
-        <path
-          d={SA_OUTLINE}
-          fill="url(#saec-map-fill)"
-          stroke="#38bdf8"
-          strokeWidth="2"
-          strokeLinejoin="round"
-          opacity="0.92"
-        />
-        {cities.map((city) => {
-          const selected = city.cityId === selectedCityId;
-          const hasUnits = city.total > 0;
-          if (!hasUnits) return null;
-          return (
-            <g
-              key={city.cityId}
-              transform={`translate(${city.mapX}, ${city.mapY})`}
-              className="cursor-pointer"
-              onClick={() => onSelectCity(city.cityId)}
-            >
-              <circle
-                r={selected ? 34 : 28}
-                className={cn(
-                  "transition-all duration-200",
-                  selected
-                    ? "fill-sky-500/35 stroke-sky-300"
-                    : "fill-sky-500/20 stroke-sky-400/60 hover:fill-sky-500/30",
-                )}
-                strokeWidth={selected ? 2.5 : 1.5}
-              />
-              <text
-                y={-6}
-                textAnchor="middle"
-                className="fill-white text-[11px] font-semibold"
-                style={{ fontSize: 11, fontWeight: 600 }}
-              >
-                {city.total}
-              </text>
-              <text
-                y={14}
-                textAnchor="middle"
-                className="fill-white/70"
-                style={{ fontSize: 9, fontWeight: 500 }}
-              >
-                {city.cityLabel.length > 14
-                  ? city.cityLabel.slice(0, 12) + "…"
-                  : city.cityLabel}
-              </text>
-            </g>
+  const [transform, setTransform] = useState<SaMapViewTransform>(SA_MAP_DEFAULT_TRANSFORM);
+  const [hoveredCityId, setHoveredCityId] = useState<string | null>(null);
+  const [mapLayers, setMapLayers] = useState<SaMapLayers | null>(null);
+  const [mapLoadError, setMapLoadError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    void loadSouthAfricaMapLayers()
+      .then((layers) => {
+        if (!cancelled) setMapLayers(layers);
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          setMapLoadError(
+            error instanceof Error ? error.message : "Failed to load map geography.",
           );
-        })}
-      </svg>
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const markerTheme =
+    assetType === "elevator"
+      ? {
+          ring: "stroke-cyan-400/70",
+          fill: "fill-cyan-500/25",
+          fillSelected: "fill-cyan-400/40",
+          ringSelected: "stroke-cyan-200",
+          count: "text-cyan-50",
+          badge: "bg-cyan-500/20 text-cyan-100 border-cyan-400/30",
+        }
+      : {
+          ring: "stroke-amber-400/70",
+          fill: "fill-amber-500/25",
+          fillSelected: "fill-amber-400/35",
+          ringSelected: "stroke-amber-200",
+          count: "text-amber-50",
+          badge: "bg-amber-500/20 text-amber-100 border-amber-400/30",
+        };
+
+  const cityMarkers = useMemo(
+    () =>
+      cities
+        .filter((city) => city.total > 0)
+        .map((city) => {
+          const point = projectSouthAfricaLonLat(city.longitude, city.latitude);
+          const projected = applyMapViewTransform(point, transform, SA_MAP_CENTER);
+          const labelOffsetX = city.labelOffsetX ?? 0;
+          const labelOffsetY = city.labelOffsetY ?? 0;
+          return { city, point: projected, labelOffsetX, labelOffsetY };
+        }),
+    [cities, transform],
+  );
+
+  const hoveredCity: HoveredCity =
+    cities.find((city) => city.cityId === hoveredCityId) ?? null;
+
+  function zoomBy(delta: number) {
+    setTransform((current) => ({
+      ...current,
+      scale: Math.min(MAX_SCALE, Math.max(MIN_SCALE, current.scale + delta)),
+    }));
+  }
+
+  function resetView() {
+    setTransform(SA_MAP_DEFAULT_TRANSFORM);
+  }
+
+  return (
+    <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-[#060b12]">
+      <div className="border-b border-white/8 px-4 py-3 sm:px-5">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-sky-300/85">
+              SAEC Installation Footprint
+            </p>
+            <h3 className="mt-1 text-base font-semibold text-white">South Africa</h3>
+            <p className="mt-0.5 text-xs text-white/45">
+              Live installation clusters from SAEC operational records
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <span
+              className={cn(
+                "rounded-full border px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em]",
+                markerTheme.badge,
+              )}
+            >
+              {assetTypeLabel(assetType)}
+            </span>
+            <div className="flex items-center rounded-lg border border-white/10 bg-[#0b1524] p-0.5">
+              <button
+                type="button"
+                aria-label="Zoom in"
+                onClick={() => zoomBy(ZOOM_STEP)}
+                className="rounded-md p-1.5 text-white/60 hover:bg-white/5 hover:text-white"
+              >
+                <Plus className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                aria-label="Zoom out"
+                onClick={() => zoomBy(-ZOOM_STEP)}
+                className="rounded-md p-1.5 text-white/60 hover:bg-white/5 hover:text-white"
+              >
+                <Minus className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                aria-label="Reset map view"
+                onClick={resetView}
+                className="rounded-md p-1.5 text-white/60 hover:bg-white/5 hover:text-white"
+              >
+                <RotateCcw className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="relative px-3 pb-3 pt-2 sm:px-4 sm:pb-4">
+        {mapLoadError && (
+          <div className="mb-3 rounded-lg border border-red-400/25 bg-red-500/10 px-3 py-2 text-xs text-red-100">
+            {mapLoadError}
+          </div>
+        )}
+
+        {!mapLayers && !mapLoadError && (
+          <div className="flex min-h-[360px] items-center justify-center text-sm text-white/45 lg:min-h-[520px]">
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            Loading South Africa geography…
+          </div>
+        )}
+
+        {mapLayers && (
+        <svg
+          viewBox={`0 0 ${SA_MAP_VIEWBOX.width} ${SA_MAP_VIEWBOX.height}`}
+          className="mx-auto h-auto w-full min-h-[360px] max-h-none sm:min-h-[440px] lg:min-h-[520px] xl:min-h-[560px]"
+          role="img"
+          aria-label="Geographic map of South Africa showing SAEC installation clusters"
+        >
+          <defs>
+            <linearGradient id="saec-land-fill" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#1e293b" stopOpacity="0.95" />
+              <stop offset="100%" stopColor="#0f172a" stopOpacity="0.98" />
+            </linearGradient>
+            <filter id="saec-marker-glow" x="-40%" y="-40%" width="180%" height="180%">
+              <feGaussianBlur stdDeviation="3" result="blur" />
+              <feMerge>
+                <feMergeNode in="blur" />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
+          </defs>
+
+          <rect
+            x="0"
+            y="0"
+            width={SA_MAP_VIEWBOX.width}
+            height={SA_MAP_VIEWBOX.height}
+            fill="#030712"
+          />
+
+          <g>
+            {mapLayers.provincePaths.map((path, index) => (
+              <path
+                key={`province-${index}`}
+                d={path}
+                fill="url(#saec-land-fill)"
+                stroke="rgba(148, 163, 184, 0.22)"
+                strokeWidth={0.75}
+                strokeLinejoin="round"
+              />
+            ))}
+            {mapLayers.countryPath && (
+              <path
+                d={mapLayers.countryPath}
+                fill="none"
+                stroke="rgba(56, 189, 248, 0.45)"
+                strokeWidth={1.4}
+                strokeLinejoin="round"
+              />
+            )}
+          </g>
+
+          {cityMarkers.map(({ city, point, labelOffsetX, labelOffsetY }) => {
+            const selected = city.cityId === selectedCityId;
+            const hovered = city.cityId === hoveredCityId;
+            const radius = selected ? 30 : hovered ? 27 : 24;
+            return (
+              <g
+                key={city.cityId}
+                transform={`translate(${point.x}, ${point.y})`}
+                className="cursor-pointer"
+                onClick={() => onSelectCity(city.cityId)}
+                onMouseEnter={() => setHoveredCityId(city.cityId)}
+                onMouseLeave={() => setHoveredCityId((id) => (id === city.cityId ? null : id))}
+                onFocus={() => setHoveredCityId(city.cityId)}
+                onBlur={() => setHoveredCityId((id) => (id === city.cityId ? null : id))}
+                filter={selected || hovered ? "url(#saec-marker-glow)" : undefined}
+              >
+                <circle
+                  r={radius}
+                  className={cn(
+                    "transition-all duration-200",
+                    selected ? markerTheme.fillSelected : markerTheme.fill,
+                    selected ? markerTheme.ringSelected : markerTheme.ring,
+                  )}
+                  strokeWidth={selected ? 2.5 : 1.5}
+                />
+                <text
+                  y={-4}
+                  textAnchor="middle"
+                  className={cn("font-semibold tabular-nums", markerTheme.count)}
+                  style={{ fontSize: 13, fontWeight: 700 }}
+                >
+                  {city.total}
+                </text>
+                <text
+                  y={labelOffsetY + 16}
+                  x={labelOffsetX}
+                  textAnchor="middle"
+                  className="fill-white/75"
+                  style={{ fontSize: 10, fontWeight: 600 }}
+                >
+                  {city.cityLabel}
+                </text>
+              </g>
+            );
+          })}
+        </svg>
+        )}
+
+        {mapLayers && hoveredCity && (
+          <div
+            className="pointer-events-none absolute left-4 top-4 z-10 max-w-[220px] rounded-xl border border-white/12 bg-[#0b1524]/95 px-3 py-2.5 shadow-xl backdrop-blur-sm"
+          >
+            <p className="text-sm font-semibold text-white">{hoveredCity.cityLabel}</p>
+            <p className="mt-1 text-xs text-white/55">
+              {hoveredCity.total} {assetTypeLabel(assetType)}
+            </p>
+            <ul className="mt-2 space-y-1 text-[11px] text-white/70">
+              <li className="flex items-center gap-2">
+                <span className="h-2 w-2 rounded-full bg-emerald-400" />
+                {hoveredCity.online} Online
+              </li>
+              <li className="flex items-center gap-2">
+                <span className="h-2 w-2 rounded-full bg-amber-400" />
+                {hoveredCity.maintenanceDue} Maintenance Due
+              </li>
+              <li className="flex items-center gap-2">
+                <span className="h-2 w-2 rounded-full bg-red-400" />
+                {hoveredCity.offline} Offline
+              </li>
+            </ul>
+          </div>
+        )}
+
+        {mapLayers && (
+        <div className="mt-2 flex flex-wrap items-center justify-between gap-3 px-1 text-[10px] text-white/40">
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="flex items-center gap-1.5">
+              <span className="h-2 w-2 rounded-full bg-emerald-400" />
+              Online
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="h-2 w-2 rounded-full bg-red-400" />
+              Offline
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="h-2 w-2 rounded-full bg-amber-400" />
+              Maintenance Due
+            </span>
+            <span className="text-white/30">·</span>
+            <span>
+              Showing <span className="text-white/60">{assetTypeShort(assetType)}</span> clusters
+            </span>
+          </div>
+          <p className="max-w-md text-right leading-snug">{SA_MAP_ATTRIBUTION}</p>
+        </div>
+        )}
+      </div>
     </div>
   );
 }

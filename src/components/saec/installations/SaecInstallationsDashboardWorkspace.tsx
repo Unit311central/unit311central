@@ -116,14 +116,15 @@ export default function SaecInstallationsDashboardWorkspace({
         <>
           <SaecInstallationsKpiBar kpis={dashboard.kpis} assetTypeLabel={assetLabel} />
 
-          <div className="grid gap-4 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
+          <div className="grid gap-4 xl:grid-cols-[minmax(0,7fr)_minmax(280px,3fr)]">
             <SaecSouthAfricaMap
               cities={dashboard.cities}
               selectedCityId={selectedCityId}
+              assetType={assetType}
               onSelectCity={setSelectedCityId}
             />
 
-            <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+            <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 xl:min-h-[560px]">
               {selectedCity ? (
                 <div className="space-y-4">
                   <div>
@@ -162,7 +163,7 @@ export default function SaecInstallationsDashboardWorkspace({
                   </div>
                 </div>
               ) : (
-                <div className="flex h-full min-h-[260px] flex-col items-center justify-center text-center text-white/40">
+                <div className="flex h-full min-h-[280px] flex-col items-center justify-center text-center text-white/40 xl:min-h-[480px]">
                   <MapPin className="mb-2 h-8 w-8 opacity-50" />
                   <p className="text-sm">Select a city on the map to view installation detail.</p>
                 </div>

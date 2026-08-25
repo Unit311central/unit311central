@@ -40,9 +40,13 @@ export type SaecInstallationCityId =
 export type SaecInstallationCity = {
   id: SaecInstallationCityId;
   label: string;
-  /** SVG map coordinates (viewBox 0–1000 × 0–800). */
-  mapX: number;
-  mapY: number;
+  /** WGS84 latitude for geographic map placement. */
+  latitude: number;
+  /** WGS84 longitude for geographic map placement. */
+  longitude: number;
+  /** Optional label offset (px) when cities cluster — marker stays at geographic point. */
+  labelOffsetX?: number;
+  labelOffsetY?: number;
 };
 
 export type SaecInstallationAsset = {
@@ -101,8 +105,10 @@ export type SaecMaintenanceRecord = {
 export type SaecCityAggregate = {
   cityId: SaecInstallationCityId;
   cityLabel: string;
-  mapX: number;
-  mapY: number;
+  latitude: number;
+  longitude: number;
+  labelOffsetX?: number;
+  labelOffsetY?: number;
   total: number;
   online: number;
   offline: number;

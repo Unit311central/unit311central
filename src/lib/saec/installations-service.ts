@@ -266,8 +266,10 @@ function buildCityAggregates(
     return {
       cityId: city.id,
       cityLabel: city.label,
-      mapX: city.mapX,
-      mapY: city.mapY,
+      latitude: city.latitude,
+      longitude: city.longitude,
+      labelOffsetX: city.labelOffsetX,
+      labelOffsetY: city.labelOffsetY,
       total: cityAssets.length,
       online: cityAssets.filter((row) => row.status === "online").length,
       offline: cityAssets.filter((row) => row.status === "offline").length,

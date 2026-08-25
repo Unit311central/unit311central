@@ -17,17 +17,39 @@ export const SAEC_INSTALLATION_CITY_COUNTS: Record<
   pietermaritzburg: { elevators: 25, escalators: 25 },
 };
 
+/** WGS84 coordinates — geographic placement for the installations map. */
 export const SAEC_INSTALLATION_CITIES: SaecInstallationCity[] = [
-  { id: "johannesburg", label: "Johannesburg", mapX: 520, mapY: 360 },
-  { id: "cape-town", label: "Cape Town", mapX: 130, mapY: 620 },
-  { id: "durban", label: "Durban", mapX: 720, mapY: 470 },
-  { id: "pretoria", label: "Pretoria", mapX: 545, mapY: 320 },
-  { id: "gqeberha", label: "Gqeberha", mapX: 660, mapY: 540 },
-  { id: "vereeniging", label: "Vereeniging", mapX: 495, mapY: 410 },
-  { id: "soshanguve", label: "Soshanguve", mapX: 560, mapY: 335 },
-  { id: "east-london", label: "East London", mapX: 700, mapY: 520 },
-  { id: "bloemfontein", label: "Bloemfontein", mapX: 470, mapY: 500 },
-  { id: "pietermaritzburg", label: "Pietermaritzburg", mapX: 690, mapY: 440 },
+  { id: "johannesburg", label: "Johannesburg", latitude: -26.2041, longitude: 28.0473 },
+  { id: "cape-town", label: "Cape Town", latitude: -33.9249, longitude: 18.4241 },
+  { id: "durban", label: "Durban", latitude: -29.8587, longitude: 31.0218 },
+  {
+    id: "pretoria",
+    label: "Pretoria",
+    latitude: -25.7461,
+    longitude: 28.1881,
+    labelOffsetX: -28,
+    labelOffsetY: -10,
+  },
+  { id: "gqeberha", label: "Gqeberha", latitude: -33.9608, longitude: 25.6022 },
+  {
+    id: "vereeniging",
+    label: "Vereeniging",
+    latitude: -26.6731,
+    longitude: 27.9265,
+    labelOffsetX: -34,
+    labelOffsetY: 8,
+  },
+  {
+    id: "soshanguve",
+    label: "Soshanguve",
+    latitude: -25.4729,
+    longitude: 28.0992,
+    labelOffsetX: 30,
+    labelOffsetY: -8,
+  },
+  { id: "east-london", label: "East London", latitude: -33.0153, longitude: 27.9116 },
+  { id: "bloemfontein", label: "Bloemfontein", latitude: -29.0852, longitude: 26.1596 },
+  { id: "pietermaritzburg", label: "Pietermaritzburg", latitude: -29.6006, longitude: 30.3794 },
 ];
 
 export const SAEC_FICTIONAL_SITES: Record<SaecInstallationCityId, string[]> = {
