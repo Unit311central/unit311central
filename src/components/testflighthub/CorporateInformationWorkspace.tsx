@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
+import { useScrollWindowToTopOnChange } from "@/hooks/useScrollToTopOnChange";
+
 import {
   isCorporateInformationTab,
   legacyCorporateViewToTab,
@@ -64,6 +66,8 @@ export default function CorporateInformationWorkspace({
   useEffect(() => {
     setTab(resolveTab(searchParams, forcedTab));
   }, [searchParams, forcedTab]);
+
+  useScrollWindowToTopOnChange(tab);
 
   return (
     <div className="space-y-4">

@@ -3,6 +3,8 @@
 import { useMemo, useState } from "react";
 import { AlertTriangle, Plus, Search, Star, X } from "lucide-react";
 
+import { useScrollToTopOnChange } from "@/hooks/useScrollToTopOnChange";
+
 import {
   CORPORATE_BANK_ACCOUNT_TYPES,
   CORPORATE_BANK_STATUSES,
@@ -127,10 +129,11 @@ function BankDetailPanel({
   onArchive: () => void;
   onMarkPrimary: () => void;
 }) {
+  const scrollRef = useScrollToTopOnChange(account.id);
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-black/50 backdrop-blur-sm">
       <button type="button" className="flex-1" aria-label="Close panel" onClick={onClose} />
-      <aside className="flex h-full w-full max-w-lg flex-col border-l border-white/15 bg-[#0b1524] shadow-[-24px_0_64px_rgba(0,0,0,0.45)]">
+      <aside className="flex h-full w-full max-w-xl flex-col border-l border-white/15 bg-[#0b1524] shadow-[-24px_0_64px_rgba(0,0,0,0.45)]">
         <div className="border-b border-white/10 px-5 py-4">
           <div className="flex items-start justify-between gap-3">
             <div>
@@ -160,7 +163,7 @@ function BankDetailPanel({
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-5 py-4">
+        <div ref={scrollRef} className="flex-1 overflow-y-auto px-5 py-4">
           <div className="grid gap-3 sm:grid-cols-2">
             <Info label="Bank" value={account.bank} />
             <Info label="Account holder" value={account.accountHolder} />
