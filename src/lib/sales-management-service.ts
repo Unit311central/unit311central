@@ -1,6 +1,5 @@
 import type { SalesQuote } from "@/lib/accounting/types";
 import type { CrmLead } from "@/lib/crm-data";
-import { listSalesQuotes } from "@/lib/accounting/sales-quotes-service";
 import { mapCrmActivity, type CrmActivity } from "@/lib/crm-contact-data";
 import { listLeads } from "@/lib/crm-leads-service";
 import { listFounderSessionBookings } from "@/lib/founder-booking/service";
@@ -14,9 +13,11 @@ import {
   isOpenPipelineLead,
   isOpportunityLead,
   isProspectLead,
+  resolveLeadWinProbability,
   type SalesDashboardMeetingSummary,
   type SalesReportingCurrency,
 } from "@/lib/sales-management-insights";
+import { resolveSlugReportingCurrency } from "@/lib/financial-reporting-currency";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
 import { createTenancyServerClient } from "@/lib/supabase/tenancy-server";
 
@@ -523,6 +524,72 @@ export function filterLeadsForUser(
   return leads.filter((lead) => !lead.ownerUserId || teamMemberIds.has(lead.ownerUserId ?? ""));
 }
 
+export async function loadSalesQuotesForWorkspace(input: {
+  workspaceId: string;
+  workspaceSlug: string;
+}): Promise<SalesQuote[]> {
+  if (!isSupabaseConfigured()) return [];
+  const supabase = requireSupabase();
+  const { data, error } = await supabase
+    .from("sales_quotes")
+    .select("*")
+    .eq("workspace_id", input.workspaceId)
+    .order("created_at", { ascending: false });
+  if (error) {
+    if (error.message.includes("sales_quotes")) return [];
+    throw new Error(error.message);
+  }
+  const ids = (data ?? []).map((row) => String(row.id));
+  if (!ids.length) return [];
+
+  const { data: lineRows, error: lineError } = await supabase
+    .from("sales_quote_line_items")
+    .select("*")
+    .in("quote_id", ids)
+    .order("line_number", { ascending: true });
+  if (lineError) throw new Error(lineError.message);
+
+  const linesByQuote = new Map<string, SalesQuote["lineItems"]>();
+  for (const row of lineRows ?? []) {
+    const quoteId = String(row.quote_id);
+    const items = linesByQuote.get(quoteId) ?? [];
+    items.push({
+      id: String(row.id),
+      lineNumber: Number(row.line_number) || 0,
+      description: String(row.description),
+      quantity: Number(row.quantity) || 0,
+      unitPrice: Number(row.unit_price) || 0,
+      amount: Number(row.amount) || 0,
+    });
+    linesByQuote.set(quoteId, items);
+  }
+
+  return (data ?? []).map((row) => ({
+    id: String(row.id),
+    workspaceId: String(row.workspace_id),
+    quoteNumber: String(row.quote_number),
+    crmLeadId: row.crm_lead_id ? String(row.crm_lead_id) : null,
+    clientId: row.client_id ? String(row.client_id) : null,
+    companyName: String(row.company_name),
+    contactName: row.contact_name ? String(row.contact_name) : null,
+    contactEmail: row.contact_email ? String(row.contact_email) : null,
+    title: String(row.title ?? "Sales quote"),
+    currency: String(row.currency ?? "GBP"),
+    subtotal: Number(row.subtotal) || 0,
+    taxAmount: Number(row.tax_amount) || 0,
+    totalAmount: Number(row.total_amount) || 0,
+    status: row.status as SalesQuote["status"],
+    validUntil: row.valid_until ? String(row.valid_until) : null,
+    pdfPath: row.pdf_path ? String(row.pdf_path) : null,
+    invoiceId: row.invoice_id ? String(row.invoice_id) : null,
+    stripePaymentLinkUrl: row.stripe_payment_link_url ? String(row.stripe_payment_link_url) : null,
+    notes: row.notes ? String(row.notes) : null,
+    lineItems: linesByQuote.get(String(row.id)) ?? [],
+    createdAt: String(row.created_at),
+    updatedAt: String(row.updated_at),
+  }));
+}
+
 export async function loadSalesWorkspaceBundle(input: {
   workspaceId: string;
   workspaceSlug: string;
@@ -531,7 +598,10 @@ export async function loadSalesWorkspaceBundle(input: {
 }): Promise<SalesWorkspaceBundle> {
   const [leads, quotes, meetings, teams] = await Promise.all([
     listLeads("All", { workspaceId: input.workspaceId }),
-    listSalesQuotes({ workspaceId: input.workspaceId, workspaceSlug: input.workspaceSlug }),
+    loadSalesQuotesForWorkspace({
+      workspaceId: input.workspaceId,
+      workspaceSlug: input.workspaceSlug,
+    }),
     loadMeetings(input.workspaceId),
     loadSalesTeams(input.workspaceId),
   ]);
@@ -543,9 +613,10 @@ export async function loadSalesWorkspaceBundle(input: {
     return personByUserId[userId]?.displayName ?? "Unknown";
   };
 
+  const reportingCurrency = resolveSlugReportingCurrency(input.workspaceSlug) as SalesReportingCurrency;
   const currentPerson = personByUserId[input.currentUserId];
   const context: SalesWorkspaceContext = {
-    currency: "GBP",
+    currency: reportingCurrency,
     currentUserId: input.currentUserId,
     currentUserName: input.currentUserName,
     isSalesperson: Boolean(currentPerson),
@@ -582,6 +653,8 @@ export async function loadSalesWorkspaceBundle(input: {
     quotes,
     meetings,
     displayNameForUserId,
+    workspaceSlug: input.workspaceSlug,
+    reportingCurrency,
   });
 
   return {
@@ -614,9 +687,12 @@ export function buildPipelineBySalesperson(
 }
 
 export function buildForecastSummary(leads: CrmLead[], quotes: SalesQuote[]) {
-  const openPipeline = leads
-    .filter((lead) => isOpenPipelineLead(lead.status))
-    .reduce((sum, lead) => sum + (lead.estimatedValue ?? 0), 0);
+  const openLeads = leads.filter((lead) => isOpenPipelineLead(lead.status));
+  const openPipeline = openLeads.reduce((sum, lead) => sum + (lead.estimatedValue ?? 0), 0);
+  const weightedPipeline = openLeads.reduce(
+    (sum, lead) => sum + (lead.estimatedValue ?? 0) * (resolveLeadWinProbability(lead) / 100),
+    0,
+  );
   const committedWon = leads
     .filter((lead) => lead.status === "Won")
     .reduce((sum, lead) => sum + (lead.estimatedValue ?? 0), 0);
@@ -626,13 +702,15 @@ export function buildForecastSummary(leads: CrmLead[], quotes: SalesQuote[]) {
 
   return {
     openPipelineValue: openPipeline,
+    weightedPipelineValue: Math.round(weightedPipeline),
     committedWonValue: committedWon,
     acceptedQuotesValue: acceptedQuotes,
     totalVisibleForecast: openPipeline + committedWon + acceptedQuotes,
+    weightedForecastTotal: Math.round(weightedPipeline + committedWon + acceptedQuotes),
     assumptions: [
-      "Open pipeline uses full estimated values — no probability weighting is applied.",
-      "Committed forecast includes Won opportunities and accepted sales quotes only.",
-      "Per-opportunity probability weighting is not configured in CRM yet.",
+      "Open pipeline uses full estimated values on the Pipeline and Performance views.",
+      "Weighted forecast = sum(open opportunity value × win probability) using crm_leads.win_probability, or status defaults when unset.",
+      "Committed forecast includes Won opportunities and accepted sales quotes.",
     ],
   };
 }
@@ -825,6 +903,154 @@ export async function deleteSalesCommissionRule(workspaceId: string, ruleId: str
     .delete()
     .eq("workspace_id", workspaceId)
     .eq("id", ruleId);
+  if (error) throw new Error(error.message);
+}
+
+export async function createSalesActivity(input: {
+  workspaceId: string;
+  crmLeadId: string;
+  title: string;
+  activityType?: string;
+  subject?: string | null;
+  message?: string | null;
+  occurredAt?: string | null;
+  createdBy?: string | null;
+}): Promise<CrmActivity> {
+  const supabase = requireSupabase();
+  const { data, error } = await supabase
+    .from("crm_activities")
+    .insert({
+      workspace_id: input.workspaceId,
+      crm_lead_id: input.crmLeadId,
+      activity_type: input.activityType ?? "sales_activity",
+      title: input.title.trim(),
+      subject: input.subject?.trim() || null,
+      message: input.message?.trim() || null,
+      occurred_at: input.occurredAt ?? new Date().toISOString(),
+      created_by: input.createdBy ?? null,
+    })
+    .select("*")
+    .single();
+  if (error) throw new Error(error.message);
+  return mapCrmActivity(data);
+}
+
+export async function updateSalesActivity(input: {
+  workspaceId: string;
+  activityId: string;
+  title?: string;
+  subject?: string | null;
+  message?: string | null;
+  occurredAt?: string | null;
+}): Promise<CrmActivity> {
+  const supabase = requireSupabase();
+  const patch: Record<string, unknown> = {};
+  if (input.title != null) patch.title = input.title.trim();
+  if (input.subject !== undefined) patch.subject = input.subject?.trim() || null;
+  if (input.message !== undefined) patch.message = input.message?.trim() || null;
+  if (input.occurredAt !== undefined) patch.occurred_at = input.occurredAt;
+  const { data, error } = await supabase
+    .from("crm_activities")
+    .update(patch)
+    .eq("workspace_id", input.workspaceId)
+    .eq("id", input.activityId)
+    .select("*")
+    .single();
+  if (error) throw new Error(error.message);
+  return mapCrmActivity(data);
+}
+
+export async function deleteSalesActivity(workspaceId: string, activityId: string): Promise<void> {
+  const supabase = requireSupabase();
+  const { error } = await supabase
+    .from("crm_activities")
+    .delete()
+    .eq("workspace_id", workspaceId)
+    .eq("id", activityId);
+  if (error) throw new Error(error.message);
+}
+
+export async function createSalesDiscoverySession(input: {
+  workspaceId: string;
+  name: string;
+  organization: string;
+  role?: string | null;
+  email: string;
+  startsAt: string;
+  endsAt?: string | null;
+  clientTimezone?: string | null;
+  status?: string;
+  crmLeadId?: string | null;
+}) {
+  const supabase = requireSupabase();
+  const startsAt = input.startsAt;
+  const endsAt =
+    input.endsAt ??
+    new Date(new Date(startsAt).getTime() + 45 * 60_000).toISOString();
+  const slugBase = input.organization
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, 40);
+  const meetingSlug = `${slugBase || "discovery"}-${Date.now().toString(36)}`;
+
+  const { data, error } = await supabase
+    .from("founder_session_bookings")
+    .insert({
+      workspace_id: input.workspaceId,
+      name: input.name.trim(),
+      organization: input.organization.trim(),
+      role: input.role?.trim() || null,
+      email: input.email.trim().toLowerCase(),
+      starts_at: startsAt,
+      ends_at: endsAt,
+      video_link: `https://meet.demo.unit311central.com/${meetingSlug}`,
+      meeting_slug: meetingSlug,
+      status: input.status ?? "scheduled",
+      client_timezone: input.clientTimezone?.trim() || "Europe/London",
+      crm_lead_id: input.crmLeadId ?? null,
+    })
+    .select("*")
+    .single();
+  if (error) throw new Error(error.message);
+  return data;
+}
+
+export async function updateSalesTarget(input: {
+  workspaceId: string;
+  targetId: string;
+  ownerUserId?: string | null;
+  teamId?: string | null;
+  periodType?: SalesTargetRecord["periodType"];
+  periodStart?: string;
+  periodEnd?: string;
+  targetValue?: number;
+  notes?: string | null;
+}): Promise<void> {
+  const supabase = requireSupabase();
+  const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
+  if (input.ownerUserId !== undefined) patch.owner_user_id = input.ownerUserId;
+  if (input.teamId !== undefined) patch.team_id = input.teamId;
+  if (input.periodType) patch.period_type = input.periodType;
+  if (input.periodStart) patch.period_start = input.periodStart;
+  if (input.periodEnd) patch.period_end = input.periodEnd;
+  if (input.targetValue != null) patch.target_value = input.targetValue;
+  if (input.notes !== undefined) patch.notes = input.notes;
+  const { error } = await supabase
+    .from("sales_targets")
+    .update(patch)
+    .eq("workspace_id", input.workspaceId)
+    .eq("id", input.targetId);
+  if (error) throw new Error(error.message);
+}
+
+export async function deleteSalesTarget(workspaceId: string, targetId: string): Promise<void> {
+  const supabase = requireSupabase();
+  const { error } = await supabase
+    .from("sales_targets")
+    .delete()
+    .eq("workspace_id", workspaceId)
+    .eq("id", targetId);
   if (error) throw new Error(error.message);
 }
 

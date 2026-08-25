@@ -30,7 +30,7 @@ import { useInternalOperationsBasePath } from "@/components/testflighthub/Intern
 
 import { getInternalNavHref } from "@/lib/internal-operations-data";
 
-import { formatSalesMoney, salesReportingCurrency } from "@/lib/sales-management-insights";
+import { formatSalesMoney } from "@/lib/sales-management-insights";
 
 import type { CrmLead } from "@/lib/crm-data";
 
@@ -118,7 +118,7 @@ export function SalesManagementMySalesTab() {
 
   };
 
-  const currency = salesReportingCurrency();
+  const currency = (data.context.currency ?? "GBP") as "GBP" | "USD" | "AUD";
 
   const money = (value: number) => formatSalesMoney(value, currency);
 
@@ -170,7 +170,9 @@ export function SalesManagementMySalesTab() {
 
             {mySales.pipeline.slice(0, 8).map((lead) => (
 
-              <SalesRegisterCard key={lead.id}>
+              <Link key={lead.id} href={href(`opportunities?leadId=${encodeURIComponent(lead.id)}`)}>
+
+              <SalesRegisterCard>
 
                 <div className="flex items-center justify-between gap-3">
 
@@ -187,6 +189,8 @@ export function SalesManagementMySalesTab() {
                 </div>
 
               </SalesRegisterCard>
+
+              </Link>
 
             ))}
 
@@ -472,7 +476,7 @@ export function SalesManagementSalesTeamTab() {
 
                       <td className="px-4 py-3 tabular-nums">{row.openOpportunityCount}</td>
 
-                      <td className="px-4 py-3 tabular-nums">{formatSalesMoney(row.pipelineValue)}</td>
+                      <td className="px-4 py-3 tabular-nums">{formatSalesMoney(row.pipelineValue, data.context.currency ?? "GBP")}</td>
 
                       <td className="px-4 py-3 tabular-nums">{row.wonCount}</td>
 

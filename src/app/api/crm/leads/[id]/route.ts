@@ -33,6 +33,8 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       nextAction?: string;
       nextActionDate?: string | null;
       estimatedValue?: number | null;
+      winProbability?: number | null;
+      ownerUserId?: string | null;
       notes?: string;
       discoveryNotes?: string;
     };

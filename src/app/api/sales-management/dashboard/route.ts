@@ -1,30 +1,19 @@
 import { NextResponse } from "next/server";
 
-import { listSalesQuotes } from "@/lib/accounting/sales-quotes-service";
 import { listLeads } from "@/lib/crm-leads-service";
-import { isDemoApiRequest } from "@/lib/demo/demo-request";
-import { getNorthstarCrmLeads, getNorthstarDiscoveryMeetings } from "@/lib/demo/module-fixtures";
 import { listFounderSessionBookings } from "@/lib/founder-booking/service";
 import { formatLondonDateTime } from "@/lib/founder-booking/slots";
 import { formatDateTimeInTimezone, getFounderBookingTimezone } from "@/lib/founder-booking/timezones";
+import { resolveSlugReportingCurrency } from "@/lib/financial-reporting-currency";
 import { requirePlatformSession } from "@/lib/platform-session";
 import { buildSalesDashboardMetrics, type SalesDashboardMeetingSummary } from "@/lib/sales-management-insights";
+import { loadSalesQuotesForWorkspace } from "@/lib/sales-management-service";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
 import { requireCurrentWorkspace } from "@/lib/workspace-context";
 
 export const dynamic = "force-dynamic";
 
 async function loadMeetings(workspaceId: string): Promise<SalesDashboardMeetingSummary[]> {
-  if (await isDemoApiRequest()) {
-    return getNorthstarDiscoveryMeetings().map((meeting) => ({
-      id: meeting.id,
-      organization: meeting.organization,
-      name: meeting.name,
-      formattedWhen: meeting.formattedWhenGmt,
-      status: meeting.status,
-    }));
-  }
-
   const bookings = await listFounderSessionBookings({ workspaceId });
   return Promise.all(
     bookings.map(async (booking) => {
@@ -44,30 +33,30 @@ async function loadMeetings(workspaceId: string): Promise<SalesDashboardMeetingS
 
 export async function GET() {
   try {
-    if (await isDemoApiRequest()) {
-      const leads = getNorthstarCrmLeads();
-      const quotes = await listSalesQuotes({ workspaceSlug: "demo" });
-      const meetings = await loadMeetings("demo");
-      return NextResponse.json({
-        metrics: buildSalesDashboardMetrics({ leads, quotes, meetings }),
-        workspace: { id: "demo", slug: "demo", name: "Demo" },
-      });
-    }
-
     if (!isSupabaseConfigured()) {
       return NextResponse.json({ error: "Supabase is not configured." }, { status: 503 });
     }
 
     await requirePlatformSession();
     const workspace = await requireCurrentWorkspace();
+    const reportingCurrency = resolveSlugReportingCurrency(workspace.slug);
     const [leads, quotes, meetings] = await Promise.all([
       listLeads("All", { workspaceId: workspace.id }),
-      listSalesQuotes({ workspaceId: workspace.id, workspaceSlug: workspace.slug }),
+      loadSalesQuotesForWorkspace({
+        workspaceId: workspace.id,
+        workspaceSlug: workspace.slug,
+      }),
       loadMeetings(workspace.id),
     ]);
 
     return NextResponse.json({
-      metrics: buildSalesDashboardMetrics({ leads, quotes, meetings }),
+      metrics: buildSalesDashboardMetrics({
+        leads,
+        quotes,
+        meetings,
+        workspaceSlug: workspace.slug,
+        reportingCurrency: reportingCurrency as import("@/lib/sales-management-insights").SalesReportingCurrency,
+      }),
       workspace: { id: workspace.id, slug: workspace.slug, name: workspace.name },
     });
   } catch (error) {

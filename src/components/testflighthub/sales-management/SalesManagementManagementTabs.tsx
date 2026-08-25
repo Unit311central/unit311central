@@ -2,6 +2,8 @@
 
 
 
+import Link from "next/link";
+
 import { useState } from "react";
 
 import {
@@ -37,6 +39,10 @@ import { BadgePercent, CalendarRange, ClipboardList, Pencil, Plus, Trash2 } from
 
 
 import { formatSalesMoney } from "@/lib/sales-management-insights";
+
+import { useInternalOperationsBasePath } from "@/components/testflighthub/InternalOperationsBasePathContext";
+
+import { getInternalNavHref } from "@/lib/internal-operations-data";
 
 import { cn } from "@/lib/utils";
 
@@ -93,6 +99,12 @@ export function SalesManagementActivitiesTab() {
   const { data, loading, error, reload } = useSalesWorkspaceSection("activities");
 
   const [filter, setFilter] = useState<"all" | "upcoming" | "overdue" | "completed" | "meetings">("all");
+  const [createOpen, setCreateOpen] = useState(false);
+  const [draftTitle, setDraftTitle] = useState("");
+  const [draftLeadId, setDraftLeadId] = useState("");
+  const [draftMessage, setDraftMessage] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
 
 
 
@@ -144,6 +156,36 @@ export function SalesManagementActivitiesTab() {
 
   if (error || !data) return <SalesManagementError message={error ?? "Unable to load activities."} onRetry={() => void reload()} />;
 
+  async function handleCreateActivity() {
+    setSaving(true);
+    setFormError(null);
+    try {
+      const res = await fetch("/api/sales-management/activities", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          crmLeadId: draftLeadId,
+          title: draftTitle,
+          message: draftMessage,
+          activityType: "sales_activity",
+        }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(body.error ?? "Unable to create activity.");
+      setCreateOpen(false);
+      setDraftTitle("");
+      setDraftLeadId("");
+      setDraftMessage("");
+      await reload();
+    } catch (err) {
+      setFormError(err instanceof Error ? err.message : "Unable to create activity.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const leadOptions = (data.mySales as { pipeline?: Array<{ id: string; companyName: string }> })?.pipeline ?? [];
+
 
 
   const filters = [
@@ -174,7 +216,42 @@ export function SalesManagementActivitiesTab() {
 
       />
 
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="text-xs text-white/45">Activities combine CRM follow-ups, discovery meetings, and logged sales activity.</p>
+        <button type="button" className={WsPrimaryButtonClass()} onClick={() => setCreateOpen((open) => !open)}>
+          <Plus className="h-3.5 w-3.5" />
+          Add activity
+        </button>
+      </div>
 
+      {createOpen ? (
+        <div className="space-y-3 rounded-xl border border-white/10 bg-white/[0.03] p-4">
+          <label className="block space-y-1">
+            <span className="text-[10px] font-semibold uppercase tracking-wide text-white/45">Linked opportunity</span>
+            <select className={WsInputClass()} value={draftLeadId} onChange={(e) => setDraftLeadId(e.target.value)}>
+              <option value="">Select CRM opportunity</option>
+              {leadOptions.map((lead) => (
+                <option key={lead.id} value={lead.id}>{lead.companyName}</option>
+              ))}
+            </select>
+          </label>
+          <label className="block space-y-1">
+            <span className="text-[10px] font-semibold uppercase tracking-wide text-white/45">Title</span>
+            <input className={WsInputClass()} value={draftTitle} onChange={(e) => setDraftTitle(e.target.value)} placeholder="Follow-up call" />
+          </label>
+          <label className="block space-y-1">
+            <span className="text-[10px] font-semibold uppercase tracking-wide text-white/45">Notes</span>
+            <input className={WsInputClass()} value={draftMessage} onChange={(e) => setDraftMessage(e.target.value)} placeholder="Optional detail" />
+          </label>
+          {formError ? <p className="text-xs text-rose-300">{formError}</p> : null}
+          <div className="flex gap-2">
+            <button type="button" className={WsPrimaryButtonClass()} disabled={saving} onClick={() => void handleCreateActivity()}>
+              {saving ? "Saving…" : "Save activity"}
+            </button>
+            <button type="button" className={WsSecondaryButtonClass()} onClick={() => setCreateOpen(false)}>Cancel</button>
+          </div>
+        </div>
+      ) : null}
 
       <SalesFilterBar>
 
@@ -349,6 +426,17 @@ export function SalesManagementTargetsTab() {
   }
 
 
+
+  async function deleteTarget(targetId: string) {
+    if (!window.confirm("Delete this target?")) return;
+    const res = await fetch(`/api/sales-management/targets?id=${encodeURIComponent(targetId)}`, { method: "DELETE" });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      window.alert(body.error ?? "Unable to delete target.");
+      return;
+    }
+    await reload();
+  }
 
   const fieldClass =
 
@@ -576,6 +664,19 @@ export function SalesManagementTargetsTab() {
 
                   </p>
 
+                  {data.context.isManager ? (
+                    <div className="flex justify-end pt-1">
+                      <button
+                        type="button"
+                        className={WsSecondaryButtonClass()}
+                        onClick={() => void deleteTarget(target.id)}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                        Delete
+                      </button>
+                    </div>
+                  ) : null}
+
                 </div>
 
               </SalesRegisterCard>
@@ -603,6 +704,9 @@ export function SalesManagementPerformanceTab() {
   if (loading) return <SalesManagementLoading label="Loading performance…" />;
 
   if (error || !data) return <SalesManagementError message={error ?? "Unable to load performance."} onRetry={() => void reload()} />;
+
+  const currency = (data.context.currency ?? "GBP") as "GBP" | "USD" | "AUD";
+  const money = (value: number) => formatSalesMoney(value, currency);
 
 
 
@@ -642,13 +746,13 @@ export function SalesManagementPerformanceTab() {
 
       <SalesKpiGrid>
 
-        <SalesKpiTile label="Won deals" value={String(performance.wonCount)} hint={formatSalesMoney(performance.wonValue)} />
+        <SalesKpiTile label="Won deals" value={String(performance.wonCount)} hint={money(performance.wonValue)} />
 
         <SalesKpiTile label="Lost deals" value={String(performance.lostCount)} hint="Closed-lost opportunities" />
 
         <SalesKpiTile label="Win rate" value={performance.conversionPct == null ? "—" : `${performance.conversionPct}%`} hint="Won / (won + lost)" />
 
-        <SalesKpiTile label="Open pipeline" value={formatSalesMoney(performance.openPipelineValue)} hint="Current open value" />
+        <SalesKpiTile label="Open pipeline" value={money(performance.openPipelineValue)} hint="Current open value" />
 
       </SalesKpiGrid>
 
@@ -676,7 +780,7 @@ export function SalesManagementPerformanceTab() {
 
                     </div>
 
-                    <p className="shrink-0 font-semibold tabular-nums text-violet-200">{formatSalesMoney(row.value)}</p>
+                    <p className="shrink-0 font-semibold tabular-nums text-violet-200">{money(row.value)}</p>
 
                   </div>
 
@@ -724,7 +828,7 @@ export function SalesManagementPerformanceTab() {
 
                   <YAxis type="category" dataKey="assignee" width={88} tick={{ fill: "rgba(255,255,255,0.65)", fontSize: 11 }} />
 
-                  <Tooltip content={<ChartTooltip valueFormatter={(v) => formatSalesMoney(Number(v))} />} />
+                  <Tooltip content={<ChartTooltip valueFormatter={(v) => money(Number(v))} />} />
 
                   <Bar dataKey="value" fill="#22c55e" radius={[0, 6, 6, 0]} barSize={18} />
 
@@ -760,17 +864,22 @@ export function SalesManagementForecastTab() {
 
   if (error || !data) return <SalesManagementError message={error ?? "Unable to load forecast."} onRetry={() => void reload()} />;
 
-
+  const currency = (data.context.currency ?? "GBP") as "GBP" | "USD" | "AUD";
+  const money = (value: number) => formatSalesMoney(value, currency);
 
   const forecast = data.forecast as {
 
     openPipelineValue: number;
+
+    weightedPipelineValue: number;
 
     committedWonValue: number;
 
     acceptedQuotesValue: number;
 
     totalVisibleForecast: number;
+
+    weightedForecastTotal: number;
 
     assumptions: string[];
 
@@ -800,19 +909,29 @@ export function SalesManagementForecastTab() {
 
         title="Forecast"
 
-        description="Forecast built from open pipeline, Won opportunities, and accepted quotes — without invented probability weighting."
+        description="Forecast built from open pipeline (full and probability-weighted), Won opportunities, and accepted quotes."
 
       />
 
       <SalesKpiGrid>
 
-        <SalesKpiTile label="Open pipeline" value={formatSalesMoney(forecast.openPipelineValue)} hint="Full estimated value" />
+        <SalesKpiTile label="Open pipeline" value={money(forecast.openPipelineValue)} hint="Full estimated value" />
 
-        <SalesKpiTile label="Committed (Won)" value={formatSalesMoney(forecast.committedWonValue)} hint="Closed-won opportunities" />
+        <SalesKpiTile label="Weighted pipeline" value={money(forecast.weightedPipelineValue)} hint="Open value × win probability" />
 
-        <SalesKpiTile label="Accepted quotes" value={formatSalesMoney(forecast.acceptedQuotesValue)} hint="Commercially accepted" />
+        <SalesKpiTile label="Committed (Won)" value={money(forecast.committedWonValue)} hint="Closed-won opportunities" />
 
-        <SalesKpiTile label="Visible forecast total" value={formatSalesMoney(forecast.totalVisibleForecast)} hint="Sum of components above" />
+        <SalesKpiTile label="Weighted forecast total" value={money(forecast.weightedForecastTotal)} hint="Weighted open + won + accepted quotes" />
+
+      </SalesKpiGrid>
+
+
+
+      <SalesKpiGrid columns={2}>
+
+        <SalesKpiTile label="Accepted quotes" value={money(forecast.acceptedQuotesValue)} hint="Commercially accepted" />
+
+        <SalesKpiTile label="Visible forecast total" value={money(forecast.totalVisibleForecast)} hint="Unweighted sum of components" />
 
       </SalesKpiGrid>
 
@@ -828,7 +947,7 @@ export function SalesManagementForecastTab() {
 
               <p className="text-xs font-semibold uppercase tracking-wide text-white/45">{item.label}</p>
 
-              <p className="mt-2 text-2xl font-semibold tabular-nums text-white">{formatSalesMoney(item.value)}</p>
+              <p className="mt-2 text-2xl font-semibold tabular-nums text-white">{money(item.value)}</p>
 
               <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/10">
 
@@ -1173,7 +1292,11 @@ export function SalesManagementCommissionsTab() {
 
 export function SalesManagementReportsTab() {
 
+  const basePath = useInternalOperationsBasePath();
   const { data, loading, error, reload } = useSalesWorkspaceSection("reports");
+  const href = (tab: string) => getInternalNavHref("sales-management", basePath, { tab });
+  const currency = (data?.context.currency ?? "GBP") as "GBP" | "USD" | "AUD";
+  const money = (value: number) => formatSalesMoney(value, currency);
 
   if (loading) return <SalesManagementLoading label="Loading reports…" />;
 
@@ -1235,11 +1358,23 @@ export function SalesManagementReportsTab() {
 
       <SalesKpiGrid columns={3}>
 
-        <SalesKpiTile label="Win rate" value={reports.conversionPct == null ? "—" : `${reports.conversionPct}%`} hint="Closed opportunities" />
+        <Link href={href("performance")} className="block rounded-xl transition hover:ring-1 hover:ring-violet-400/30">
 
-        <SalesKpiTile label="Upcoming activities" value={String(reports.activitySummary.upcoming)} hint="Scheduled follow-ups" />
+          <SalesKpiTile label="Win rate" value={reports.conversionPct == null ? "—" : `${reports.conversionPct}%`} hint="Closed opportunities — open Performance" />
 
-        <SalesKpiTile label="Overdue activities" value={String(reports.activitySummary.overdue)} hint="Needs action" />
+        </Link>
+
+        <Link href={href("activities")} className="block rounded-xl transition hover:ring-1 hover:ring-violet-400/30">
+
+          <SalesKpiTile label="Upcoming activities" value={String(reports.activitySummary.upcoming)} hint="Scheduled follow-ups — open Activities" />
+
+        </Link>
+
+        <Link href={href("activities")} className="block rounded-xl transition hover:ring-1 hover:ring-amber-400/30">
+
+          <SalesKpiTile label="Overdue activities" value={String(reports.activitySummary.overdue)} hint="Needs action — open Activities" />
+
+        </Link>
 
       </SalesKpiGrid>
 
@@ -1277,7 +1412,7 @@ export function SalesManagementReportsTab() {
 
                   </Pie>
 
-                  <Tooltip content={<ChartTooltip valueFormatter={(v) => formatSalesMoney(Number(v))} />} />
+                  <Tooltip content={<ChartTooltip valueFormatter={(v) => money(Number(v))} />} />
 
                 </PieChart>
 
@@ -1361,15 +1496,19 @@ export function SalesManagementReportsTab() {
 
           {reports.wonLost.map((row) => (
 
-            <div key={row.label} className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-4">
+            <Link key={row.label} href={href("performance")} className="block rounded-xl transition hover:ring-1 hover:ring-violet-400/30">
+
+            <div className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-4">
 
               <p className="text-sm font-medium text-white">{row.label}</p>
 
               <p className="mt-2 text-3xl font-semibold tabular-nums text-violet-200">{row.count}</p>
 
-              <p className="mt-1 text-xs text-white/45">{formatSalesMoney(row.value)}</p>
+              <p className="mt-1 text-xs text-white/45">{money(row.value)}</p>
 
             </div>
+
+            </Link>
 
           ))}
 
