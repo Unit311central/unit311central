@@ -79,11 +79,17 @@ function logoImageFormat(logoDataUrl: string): "PNG" | "JPEG" {
   return logoDataUrl.startsWith("data:image/png") ? "PNG" : "JPEG";
 }
 
-function isNorthstarBoardPack(brand?: AbhiBoardPackData | null): boolean {
-  return /northstar/i.test(brand?.coverBrand?.orgLine ?? "");
+function isDemoBoardPack(brand?: AbhiBoardPackData | null): boolean {
+  const org = brand?.coverBrand?.orgLine ?? "";
+  return /unit311 central demo|demo ltd/i.test(org);
 }
 
-/** Vector wordmark for white PDF pages — avoids the dark-UI PNG with grey box. */
+/** Legacy alias — Demo workspace board packs only. */
+function isNorthstarBoardPack(brand?: AbhiBoardPackData | null): boolean {
+  return isDemoBoardPack(brand);
+}
+
+/** Vector wordmark for white PDF pages — generic Demo company (no raster logo). */
 function drawNorthstarWordmark(
   doc: JsPdfDocument,
   anchorX: number,
@@ -92,28 +98,28 @@ function drawNorthstarWordmark(
   align: "left" | "right" = "left",
 ): number {
   const compact = align === "right";
-  const titlePt = compact ? Math.max(8.5, width * 0.24) : Math.max(15, width * 0.19);
+  const titlePt = compact ? Math.max(8.5, width * 0.24) : Math.max(14, width * 0.17);
   const subPt = compact ? Math.max(5, width * 0.11) : Math.max(6.5, width * 0.052);
   const titleY = y + titlePt * 0.35;
   const textOpts =
     align === "right"
-      ? ({ align: "right" as const, charSpace: 0.9 } as const)
-      : ({ charSpace: 2.4 } as const);
+      ? ({ align: "right" as const, charSpace: 0.6 } as const)
+      : ({ charSpace: 1.2 } as const);
   const subTextOpts =
     align === "right"
       ? ({ align: "right" as const, charSpace: 0.15 } as const)
-      : ({ charSpace: 0.45 } as const);
+      : ({ charSpace: 0.35 } as const);
 
   doc.setFont("helvetica", "bold");
   doc.setFontSize(titlePt);
   setText(doc, C.navy);
-  doc.text("NORTHSTAR", anchorX, titleY, textOpts);
+  doc.text("UNIT311 CENTRAL", anchorX, titleY, textOpts);
 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(subPt);
   setText(doc, NORTHSTAR_SKY);
   const subY = titleY + subPt * 0.95;
-  doc.text("INDUSTRIAL TECHNOLOGIES", anchorX, subY, subTextOpts);
+  doc.text("DEMO LTD", anchorX, subY, subTextOpts);
 
   return subY - y + subPt * 0.35;
 }

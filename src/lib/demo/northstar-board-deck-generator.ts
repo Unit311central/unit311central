@@ -32,8 +32,7 @@ export async function generateNorthstarBoardDeck(
   meetingDate?: string,
 ): Promise<NorthstarBoardDeckResult> {
   const data = buildNorthstarBoardPackData(meetingDate);
-  const logoDataUrl = await loadNorthstarLogoDataUrl();
-  const pdfBytes = await buildOnwardAirBoardPackPdf(data, logoDataUrl);
+  const pdfBytes = await buildOnwardAirBoardPackPdf(data, null);
   return {
     data,
     pdfBytes,

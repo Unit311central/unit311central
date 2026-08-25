@@ -371,14 +371,16 @@ export function DemoFundraisingDashboardWorkspace() {
 }
 
 export function DemoFundraisingInvestorsWorkspace() {
-  const [investors, setInvestors] = useState<DemoInvestor[]>(() =>
-    loadDemoFundraisingInvestors().filter((inv) => inv.status === "portfolio"),
+  const [allInvestors, setAllInvestors] = useState<DemoInvestor[]>(() => loadDemoFundraisingInvestors());
+  const investors = useMemo(
+    () => allInvestors.filter((inv) => inv.status === "portfolio"),
+    [allInvestors],
   );
   const [editing, setEditing] = useState<DemoInvestor | null>(null);
 
   useEffect(() => {
-    saveDemoFundraisingInvestors(investors);
-  }, [investors]);
+    saveDemoFundraisingInvestors(allInvestors);
+  }, [allInvestors]);
 
   const totalShares = investors.reduce((sum, inv) => sum + inv.sharesIssued, 0);
   const totalShareholdingPct = investors.reduce((sum, inv) => sum + inv.ownershipPct, 0);
@@ -386,7 +388,7 @@ export function DemoFundraisingInvestorsWorkspace() {
 
   function saveInvestor() {
     if (!editing?.fundName.trim()) return;
-    setInvestors((current) => {
+    setAllInvestors((current) => {
       const exists = current.some((row) => row.id === editing.id);
       if (exists) return current.map((row) => (row.id === editing.id ? editing : row));
       return [editing, ...current];
@@ -395,7 +397,7 @@ export function DemoFundraisingInvestorsWorkspace() {
   }
 
   function deleteInvestor(id: string) {
-    setInvestors((current) => current.filter((row) => row.id !== id));
+    setAllInvestors((current) => current.filter((row) => row.id !== id));
     setEditing(null);
   }
 

@@ -7,6 +7,7 @@ import type {
   AbhiBoardRisk,
   AbhiBoardAction,
 } from "@/lib/abhi/board-pack-model";
+import { DEMO_COMPANY_LEGAL_NAME, DEMO_COMPANY_SHORT_NAME } from "@/lib/demo/demo-company-identity";
 import { buildNorthstarFinancialOverview } from "@/lib/demo/module-fixtures";
 import { NORTHSTAR_BOARD_DIRECTORS } from "@/lib/demo/board-data";
 
@@ -47,7 +48,7 @@ function resolveMeetingDate(meetingDateIso?: string): string {
 function buildPackName(meetingDate: string): string {
   const d = new Date(`${meetingDate}T12:00:00`);
   const q = Math.floor(d.getMonth() / 3) + 1;
-  return `Northstar Board Pack — Q${q} ${d.getFullYear()}`;
+  return `${DEMO_COMPANY_SHORT_NAME} Board Pack — Q${q} ${d.getFullYear()}`;
 }
 
 function mapRisk(
@@ -74,7 +75,7 @@ function mapRisk(
 }
 
 export function northstarBoardDeckPdfFileName(meetingDate: string): string {
-  return `northstar-board-deck-${meetingDate}.pdf`;
+  return `demo-board-deck-${meetingDate}.pdf`;
 }
 
 export function northstarBoardDeckPdfUrl(meetingDate: string, disposition: "inline" | "attachment" = "inline") {
@@ -190,7 +191,7 @@ export function buildNorthstarBoardPackData(meetingDateIso?: string): AbhiBoardP
     status: meetingDate >= "2026-09-01" ? "Draft" : "Final",
     orgStatus: runwayMonths < 12 ? "Amber" : "Green",
     coverBrand: {
-      orgLine: "Northstar Industrial Technologies",
+      orgLine: DEMO_COMPANY_LEGAL_NAME,
       deckTitle: "Board Pack",
     },
     attendees: NORTHSTAR_BOARD_DIRECTORS.map((d) => ({
