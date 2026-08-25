@@ -804,7 +804,7 @@ export default function InternalOperationsDashboard({
     (view: InternalOperationsView, query?: Record<string, string>) => {
       const normalized = normalizeInternalOperationsView(view);
       prefetchViewOnIntent(normalized);
-      setFinanceNavQuery(query ?? {});
+      setFinanceNavQuery(query ?? null);
       setActiveView(normalized);
     },
     [],
