@@ -3,20 +3,24 @@ name: Migration dry-run (GET only)
 # Authenticated GET plan check against production (no migration SQL).
 on:
   workflow_dispatch:
-  push:
+  workflow_run:
+    workflows: ["Post-deploy migrations"]
+    types: [completed]
     branches: [main]
-    paths-ignore:
-      - .github/workflows/deploy-migrations.yml
 
 permissions:
   contents: read
 
 jobs:
   dry-run:
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - name: Wait for Vercel production deploy
+        if: github.event_name == 'workflow_dispatch'
         env:
           HEAD_SHA: ${{ github.sha }}
           REPOSITORY: ${{ github.repository }}
@@ -41,16 +45,28 @@ jobs:
           echo "Timed out waiting for Vercel deploy on ${HEAD_SHA}"
           exit 1
 
+      - name: Resolve deployment SHA
+        id: deploy_sha
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_run" ]; then
+            echo "sha=${{ github.event.workflow_run.head_sha }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "sha=${{ github.sha }}" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: GET pending migration plan
         env:
           SETUP_SECRET: ${{ secrets.INTERNAL_FILES_SETUP_SECRET }}
+          DEPLOY_SHA: ${{ steps.deploy_sha.outputs.sha }}
         run: |
           set -euo pipefail
           if [ -z "${SETUP_SECRET:-}" ]; then
             echo "INTERNAL_FILES_SETUP_SECRET is not configured on this repo."
             exit 1
           fi
-          for attempt in $(seq 1 12); do
+          echo "Cooling down 45s so Supabase Management API is not contending with post-deploy apply..."
+          sleep 45
+          for attempt in $(seq 1 10); do
             response=$(curl -fsS \
               -H "x-setup-secret: ${SETUP_SECRET}" \
               "https://unit311central.com/api/internal/apply-unit311central-pending-migrations")
@@ -59,17 +75,17 @@ jobs:
             if echo "$response" | jq -e '.queryError == null' >/dev/null 2>&1; then
               break
             fi
-            if [ "$attempt" -eq 12 ]; then
+            if [ "$attempt" -eq 10 ]; then
               echo "Migration dry-run failed after retries"
               exit 1
             fi
             echo "queryError present — retrying after Supabase Management API cooldown..."
-            sleep 20
+            sleep 30
           done
           echo "$response" | jq -e '.queryBackend != null' >/dev/null
           echo "$response" | jq -e '.plan != null' >/dev/null
           echo "$response" | jq -e '.queryError == null' >/dev/null
-          echo "$response" | jq -e --arg sha "${GITHUB_SHA}" '
+          echo "$response" | jq -e --arg sha "${DEPLOY_SHA}" '
             (.deploymentCommitSha == $sha)
           ' >/dev/null
           echo "$response" | jq -e '
