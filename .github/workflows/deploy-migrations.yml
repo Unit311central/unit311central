@@ -121,11 +121,22 @@ jobs:
           SETUP_SECRET: ${{ secrets.INTERNAL_FILES_SETUP_SECRET }}
         run: |
           set -euo pipefail
-          response=$(curl -fsS \
-            -H "x-setup-secret: ${SETUP_SECRET}" \
-            "https://unit311central.com/api/internal/apply-unit311central-pending-migrations")
-          echo "$response" | jq .
-          echo "$response" | jq -e '.queryError == null' >/dev/null
+          for attempt in $(seq 1 12); do
+            response=$(curl -fsS \
+              -H "x-setup-secret: ${SETUP_SECRET}" \
+              "https://unit311central.com/api/internal/apply-unit311central-pending-migrations")
+            echo "attempt ${attempt}:"
+            echo "$response" | jq .
+            if echo "$response" | jq -e '.queryError == null' >/dev/null 2>&1; then
+              break
+            fi
+            if [ "$attempt" -eq 12 ]; then
+              echo "Migration plan verify failed after retries"
+              exit 1
+            fi
+            echo "queryError present — retrying after Supabase Management API cooldown..."
+            sleep 20
+          done
           echo "$response" | jq -e '
             ([.plan.pending[]?] | length) == 0
           ' >/dev/null
@@ -146,6 +157,9 @@ jobs:
           ' >/dev/null
           echo "$response" | jq -e '
             (.plan.satisfied | index("supabase/migrations/163_technology_telecom_services.sql")) != null
+          ' >/dev/null
+          echo "$response" | jq -e '
+            (.plan.satisfied | index("supabase/migrations/170_saec_installations.sql")) != null
           ' >/dev/null
           echo "$response" | jq -e '
             ([.plan.actions[] | select(.kind == "apply")] | length) == 0

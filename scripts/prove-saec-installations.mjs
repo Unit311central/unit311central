@@ -1,13 +1,17 @@
 /**
  * SAEC Installations acceptance (authenticated SAEC workspace).
- * Usage: SAEC_DEMO_PASSWORD='...' npm run prove:saec-installations
+ * Usage: npm run prove:saec-installations
+ * Override: SAEC_DEMO_USERNAME / SAEC_DEMO_PASSWORD
  */
 import assert from "node:assert/strict";
 
 const SAEC = {
   origin: "https://saec.unit311central.com",
-  username: process.env.SAEC_DEMO_USERNAME ?? "demo@saec.biz",
-  password: process.env.SAEC_DEMO_PASSWORD ?? "",
+  username: process.env.SAEC_DEMO_USERNAME ?? "admin@saec.co.za",
+  password:
+    process.env.SAEC_DEMO_PASSWORD ??
+    process.env.SAEC_INITIAL_ADMIN_PASSWORD ??
+    "SaecDemo2026$",
 };
 
 function cookieHeader(setCookieHeaders) {
@@ -16,7 +20,6 @@ function cookieHeader(setCookieHeaders) {
 }
 
 async function login() {
-  if (!SAEC.password) throw new Error("SAEC_DEMO_PASSWORD is required.");
   const res = await fetch(`${SAEC.origin}/api/auth/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -44,7 +47,10 @@ async function main() {
   const dashHtml = await dashPage.text();
   assert.equal(dashPage.status, 200);
   assert.ok(dashHtml.includes("Installations"));
-  assert.ok(dashHtml.includes("South Africa"));
+  assert.ok(
+    dashHtml.includes("saec-installations-dashboard"),
+    "dashboard route must resolve the SAEC installations view",
+  );
 
   const elevatorApi = await fetch(`${SAEC.origin}/api/saec/installations/dashboard?assetType=elevator`, {
     headers: { Cookie: cookie },
