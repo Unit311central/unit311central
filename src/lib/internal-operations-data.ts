@@ -1946,6 +1946,10 @@ export function isInternalNavChildActive(
   if (item.view && item.query) {
     return item.view === activeView && internalNavQueryMatches(item.query, searchParams);
   }
+  if (item.view === "management") {
+    const param = searchParams?.get("section");
+    return activeView === "management" && (!param || param === "dashboard");
+  }
   // Shared implementations (Projects / Engineering / Assets) must highlight only the
   // selected leaf. Parent expansion still works via children.some(...) above.
   return item.view === activeView;

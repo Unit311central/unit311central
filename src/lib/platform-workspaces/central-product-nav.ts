@@ -8,6 +8,7 @@
 
 import { buildFinancesNavSection } from "@/lib/finances-nav";
 import { ENGINEERING_SOPS_NAV_ITEM } from "@/lib/engineering-nav";
+import { buildManagementNavItem } from "@/lib/central-capabilities/management-nav";
 import {
   internalSurveyNavSections,
   type InternalNavChildItem,
@@ -76,7 +77,7 @@ export function buildCentralBusinessCentralNavSection(): InternalNavSection {
           { label: "Member Intelligence", view: "member-intelligence" },
         ],
       },
-      { label: "Management", icon: "ClipboardList", view: "management" },
+      buildManagementNavItem(),
       { label: "Grants", icon: "ScrollText", view: "grants" },
     ],
   };

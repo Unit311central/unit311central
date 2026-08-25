@@ -487,7 +487,15 @@ export default function EnterprisePlatformSidebar({
       });
     }
 
-    const isOpen = hydrated ? Boolean(expanded[key]) : false;
+    const childActive =
+      item.children?.some((child) =>
+        isInternalNavChildActive(child, activeView, pathname, basePath, searchParams) ||
+        (child.children?.some((nested) =>
+          isInternalNavChildActive(nested, activeView, pathname, basePath, searchParams),
+        ) ??
+          false),
+      ) ?? false;
+    const isOpen = hydrated ? Boolean(expanded[key]) || childActive : false;
     const Chevron = isOpen ? ChevronDown : ChevronRight;
     const Icon = resolveIcon(itemIcon);
 

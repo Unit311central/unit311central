@@ -1,12 +1,8 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { useMemo, useState, type FormEvent } from "react";
 import { useSearchParams } from "next/navigation";
 import {
-  CalendarDays,
-  ClipboardList,
-  LayoutDashboard,
-  Package,
   Pencil,
   Plus,
   Trash2,
@@ -19,17 +15,20 @@ import {
   managementAccessFromEntitlements,
 } from "@/lib/central-capabilities/access";
 import { computeManagementSummary } from "@/lib/central-capabilities/management-store";
-import { resolveManagementSection } from "@/lib/central-capabilities/management-nav";
+import {
+  resolveManagementSection,
+  resolveManagementShellTitle,
+} from "@/lib/central-capabilities/management-nav";
 import type {
   ManagementActionPlaceholder,
   ManagementFunctionPackPlaceholder,
   ManagementMeetingPlaceholder,
-  ManagementSectionId,
 } from "@/lib/central-capabilities/types";
 import type { ManagementFunctionPackRecord } from "@/lib/central-capabilities/management-store";
 import {
   WorkspaceEmpty,
   WorkspaceKpiTile,
+  WorkspaceModuleHeader,
   WorkspaceSection,
   WorkspaceStatusPill,
   workspaceInputClass,
@@ -38,18 +37,7 @@ import {
 import { useOperatorEntitlements } from "@/components/testflighthub/OperatorEntitlementsProvider";
 import { cn } from "@/lib/utils";
 
-import {
-  CentralSubnavShell,
-  type CentralSubnavItem,
-} from "./CentralSubnavShell";
 import { useManagementStore } from "./useManagementStore";
-
-const SECTIONS: CentralSubnavItem<ManagementSectionId>[] = [
-  { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { id: "meetings", label: "Meetings", icon: CalendarDays },
-  { id: "function-packs", label: "Function Packs", icon: Package },
-  { id: "actions-decisions", label: "Actions & Decisions", icon: ClipboardList },
-];
 
 const MANAGEMENT_SUBTITLE =
   "Recurring meetings, function packs, actions, and decisions for your leadership team.";
@@ -793,45 +781,16 @@ export default function ManagementWorkspace() {
       }),
     [entitlements.departments, entitlements.roleView, entitlements.roles],
   );
-  const [section, setSection] = useState<ManagementSectionId>(() =>
-    resolveManagementSection(searchParams.get("section")),
+  const section = useMemo(
+    () => resolveManagementSection(searchParams.get("section")),
+    [searchParams],
   );
-  const initialSectionRef = useRef(section);
   const { state } = useManagementStore();
   const visiblePacks = useMemo(
     () => filterVisibleManagementFunctionPacks(access, state.functionPacks),
     [access, state.functionPacks],
   );
   const meetingNames = useMemo(() => state.meetings.map((meeting) => meeting.name), [state.meetings]);
-
-  useEffect(() => {
-    const param = searchParams.get("section");
-    if (!param) return;
-    setSection(resolveManagementSection(param));
-  }, [searchParams]);
-
-  useLayoutEffect(() => {
-    const initial = initialSectionRef.current;
-    if (initial === "dashboard") return;
-    const url = new URL(window.location.href);
-    if (url.searchParams.get("section") === initial) return;
-    url.searchParams.set("view", "management");
-    url.searchParams.set("section", initial);
-    window.history.replaceState(null, "", url.toString());
-    setSection(initial);
-  }, []);
-
-  function navigateSection(next: ManagementSectionId) {
-    setSection(next);
-    const url = new URL(window.location.href);
-    url.searchParams.set("view", "management");
-    if (next === "dashboard") {
-      url.searchParams.delete("section");
-    } else {
-      url.searchParams.set("section", next);
-    }
-    window.history.replaceState(null, "", url.toString());
-  }
 
   if (!canAccessManagementWorkspace(access)) {
     return (
@@ -845,14 +804,13 @@ export default function ManagementWorkspace() {
   }
 
   return (
-    <CentralSubnavShell
-      title="Management"
-      subtitle={MANAGEMENT_SUBTITLE}
-      items={SECTIONS}
-      activeId={section}
-      onSelect={navigateSection}
-      layout="horizontal"
-    >
+    <div className="space-y-5">
+      <WorkspaceModuleHeader
+        brandLabel="Business Central"
+        moduleLabel="Management"
+        title={resolveManagementShellTitle(section)}
+        description={MANAGEMENT_SUBTITLE}
+      />
       {section === "dashboard" ? (
         <ManagementDashboard
           meetings={state.meetings}
@@ -867,6 +825,6 @@ export default function ManagementWorkspace() {
       {section === "actions-decisions" ? (
         <ManagementActionsPanel meetingNames={meetingNames} />
       ) : null}
-    </CentralSubnavShell>
+    </div>
   );
 }

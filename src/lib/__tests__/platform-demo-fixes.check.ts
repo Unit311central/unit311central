@@ -46,6 +46,10 @@ assert.deepEqual(bcLabels, [
   "Management",
   "Grants",
 ]);
+const management = buildCentralBusinessCentralNavSection().items.find(
+  (item) => item.label === "Management",
+);
+assert.ok(management?.children?.length === 4, "Management must nest four sidebar subviews");
 assert.ok(!bcLabels.includes("Projects"), "BC catalogue must not nest Projects");
 
 const repaired = repairWorkspaceSubmoduleKeys(["business-central"], []);

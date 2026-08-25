@@ -66,6 +66,16 @@ export function repairWorkspaceSubmoduleKeys(
       }
     }
   }
+
+  const legacyManagement = subModuleKey("business-central", "management");
+  if (subSet.has(legacyManagement)) {
+    for (const sub of getWorkspaceModuleEntry("business-central")?.subModules ?? []) {
+      if (sub.viewId === "management") {
+        subSet.add(subModuleKey("business-central", sub.id));
+      }
+    }
+  }
+
   return [...subSet];
 }
 

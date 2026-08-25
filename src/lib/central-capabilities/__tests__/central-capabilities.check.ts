@@ -22,6 +22,7 @@ import {
   uploadManagementFunctionPack,
 } from "@/lib/central-capabilities/management-store";
 import { resolveManagementSection } from "@/lib/central-capabilities/management-nav";
+import { buildCentralBusinessCentralNavSection } from "@/lib/platform-workspaces/central-product-nav";
 import { CONTENT_STUDIO_FUNCTIONS } from "@/lib/central-capabilities/content-studio-placeholder";
 import {
   buildAbhiNavSections,
@@ -162,6 +163,14 @@ assertSurfaceNav("ABHI", buildAbhiNavSections(internalSurveyNavSections));
   assert.equal(resolveManagementSection("function-packs"), "function-packs");
   assert.equal(resolveManagementSection("invalid"), "dashboard");
   assert.equal(resolveManagementWorkspaceSlug("demo.unit311central.com"), "demo");
+  const management = buildCentralBusinessCentralNavSection().items.find(
+    (item) => item.label === "Management",
+  );
+  assert.ok(management?.children?.length === 4, "Management must expose four nested sidebar leaves");
+  assert.ok(
+    management?.children?.some((child) => child.label === "Meetings" && child.query?.section === "meetings"),
+    "Meetings must be a nested Management sidebar leaf",
+  );
   const slug = resolveManagementWorkspaceSlug("demo.unit311central.com");
   const meeting = upsertManagementMeeting(slug, {
     name: "Test meeting",
