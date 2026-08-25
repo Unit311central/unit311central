@@ -6,12 +6,14 @@ import { Loader2, X } from "lucide-react";
 import {
   expenseWorkflowLabel,
   formatExpenseAmount,
+  type ExpenseCurrency,
   type FinancialExpense,
 } from "@/lib/expenses-data";
 import type { ExpenseApprovalEvent } from "@/lib/expense-management/types";
 import type { ExpenseBillingCode, ExpenseCategory } from "@/lib/expense-management/types";
 import type { HrEmployee } from "@/lib/hr-data";
 import { formatShortDate } from "@/lib/expense-workflow-summary";
+import { useWorkspaceReportingCurrency } from "@/lib/workspace-reporting-currency";
 
 import { readApiJson } from "./expense-hub-shared";
 
@@ -68,6 +70,7 @@ export default function ExpenseDetailDrawer({
   categories,
   billingCodes,
 }: ExpenseDetailDrawerProps) {
+  const reportingCurrency = useWorkspaceReportingCurrency() as ExpenseCurrency;
   const [events, setEvents] = useState<ExpenseApprovalEvent[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
 
@@ -142,7 +145,7 @@ export default function ExpenseDetailDrawer({
             <DetailField label="Date" value={formatShortDate(expense.expenseDate)} />
             <DetailField
               label="Amount"
-              value={formatExpenseAmount(expense.amount, expense.currency)}
+              value={formatExpenseAmount(expense.amount, reportingCurrency)}
             />
             <DetailField label="Expected payment" value={formatShortDate(expense.expectedPaymentDate)} />
             <DetailField label="Paid date" value={formatShortDate(expense.paidAt)} />
@@ -163,7 +166,7 @@ export default function ExpenseDetailDrawer({
                 <p>
                   Calculated:{" "}
                   {expense.mileageCalculatedAmount != null
-                    ? formatExpenseAmount(expense.mileageCalculatedAmount, expense.currency)
+                    ? formatExpenseAmount(expense.mileageCalculatedAmount, reportingCurrency)
                     : "—"}
                 </p>
               </div>

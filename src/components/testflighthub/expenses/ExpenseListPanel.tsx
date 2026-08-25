@@ -5,10 +5,12 @@ import { FileText, Loader2, Pencil } from "lucide-react";
 import {
   expenseWorkflowLabel,
   formatExpenseAmount,
+  type ExpenseCurrency,
   type FinancialExpense,
 } from "@/lib/expenses-data";
 import { formatShortDate } from "@/lib/expense-workflow-summary";
 import { cn } from "@/lib/utils";
+import { useWorkspaceReportingCurrency } from "@/lib/workspace-reporting-currency";
 
 type ExpenseListPanelProps = {
   expenses: FinancialExpense[];
@@ -45,6 +47,8 @@ export default function ExpenseListPanel({
   onEdit,
   showEmployee,
 }: ExpenseListPanelProps) {
+  const reportingCurrency = useWorkspaceReportingCurrency() as ExpenseCurrency;
+
   if (loading) {
     return (
       <div className="flex items-center gap-2 text-sm text-white/50">
@@ -81,7 +85,7 @@ export default function ExpenseListPanel({
             </div>
             <div className="text-right">
               <p className="text-sm font-semibold text-white">
-                {formatExpenseAmount(expense.amount, expense.currency)}
+                {formatExpenseAmount(expense.amount, reportingCurrency)}
               </p>
               <span
                 className={cn(

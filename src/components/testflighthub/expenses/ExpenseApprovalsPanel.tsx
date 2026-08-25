@@ -3,8 +3,9 @@
 import { useState } from "react";
 import { Check, Loader2, MessageSquare, X } from "lucide-react";
 
-import type { FinancialExpense } from "@/lib/expenses-data";
+import type { FinancialExpense, ExpenseCurrency } from "@/lib/expenses-data";
 import { formatExpenseAmount } from "@/lib/expenses-data";
+import { useWorkspaceReportingCurrency } from "@/lib/workspace-reporting-currency";
 
 import { readApiJson } from "./expense-hub-shared";
 
@@ -19,6 +20,7 @@ export default function ExpenseApprovalsPanel({
   loading,
   onActionComplete,
 }: ExpenseApprovalsPanelProps) {
+  const reportingCurrency = useWorkspaceReportingCurrency() as ExpenseCurrency;
   const [busyId, setBusyId] = useState<string | null>(null);
   const [comment, setComment] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -83,7 +85,7 @@ export default function ExpenseApprovalsPanel({
                 <div>
                   <p className="text-sm font-semibold text-white">{expense.description}</p>
                   <p className="mt-1 text-xs text-white/45">
-                    {expense.submitterName} · {formatExpenseAmount(expense.amount, expense.currency)}
+                    {expense.submitterName} · {formatExpenseAmount(expense.amount, reportingCurrency)}
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-2">

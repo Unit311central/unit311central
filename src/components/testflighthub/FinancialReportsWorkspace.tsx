@@ -24,6 +24,7 @@ import { isBrowserDemoSurface } from "@/lib/demo-enterprise/surface";
 import { isBrowserAbhiSurface } from "@/lib/abhi-surface";
 import { isBrowserTalantonImpactSurface } from "@/lib/talanton-surface";
 import { useWorkspaceReportingCurrency } from "@/lib/workspace-reporting-currency";
+import { formatReportingMoney } from "@/lib/financial-reporting-currency";
 import {
   buildReportFromDraft,
   createBlankReportDraft,
@@ -498,21 +499,9 @@ export default function FinancialReportsWorkspace() {
         </div>
         {overview ? (
           <p className="mt-3 text-xs text-white/45">
-            Live ledger loaded · cash {overview.cashPosition.toLocaleString("en-US", {
-              style: "currency",
-              currency: "USD",
-              maximumFractionDigits: 0,
-            })}{" "}
-            · AR {overview.accountsReceivable.toLocaleString("en-US", {
-              style: "currency",
-              currency: "USD",
-              maximumFractionDigits: 0,
-            })}{" "}
-            · net {overview.netProfit.toLocaleString("en-US", {
-              style: "currency",
-              currency: "USD",
-              maximumFractionDigits: 0,
-            })}
+            Live ledger loaded · cash {formatReportingMoney(overview.cashPosition, workspaceCurrency)}
+            · AR {formatReportingMoney(overview.accountsReceivable, workspaceCurrency)}
+            · net {formatReportingMoney(overview.netProfit, workspaceCurrency)}
           </p>
         ) : overviewError ? (
           <p className="mt-3 rounded-xl border border-amber-400/25 bg-amber-500/10 px-3 py-2 text-xs text-amber-100">
