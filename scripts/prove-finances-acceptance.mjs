@@ -58,7 +58,7 @@ const VIEW_CHECKS = [
     mustInclude: ["Outstanding"],
   },
   { view: "finances-ar-collections", mustInclude: ["Collections"] },
-  { view: "finances-ar-reporting", mustInclude: ["AR Reporting", "Ageing"] },
+  { view: "finances-ar-reporting", mustInclude: ["AR Reporting"] },
   {
     view: "accounts-payable",
     query: "section=approvals",

@@ -43,7 +43,29 @@ async function main() {
   assert.equal(route.intent?.tool, "boardpack.generate");
 
   process.env.EA_SKIP_BOARDPACK_STAGES = "1";
-  const first = await executeAssistantTool(route.intent!.tool, route.intent!.args ?? {}, business);
+  type BoardPackItem = {
+    kind?: string;
+    filename?: string;
+    contentBase64?: string;
+  };
+  const first = (await executeAssistantTool(
+    route.intent!.tool,
+    route.intent!.args ?? {},
+    business,
+  )) as import("@/lib/ai-operating-assistant/tool-result").AssistantToolResult<BoardPackItem> & {
+    summary?: {
+      executed?: boolean;
+      artifactId?: string;
+      packName?: string;
+      meetingDate?: string;
+      status?: string;
+      folderPath?: string;
+      boardDeckHref?: string;
+      pdfOpenUrl?: string;
+      pdfDownloadUrl?: string;
+      pptxDownloadUrl?: string;
+    };
+  };
   assert.equal(first.status, "ok");
   assert.equal(first.summary?.executed, true, "first turn should auto-pick next board meeting");
   assert.ok(first.summary?.artifactId, "artifact on first turn");

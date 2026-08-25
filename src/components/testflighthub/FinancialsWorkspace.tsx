@@ -231,7 +231,7 @@ export default function FinancialsWorkspace() {
   const [tilesCustomizeOpen, setTilesCustomizeOpen] = useState(false);
   const [lastRefreshedAt, setLastRefreshedAt] = useState<Date | null>(null);
 
-  const reportingCurrency = useWorkspaceReportingCurrency(overview?.burnRate?.currency);
+  const reportingCurrency = useWorkspaceReportingCurrency();
   const money = (amount: number, currency?: string) =>
     formatReportingMoney(amount, currency ?? reportingCurrency);
 

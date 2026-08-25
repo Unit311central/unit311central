@@ -45,6 +45,7 @@ function testAssertionLogic() {
       total: 0,
       page: 1,
       pageSize: 1,
+      hasMore: false,
       items: [],
       summary: {
         message: "Custom Business Report.pdf\n\nIncluded: none. No live source registered for: p&l.",
