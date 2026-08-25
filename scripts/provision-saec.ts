@@ -5,6 +5,9 @@
  *   SUPABASE_ACCESS_TOKEN=... SAEC_INITIAL_ADMIN_PASSWORD='...' npx tsx scripts/provision-saec.ts
  */
 import {
+  WORKSPACE_MODULE_CATALOGUE,
+} from "../src/lib/platform-workspaces/module-catalogue.ts";
+import {
   SAEC_ENABLED_MODULES,
   saecEnabledSubModules,
 } from "../src/lib/platform-workspaces/saec-provisioning.ts";
@@ -105,22 +108,35 @@ function assertSaecNav(enabledModules: string[], enabledSubModules: string[]) {
         : [],
   );
 
+  if (labels.length !== WORKSPACE_MODULE_CATALOGUE.length) {
+    throw new Error(
+      `SAEC nav must expose all ${WORKSPACE_MODULE_CATALOGUE.length} catalogue modules; got ${labels.length}.`,
+    );
+  }
+
   const required = [
-    "Home",
-    "Executive Assistant",
+    "HOME",
+    "EXECUTIVE ASSISTANT",
     "Intelligence",
     "Business Central",
+    "Sales Management",
     "Finances",
-    "Project Management",
-    "Operations",
-    "Technology Management",
-    "Engineering",
-    "Human Resources",
-    "Training",
+    "Fundraising",
     "Board",
     "Corporate Information",
+    "Operations",
     "Marketing & Events",
+    "Technology Management",
+    "Human Resources",
+    "Business Productivity",
+    "Support Desk",
+    "Project Management",
+    "Engineering",
+    "Training",
+    "QMS",
+    "Tools",
     "External Client Access",
+    "Settings",
   ];
   for (const label of required) {
     if (!labels.includes(label)) {
