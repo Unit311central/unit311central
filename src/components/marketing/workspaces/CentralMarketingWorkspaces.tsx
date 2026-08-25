@@ -1,7 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { Plus } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Pencil, Plus, Trash2 } from "lucide-react";
 
 import { MarketingDashboardShell } from "@/components/marketing/workspaces/MarketingDashboardShell";
 import { demoClientPortalPublicPath } from "@/lib/demo/demo-client-portal-routes";
@@ -11,7 +11,7 @@ import {
   workspacePrimaryButtonClass,
   workspaceSecondaryButtonClass,
 } from "@/components/marketing/workspaces/CentralMarketingShell";
-import { WorkspaceSection } from "@/components/workspace-ui";
+import { WorkspaceSection, WorkspaceKpiTile, WorkspaceModuleHeader } from "@/components/workspace-ui";
 import { useMarketingData } from "@/lib/marketing/client/use-marketing-data";
 import { resolveMarketingShellChrome } from "@/lib/marketing/marketing-shell-chrome";
 import { resolveBrowserMarketingWorkspaceKey } from "@/lib/marketing/workspace-context";
@@ -24,6 +24,65 @@ import type {
   Newsletter,
 } from "@/lib/marketing/types";
 import type { MarketingStoryRecord } from "@/lib/marketing/mappers";
+
+const MARKETING_TILE_STORAGE_KEY = "unit311-demo-marketing-dashboard-tiles-v1";
+
+type MarketingDashboardTile = {
+  id: string;
+  label: string;
+  value: string;
+  hint: string;
+};
+
+function buildDefaultMarketingTiles(kpis: MarketingDashboardKpis): MarketingDashboardTile[] {
+  return [
+    {
+      id: "open-rate",
+      label: "Newsletter open rate",
+      value: kpis.newsletterOpenRate != null ? `${kpis.newsletterOpenRate.toFixed(1)}%` : "—",
+      hint: `${kpis.sentNewsletterCount} sent campaigns`,
+    },
+    {
+      id: "subscribers",
+      label: "Mailing subscribers",
+      value: kpis.mailingSubscribers.toLocaleString(),
+      hint: `+${kpis.mailingGrowth30d} last 30 days`,
+    },
+    {
+      id: "external",
+      label: "External events",
+      value: String(kpis.externalEventsConfirmed),
+      hint: `${kpis.externalEventsTotal} on the calendar`,
+    },
+    {
+      id: "hosted",
+      label: "Hosted event fill",
+      value: `${kpis.managedEventRegistered}/${kpis.managedEventCapacity}`,
+      hint: `${kpis.managedEventCount} programmes`,
+    },
+  ];
+}
+
+function EntityActions({
+  onEdit,
+  onDelete,
+}: {
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
+  return (
+    <div className="flex shrink-0 items-center gap-2">
+      <button type="button" className={workspaceSecondaryButtonClass()} onClick={onEdit}>
+        <Pencil className="h-3.5 w-3.5" />
+        Edit
+      </button>
+      <button type="button" className={workspaceSecondaryButtonClass()} onClick={onDelete}>
+        <Trash2 className="h-3.5 w-3.5" />
+        Delete
+      </button>
+    </div>
+  );
+}
 
 const EMPTY_KPIS: MarketingDashboardKpis = {
   newsletterOpenRate: null,
@@ -59,6 +118,35 @@ export function CentralMarketingDashboardWorkspace() {
   const chrome = resolveMarketingShellChrome(workspace);
   const isDemo = workspace === "demo";
   const kpis = bundle?.kpis ?? EMPTY_KPIS;
+  const [editingTiles, setEditingTiles] = useState(false);
+  const [tiles, setTiles] = useState<MarketingDashboardTile[]>(() => buildDefaultMarketingTiles(EMPTY_KPIS));
+
+  useEffect(() => {
+    if (!isDemo) return;
+    try {
+      const raw = localStorage.getItem(MARKETING_TILE_STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw) as MarketingDashboardTile[];
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setTiles(parsed);
+          return;
+        }
+      }
+    } catch {
+      // ignore
+    }
+    setTiles(buildDefaultMarketingTiles(kpis));
+  }, [isDemo, kpis.mailingSubscribers, kpis.newsletterOpenRate, kpis.externalEventsConfirmed, kpis.managedEventRegistered, kpis.managedEventCapacity, kpis.managedEventCount, kpis.sentNewsletterCount, kpis.mailingGrowth30d, kpis.externalEventsTotal]);
+
+  const saveTiles = useCallback((next: MarketingDashboardTile[]) => {
+    setTiles(next);
+    try {
+      localStorage.setItem(MARKETING_TILE_STORAGE_KEY, JSON.stringify(next));
+    } catch {
+      // ignore
+    }
+  }, []);
+
   const recentNewsletterTitle =
     bundle?.newsletters.find((row) => row.status === "sent")?.title ?? null;
   const draftNewsletters = bundle?.newsletters.filter((row) => row.status === "draft").length ?? 0;
@@ -73,17 +161,87 @@ export function CentralMarketingDashboardWorkspace() {
       {error ? <ErrorState message={error} /> : null}
       {loading && !bundle ? (
         <LoadingState label="marketing dashboard" />
+      ) : isDemo ? (
+        <>
+          <div className="space-y-5">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <WorkspaceModuleHeader
+                moduleLabel={chrome.moduleLabel ?? "Marketing and Events"}
+                brandLabel={chrome.brandLabel}
+                title="Marketing and Events"
+                description="Newsletter performance, upcoming events, client stories, and mailing list growth in one place."
+              />
+              <button
+                type="button"
+                onClick={() => setEditingTiles((value) => !value)}
+                className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-1.5 text-xs font-semibold text-white/70 hover:border-white/20"
+              >
+                <Pencil className="h-3.5 w-3.5" />
+                {editingTiles ? "Done editing" : "Edit tiles"}
+              </button>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              {tiles.map((tile, index) =>
+                editingTiles ? (
+                  <div key={tile.id} className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3">
+                    <input
+                      className="w-full rounded-lg border border-white/10 bg-[#060d18] px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-white/70"
+                      value={tile.label}
+                      onChange={(e) => {
+                        const next = [...tiles];
+                        next[index] = { ...tile, label: e.target.value };
+                        saveTiles(next);
+                      }}
+                    />
+                    <input
+                      className="mt-2 w-full rounded-lg border border-white/10 bg-[#060d18] px-2 py-1 text-xl font-semibold text-white"
+                      value={tile.value}
+                      onChange={(e) => {
+                        const next = [...tiles];
+                        next[index] = { ...tile, value: e.target.value };
+                        saveTiles(next);
+                      }}
+                    />
+                    <input
+                      className="mt-2 w-full rounded-lg border border-white/10 bg-[#060d18] px-2 py-1 text-xs text-white/50"
+                      value={tile.hint}
+                      onChange={(e) => {
+                        const next = [...tiles];
+                        next[index] = { ...tile, hint: e.target.value };
+                        saveTiles(next);
+                      }}
+                    />
+                  </div>
+                ) : (
+                  <WorkspaceKpiTile key={tile.id} label={tile.label} value={tile.value} hint={tile.hint} />
+                ),
+              )}
+            </div>
+          </div>
+          <WorkspaceSection
+            title="Recommended on this dashboard"
+            subtitle="Quick links to the workflows teams use most on the Demo workspace."
+          >
+            <ul className="grid gap-2 text-sm text-white/70 sm:grid-cols-2">
+              <li>Newsletter drafts ready: {draftNewsletters}</li>
+              <li>Scheduled campaigns: {scheduledCampaigns}</li>
+              <li>Client stories pending review: {clientStoriesPending}</li>
+              <li>
+                Client portal submissions feed Client Stories —{" "}
+                <a href={demoClientPortalPublicPath()} className="text-sky-300 hover:underline">
+                  demo.unit311central.com{demoClientPortalPublicPath()}
+                </a>
+              </li>
+            </ul>
+          </WorkspaceSection>
+        </>
       ) : (
         <>
           <MarketingDashboardShell
             brandLabel={chrome.brandLabel}
-            moduleLabel={chrome.moduleLabel ?? (isDemo ? "Marketing and Events" : "Marketing & Events")}
-            title={isDemo ? "Marketing and Events" : "Marketing dashboard"}
-            description={
-              isDemo
-                ? "Newsletter performance, upcoming events, client stories, and mailing list growth in one place."
-                : "Central Marketing & Events workspace — newsletters, campaigns, events, and media in one place."
-            }
+            moduleLabel={chrome.moduleLabel ?? "Marketing & Events"}
+            title="Marketing dashboard"
+            description="Central Marketing & Events workspace — newsletters, campaigns, events, and media in one place."
             kpis={kpis}
             recentNewsletterTitle={recentNewsletterTitle}
             upcomingExternalEvents={bundle?.externalEvents ?? []}
@@ -93,24 +251,6 @@ export function CentralMarketingDashboardWorkspace() {
               ),
             )}
           />
-          {isDemo ? (
-            <WorkspaceSection
-              title="Recommended on this dashboard"
-              subtitle="Quick links to the workflows teams use most on Northstar demo."
-            >
-              <ul className="grid gap-2 text-sm text-white/70 sm:grid-cols-2">
-                <li>Newsletter drafts ready: {draftNewsletters}</li>
-                <li>Scheduled campaigns: {scheduledCampaigns}</li>
-                <li>Client stories pending review: {clientStoriesPending}</li>
-                <li>
-                  Client portal submissions feed Client Stories —{" "}
-                  <a href={demoClientPortalPublicPath()} className="text-sky-300 hover:underline">
-                    demo.unit311central.com{demoClientPortalPublicPath()}
-                  </a>
-                </li>
-              </ul>
-            </WorkspaceSection>
-          ) : null}
         </>
       )}
     </div>
@@ -118,9 +258,12 @@ export function CentralMarketingDashboardWorkspace() {
 }
 
 export function CentralNewsletterWorkspace() {
-  const { bundle, loading, error, save } = useMarketingData();
+  const { bundle, loading, error, save, remove } = useMarketingData();
   const [title, setTitle] = useState("");
   const [subject, setSubject] = useState("");
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [editSubject, setEditSubject] = useState("");
 
   const newsletters = bundle?.newsletters ?? [];
 
@@ -137,6 +280,21 @@ export function CentralNewsletterWorkspace() {
     });
     setTitle("");
     setSubject("");
+  }
+
+  async function saveEdit(row: Newsletter) {
+    if (!editTitle.trim()) return;
+    await save("newsletters", {
+      id: row.id,
+      title: editTitle.trim(),
+      subject: editSubject.trim() || editTitle.trim(),
+      htmlBody: row.htmlBody,
+      status: row.status,
+      recipientMode: row.recipientMode,
+      recipientIds: row.recipientIds,
+      manualEmails: row.manualEmails,
+    });
+    setEditingId(null);
   }
 
   return (
@@ -175,12 +333,47 @@ export function CentralNewsletterWorkspace() {
         ) : (
           <ul className="divide-y divide-white/10 rounded-xl border border-white/10">
             {newsletters.map((row: Newsletter) => (
-              <li key={row.id} className="flex items-center justify-between gap-3 px-4 py-3 text-sm">
-                <div>
-                  <p className="font-medium text-white/90">{row.title}</p>
-                  <p className="text-white/50">{row.subject}</p>
-                </div>
-                <StatusBadge status={row.status} />
+              <li key={row.id} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 text-sm">
+                {editingId === row.id ? (
+                  <div className="grid flex-1 gap-2 sm:grid-cols-2">
+                    <input
+                      className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white"
+                      value={editTitle}
+                      onChange={(e) => setEditTitle(e.target.value)}
+                    />
+                    <input
+                      className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white"
+                      value={editSubject}
+                      onChange={(e) => setEditSubject(e.target.value)}
+                    />
+                    <div className="flex gap-2 sm:col-span-2">
+                      <button type="button" className={workspacePrimaryButtonClass()} onClick={() => void saveEdit(row)}>
+                        Save
+                      </button>
+                      <button type="button" className={workspaceSecondaryButtonClass()} onClick={() => setEditingId(null)}>
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <div>
+                      <p className="font-medium text-white/90">{row.title}</p>
+                      <p className="text-white/50">{row.subject}</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <StatusBadge status={row.status} />
+                      <EntityActions
+                        onEdit={() => {
+                          setEditingId(row.id);
+                          setEditTitle(row.title);
+                          setEditSubject(row.subject);
+                        }}
+                        onDelete={() => void remove("newsletters", row.id)}
+                      />
+                    </div>
+                  </>
+                )}
               </li>
             ))}
           </ul>
@@ -191,7 +384,7 @@ export function CentralNewsletterWorkspace() {
 }
 
 export function CentralMailingWorkspace() {
-  const { bundle, loading, error, save } = useMarketingData();
+  const { bundle, loading, error, save, remove } = useMarketingData();
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
 
@@ -244,12 +437,18 @@ export function CentralMailingWorkspace() {
         ) : (
           <ul className="divide-y divide-white/10 rounded-xl border border-white/10">
             {contacts.map((row) => (
-              <li key={row.id} className="flex items-center justify-between px-4 py-3 text-sm">
+              <li key={row.id} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 text-sm">
                 <div>
                   <p className="font-medium text-white/90">{row.name}</p>
                   <p className="text-white/50">{row.email}</p>
                 </div>
-                <StatusBadge status={row.status ?? "active"} />
+                <div className="flex items-center gap-2">
+                  <StatusBadge status={row.status ?? "active"} />
+                  <EntityActions
+                    onEdit={() => void save("contacts", { id: row.id, name: `${row.name} (updated)`, email: row.email, status: row.status ?? "active" })}
+                    onDelete={() => void remove("contacts", row.id)}
+                  />
+                </div>
               </li>
             ))}
           </ul>
@@ -274,7 +473,7 @@ export function CentralMailingWorkspace() {
 }
 
 export function CentralExternalEventsWorkspace() {
-  const { bundle, loading, error, save } = useMarketingData();
+  const { bundle, loading, error, save, remove } = useMarketingData();
   const [name, setName] = useState("");
   const events = bundle?.externalEvents ?? [];
 
@@ -320,14 +519,20 @@ export function CentralExternalEventsWorkspace() {
         ) : (
           <ul className="divide-y divide-white/10 rounded-xl border border-white/10">
             {events.map((row: ExternalEvent) => (
-              <li key={row.id} className="flex items-center justify-between px-4 py-3 text-sm">
+              <li key={row.id} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 text-sm">
                 <div>
                   <p className="font-medium text-white/90">{row.name}</p>
                   <p className="text-white/50">
                     {row.startDate} — {row.city}, {row.country}
                   </p>
                 </div>
-                <StatusBadge status={row.status} />
+                <div className="flex items-center gap-2">
+                  <StatusBadge status={row.status} />
+                  <EntityActions
+                    onEdit={() => void save("external-events", { ...row, name: `${row.name} (updated)` })}
+                    onDelete={() => void remove("external-events", row.id)}
+                  />
+                </div>
               </li>
             ))}
           </ul>
@@ -338,7 +543,7 @@ export function CentralExternalEventsWorkspace() {
 }
 
 export function CentralManagedEventsWorkspace() {
-  const { bundle, loading, error, save } = useMarketingData();
+  const { bundle, loading, error, save, remove } = useMarketingData();
   const [name, setName] = useState("");
   const events = bundle?.managedEvents ?? [];
 
@@ -384,14 +589,20 @@ export function CentralManagedEventsWorkspace() {
         ) : (
           <ul className="divide-y divide-white/10 rounded-xl border border-white/10">
             {events.map((row: ManagedEvent) => (
-              <li key={row.id} className="flex items-center justify-between px-4 py-3 text-sm">
+              <li key={row.id} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 text-sm">
                 <div>
                   <p className="font-medium text-white/90">{row.name}</p>
                   <p className="text-white/50">
                     {row.date} — {row.registered}/{row.capacity} registered
                   </p>
                 </div>
-                <StatusBadge status={row.status ?? row.stage} />
+                <div className="flex items-center gap-2">
+                  <StatusBadge status={row.status ?? row.stage} />
+                  <EntityActions
+                    onEdit={() => void save("managed-events", { ...row, name: `${row.name} (updated)` })}
+                    onDelete={() => void remove("managed-events", row.id)}
+                  />
+                </div>
               </li>
             ))}
           </ul>
@@ -469,7 +680,7 @@ export function CentralMediaLibraryWorkspace() {
 }
 
 export function CentralStoriesWorkspace({ storyKind }: { storyKind?: "portfolio" | "journey" | "generic" }) {
-  const { bundle, loading, error, save } = useMarketingData();
+  const { bundle, loading, error, save, remove } = useMarketingData();
   const [title, setTitle] = useState("");
 
   const stories = useMemo(() => {
@@ -527,12 +738,18 @@ export function CentralStoriesWorkspace({ storyKind }: { storyKind?: "portfolio"
         ) : (
           <ul className="divide-y divide-white/10 rounded-xl border border-white/10">
             {stories.map((row: MarketingStoryRecord) => (
-              <li key={row.id} className="flex items-center justify-between px-4 py-3 text-sm">
+              <li key={row.id} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 text-sm">
                 <div>
                   <p className="font-medium text-white/90">{row.title}</p>
                   <p className="text-white/50">{row.storyKind}</p>
                 </div>
-                <StatusBadge status={row.status} />
+                <div className="flex items-center gap-2">
+                  <StatusBadge status={row.status} />
+                  <EntityActions
+                    onEdit={() => void save("stories", { ...row, title: `${row.title} (updated)` })}
+                    onDelete={() => void remove("stories", row.id)}
+                  />
+                </div>
               </li>
             ))}
           </ul>

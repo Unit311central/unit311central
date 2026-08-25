@@ -10,6 +10,7 @@ import {
   Plus,
   Search,
   Sparkles,
+  Trash2,
   X,
 } from "lucide-react";
 
@@ -23,7 +24,9 @@ import {
   type NorthstarMeetingDecision,
 } from "@/lib/demo/northstar-board-meetings-store";
 import {
+  archiveNorthstarBoardPack,
   createNorthstarBoardPackDraft,
+  deleteNorthstarBoardPack,
   getNorthstarBoardPack,
   loadNorthstarBoardPacks,
   resolveNorthstarPackPdfUrl,
@@ -41,7 +44,7 @@ import {
   type NorthstarRiskRegisterEntry,
   type NorthstarRiskTrend,
 } from "@/lib/demo/northstar-risk-register-store";
-import { NORTHSTAR_LOGO_SRC } from "@/lib/demo/northstar-surface";
+import { DEMO_COMPANY_SHORT_NAME } from "@/lib/demo/demo-company-identity";
 import { cn } from "@/lib/utils";
 import {
   CorporateFieldLabel,
@@ -65,7 +68,7 @@ function PageHeader({ title, subtitle }: { title: string; subtitle: string }) {
   return (
     <header>
       <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-sky-300/80">
-        Northstar · Board
+        {DEMO_COMPANY_SHORT_NAME} · Board
       </p>
       <h1 className="mt-1 text-2xl font-semibold tracking-tight text-white sm:text-3xl">{title}</h1>
       <p className="mt-1 text-sm text-white/55">{subtitle}</p>
@@ -552,9 +555,16 @@ export function NorthstarBoardMeetingsWorkspace() {
 }
 
 export function NorthstarBoardPacksWorkspace() {
-  const [decks, setDecks] = useState<NorthstarBoardPackRecord[]>(() => loadNorthstarBoardPacks());
+  const [decks, setDecks] = useState<NorthstarBoardPackRecord[]>(() =>
+    loadNorthstarBoardPacks().filter((pack) => pack.status !== "Archived"),
+  );
   const [message, setMessage] = useState<string | null>(null);
+  const [editing, setEditing] = useState<NorthstarBoardPackRecord | null>(null);
   const meetings = useNorthstarBoardMeetingsStore().meetings;
+
+  function refreshDecks() {
+    setDecks(loadNorthstarBoardPacks().filter((pack) => pack.status !== "Archived"));
+  }
 
   function handleAiCreate() {
     const next = meetings.find((m) => m.status === "Scheduled");
@@ -564,25 +574,25 @@ export function NorthstarBoardPacksWorkspace() {
       quarter: next?.title.includes("Q3") ? "Q3 2026" : "Q4 2026",
     });
     saveNorthstarBoardPack(draft);
-    setDecks(loadNorthstarBoardPacks());
-    setMessage(`Created draft pack for ${draft.quarter}. Open preview to download northstar-board-deck-${draft.meetingDate}.pdf`);
+    refreshDecks();
+    setMessage(`Created draft pack for ${draft.quarter}. Preview or download the PDF below.`);
+  }
+
+  function saveEdit() {
+    if (!editing?.packName.trim()) return;
+    saveNorthstarBoardPack(editing);
+    refreshDecks();
+    setEditing(null);
+    setMessage("Board deck updated.");
   }
 
   return (
-    <div className="space-y-5">
+    <div className="mx-auto max-w-5xl space-y-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="flex items-start gap-4">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={NORTHSTAR_LOGO_SRC}
-            alt="Northstar Industrial Technologies"
-            className="hidden h-10 w-auto max-w-[140px] object-contain sm:block rounded-md bg-white px-2 py-1"
-          />
-          <PageHeader
-            title="Board Decks"
-            subtitle="ABHI-style board packs with Northstar branding. Q1 & Q2 legacy decks approved; generate drafts for upcoming meetings."
-          />
-        </div>
+        <PageHeader
+          title="Board Decks"
+          subtitle="Quarterly board packs for the Demo workspace — create, edit, preview, and archive."
+        />
         <button type="button" className={cn(corporatePrimaryButtonClass(), "shrink-0")} onClick={handleAiCreate}>
           <Sparkles className="h-3.5 w-3.5" />
           Create board pack
@@ -600,79 +610,172 @@ export function NorthstarBoardPacksWorkspace() {
           const pdfUrl = resolveNorthstarPackPdfUrl(pack.meetingDate, pack.pdfOpenUrl);
           const downloadUrl = resolveNorthstarPackDownloadUrl(pack.meetingDate, pack.pptxDownloadUrl);
           return (
-          <article
-            key={pack.id}
-            className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 sm:p-5"
-          >
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <h2 className="text-lg font-semibold text-white">{pack.packName}</h2>
-                <p className="mt-1 text-sm text-white/50">
-                  {pack.quarter} · Meeting {formatDate(pack.meetingDate)}
-                  {pack.meetingId ? (
-                    <>
-                      {" "}
-                      ·{" "}
-                      <Link
-                        href={`/internaldashboard?view=board-meetings`}
-                        className="text-sky-300 hover:underline"
-                      >
-                        {pack.meetingId}
-                      </Link>
-                    </>
-                  ) : null}
-                </p>
+            <article
+              key={pack.id}
+              className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 sm:p-5"
+            >
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div className="min-w-0 flex-1">
+                  <h2 className="text-lg font-semibold text-white">{pack.packName}</h2>
+                  <p className="mt-1 text-sm text-white/50">
+                    {pack.quarter} · Meeting {formatDate(pack.meetingDate)}
+                    {pack.meetingId ? (
+                      <>
+                        {" "}
+                        ·{" "}
+                        <Link
+                          href={`/internaldashboard?view=board-meetings`}
+                          className="text-sky-300 hover:underline"
+                        >
+                          {pack.meetingId}
+                        </Link>
+                      </>
+                    ) : null}
+                  </p>
+                  <ul className="mt-3 flex flex-wrap gap-2 text-xs text-white/50">
+                    {pack.pageSummaries.map((s) => (
+                      <li key={s} className="rounded-full border border-white/10 px-2 py-1">
+                        {s}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                <span
+                  className={cn(
+                    "inline-flex shrink-0 items-center gap-1 self-start rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase",
+                    pack.status === "Approved" || pack.status === "Final"
+                      ? "border-emerald-400/30 bg-emerald-500/10 text-emerald-200"
+                      : "border-amber-400/30 bg-amber-500/10 text-amber-100",
+                  )}
+                >
+                  {pack.status === "Approved" || pack.status === "Final" ? (
+                    <CheckCircle2 className="h-3 w-3" />
+                  ) : (
+                    <Sparkles className="h-3 w-3" />
+                  )}
+                  {pack.status}
+                </span>
               </div>
-              <span
-                className={cn(
-                  "inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase",
-                  pack.status === "Approved" || pack.status === "Final"
-                    ? "border-emerald-400/30 bg-emerald-500/10 text-emerald-200"
-                    : "border-amber-400/30 bg-amber-500/10 text-amber-100",
-                )}
-              >
-                {pack.status === "Approved" || pack.status === "Final" ? (
-                  <CheckCircle2 className="h-3 w-3" />
-                ) : (
-                  <Sparkles className="h-3 w-3" />
-                )}
-                {pack.status}
-              </span>
-            </div>
-            <ul className="mt-3 flex flex-wrap gap-2 text-xs text-white/50">
-              {pack.pageSummaries.map((s) => (
-                <li key={s} className="rounded-full border border-white/10 px-2 py-1">
-                  {s}
-                </li>
-              ))}
-            </ul>
-            <div className="mt-4 flex flex-wrap gap-2">
-              <a href={pdfUrl} target="_blank" rel="noreferrer" className={corporateSecondaryButtonClass()}>
-                <FileText className="h-3.5 w-3.5" />
-                Preview PDF
-              </a>
-              <a
-                href={downloadUrl}
-                download={`northstar-board-deck-${pack.meetingDate}.pdf`}
-                className={corporateSecondaryButtonClass()}
-              >
-                <Download className="h-3.5 w-3.5" />
-                Download PDF
-              </a>
-              {pack.pptxDownloadUrl ? (
-                <a href={pack.pptxDownloadUrl} download className={corporateSecondaryButtonClass()}>
-                  <Download className="h-3.5 w-3.5" />
-                  Download PowerPoint
+              <div className="mt-4 flex flex-wrap gap-2">
+                <a href={pdfUrl} target="_blank" rel="noreferrer" className={corporateSecondaryButtonClass()}>
+                  <FileText className="h-3.5 w-3.5" />
+                  Preview PDF
                 </a>
-              ) : null}
-            </div>
-            <p className="mt-2 text-xs text-white/40">
-              File: northstar-board-deck-{pack.meetingDate}.pdf
-            </p>
-          </article>
+                <a
+                  href={downloadUrl}
+                  download={`demo-board-deck-${pack.meetingDate}.pdf`}
+                  className={corporateSecondaryButtonClass()}
+                >
+                  <Download className="h-3.5 w-3.5" />
+                  Download PDF
+                </a>
+                <button
+                  type="button"
+                  className={corporateSecondaryButtonClass()}
+                  onClick={() => setEditing({ ...pack })}
+                >
+                  Edit
+                </button>
+                <button
+                  type="button"
+                  className={corporateSecondaryButtonClass()}
+                  onClick={() => {
+                    archiveNorthstarBoardPack(pack.id);
+                    refreshDecks();
+                    setMessage(`Archived ${pack.packName}.`);
+                  }}
+                >
+                  <Archive className="h-3.5 w-3.5" />
+                  Archive
+                </button>
+                <button
+                  type="button"
+                  className={corporateSecondaryButtonClass()}
+                  onClick={() => {
+                    deleteNorthstarBoardPack(pack.id);
+                    refreshDecks();
+                    setMessage(`Deleted ${pack.packName}.`);
+                  }}
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  Delete
+                </button>
+              </div>
+              <p className="mt-2 text-xs text-white/40">File: demo-board-deck-{pack.meetingDate}.pdf</p>
+            </article>
           );
         })}
       </div>
+
+      {editing ? (
+        <Modal title="Edit board deck" onClose={() => setEditing(null)}>
+          <div className="space-y-3">
+            <div>
+              <CorporateFieldLabel>Pack name</CorporateFieldLabel>
+              <input
+                className={corporateInputClass()}
+                value={editing.packName}
+                onChange={(e) => setEditing({ ...editing, packName: e.target.value })}
+              />
+            </div>
+            <div>
+              <CorporateFieldLabel>Quarter</CorporateFieldLabel>
+              <input
+                className={corporateInputClass()}
+                value={editing.quarter}
+                onChange={(e) => setEditing({ ...editing, quarter: e.target.value })}
+              />
+            </div>
+            <div>
+              <CorporateFieldLabel>Meeting date</CorporateFieldLabel>
+              <input
+                type="date"
+                className={corporateInputClass()}
+                value={editing.meetingDate}
+                onChange={(e) => setEditing({ ...editing, meetingDate: e.target.value })}
+              />
+            </div>
+            <div>
+              <CorporateFieldLabel>Status</CorporateFieldLabel>
+              <select
+                className={corporateInputClass()}
+                value={editing.status}
+                onChange={(e) =>
+                  setEditing({
+                    ...editing,
+                    status: e.target.value as NorthstarBoardPackRecord["status"],
+                  })
+                }
+              >
+                <option value="Draft">Draft</option>
+                <option value="Final">Final</option>
+                <option value="Approved">Approved</option>
+              </select>
+            </div>
+            <div>
+              <CorporateFieldLabel>Page summaries (one per line)</CorporateFieldLabel>
+              <textarea
+                className={`${corporateInputClass()} min-h-[90px]`}
+                value={editing.pageSummaries.join("\n")}
+                onChange={(e) =>
+                  setEditing({
+                    ...editing,
+                    pageSummaries: e.target.value.split("\n").map((line) => line.trim()).filter(Boolean),
+                  })
+                }
+              />
+            </div>
+          </div>
+          <div className="mt-4 flex justify-end gap-2">
+            <button type="button" className={corporateSecondaryButtonClass()} onClick={() => setEditing(null)}>
+              Cancel
+            </button>
+            <button type="button" className={corporatePrimaryButtonClass()} onClick={saveEdit}>
+              Save
+            </button>
+          </div>
+        </Modal>
+      ) : null}
     </div>
   );
 }

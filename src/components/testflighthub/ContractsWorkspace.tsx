@@ -3,6 +3,8 @@
 import { useMemo, useState } from "react";
 import { AlertTriangle, Plus, Search, X } from "lucide-react";
 
+import { useScrollToTopOnChange } from "@/hooks/useScrollToTopOnChange";
+
 import {
   CORPORATE_CONTRACT_TYPES,
   daysUntil,
@@ -159,6 +161,7 @@ function ContractDetailPanel({
       item.detail.toLowerCase().includes(contract.supplier.toLowerCase()) ||
       item.label.toLowerCase().includes("contract"),
   );
+  const scrollRef = useScrollToTopOnChange(contract.id);
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-black/50 backdrop-blur-sm">
@@ -208,7 +211,7 @@ function ContractDetailPanel({
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-5 py-4">
+        <div ref={scrollRef} className="flex-1 overflow-y-auto px-5 py-4">
           {tab === "Summary" ? (
             <div className="grid gap-3 sm:grid-cols-2">
               <Info label="Owner" value={contract.owner} />

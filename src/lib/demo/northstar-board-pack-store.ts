@@ -5,7 +5,7 @@
 import {
   northstarBoardDeckPdfUrl,
 } from "@/lib/demo/northstar-board-pack-model";
-import { NORTHSTAR_LOGO_SRC } from "@/lib/demo/northstar-surface";
+import { DEMO_COMPANY_SHORT_NAME } from "@/lib/demo/demo-company-identity";
 
 export type NorthstarBoardPackRecord = {
   id: string;
@@ -13,16 +13,15 @@ export type NorthstarBoardPackRecord = {
   meetingDate: string;
   meetingId?: string;
   quarter: string;
-  status: "Draft" | "Final" | "Approved";
+  status: "Draft" | "Final" | "Approved" | "Archived";
   createdAt: string;
   pdfOpenUrl: string;
   pptxDownloadUrl?: string;
   folderPath: string;
   pageSummaries: string[];
-  logoSrc: string;
 };
 
-const STORAGE_KEY = "unit311-northstar-board-packs-v3";
+const STORAGE_KEY = "unit311-demo-board-packs-v4";
 
 function packPdfUrls(meetingDate: string) {
   const api = northstarBoardDeckPdfUrl(meetingDate, "inline");
@@ -36,63 +35,60 @@ function seedPacks(): NorthstarBoardPackRecord[] {
   const q3 = packPdfUrls("2026-09-18");
   return [
     {
-      id: "ns-deck-q1-2026",
-      packName: "Northstar Board Pack — Q1 2026",
+      id: "demo-deck-q1-2026",
+      packName: `${DEMO_COMPANY_SHORT_NAME} Board Pack — Q1 2026`,
       meetingDate: "2026-03-20",
-      meetingId: "NS-BM-2026-Q1",
+      meetingId: "DEMO-BM-2026-Q1",
       quarter: "Q1 2026",
       status: "Approved",
       createdAt: "2026-03-12T10:00:00.000Z",
       pdfOpenUrl: q1.api,
       pptxDownloadUrl: q1.download,
-      folderPath: "Board/Northstar/2026/Q1",
+      folderPath: "Board/Demo/2026/Q1",
       pageSummaries: [
         "CEO trading update",
         "Margin recovery dashboard",
-        "Atlas programme status",
+        "Platform delivery status",
         "Risk register (board view)",
         "Cash & AR ageing",
       ],
-      logoSrc: NORTHSTAR_LOGO_SRC,
     },
     {
-      id: "ns-deck-q2-2026",
-      packName: "Northstar Board Pack — Q2 2026",
+      id: "demo-deck-q2-2026",
+      packName: `${DEMO_COMPANY_SHORT_NAME} Board Pack — Q2 2026`,
       meetingDate: "2026-06-19",
-      meetingId: "NS-BM-2026-Q2",
+      meetingId: "DEMO-BM-2026-Q2",
       quarter: "Q2 2026",
       status: "Approved",
       createdAt: "2026-06-11T10:00:00.000Z",
       pdfOpenUrl: q2.api,
       pptxDownloadUrl: q2.download,
-      folderPath: "Board/Northstar/2026/Q2",
+      folderPath: "Board/Demo/2026/Q2",
       pageSummaries: [
         "Q2 financial results",
-        "US expansion update",
+        "UK SME growth update",
         "Supplier diversification MOU",
-        "Sheffield QBR summary",
+        "Customer QBR summary",
         "2026 outlook",
       ],
-      logoSrc: NORTHSTAR_LOGO_SRC,
     },
     {
-      id: "ns-deck-q3-2026-draft",
-      packName: "Northstar Board Pack — Q3 2026 (Draft)",
+      id: "demo-deck-q3-2026-draft",
+      packName: `${DEMO_COMPANY_SHORT_NAME} Board Pack — Q3 2026 (Draft)`,
       meetingDate: "2026-09-18",
-      meetingId: "NS-BM-2026-Q3",
+      meetingId: "DEMO-BM-2026-Q3",
       quarter: "Q3 2026",
       status: "Draft",
       createdAt: "2026-08-20T14:00:00.000Z",
       pdfOpenUrl: q3.api,
       pptxDownloadUrl: q3.download,
-      folderPath: "Board/Northstar/2026/Q3",
+      folderPath: "Board/Demo/2026/Q3",
       pageSummaries: [
         "CEO update (draft)",
-        "Atlas GA readiness",
+        "Product GA readiness",
         "Margin vs target",
         "Risk summary",
       ],
-      logoSrc: NORTHSTAR_LOGO_SRC,
     },
   ];
 }
@@ -161,6 +157,13 @@ export function createNorthstarBoardPackId(): string {
   return `ns-deck-${Date.now().toString(36)}`;
 }
 
+export function archiveNorthstarBoardPack(id: string): boolean {
+  const record = getNorthstarBoardPack(id);
+  if (!record || record.status === "Archived") return false;
+  saveNorthstarBoardPack({ ...record, status: "Archived" });
+  return true;
+}
+
 export function createNorthstarBoardPackDraft(input: {
   meetingId?: string;
   meetingDate: string;
@@ -170,7 +173,7 @@ export function createNorthstarBoardPackDraft(input: {
   const id = createNorthstarBoardPackId();
   return {
     id,
-    packName: `Northstar Board Pack — ${input.quarter} (Draft)`,
+    packName: `${DEMO_COMPANY_SHORT_NAME} Board Pack — ${input.quarter} (Draft)`,
     meetingDate: input.meetingDate,
     meetingId: input.meetingId,
     quarter: input.quarter,
@@ -178,7 +181,7 @@ export function createNorthstarBoardPackDraft(input: {
     createdAt: new Date().toISOString(),
     pdfOpenUrl: urls.api,
     pptxDownloadUrl: urls.download,
-    folderPath: `Board/Northstar/${input.quarter.replace(/\s/g, "-")}`,
+    folderPath: `Board/Demo/${input.quarter.replace(/\s/g, "-")}`,
     pageSummaries: [
       "Executive summary",
       "Prior actions & decisions",
@@ -186,7 +189,6 @@ export function createNorthstarBoardPackDraft(input: {
       "Risk summary",
       "Strategic topics",
     ],
-    logoSrc: NORTHSTAR_LOGO_SRC,
   };
 }
 

@@ -6,6 +6,7 @@ import {
   NORTHSTAR_BOARD_MEETINGS,
   NORTHSTAR_BOARD_RISKS,
 } from "@/lib/demo/board-data";
+import { DEMO_COMPANY_SHORT_NAME } from "@/lib/demo/demo-company-identity";
 import {
   CorporateKpiTile,
   CorporateSection,
@@ -27,7 +28,7 @@ export function DemoBoardDashboardWorkspace() {
     <div className="space-y-6">
       <header>
         <h1 className="text-2xl font-semibold text-white">Board Dashboard</h1>
-        <p className="mt-1 text-sm text-white/60">Northstar Industrial Technologies — governance overview</p>
+        <p className="mt-1 text-sm text-white/60">{DEMO_COMPANY_SHORT_NAME} — governance overview</p>
       </header>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <CorporateKpiTile label="Directors" value={String(NORTHSTAR_BOARD_DIRECTORS.length)} hint="Active board" />
@@ -56,7 +57,7 @@ export function DemoBoardMeetingsWorkspace() {
     <div className="space-y-6">
       <header>
         <h1 className="text-2xl font-semibold text-white">Board Meetings</h1>
-        <p className="mt-1 text-sm text-white/60">Historical and upcoming Northstar board meetings</p>
+        <p className="mt-1 text-sm text-white/60">Historical and upcoming board meetings for the Demo workspace</p>
       </header>
       <div className="space-y-4">
         {NORTHSTAR_BOARD_MEETINGS.map((meeting) => (
@@ -91,7 +92,7 @@ export function DemoBoardRisksWorkspace() {
     <div className="space-y-6">
       <header>
         <h1 className="text-2xl font-semibold text-white">Risk Register</h1>
-        <p className="mt-1 text-sm text-white/60">Board-level risks for Northstar</p>
+        <p className="mt-1 text-sm text-white/60">Board-level risks for the Demo workspace</p>
       </header>
       <div className="overflow-x-auto rounded-2xl border border-white/10">
         <table className="min-w-full text-left text-sm">

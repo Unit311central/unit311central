@@ -3,6 +3,8 @@
 import { useMemo, useState } from "react";
 import { Building2, Clock, MapPin, Plus, Search, Users, X } from "lucide-react";
 
+import { useScrollToTopOnChange } from "@/hooks/useScrollToTopOnChange";
+
 import { statusPillClass, type CorporateOffice } from "@/lib/corporate-data";
 import { archiveOffice, deleteOffice, upsertOffice } from "@/lib/corporate-mock-store";
 import { useCorporateMockStore } from "./useCorporateMockStore";
@@ -104,10 +106,11 @@ function OfficeDetailPanel({
   onEdit: () => void;
   onArchive: () => void;
 }) {
+  const scrollRef = useScrollToTopOnChange(office.id);
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-black/50 backdrop-blur-sm">
       <button type="button" className="flex-1" aria-label="Close panel" onClick={onClose} />
-      <aside className="flex h-full w-full max-w-lg flex-col border-l border-white/15 bg-[#0b1524] shadow-[-24px_0_64px_rgba(0,0,0,0.45)]">
+      <aside className="flex h-full w-full max-w-xl flex-col border-l border-white/15 bg-[#0b1524] shadow-[-24px_0_64px_rgba(0,0,0,0.45)]">
         <div className="border-b border-white/10 px-5 py-4">
           <div className="flex items-start justify-between gap-3">
             <div>
@@ -138,7 +141,7 @@ function OfficeDetailPanel({
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-5 py-4">
+        <div ref={scrollRef} className="flex-1 overflow-y-auto px-5 py-4">
           <div className="mb-4 flex gap-2.5 rounded-xl border border-white/10 bg-white/[0.02] p-3">
             <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-amber-300/80" />
             <p className="text-sm leading-relaxed text-white/70">{office.address || "No address recorded."}</p>

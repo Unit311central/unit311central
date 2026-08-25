@@ -20,10 +20,10 @@ const CORE_DIAGRAM_SLUGS = [
 ] as const;
 
 const CORE_DIAGRAM_LABELS: Record<(typeof CORE_DIAGRAM_SLUGS)[number], string> = {
-  "platform-overview": "High level",
-  "vercel-stack": "Vercel",
-  "supabase-stack": "Supabase",
-  "codebase-stack": "Codebase",
+  "platform-overview": "Unit311Central platform",
+  "vercel-stack": "Vercel deployment stack",
+  "supabase-stack": "Supabase data stack",
+  "codebase-stack": "Application codebase stack",
 };
 
 async function readApiJson<T>(response: Response): Promise<T> {
@@ -45,7 +45,7 @@ export default function TechnologyArchitectureWorkspace() {
   const [diagramLoading, setDiagramLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const sidebarItems = useMemo(() => {
+  const diagramTabs = useMemo(() => {
     return CORE_DIAGRAM_SLUGS.map((slug) => {
       const catalog = diagramCatalog.find((entry) => entry.sectionSlug === slug);
       const existing = existingDiagrams.find((entry) => entry.sectionSlug === slug);
@@ -55,7 +55,7 @@ export default function TechnologyArchitectureWorkspace() {
         description:
           catalog?.description ??
           existing?.title ??
-          "Living architecture diagram from Unit311 internal",
+          "Living architecture diagram for the Demo workspace",
       };
     });
   }, [diagramCatalog, existingDiagrams]);
@@ -141,59 +141,46 @@ export default function TechnologyArchitectureWorkspace() {
         <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/40">
           Technology Management
         </p>
-        <h1 className="mt-1 text-xl font-semibold text-white">Architecture diagrams</h1>
+        <h1 className="mt-1 text-xl font-semibold text-white">Living Diagrams</h1>
         <p className="mt-1 max-w-3xl text-sm text-white/55">
-          Living diagrams from Unit311 internal — high-level platform view plus Vercel, Supabase,
-          and codebase stacks. Select a diagram on the left to inspect or edit.
+          Editable architecture diagrams for the Demo workspace — platform overview, Vercel deployment,
+          Supabase data layer, and application codebase stack.
         </p>
       </header>
 
       {loading ? (
         <div className="flex flex-1 items-center justify-center text-sm text-white/55">
           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          Loading architecture catalog…
+          Loading living diagrams…
         </div>
       ) : (
-        <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[17rem_minmax(0,1fr)]">
-          <aside className="flex min-h-[28rem] flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#0b1524]/80">
-            <div className="border-b border-white/10 px-4 py-3">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/45">
-                Diagrams
-              </p>
-            </div>
-            <ul className="min-h-0 flex-1 divide-y divide-white/10 overflow-y-auto">
-              {sidebarItems.map((item) => {
-                const isActive = activeSlug === item.slug;
-                return (
-                  <li key={item.slug}>
-                    <button
-                      type="button"
-                      onClick={() => setActiveSlug(item.slug)}
-                      className={cn(
-                        "flex w-full items-start justify-between gap-3 px-4 py-3 text-left transition-colors",
-                        isActive ? "bg-indigo-500/15" : "hover:bg-white/[0.04]",
-                      )}
-                    >
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-medium text-white">{item.title}</p>
-                        <p className="mt-0.5 line-clamp-2 text-xs leading-relaxed text-white/45">
-                          {item.description}
-                        </p>
-                      </div>
-                      <Network
-                        className={cn(
-                          "mt-0.5 h-3.5 w-3.5 shrink-0",
-                          isActive ? "text-indigo-200" : "text-white/35",
-                        )}
-                      />
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-          </aside>
+        <div className="flex min-h-0 flex-1 flex-col gap-4">
+          <nav
+            aria-label="Living diagrams"
+            className="flex flex-wrap gap-1.5 overflow-x-auto border-b border-white/10 pb-3"
+          >
+            {diagramTabs.map((item) => {
+              const isActive = activeSlug === item.slug;
+              return (
+                <button
+                  key={item.slug}
+                  type="button"
+                  onClick={() => setActiveSlug(item.slug)}
+                  className={cn(
+                    "inline-flex shrink-0 items-center gap-2 rounded-xl border px-3 py-2 text-left text-xs font-semibold transition-colors",
+                    isActive
+                      ? "border-indigo-400/40 bg-indigo-500/15 text-indigo-100"
+                      : "border-white/10 bg-white/[0.03] text-white/60 hover:bg-white/[0.06] hover:text-white/80",
+                  )}
+                >
+                  <Network className={cn("h-3.5 w-3.5", isActive ? "text-indigo-200" : "text-white/35")} />
+                  {item.title}
+                </button>
+              );
+            })}
+          </nav>
 
-          <div className="flex min-h-[28rem] min-w-0 flex-col rounded-2xl border border-white/10 bg-[#0b1524]/50 p-3 sm:p-4">
+          <div className="flex min-h-[28rem] min-w-0 flex-1 flex-col rounded-2xl border border-white/10 bg-[#0b1524]/50 p-3 sm:p-4">
             {error ? (
               <div className="flex flex-1 items-center justify-center rounded-xl border border-rose-400/25 bg-rose-500/10 px-6 text-center text-sm text-rose-100">
                 {error}
@@ -225,7 +212,7 @@ export default function TechnologyArchitectureWorkspace() {
               />
             ) : (
               <div className="flex flex-1 items-center justify-center rounded-xl border border-dashed border-white/15 bg-[#0b1524]/40 px-6 text-center text-sm text-white/50">
-                Diagram unavailable. Try another item from the list.
+                Diagram unavailable. Select another living diagram above.
               </div>
             )}
           </div>
