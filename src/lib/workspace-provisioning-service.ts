@@ -96,7 +96,7 @@ export async function ensureDemoWorkspace(): Promise<{
 
   // Fallback for hosts that have not applied migration 119 yet.
   const { data: provisioned, error: provisionError } = await supabase.rpc("provision_workspace", {
-    company_name: "Unit311 Central Demo",
+    company_name: "Northstar Industrial Technologies Ltd",
     workspace_slug: DEMO_WORKSPACE_SLUG,
   });
 

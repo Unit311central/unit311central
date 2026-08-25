@@ -79,14 +79,9 @@ function logoImageFormat(logoDataUrl: string): "PNG" | "JPEG" {
   return logoDataUrl.startsWith("data:image/png") ? "PNG" : "JPEG";
 }
 
-function isDemoBoardPack(brand?: AbhiBoardPackData | null): boolean {
-  const org = brand?.coverBrand?.orgLine ?? "";
-  return /unit311 central demo|demo ltd/i.test(org);
-}
-
-/** Legacy alias — Demo workspace board packs only. */
 function isNorthstarBoardPack(brand?: AbhiBoardPackData | null): boolean {
-  return isDemoBoardPack(brand);
+  const org = brand?.coverBrand?.orgLine ?? "";
+  return /northstar/i.test(org);
 }
 
 /** Vector wordmark for white PDF pages — generic Demo company (no raster logo). */
@@ -113,13 +108,13 @@ function drawNorthstarWordmark(
   doc.setFont("helvetica", "bold");
   doc.setFontSize(titlePt);
   setText(doc, C.navy);
-  doc.text("UNIT311 CENTRAL", anchorX, titleY, textOpts);
+  doc.text("NORTHSTAR", anchorX, titleY, textOpts);
 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(subPt);
   setText(doc, NORTHSTAR_SKY);
   const subY = titleY + subPt * 0.95;
-  doc.text("DEMO LTD", anchorX, subY, subTextOpts);
+  doc.text("INDUSTRIAL TECHNOLOGIES", anchorX, subY, subTextOpts);
 
   return subY - y + subPt * 0.35;
 }

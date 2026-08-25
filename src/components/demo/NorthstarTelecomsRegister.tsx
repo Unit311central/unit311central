@@ -157,7 +157,7 @@ export default function NorthstarTelecomsRegister() {
               <th className="px-3 py-2.5">Handset</th>
               <th className="px-3 py-2.5">Assigned</th>
               <th className="px-3 py-2.5">Office</th>
-              <th className="px-3 py-2.5">USD/mo</th>
+              <th className="px-3 py-2.5">GBP/mo</th>
               <th className="px-3 py-2.5">Status</th>
               <th className="px-3 py-2.5 text-right">Actions</th>
             </tr>
@@ -238,10 +238,17 @@ export default function NorthstarTelecomsRegister() {
         }
       >
         <div className="mb-4 grid gap-3 sm:grid-cols-3">
-          {officeSummary.map((office) => (
+          {officeSummary.map((office, index) => {
+            const cardTone =
+              index === 0
+                ? "border-sky-400/30 bg-gradient-to-br from-sky-500/10 to-[#0b1524]/90"
+                : index === 1
+                  ? "border-violet-400/30 bg-gradient-to-br from-violet-500/10 to-[#0b1524]/90"
+                  : "border-emerald-400/30 bg-gradient-to-br from-emerald-500/10 to-[#0b1524]/90";
+            return (
             <article
               key={office.office}
-              className="rounded-xl border border-white/10 bg-[#0b1524]/80 px-4 py-3"
+              className={cn("rounded-xl border px-4 py-3", cardTone)}
             >
               <div className="flex items-start gap-2">
                 <div className="rounded-lg border border-white/10 bg-white/[0.04] p-2 text-sky-200">
@@ -262,7 +269,8 @@ export default function NorthstarTelecomsRegister() {
                 </div>
               </div>
             </article>
-          ))}
+            );
+          })}
         </div>
 
         {editorOpen ? (

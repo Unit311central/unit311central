@@ -19,6 +19,7 @@ import type { ManagedUser } from "@/lib/user-management-data";
 import { computeSoftwareAssetsSummary } from "@/lib/software-assets-data";
 import { DEMO_PROSPECT_USERNAME } from "@/lib/demo/read-only";
 import type { PlatformSession } from "@/lib/platform-session";
+import { createInitialUsers } from "@/lib/user-management-data";
 
 import { NORTHSTAR_REPORTING_CURRENCY, northstarFinancialMonths } from "@/lib/demo/northstar-financial-model";
 
@@ -28,19 +29,49 @@ const NOW = "2026-08-16T10:00:00.000Z";
 export function getNorthstarWhoamiPayload(session: PlatformSession | null) {
   const fixtures = getDemoEnterpriseFixtures();
   const directory = fixtures.directory;
-  const matched =
-    (session?.username
-      ? directory.find((row) => row.email.toLowerCase() === session.username.toLowerCase())
-      : null) ??
-    directory.find((row) => row.role.toLowerCase().includes("chief executive"));
+  const normalizedUsername = session?.username?.trim().toLowerCase() ?? "";
+
+  const platformAccount = createInitialUsers().find(
+    (row) => row.username.trim().toLowerCase() === normalizedUsername,
+  );
+  if (platformAccount) {
+    return {
+      displayName: platformAccount.fullName,
+      username: platformAccount.username,
+      email: platformAccount.email,
+      role: platformAccount.role,
+      roles: [platformAccount.role],
+      department: platformAccount.department,
+      departments: [platformAccount.department],
+      allowedViews: platformAccount.allowedViews,
+      dashboardPrefs: platformAccount.dashboardPrefs,
+      userType: session?.userType ?? "internal",
+      userId: session?.sub ?? platformAccount.id,
+      workspaceId: WS,
+      workspaceSlug: "demo",
+      workspaceName: fixtures.company.tradingName,
+      workspaceLogoUrl: null as string | null,
+      enabledModules: null as string[] | null,
+      enabledSubModules: null as string[] | null,
+    };
+  }
+
+  const matched = session?.username
+    ? directory.find((row) => row.email.toLowerCase() === normalizedUsername)
+    : null;
 
   const sessionDisplayName = session?.displayName?.trim();
+  const usernameLocalPart = normalizedUsername.includes("@")
+    ? normalizedUsername.split("@")[0]?.replace(/[._-]+/g, " ")
+    : normalizedUsername;
 
   return {
     displayName:
       sessionDisplayName ||
       matched?.fullName ||
-      fixtures.company.tradingName,
+      (usernameLocalPart
+        ? usernameLocalPart.replace(/\b\w/g, (char) => char.toUpperCase())
+        : fixtures.company.tradingName),
     username: session?.username || DEMO_PROSPECT_USERNAME,
     email: matched?.email || session?.username || DEMO_PROSPECT_USERNAME,
     role: matched?.role || "Admin",

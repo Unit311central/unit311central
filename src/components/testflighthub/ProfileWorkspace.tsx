@@ -8,6 +8,7 @@ import {
 } from "@/components/testflighthub/workspace-chrome";
 import { getDemoEnterpriseFixtures, isBrowserDemoSurface } from "@/lib/demo-enterprise";
 import { DEMO_PROSPECT_USERNAME } from "@/lib/demo/read-only";
+import { createInitialUsers } from "@/lib/user-management-data";
 import {
   fetchCachedJson,
   invalidateCachedJson,
@@ -28,17 +29,21 @@ type ProfilePayload = {
 
 function buildDemoProfileFallback(): ProfilePayload {
   const fixtures = getDemoEnterpriseFixtures();
-  const leader =
-    fixtures.directory.find((row) => row.role.toLowerCase().includes("chief executive")) ??
-    fixtures.directory[0];
+  const platformAdmin = createInitialUsers().find(
+    (row) => row.username.toLowerCase() === "admin@unit311central.com",
+  );
+  const demoOwner = createInitialUsers().find(
+    (row) => row.username.toLowerCase() === DEMO_PROSPECT_USERNAME.toLowerCase(),
+  );
+  const account = platformAdmin ?? demoOwner;
 
   return {
-    displayName: leader?.fullName ?? fixtures.company.tradingName,
-    username: leader?.email ?? DEMO_PROSPECT_USERNAME,
-    email: leader?.email ?? DEMO_PROSPECT_USERNAME,
-    role: leader?.role ?? "Chief Executive Officer",
+    displayName: account?.fullName ?? fixtures.company.tradingName,
+    username: account?.username ?? DEMO_PROSPECT_USERNAME,
+    email: account?.email ?? DEMO_PROSPECT_USERNAME,
+    role: account?.role ?? "Admin",
     userType: "internal",
-    userId: leader?.id ?? "nst-demo-operator",
+    userId: account?.id ?? "nst-demo-operator",
     workspaceId: "demo-workspace",
     workspaceSlug: "demo",
     workspaceName: fixtures.company.tradingName,
