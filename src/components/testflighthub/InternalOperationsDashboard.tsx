@@ -47,6 +47,7 @@ import { isBrowserTalantonImpactSurface } from "@/lib/talanton-surface";
 import { isBrowserOnwardAirSurface } from "@/lib/onwardair-surface";
 import NorthstarCorporateDashboard from "@/components/demo/NorthstarCorporateDashboard";
 import { isBrowserDemoSurface } from "@/lib/demo-enterprise";
+import type { ReportingCurrency } from "@/lib/financial-reporting-currency";
 import {
   NorthstarBoardMeetingsWorkspace,
   NorthstarBoardPacksWorkspace,
@@ -458,10 +459,12 @@ function readInitialView(
 export default function InternalOperationsDashboard({
   basePath: basePathProp,
   initialView,
+  executiveHomeReportingCurrency,
   initialEntitlementsSnapshot,
 }: {
   basePath?: SurveyOperationsBasePath;
   initialView?: InternalOperationsView;
+  executiveHomeReportingCurrency?: ReportingCurrency;
   initialEntitlementsSnapshot?: OperatorEntitlementsSnapshot | null;
 }) {
   const searchParams = useSearchParams();
@@ -848,7 +851,9 @@ export default function InternalOperationsDashboard({
           {isWarm("home") && (
             <WorkspacePane view="home" activeView={activeView} keepMounted={isWarm("home")}>
               <WorkspaceErrorBoundary title="Home">
-                <ExecutiveHomeDashboard />
+                <ExecutiveHomeDashboard
+                  reportingCurrency={executiveHomeReportingCurrency}
+                />
               </WorkspaceErrorBoundary>
             </WorkspacePane>
           )}

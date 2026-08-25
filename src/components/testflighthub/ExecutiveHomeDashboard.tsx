@@ -29,6 +29,7 @@ import type { InternalProject } from "@/lib/projects-data";
 import { isBrowserDemoSurface, getDemoEnterpriseFixtures } from "@/lib/demo-enterprise";
 import { buildNorthstarFinancialOverview } from "@/lib/demo/module-fixtures";
 import { isBrowserTalantonImpactSurface } from "@/lib/talanton-surface";
+import type { ReportingCurrency } from "@/lib/financial-reporting-currency";
 import { cn } from "@/lib/utils";
 
 type HomeKpiBundle = {
@@ -200,7 +201,11 @@ function pinHomeFinancials(
 }
 
 /** Flagship Home experience — Executive Operating Centre with live KPI SSOT. */
-export default function ExecutiveHomeDashboard() {
+export default function ExecutiveHomeDashboard({
+  reportingCurrency,
+}: {
+  reportingCurrency?: ReportingCurrency;
+}) {
   const [bundle, setBundle] = useState<HomeKpiBundle | null>(null);
   const [loading, setLoading] = useState(true);
   const [layout, setLayout] = useState<ExecutiveHomeTileId[]>([...DEFAULT_EXECUTIVE_HOME_LAYOUT]);
@@ -295,7 +300,10 @@ export default function ExecutiveHomeDashboard() {
   const config = useMemo(() => {
     const base = !bundle
       ? executiveHomeDashboardConfig
-      : withExecutiveHomeLiveData(executiveHomeDashboardConfig, bundle);
+      : withExecutiveHomeLiveData(executiveHomeDashboardConfig, {
+          ...bundle,
+          reportingCurrency,
+        });
 
     const byId = new Map(base.sections.map((section) => [section.id, section]));
     const header = byId.get("header");
@@ -307,7 +315,7 @@ export default function ExecutiveHomeDashboard() {
       ...base,
       sections: header ? [header, ...customSections] : customSections,
     };
-  }, [bundle, layout]);
+  }, [bundle, layout, reportingCurrency]);
 
   const hiddenTiles = useMemo(
     () => EXECUTIVE_HOME_TILE_CATALOG.filter((tile) => !layout.includes(tile.id)),

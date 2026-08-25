@@ -60,3 +60,36 @@ export async function resolveWorkspaceReportingCurrency(
 
   return DEFAULT_REPORTING_CURRENCY;
 }
+
+/**
+ * Executive Home / Command Centre display currency — workspace settings first,
+ * then slug specialists. Does not apply Finances-only demo USD override.
+ */
+export async function resolveExecutiveHomeReportingCurrency(
+  workspaceId?: string | null,
+  workspaceSlug?: string | null,
+): Promise<ReportingCurrency> {
+  const id = String(workspaceId ?? "").trim();
+  if (id && isSupabaseConfigured()) {
+    try {
+      const supabase = createTenancyServerClient();
+      const { data } = await supabase
+        .from("workspace_settings")
+        .select("currency")
+        .eq("workspace_id", id)
+        .maybeSingle();
+      const fromSettings = normalizeReportingCurrency(data?.currency);
+      if (fromSettings) return fromSettings;
+    } catch {
+      /* optional */
+    }
+  }
+
+  const slug = String(workspaceSlug ?? "").trim().toLowerCase();
+  const slugCurrency = resolveSlugReportingCurrency(slug);
+  if (slugCurrency !== DEFAULT_REPORTING_CURRENCY) {
+    return slugCurrency;
+  }
+
+  return DEFAULT_REPORTING_CURRENCY;
+}
