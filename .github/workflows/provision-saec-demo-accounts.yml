@@ -1,0 +1,46 @@
+name: Provision SAEC demo accounts
+
+on:
+  workflow_dispatch:
+    inputs:
+      demo_password:
+        description: SAEC demo account password (runtime only — not stored in repo)
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  provision:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Provision SAEC demo accounts via production internal API
+        env:
+          SETUP_SECRET: ${{ secrets.INTERNAL_FILES_SETUP_SECRET }}
+          DEMO_PASSWORD: ${{ inputs.demo_password }}
+        run: |
+          set -euo pipefail
+          if [ -z "${SETUP_SECRET:-}" ]; then
+            echo "INTERNAL_FILES_SETUP_SECRET is not configured on this repo."
+            exit 1
+          fi
+          if [ -z "${DEMO_PASSWORD:-}" ]; then
+            echo "demo_password workflow input is required."
+            exit 1
+          fi
+          response=$(curl -fsS -X POST \
+            -H "x-setup-secret: ${SETUP_SECRET}" \
+            -H "Content-Type: application/json" \
+            -d "$(jq -n --arg password "$DEMO_PASSWORD" '{password: $password}')" \
+            "https://unit311central.com/api/internal/provision-saec-demo-accounts")
+          echo "$response" | jq .
+          echo "$response" | jq -e '.ok == true' >/dev/null
+          echo "$response" | jq -e '(.accounts | length) == 2' >/dev/null
+          echo "$response" | jq -e '
+            ([.accounts[].email] | index("admin@saec.biz")) != null
+          ' >/dev/null
+          echo "$response" | jq -e '
+            ([.accounts[].email] | index("demo@saec.biz")) != null
+          ' >/dev/null

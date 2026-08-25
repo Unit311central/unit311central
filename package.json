@@ -56,6 +56,8 @@
     "prove:finances-nav": "node --import tsx src/lib/__tests__/finances-nav.check.ts",
     "prove:finances-acceptance": "node scripts/prove-finances-acceptance.mjs",
     "prove:saec-installations": "node scripts/prove-saec-installations.mjs",
+    "provision:saec-demo-accounts": "node --import tsx scripts/provision-saec-demo-accounts.ts",
+    "prove:saec-demo-accounts": "node scripts/prove-saec-demo-accounts.mjs",
     "prove:workspaces-nav": "node --require ./scripts/test-server-only-hook.cjs --import tsx src/lib/__tests__/workspaces-nav.check.ts",
     "prove:workspaces-phase2": "node --require ./scripts/test-server-only-hook.cjs --import tsx src/lib/__tests__/workspaces-phase2.check.ts",
     "prove:workspaces-phase3": "node --require ./scripts/test-server-only-hook.cjs --import tsx src/lib/__tests__/workspaces-phase3.check.ts",

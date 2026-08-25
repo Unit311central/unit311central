@@ -1,5 +1,6 @@
 /**
  * Provision dedicated SAEC client demonstration login (demo@saec.biz).
+ * Superseded by scripts/provision-saec-demo-accounts.ts (admin@saec.biz + demo@saec.biz).
  * Password is read from SAEC_DEMO_PASSWORD — never commit or log the password.
  *
  *   SAEC_DEMO_PASSWORD='...' node scripts/provision-saec-demo-user.mjs
