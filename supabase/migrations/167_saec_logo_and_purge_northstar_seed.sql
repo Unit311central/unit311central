@@ -13,7 +13,7 @@ using public.workspaces w
 where ip.workspace_id = w.id
   and w.slug = 'saec'
   and (
-    ip.id like 'nst-%'
+    ip.id::text like 'nst-%'
     or ip.client_name ilike '%Northstar%'
     or ip.client_name ilike '%Dublin Pharma%'
     or ip.name ilike '%Edge gateway%'
