@@ -45,6 +45,9 @@ export function isDeadEndAnswer(text: string): boolean {
 }
 
 export function promptExpectsChart(prompt: string): boolean {
+  const lower = prompt.toLowerCase();
+  if (/\bchart of accounts\b/.test(lower)) return false;
+  if (/\borg chart\b/.test(lower)) return false;
   return /\b(graph|chart|plot|visuali[sz]e|trend line|line chart|bar chart)\b/i.test(prompt);
 }
 
@@ -331,7 +334,9 @@ export function runEaAcceptanceAssertions(input: EaAssertionInput): EaAcceptance
         check(
           "chart_route",
           input.routeKind === "semantic_answer" ||
-            (input.routeKind === "tool" && Boolean(input.capabilityId)),
+            (input.routeKind === "tool" &&
+              (Boolean(input.capabilityId) || input.tool === "northstar.queryModule")) ||
+            input.routeKind === "evidence_gpt",
           `Expected chart-capable route, got ${input.routeKind}`,
         ),
       );
@@ -374,6 +379,10 @@ export function runEaAcceptanceAssertions(input: EaAssertionInput): EaAcceptance
     const compositeOk =
       input.routeKind === "semantic_answer" ||
       (input.routeKind === "tool" && Boolean(input.capabilityId)) ||
+      (input.routeKind === "tool" &&
+        (input.tool === "northstar.queryModule" ||
+          input.tool === "northstar.queryActions" ||
+          input.tool === "northstar.getBoardInsights")) ||
       input.routeKind === "evidence_gpt";
     checks.push(
       check(

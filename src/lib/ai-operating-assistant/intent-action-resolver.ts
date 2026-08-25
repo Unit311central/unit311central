@@ -109,6 +109,13 @@ export function hasExplicitWriteIntent(message: string): boolean {
   // "Create me a PDF / report / chart / export" is document or visual output, not entity mutation.
   // Do NOT treat preference changes that merely mention PDF as document generation.
   if (
+    /\b(give|get|provide|show|send)\s+(me\s+)?(an?\s+)?executive\s+\w+\s+update\b/i.test(lower) ||
+    /\bexecutive\s+(sales|financial|finance|hr|operations|management)\s+update\b/i.test(lower)
+  ) {
+    return false;
+  }
+
+  if (
     /\b(pdf|report|pack|directory|document|export|graph|chart|plot)\b/i.test(lower) &&
     /\b(create|make|generate|export|produce|build|prepare|give|get|show|plot)\b/i.test(lower) &&
     !/\b(preference|switch|delivery|deactivate|revoke|connect)\b/i.test(lower) &&
@@ -117,6 +124,19 @@ export function hasExplicitWriteIntent(message: string): boolean {
       lower,
     )
   ) {
+    return false;
+  }
+
+  // Module/screen reads — "Risk Register", "Document Control", etc. are not write verbs.
+  if (/\bwhat data is on the\b/i.test(lower)) return false;
+  if (
+    /\b(risk register|asset register|telecom register|company register|client register|share register|equipment register|document control)\b/i.test(
+      lower,
+    )
+  ) {
+    return false;
+  }
+  if (/\b[A-Za-z][\w\s-]{0,32}\sregister\b/i.test(lower) && !/^(register|create|add)\b/i.test(lower)) {
     return false;
   }
 

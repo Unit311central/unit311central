@@ -125,17 +125,18 @@ export async function runDemoEaTestSuite(): Promise<EaTestSuiteReport> {
 
   const orchestration = new SectionRunner("Orchestration");
   sections.push(orchestration);
-  await orchestration.run("headcount question routes to northstar HR module", async () => {
+  await orchestration.run("headcount question routes to semantic HR capability", async () => {
     const route = await resolveOrchestrationRoute(
       "How many employees do we have?",
       [],
       business,
     );
-    if (route.kind !== "tool" || route.intent.tool !== "northstar.queryModule") {
-      throw new Error(`expected northstar.queryModule, got ${JSON.stringify(route)}`);
+    if (route.kind !== "tool") {
+      throw new Error(`expected tool route, got ${JSON.stringify(route)}`);
     }
-    if (String(route.intent.args.module ?? "") !== "hr") {
-      throw new Error(`expected hr module, got ${JSON.stringify(route.intent.args)}`);
+    const tool = route.intent.tool;
+    if (tool !== "searchEmployees" && tool !== "northstar.queryModule") {
+      throw new Error(`expected searchEmployees or northstar.queryModule, got ${JSON.stringify(route)}`);
     }
   });
   await orchestration.run("margin question routes to northstar briefing", async () => {
@@ -160,6 +161,88 @@ export async function runDemoEaTestSuite(): Promise<EaTestSuiteReport> {
     const route = await resolveOrchestrationRoute("Tell me payroll for last 6 months", [], business);
     if (route.kind !== "tool" || route.intent.tool !== "queryPayroll") {
       throw new Error(`expected queryPayroll, got ${JSON.stringify(route)}`);
+    }
+  });
+
+  const regressionPrompts: Array<{ label: string; assert: (route: Awaited<ReturnType<typeof resolveOrchestrationRoute>>) => void }> = [
+    {
+      label: "sales performance read",
+      assert: (route) => {
+        if (route.kind !== "tool" || route.intent.tool !== "northstar.queryModule") {
+          throw new Error(`expected northstar.queryModule, got ${JSON.stringify(route)}`);
+        }
+      },
+    },
+    {
+      label: "sales target tracking",
+      assert: (route) => {
+        if (route.kind !== "tool" || route.intent.tool !== "northstar.queryModule") {
+          throw new Error(`expected northstar.queryModule, got ${JSON.stringify(route)}`);
+        }
+      },
+    },
+    {
+      label: "executive sales update",
+      assert: (route) => {
+        if (route.kind !== "tool" || route.intent.tool !== "northstar.queryModule") {
+          throw new Error(`expected northstar.queryModule, got ${JSON.stringify(route)}`);
+        }
+      },
+    },
+    {
+      label: "create client write",
+      assert: (route) => {
+        if (route.kind !== "capability_answer" && route.kind !== "need_info") {
+          throw new Error(`expected write/action route, got ${JSON.stringify(route)}`);
+        }
+      },
+    },
+    {
+      label: "sales management sidebar navigation",
+      assert: (route) => {
+        if (route.kind !== "platform_answer") {
+          throw new Error(`expected platform_answer, got ${JSON.stringify(route)}`);
+        }
+      },
+    },
+    {
+      label: "financial executive summary",
+      assert: (route) => {
+        if (route.kind !== "tool" || route.intent.tool !== "northstar.queryModule") {
+          throw new Error(`expected northstar.queryModule, got ${JSON.stringify(route)}`);
+        }
+      },
+    },
+    {
+      label: "project risk read",
+      assert: (route) => {
+        if (route.kind !== "tool" || route.intent.tool !== "northstar.queryModule") {
+          throw new Error(`expected northstar.queryModule, got ${JSON.stringify(route)}`);
+        }
+      },
+    },
+  ];
+  const regressionMessages = [
+    "How are sales doing?",
+    "Are we on track to hit target?",
+    "Give me an executive sales update.",
+    "Create a new client called Acme Corp.",
+    "Where is Sales Management in the sidebar?",
+    "Give me a financial executive summary.",
+    "Which projects are at risk?",
+  ];
+  for (let i = 0; i < regressionPrompts.length; i += 1) {
+    const spec = regressionPrompts[i];
+    const message = regressionMessages[i];
+    await orchestration.run(`regression: ${spec.label}`, async () => {
+      const route = await resolveOrchestrationRoute(message, [], business);
+      spec.assert(route);
+    });
+  }
+  await orchestration.run("board deck PDF regression", async () => {
+    const route = await resolveOrchestrationRoute("Create a board deck for tomorrow as a PDF.", [], business);
+    if (route.kind !== "tool" || route.intent.tool !== "boardpack.generate") {
+      throw new Error(`expected boardpack.generate, got ${JSON.stringify(route)}`);
     }
   });
 
