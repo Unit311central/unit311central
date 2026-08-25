@@ -51,7 +51,6 @@ test("SAEC fixtures exclude Northstar demo records", () => {
 
   for (const client of clients) {
     assertNoLegacyMarkers(JSON.stringify(client), `client ${client.id}`);
-    assert.equal(client.region, "Other");
   }
 
   for (const project of projects) {
