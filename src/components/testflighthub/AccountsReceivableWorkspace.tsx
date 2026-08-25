@@ -10,8 +10,9 @@ import type { LedgerInvoice } from "@/lib/accounting/types";
 import { isBrowserCorpCentreSurface } from "@/lib/corpcentre-surface";
 import { isBrowserDemoSurface } from "@/lib/demo-enterprise";
 import { isBrowserOnwardAirSurface } from "@/lib/onwardair-surface";
-import { resolveBrowserReportingCurrency } from "@/lib/financial-reporting-currency";
+import type { ReportingCurrency } from "@/lib/financial-reporting-currency";
 import { convertToGbp } from "@/lib/treasury/treasury-utils";
+import { useWorkspaceReportingCurrency } from "@/lib/workspace-reporting-currency";
 import { cn } from "@/lib/utils";
 
 function isUnpaid(status: LedgerInvoice["status"]) {
@@ -51,9 +52,7 @@ function daysBetween(fromIso: string, toIso: string) {
   return Math.max(0, Math.round((to.getTime() - from.getTime()) / (1000 * 60 * 60 * 24)));
 }
 
-function reportingCurrency(invoices: LedgerInvoice[] = []) {
-  const workspaceCurrency = resolveBrowserReportingCurrency();
-  if (workspaceCurrency === "USD") return "USD";
+function reportingCurrency(invoices: LedgerInvoice[] = [], workspaceCurrency: ReportingCurrency) {
   if (isBrowserOnwardAirSurface()) return "USD";
   if (isBrowserCorpCentreSurface()) return "AUD";
   if (invoices.some((invoice) => String(invoice.currency || "").toUpperCase() === "AUD")) {
@@ -66,9 +65,9 @@ function reportingCurrency(invoices: LedgerInvoice[] = []) {
   const codes = invoices.map((invoice) => String(invoice.currency || "").toUpperCase());
   const usdCount = codes.filter((code) => code === "USD").length;
   const gbpCount = codes.filter((code) => code === "GBP").length;
-  // Demo (and other USD workspaces): prefer USD when it is the majority invoice currency.
-  if (usdCount > 0 && usdCount >= gbpCount) return "USD";
-  return "GBP";
+  if (workspaceCurrency === "USD" && usdCount > 0 && usdCount >= gbpCount) return "USD";
+  if (workspaceCurrency === "GBP") return "GBP";
+  return workspaceCurrency;
 }
 
 /** Sum invoices in the workspace reporting currency. */
@@ -159,7 +158,8 @@ export default function AccountsReceivableWorkspace({
   const monthPrefix = todayIso.slice(0, 7);
 
   const isDemo = isBrowserDemoSurface();
-  const currency = reportingCurrency(invoices);
+  const workspaceReportingCurrency = useWorkspaceReportingCurrency();
+  const currency = reportingCurrency(invoices, workspaceReportingCurrency);
   const money = (amount: number) => formatMoney(amount, currency);
 
   const kpis = useMemo(() => {

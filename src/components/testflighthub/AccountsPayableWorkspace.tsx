@@ -6,10 +6,8 @@ import { useSearchParams } from "next/navigation";
 import { Loader2, RefreshCw, Receipt } from "lucide-react";
 
 import { formatMoney } from "@/lib/accounting/chart-of-accounts";
-import { isBrowserCorpCentreSurface } from "@/lib/corpcentre-surface";
 import { isBrowserDemoSurface } from "@/lib/demo-enterprise";
-import { isBrowserOnwardAirSurface } from "@/lib/onwardair-surface";
-import { resolveBrowserReportingCurrency } from "@/lib/financial-reporting-currency";
+import { useWorkspaceReportingCurrency } from "@/lib/workspace-reporting-currency";
 import type { SupplierInvoiceDraft } from "@/lib/accounting/types";
 import type { NorthstarPayableCategory } from "@/lib/demo/northstar-ap-ar-fixtures";
 import { cn } from "@/lib/utils";
@@ -268,13 +266,7 @@ export default function AccountsPayableWorkspace({
   const showPayablesTable = section !== "approvals";
   const sectionCopy = SECTION_COPY[section];
 
-  const currency = (() => {
-    const workspaceCurrency = resolveBrowserReportingCurrency();
-    if (workspaceCurrency === "USD") return "USD";
-    if (isBrowserOnwardAirSurface()) return "USD";
-    if (isBrowserCorpCentreSurface()) return "AUD";
-    return "GBP";
-  })();
+  const currency = useWorkspaceReportingCurrency();
   const money = (amount: number) => formatMoney(amount, currency);
 
   const cards = isDemo

@@ -18,7 +18,7 @@ import { centralLoginUrl } from "@/lib/app-domains";
 import { isBrowserAbhiSurface } from "@/lib/abhi-surface";
 import { isBrowserCorpCentreSurface } from "@/lib/corpcentre-surface";
 import { isBrowserDemoSurface } from "@/lib/demo-enterprise";
-import { resolveBrowserReportingCurrency } from "@/lib/financial-reporting-currency";
+import { useWorkspaceReportingCurrency } from "@/lib/workspace-reporting-currency";
 import { isBrowserOnwardAirSurface } from "@/lib/onwardair-surface";
 import { cn } from "@/lib/utils";
 
@@ -103,7 +103,7 @@ export default function GeneralLedgerWorkspace() {
   const [selectedJournalId, setSelectedJournalId] = useState<string | null>(null);
   const [clientOptions, setClientOptions] = useState<ClientOption[]>([]);
 
-  const reportingCurrency = resolveBrowserReportingCurrency();
+  const reportingCurrency = useWorkspaceReportingCurrency();
   const money = (amount: number, _currency?: string | null) =>
     formatMoney(amount, reportingCurrency);
 

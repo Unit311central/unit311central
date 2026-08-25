@@ -10,7 +10,7 @@ const DEMO = {
   origin: "https://demo.unit311central.com",
   username: "demo@unit311central.com",
   password: process.env.DEMO_PROSPECT_PASSWORD ?? "Letmein2026$",
-  expectedCurrency: "USD",
+  expectedCurrency: "GBP",
 };
 
 const REQUIRED_NAV = [

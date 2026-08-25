@@ -761,6 +761,8 @@ export type InternalNavSection = {
   readonly color?: string;
   /** Workspace card header icon (Lucide name). */
   readonly icon?: string;
+  /** When true, nested nav parents under this module stay expanded (Finances catalogue). */
+  readonly expandChildrenByDefault?: boolean;
   readonly items: readonly InternalNavItem[];
 };
 

@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState, startTransition } from "reac
 
 import TreasuryShell from "@/components/treasury/TreasuryShell";
 import { isBrowserDemoSurface } from "@/lib/demo-enterprise";
-import { resolveBrowserReportingCurrency } from "@/lib/financial-reporting-currency";
+import { useWorkspaceReportingCurrency } from "@/lib/workspace-reporting-currency";
 import type { TreasuryView } from "@/lib/treasury/treasury-types";
 import type { WiseConnectionStatus } from "@/lib/wise-service";
 
@@ -43,7 +43,7 @@ export default function WiseWorkspace({
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const reportingCurrency = resolveBrowserReportingCurrency();
+  const reportingCurrency = useWorkspaceReportingCurrency();
   const isUsdWorkspace = reportingCurrency === "USD";
   const demoMode = useMemo(
     () => isUsdWorkspace || isBrowserDemoSurface() || Boolean(status?.demoMode),

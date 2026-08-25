@@ -465,6 +465,7 @@ export default function EnterprisePlatformSidebar({
     item: InternalNavItem | InternalNavChildItem,
     parentKey: string,
     depth: number,
+    expandParentsByDefault = false,
   ) {
     const key = `${parentKey}::${item.label}`;
     const hasChildren = (item.children?.length ?? 0) > 0;
@@ -495,7 +496,10 @@ export default function EnterprisePlatformSidebar({
         ) ??
           false),
       ) ?? false;
-    const isOpen = hydrated ? Boolean(expanded[key]) || childActive : false;
+    const isOpen =
+      hydrated
+        ? Boolean(expanded[key]) || childActive || (expandParentsByDefault && depth === 0)
+        : false;
     const Chevron = isOpen ? ChevronDown : ChevronRight;
     const Icon = resolveIcon(itemIcon);
 
@@ -540,7 +544,7 @@ export default function EnterprisePlatformSidebar({
           <div className="min-h-0 overflow-hidden">
             {/* Continuous surface — no nested chrome; hierarchy = indent only */}
             <div>
-              {item.children?.map((child) => renderGroup(child, key, depth + 1))}
+              {item.children?.map((child) => renderGroup(child, key, depth + 1, expandParentsByDefault))}
             </div>
           </div>
         </div>
@@ -755,7 +759,12 @@ export default function EnterprisePlatformSidebar({
             <div className="pb-0.5">
               {section.items.map((item) => {
                 if (item.children?.length) {
-                  return renderGroup(item, workspaceKey, 0);
+                  return renderGroup(
+                    item,
+                    workspaceKey,
+                    0,
+                    Boolean(section.expandChildrenByDefault),
+                  );
                 }
                 const leafActive = isInternalNavItemActive(
                   pathname,

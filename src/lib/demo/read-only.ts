@@ -1,4 +1,5 @@
 import { DEMO_WORKSPACE_SLUG } from "@/lib/app-domains";
+import type { ReportingCurrency } from "@/lib/financial-reporting-currency";
 
 export const DEMO_PROSPECT_USERNAME = "demo@unit311central.com";
 export const DEMO_ADMIN_USERNAME = "admin@unit311central.com";
@@ -53,6 +54,9 @@ export function applyUnit311GlobalAdminEntitlements<
 export function isDemoWorkspaceSlug(slug: string | null | undefined): boolean {
   return String(slug ?? "").trim().toLowerCase() === DEMO_WORKSPACE_SLUG;
 }
+
+/** Demo / Northstar workspace reporting currency (Finance acceptance configuration). */
+export const DEMO_REPORTING_CURRENCY: ReportingCurrency = "GBP";
 
 export function isDemoReadOnlySession(input: {
   workspaceSlug?: string | null;

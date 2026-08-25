@@ -123,6 +123,7 @@ export function buildFinancesNavSection(options?: {
     label: FINANCES_MODULE_LABEL,
     icon: options?.icon ?? "Wallet",
     color: options?.color ?? FINANCES_ACCENT,
+    expandChildrenByDefault: true,
     items,
   };
 }
