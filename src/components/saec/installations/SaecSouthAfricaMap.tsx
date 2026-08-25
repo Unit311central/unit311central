@@ -70,20 +70,22 @@ export default function SaecSouthAfricaMap({
   const markerTheme =
     assetType === "elevator"
       ? {
-          ring: "stroke-cyan-400/70",
-          fill: "fill-cyan-500/25",
-          fillSelected: "fill-cyan-400/40",
-          ringSelected: "stroke-cyan-200",
-          count: "text-cyan-50",
+          ring: "stroke-cyan-300",
+          fill: "fill-cyan-500",
+          fillSelected: "fill-cyan-400",
+          ringSelected: "stroke-cyan-100",
+          count: "fill-white",
           badge: "bg-cyan-500/20 text-cyan-100 border-cyan-400/30",
+          glow: "#22d3ee",
         }
       : {
-          ring: "stroke-amber-400/70",
-          fill: "fill-amber-500/25",
-          fillSelected: "fill-amber-400/35",
-          ringSelected: "stroke-amber-200",
-          count: "text-amber-50",
+          ring: "stroke-amber-300",
+          fill: "fill-amber-500",
+          fillSelected: "fill-amber-400",
+          ringSelected: "stroke-amber-100",
+          count: "fill-white",
           badge: "bg-amber-500/20 text-amber-100 border-amber-400/30",
+          glow: "#fbbf24",
         };
 
   const cityMarkers = useMemo(
@@ -115,7 +117,7 @@ export default function SaecSouthAfricaMap({
   }
 
   return (
-    <div className="relative rounded-2xl border border-white/10 bg-[#060b12]">
+    <div className="relative rounded-2xl border border-white/10 bg-[#0a1628]">
       <div className="border-b border-white/8 px-4 py-3 sm:px-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
@@ -183,7 +185,7 @@ export default function SaecSouthAfricaMap({
         {mapLayers && (
         <div
           className="saec-installations-map-stage mx-auto w-full"
-          style={{ height: "min(42vh, 400px)" }}
+          style={{ height: "min(48vh, 460px)" }}
         >
         <svg
           viewBox={`0 0 ${SA_MAP_VIEWBOX.width} ${SA_MAP_VIEWBOX.height}`}
@@ -194,12 +196,20 @@ export default function SaecSouthAfricaMap({
           aria-label="Geographic map of South Africa showing SAEC installation clusters"
         >
           <defs>
-            <linearGradient id="saec-land-fill" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#1e293b" stopOpacity="0.95" />
-              <stop offset="100%" stopColor="#0f172a" stopOpacity="0.98" />
+            <linearGradient id="saec-ocean-fill" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#0a1628" />
+              <stop offset="100%" stopColor="#061018" />
             </linearGradient>
-            <filter id="saec-marker-glow" x="-40%" y="-40%" width="180%" height="180%">
-              <feGaussianBlur stdDeviation="3" result="blur" />
+            <linearGradient id="saec-land-fill" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#d4dcc8" />
+              <stop offset="55%" stopColor="#c5d4bc" />
+              <stop offset="100%" stopColor="#b8c9ae" />
+            </linearGradient>
+            <filter id="saec-marker-shadow" x="-50%" y="-50%" width="200%" height="200%">
+              <feDropShadow dx="0" dy="2" stdDeviation="3" floodColor="#000" floodOpacity="0.45" />
+            </filter>
+            <filter id="saec-marker-glow" x="-50%" y="-50%" width="200%" height="200%">
+              <feGaussianBlur stdDeviation="4" result="blur" />
               <feMerge>
                 <feMergeNode in="blur" />
                 <feMergeNode in="SourceGraphic" />
@@ -212,7 +222,7 @@ export default function SaecSouthAfricaMap({
             y="0"
             width={SA_MAP_VIEWBOX.width}
             height={SA_MAP_VIEWBOX.height}
-            fill="#030712"
+            fill="url(#saec-ocean-fill)"
           />
 
           <g>
@@ -221,8 +231,8 @@ export default function SaecSouthAfricaMap({
                 key={`province-${index}`}
                 d={path}
                 fill="url(#saec-land-fill)"
-                stroke="rgba(148, 163, 184, 0.22)"
-                strokeWidth={0.75}
+                stroke="rgba(90, 108, 82, 0.55)"
+                strokeWidth={0.9}
                 strokeLinejoin="round"
               />
             ))}
@@ -230,8 +240,8 @@ export default function SaecSouthAfricaMap({
               <path
                 d={mapLayers.countryPath}
                 fill="none"
-                stroke="rgba(56, 189, 248, 0.45)"
-                strokeWidth={1.4}
+                stroke="rgba(70, 88, 68, 0.85)"
+                strokeWidth={1.6}
                 strokeLinejoin="round"
               />
             )}
@@ -251,31 +261,31 @@ export default function SaecSouthAfricaMap({
                 onMouseLeave={() => setHoveredCityId((id) => (id === city.cityId ? null : id))}
                 onFocus={() => setHoveredCityId(city.cityId)}
                 onBlur={() => setHoveredCityId((id) => (id === city.cityId ? null : id))}
-                filter={selected || hovered ? "url(#saec-marker-glow)" : undefined}
+                filter={selected || hovered ? "url(#saec-marker-glow)" : "url(#saec-marker-shadow)"}
               >
                 <circle
                   r={radius}
                   className={cn(
-                    "transition-all duration-200",
+                    "transition-all duration-200 opacity-90",
                     selected ? markerTheme.fillSelected : markerTheme.fill,
                     selected ? markerTheme.ringSelected : markerTheme.ring,
                   )}
-                  strokeWidth={selected ? 2.5 : 1.5}
+                  strokeWidth={selected ? 2.5 : 2}
                 />
                 <text
                   y={-4}
                   textAnchor="middle"
-                  className={cn("font-semibold tabular-nums", markerTheme.count)}
-                  style={{ fontSize: 13, fontWeight: 700 }}
+                  className={markerTheme.count}
+                  style={{ fontSize: 14, fontWeight: 700 }}
                 >
                   {city.total}
                 </text>
                 <text
-                  y={labelOffsetY + 16}
+                  y={labelOffsetY + 18}
                   x={labelOffsetX}
                   textAnchor="middle"
-                  className="fill-white/75"
-                  style={{ fontSize: 10, fontWeight: 600 }}
+                  className="fill-[#1e293b]"
+                  style={{ fontSize: 11, fontWeight: 600 }}
                 >
                   {city.cityLabel}
                 </text>

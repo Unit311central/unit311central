@@ -101,6 +101,17 @@ function isBrowserAbhiHome(): boolean {
   }
 }
 
+function isBrowserSaecHome(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    const { isBrowserSaecSurface } =
+      require("@/lib/saec-surface") as typeof import("@/lib/saec-surface");
+    return isBrowserSaecSurface();
+  } catch {
+    return false;
+  }
+}
+
 function isBrowserTalantonHome(): boolean {
   if (typeof window === "undefined") return false;
   try {
@@ -497,6 +508,12 @@ export function buildExecutiveHomeLiveKpis(input: {
   onboardingPipelineCount?: number;
   reportingCurrency?: ReportingCurrency;
 }): DashboardKpiItem[] {
+  if (isBrowserSaecHome()) {
+    const { buildSaecExecutiveHomeKpis } =
+      require("@/lib/saec/executive-home") as typeof import("@/lib/saec/executive-home");
+    return buildSaecExecutiveHomeKpis();
+  }
+
   if (isBrowserTalantonHome()) {
     return buildTalantonExecutiveHomeKpis();
   }
@@ -906,6 +923,7 @@ export function buildExecutiveHomeLiveNarrative(input: {
 
   let companyName = "Workspace";
   let abhiHome = false;
+  let saecHome = false;
   let showTreasurySurfaces = false;
   try {
     if (typeof window !== "undefined") {
@@ -946,6 +964,7 @@ export function buildExecutiveHomeLiveNarrative(input: {
               require("@/lib/saec-surface") as typeof import("@/lib/saec-surface");
             if (isBrowserSaecSurface()) {
               companyName = SAEC_COMPANY_NAME;
+              saecHome = true;
             } else if (
               host === "internal.unit311central.com" ||
               host === "internal.localhost"
@@ -982,7 +1001,17 @@ export function buildExecutiveHomeLiveNarrative(input: {
     (atRisk.length > 0 ? 1 : 0) +
     (effectiveOnboarding > 0 ? 1 : 0);
 
-  const summaryParts = abhiHome
+  const summaryParts = saecHome
+    ? [
+        "800+ elevator and escalator units under management across South Africa.",
+        "400 elevators and 400 escalators in the demonstration portfolio.",
+        `${openProjects} installation and modernisation projects in delivery.`,
+        `${activeClients.length} active commercial, retail and healthcare clients.`,
+        atRisk.length > 0
+          ? `${atRisk.length} project${atRisk.length === 1 ? "" : "s"} behind plan — field coordination required.`
+          : "Field service workload is within normal operating thresholds.",
+      ]
+    : abhiHome
     ? [
         `${activeClients.length} active members.`,
         `${openProjects} live programmes in delivery.`,
