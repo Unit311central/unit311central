@@ -126,6 +126,8 @@ export async function createLead(
     companyName: string;
     contactName: string;
     workspaceId?: string;
+    ownerUserId?: string | null;
+    winProbability?: number | null;
   },
   scope?: CrmWorkspaceScope,
 ): Promise<CrmLead> {
@@ -146,6 +148,8 @@ export async function createLead(
       next_action: input.nextAction?.trim() || null,
       next_action_date: input.nextActionDate || null,
       estimated_value: input.estimatedValue ?? null,
+      win_probability: input.winProbability ?? null,
+      owner_user_id: input.ownerUserId ?? null,
       notes: input.notes?.trim() || null,
     })
     .select("*")
@@ -167,6 +171,8 @@ export async function updateLead(
     nextAction: string;
     nextActionDate: string | null;
     estimatedValue: number | null;
+    winProbability: number | null;
+    ownerUserId: string | null;
     notes: string;
     discoveryNotes: string;
     clientReportFileId: string | null;
@@ -204,6 +210,8 @@ export async function updateLead(
   if (patch.nextAction !== undefined) payload.next_action = patch.nextAction.trim() || null;
   if (patch.nextActionDate !== undefined) payload.next_action_date = patch.nextActionDate;
   if (patch.estimatedValue !== undefined) payload.estimated_value = patch.estimatedValue;
+  if (patch.winProbability !== undefined) payload.win_probability = patch.winProbability;
+  if (patch.ownerUserId !== undefined) payload.owner_user_id = patch.ownerUserId;
   if (patch.notes !== undefined) payload.notes = patch.notes.trim() || null;
   if (patch.discoveryNotes !== undefined) {
     payload.discovery_notes = patch.discoveryNotes.trim() || null;

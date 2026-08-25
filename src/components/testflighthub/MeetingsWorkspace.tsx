@@ -8,7 +8,7 @@ import {
   type ExecutiveMeetingStatus,
 } from "@/lib/founder-booking/meeting-slug";
 import { cn } from "@/lib/utils";
-import { ChevronDown, ExternalLink, FileText, Loader2, Trash2, Video } from "lucide-react";
+import { ChevronDown, ExternalLink, FileText, Loader2, Plus, Trash2, Video } from "lucide-react";
 
 type MeetingRow = {
   id: string;
@@ -58,55 +58,22 @@ export default function MeetingsWorkspace({ salesEmbedded = false }: { salesEmbe
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [draftName, setDraftName] = useState("");
+  const [draftOrg, setDraftOrg] = useState("");
+  const [draftRole, setDraftRole] = useState("");
+  const [draftEmail, setDraftEmail] = useState("");
+  const [draftStartsAt, setDraftStartsAt] = useState("");
+  const [creating, setCreating] = useState(false);
 
   const loadMeetings = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      if (typeof window !== "undefined") {
-        try {
-          const { isNorthstarDemoBrowser, getNorthstarDiscoveryMeetings } =
-            require("@/lib/demo/module-fixtures") as typeof import("@/lib/demo/module-fixtures");
-          if (isNorthstarDemoBrowser()) {
-            setMeetings(getNorthstarDiscoveryMeetings() as MeetingRow[]);
-            setLoading(false);
-            return;
-          }
-        } catch {
-          /* optional */
-        }
-      }
-
       const response = await fetch("/api/crm/meetings", { cache: "no-store" });
       const data = await readApiJson<{ meetings?: MeetingRow[]; error?: string }>(response);
       if (!response.ok) throw new Error(data.error ?? "Failed to load meetings");
-      let next = data.meetings ?? [];
-      if (typeof window !== "undefined") {
-        try {
-          const { isOnwardAirBusinessCentralFixtures, getOaDiscoveryMeetings } =
-            require("@/lib/onwardair/business-central-data") as typeof import("@/lib/onwardair/business-central-data");
-          if (isOnwardAirBusinessCentralFixtures()) {
-            next = getOaDiscoveryMeetings() as MeetingRow[];
-          }
-        } catch {
-          /* keep API */
-        }
-      }
-      if (
-        next.length === 0 &&
-        typeof window !== "undefined" &&
-        (window.location.hostname.startsWith("demo.") ||
-          window.location.hostname === "demo.localhost")
-      ) {
-        try {
-          const { getNorthstarDiscoveryMeetings } =
-            require("@/lib/demo/module-fixtures") as typeof import("@/lib/demo/module-fixtures");
-          next = getNorthstarDiscoveryMeetings() as MeetingRow[];
-        } catch {
-          next = [];
-        }
-      }
-      setMeetings(next);
+      setMeetings(data.meetings ?? []);
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : "Failed to load meetings");
     } finally {
@@ -119,6 +86,38 @@ export default function MeetingsWorkspace({ salesEmbedded = false }: { salesEmbe
       void loadMeetings();
     });
   }, [loadMeetings]);
+
+  async function handleCreateMeeting() {
+    setCreating(true);
+    setError(null);
+    try {
+      const response = await fetch("/api/crm/meetings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: draftName,
+          organization: draftOrg,
+          role: draftRole,
+          email: draftEmail,
+          startsAt: new Date(draftStartsAt).toISOString(),
+        }),
+      });
+      const data = await readApiJson<{ error?: string }>(response);
+      if (!response.ok) throw new Error(data.error ?? "Failed to create discovery session");
+      setCreateOpen(false);
+      setDraftName("");
+      setDraftOrg("");
+      setDraftRole("");
+      setDraftEmail("");
+      setDraftStartsAt("");
+      await loadMeetings();
+      setMessage("Discovery session created.");
+    } catch (createError) {
+      setError(createError instanceof Error ? createError.message : "Failed to create discovery session");
+    } finally {
+      setCreating(false);
+    }
+  }
 
   function handleStartMeeting(meeting: MeetingRow) {
     setMessage(null);
@@ -228,6 +227,31 @@ export default function MeetingsWorkspace({ salesEmbedded = false }: { salesEmbe
           <p className="text-sm text-white/50">
             {meetings.length} scheduled session{meetings.length === 1 ? "" : "s"}
           </p>
+          <div className="flex justify-end">
+            <button
+              type="button"
+              onClick={() => setCreateOpen((open) => !open)}
+              className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-violet-500/15 px-3.5 py-2 text-xs font-medium text-violet-100 hover:bg-violet-500/25"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              Add discovery session
+            </button>
+          </div>
+          {createOpen ? (
+            <div className="grid gap-3 rounded-xl border border-white/10 bg-white/[0.03] p-4 md:grid-cols-2">
+              <input className="rounded-lg border border-white/10 bg-black/20 px-3 py-2 text-sm text-white" placeholder="Contact name" value={draftName} onChange={(e) => setDraftName(e.target.value)} />
+              <input className="rounded-lg border border-white/10 bg-black/20 px-3 py-2 text-sm text-white" placeholder="Organisation" value={draftOrg} onChange={(e) => setDraftOrg(e.target.value)} />
+              <input className="rounded-lg border border-white/10 bg-black/20 px-3 py-2 text-sm text-white" placeholder="Role" value={draftRole} onChange={(e) => setDraftRole(e.target.value)} />
+              <input className="rounded-lg border border-white/10 bg-black/20 px-3 py-2 text-sm text-white" placeholder="Email" value={draftEmail} onChange={(e) => setDraftEmail(e.target.value)} />
+              <input className="rounded-lg border border-white/10 bg-black/20 px-3 py-2 text-sm text-white md:col-span-2" type="datetime-local" value={draftStartsAt} onChange={(e) => setDraftStartsAt(e.target.value)} />
+              <div className="flex gap-2 md:col-span-2">
+                <button type="button" disabled={creating} onClick={() => void handleCreateMeeting()} className="rounded-lg bg-violet-600 px-4 py-2 text-sm font-medium text-white hover:bg-violet-500 disabled:opacity-60">
+                  {creating ? "Saving…" : "Save session"}
+                </button>
+                <button type="button" onClick={() => setCreateOpen(false)} className="rounded-lg border border-white/10 px-4 py-2 text-sm text-white/70">Cancel</button>
+              </div>
+            </div>
+          ) : null}
         </>
       ) : (
         <div className="flex flex-wrap items-center justify-end gap-3">

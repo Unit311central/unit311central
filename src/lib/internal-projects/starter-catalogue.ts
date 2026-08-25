@@ -1,4 +1,6 @@
 import { getNorthstarDemoProjects } from "@/lib/demo/northstar-projects-data";
+import { getSaecFixtureProjects } from "@/lib/saec/business-central-data";
+import { isSaecSlug } from "@/lib/saec-surface";
 import type { InternalProject } from "@/lib/projects-data";
 import { createTenancyServerClient } from "@/lib/supabase/tenancy-server";
 
@@ -14,6 +16,7 @@ export type InternalProjectsStarterResult = {
  */
 export async function ensureInternalProjectsStarterCatalogue(
   workspaceId: string,
+  workspaceSlug?: string | null,
 ): Promise<InternalProjectsStarterResult> {
   const db = createTenancyServerClient();
   const { count, error: countError } = await db
@@ -25,7 +28,9 @@ export async function ensureInternalProjectsStarterCatalogue(
     return { workspaceId, inserted: 0, skipped: true };
   }
 
-  const catalogue = getNorthstarDemoProjects();
+  const catalogue = isSaecSlug(workspaceSlug)
+    ? getSaecFixtureProjects()
+    : getNorthstarDemoProjects();
   const payload = catalogue.map((project) => projectToInsert(workspaceId, project));
   const { error } = await db.from("internal_projects").insert(payload);
   if (error) throw new Error(error.message);

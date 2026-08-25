@@ -245,7 +245,7 @@ async function main() {
       enabledSubModules,
       branding: {
         displayName: SAEC_COMPANY_NAME,
-        logoUrl: null,
+        logoUrl: "/images/workspaces/saec/logo.png",
         primaryColour: "#0b2d63",
         secondaryColour: "#2563eb",
       },

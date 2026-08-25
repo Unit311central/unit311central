@@ -44,6 +44,8 @@ export type CrmLead = {
   companyLogoFileId: string | null;
   companyLogoFileName: string | null;
   ownerUserId: string | null;
+  /** 0–100 win probability for forecast weighting; null falls back to status defaults. */
+  winProbability: number | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -110,6 +112,7 @@ type DbLead = {
   company_logo_file_id?: string | null;
   company_logo_file_name?: string | null;
   owner_user_id?: string | null;
+  win_probability?: number | null;
   created_at: string;
   updated_at: string;
 };
@@ -176,6 +179,8 @@ export function mapCrmLead(row: DbLead): CrmLead {
     companyLogoFileName:
       row.company_logo_file_name ?? notesFallback?.companyLogoFileName ?? null,
     ownerUserId: row.owner_user_id ?? null,
+    winProbability:
+      row.win_probability == null ? null : Number(row.win_probability),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -233,6 +238,8 @@ export function createBlankLeadInput() {
     nextAction: "",
     nextActionDate: null as string | null,
     estimatedValue: null as number | null,
+    winProbability: null as number | null,
+    ownerUserId: null as string | null,
     notes: "",
   };
 }

@@ -1,30 +1,49 @@
 import type { SalesQuote } from "@/lib/accounting/types";
 import type { CrmLead, LeadStatus } from "@/lib/crm-data";
-import { isBrowserOnwardAirSurface } from "@/lib/onwardair-surface";
-import { isBrowserCorpCentreSurface } from "@/lib/corpcentre-surface";
+import {
+  resolveBrowserReportingCurrency,
+  resolveSlugReportingCurrency,
+  type ReportingCurrency,
+} from "@/lib/financial-reporting-currency";
 
 export type SalesManagementCrmVariant = "default" | "prospects" | "opportunities";
 
-export type SalesReportingCurrency = "AUD" | "GBP" | "USD";
+export type SalesReportingCurrency = Extract<ReportingCurrency, "AUD" | "GBP" | "USD">;
 
-export function salesReportingCurrency(): SalesReportingCurrency {
-  try {
-    if (typeof window !== "undefined") {
-      const { resolveBrowserReportingCurrency } =
-        require("@/lib/financial-reporting-currency") as typeof import("@/lib/financial-reporting-currency");
-      return resolveBrowserReportingCurrency() as SalesReportingCurrency;
-    }
-  } catch {
-    // Fall through to legacy host checks.
+export function salesReportingCurrency(workspaceSlug?: string | null): SalesReportingCurrency {
+  if (workspaceSlug) {
+    return resolveSlugReportingCurrency(workspaceSlug) as SalesReportingCurrency;
   }
-
-  try {
-    if (typeof window !== "undefined" && isBrowserOnwardAirSurface()) return "USD";
-    if (typeof window !== "undefined" && isBrowserCorpCentreSurface()) return "AUD";
-  } catch {
-    // SSR / non-browser
+  if (typeof window !== "undefined") {
+    return resolveBrowserReportingCurrency() as SalesReportingCurrency;
   }
   return "USD";
+}
+
+/** Default win probability when crm_leads.win_probability is null. */
+export function defaultWinProbabilityForStatus(status: LeadStatus): number {
+  switch (status) {
+    case "Cold":
+      return 10;
+    case "Warm":
+      return 35;
+    case "Hot":
+      return 60;
+    case "Won":
+    case "Active Customer":
+      return 100;
+    case "Lost":
+      return 0;
+    default:
+      return 0;
+  }
+}
+
+export function resolveLeadWinProbability(lead: CrmLead): number {
+  if (lead.winProbability != null && Number.isFinite(lead.winProbability)) {
+    return Math.min(100, Math.max(0, lead.winProbability));
+  }
+  return defaultWinProbabilityForStatus(lead.status);
 }
 
 export function formatSalesMoney(amount: number, currency = salesReportingCurrency()): string {
@@ -143,9 +162,13 @@ export function buildSalesDashboardMetrics(input: {
   quotes?: SalesQuote[];
   meetings?: SalesDashboardMeetingSummary[];
   displayNameForUserId?: (userId: string | null | undefined) => string;
+  workspaceSlug?: string | null;
+  reportingCurrency?: SalesReportingCurrency;
 }): SalesDashboardMetrics {
   const { leads, quotes = [], meetings = [] } = input;
-  const currency = salesReportingCurrency();
+  const currency =
+    input.reportingCurrency ??
+    salesReportingCurrency(input.workspaceSlug);
   const openLeads = leads.filter((lead) => isOpenPipelineLead(lead.status));
   const pipelineValue = openLeads.reduce((sum, lead) => sum + (lead.estimatedValue ?? 0), 0);
   const wonCount = leads.filter((lead) => lead.status === "Won").length;

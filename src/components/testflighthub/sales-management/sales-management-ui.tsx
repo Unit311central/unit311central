@@ -17,6 +17,7 @@ export type SalesWorkspacePayload = {
     currentUserName: string;
     isManager: boolean;
     isSalesperson: boolean;
+    currency: "GBP" | "USD" | "AUD";
     people: Array<{ userId: string; displayName: string; email: string; isManager: boolean }>;
     teams: Array<{ id: string; name: string; managerName: string | null; memberCount: number }>;
   };

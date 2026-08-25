@@ -81,6 +81,7 @@ export function buildSectionPayload(section: SalesManagementSection, auth: Await
       currentUserName: bundle.context.currentUserName,
       isManager: bundle.context.isManager,
       isSalesperson: bundle.context.isSalesperson,
+      currency: bundle.context.currency,
       people: bundle.context.people,
       teams: bundle.context.teams,
     },

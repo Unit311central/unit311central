@@ -130,6 +130,7 @@ function lead(partial: {
     companyLogoFileId: null,
     companyLogoFileName: null,
     ownerUserId: null,
+    winProbability: null,
     createdAt: "2026-03-15T10:00:00.000Z",
     updatedAt: FIXTURE_NOW,
   };

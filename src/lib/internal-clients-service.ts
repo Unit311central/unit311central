@@ -9,6 +9,7 @@ import {
 } from "@/lib/client-management-data";
 import { getAbhiMemberFixtureClients } from "@/lib/abhi/member-intelligence";
 import { isAbhiWorkspaceSlug } from "@/lib/abhi-financials";
+import { getSaecFixtureClients, isSaecBusinessCentralFixtures } from "@/lib/saec/business-central-data";
 import {
   ensureClientBillingProfileColumns,
   ensureInternalClientsSignupProfileColumns,
@@ -224,6 +225,9 @@ export async function listInternalClients(
         mapInternalClient(row, mapOptions),
       );
       const withProjects = await attachDerivedActiveProjects(clients, workspaceId, supabase);
+      if (isSaecBusinessCentralFixtures(mapOptions.workspaceSlug)) {
+        return getSaecFixtureClients();
+      }
       if (isAbhiWorkspaceSlug(mapOptions.workspaceSlug) && withProjects.length === 0) {
         return getAbhiMemberFixtureClients();
       }

@@ -47,6 +47,7 @@
     "prove:expenses-acceptance": "node scripts/prove-expenses-acceptance.mjs",
     "prove:telecom-migration-163": "node scripts/prove-telecom-migration-163.mjs",
     "prove:demo-fundraising-auth-ui": "node --import tsx src/lib/__tests__/demo-fundraising-auth-ui.check.ts && node --import tsx src/lib/__tests__/fundraising-workspace-surface.check.ts",
+    "prove:demo-module-structure": "node --import tsx src/lib/__tests__/demo-module-structure-frozen.check.ts",
     "prove:pm-nav": "node --import tsx src/lib/__tests__/project-management-nav.check.ts",
     "prove:sales-management-nav": "node --require ./scripts/test-server-only-hook.cjs --import tsx src/lib/__tests__/sales-management-nav.check.ts",
     "prove:demo-auth-return-to": "node --import tsx src/lib/__tests__/demo-auth-return-to.check.ts",
