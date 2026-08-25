@@ -602,10 +602,10 @@ export default function ProcurementWorkspace() {
         </div>
       </div>
 
-      <div className="flex flex-col gap-5 lg:flex-row lg:items-start">
+      <div className="flex flex-col gap-4">
         <nav
           aria-label="Procurement sections"
-          className="flex shrink-0 flex-row gap-1.5 overflow-x-auto pb-1 lg:w-52 lg:flex-col lg:overflow-visible lg:pb-0"
+          className="flex shrink-0 flex-row flex-wrap gap-1.5 overflow-x-auto border-b border-white/10 pb-3"
         >
           {PROCUREMENT_MODULE_TABS.map((item) => (
             <button
@@ -613,7 +613,7 @@ export default function ProcurementWorkspace() {
               type="button"
               onClick={() => setTab(item)}
               className={cn(
-                "shrink-0 rounded-xl border px-3 py-2 text-left text-xs font-semibold transition-colors lg:w-full",
+                "shrink-0 rounded-xl border px-3 py-2 text-left text-xs font-semibold transition-colors",
                 tab === item
                   ? "border-sky-400/40 bg-sky-500/15 text-sky-100"
                   : "border-white/10 bg-white/[0.03] text-white/60 hover:bg-white/[0.06] hover:text-white/80",
