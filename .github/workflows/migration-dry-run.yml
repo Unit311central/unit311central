@@ -50,10 +50,22 @@ jobs:
             echo "INTERNAL_FILES_SETUP_SECRET is not configured on this repo."
             exit 1
           fi
-          response=$(curl -fsS \
-            -H "x-setup-secret: ${SETUP_SECRET}" \
-            "https://unit311central.com/api/internal/apply-unit311central-pending-migrations")
-          echo "$response" | jq .
+          for attempt in $(seq 1 12); do
+            response=$(curl -fsS \
+              -H "x-setup-secret: ${SETUP_SECRET}" \
+              "https://unit311central.com/api/internal/apply-unit311central-pending-migrations")
+            echo "attempt ${attempt}:"
+            echo "$response" | jq .
+            if echo "$response" | jq -e '.queryError == null' >/dev/null 2>&1; then
+              break
+            fi
+            if [ "$attempt" -eq 12 ]; then
+              echo "Migration dry-run failed after retries"
+              exit 1
+            fi
+            echo "queryError present — retrying after Supabase Management API cooldown..."
+            sleep 20
+          done
           echo "$response" | jq -e '.queryBackend != null' >/dev/null
           echo "$response" | jq -e '.plan != null' >/dev/null
           echo "$response" | jq -e '.queryError == null' >/dev/null
