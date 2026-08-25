@@ -1,16 +1,26 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Pencil, Plus, Trash2 } from "lucide-react";
 
 import {
   buildNorthstarCapTableSnapshot,
   NORTHSTAR_AUTHORISED_SHARES,
-  NORTHSTAR_COMPANY_NAME,
   NORTHSTAR_NOMINAL_PER_SHARE_GBP,
   type NorthstarCapTableRow,
   type NorthstarOptionGrant,
 } from "@/lib/demo/northstar-cap-table-data";
+import {
+  DEMO_COMPANY_LEGAL_NAME,
+  DEMO_COMPANY_FOUNDER,
+} from "@/lib/demo/demo-company-identity";
+import {
+  loadDemoCapTableOptionGrants,
+  loadDemoCapTableShareholders,
+  saveDemoCapTableOptionGrants,
+  saveDemoCapTableShareholders,
+} from "@/lib/demo/demo-cap-table-store";
+import { DEMO_REPORTING_CURRENCY } from "@/lib/demo/read-only";
 import {
   CorporateKpiTile,
   CorporateSection,
@@ -25,7 +35,7 @@ import { formatReportingMoney } from "@/lib/financial-reporting-currency";
 
 function formatMoney(value: number | null) {
   if (value == null) return "—";
-  return formatReportingMoney(value);
+  return formatReportingMoney(value, DEMO_REPORTING_CURRENCY);
 }
 
 function formatShares(value: number) {
@@ -44,17 +54,39 @@ type ShareholderForm = NorthstarCapTableRow;
 
 type OptionForm = NorthstarOptionGrant;
 
+type CapTableTab = "overview" | "shareholders" | "options" | "capital";
+
+const CAP_TABLE_TABS: { id: CapTableTab; label: string }[] = [
+  { id: "overview", label: "Overview" },
+  { id: "shareholders", label: "Shareholders" },
+  { id: "options", label: "Option pool" },
+  { id: "capital", label: "Share capital" },
+];
+
 export default function NorthstarCapTableWorkspace() {
   const seed = useMemo(() => buildNorthstarCapTableSnapshot(), []);
-  const [shareholders, setShareholders] = useState<NorthstarCapTableRow[]>(() => [...seed.shareholders]);
-  const [optionGrants, setOptionGrants] = useState<NorthstarOptionGrant[]>(() => [...seed.optionGrants]);
+  const [tab, setTab] = useState<CapTableTab>("overview");
+  const [shareholders, setShareholders] = useState<NorthstarCapTableRow[]>(() =>
+    loadDemoCapTableShareholders(),
+  );
+  const [optionGrants, setOptionGrants] = useState<NorthstarOptionGrant[]>(() =>
+    loadDemoCapTableOptionGrants(),
+  );
   const [shareholderForm, setShareholderForm] = useState<ShareholderForm | null>(null);
   const [optionForm, setOptionForm] = useState<OptionForm | null>(null);
+
+  useEffect(() => {
+    saveDemoCapTableShareholders(shareholders);
+  }, [shareholders]);
+
+  useEffect(() => {
+    saveDemoCapTableOptionGrants(optionGrants);
+  }, [optionGrants]);
 
   const totalShares = shareholders.reduce((sum, row) => sum + row.shares, 0);
   const totalOwnershipPct = shareholders.reduce((sum, row) => sum + row.ownershipPct, 0);
   const totalOptions = optionGrants.reduce((sum, row) => sum + row.options, 0);
-  const paul = shareholders.find((row) => row.id === "cap-paul");
+  const paul = shareholders.find((row) => row.id === "cap-paul" || /paul/i.test(row.holder));
 
   function saveShareholder() {
     if (!shareholderForm?.holder.trim()) return;
@@ -81,33 +113,81 @@ export default function NorthstarCapTableWorkspace() {
       <header>
         <h1 className="text-2xl font-semibold text-white">Cap Table Management</h1>
         <p className="mt-1 text-sm text-white/60">
-          {NORTHSTAR_COMPANY_NAME} — fully diluted ownership, option pool, and share capital (USD).
+          {DEMO_COMPANY_LEGAL_NAME} — fully diluted ownership, option pool, and share capital (
+          {DEMO_REPORTING_CURRENCY}).
         </p>
       </header>
 
-      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <CorporateKpiTile
-          label="Founder ownership"
-          value={paul ? `${paul.ownershipPct}%` : "60%"}
-          hint="Paul Fotheringham · ordinary equity"
-        />
-        <CorporateKpiTile
-          label="Employee option pool"
-          value="7%"
-          hint={`${formatShares(seed.optionPool.issuedShares)} issued · ${formatShares(seed.optionPool.reservedShares)} reserved`}
-        />
-        <CorporateKpiTile
-          label="Total ownership"
-          value={`${totalOwnershipPct.toFixed(1).replace(/\.0$/, "")}%`}
-          hint={`${formatShares(totalShares)} shares on register`}
-        />
-        <CorporateKpiTile
-          label="Issued share capital"
-          value={seed.capital.issuedShareCapitalGbp}
-          hint={`Authorised ${seed.capital.authorisedShareCapitalGbp}`}
-        />
-      </section>
+      <nav
+        aria-label="Cap table sections"
+        className="flex flex-wrap gap-1.5 overflow-x-auto border-b border-white/10 pb-3"
+      >
+        {CAP_TABLE_TABS.map((item) => (
+          <button
+            key={item.id}
+            type="button"
+            onClick={() => setTab(item.id)}
+            className={cn(
+              "shrink-0 rounded-xl border px-3 py-2 text-xs font-semibold transition-colors",
+              tab === item.id
+                ? "border-sky-400/40 bg-sky-500/15 text-sky-100"
+                : "border-white/10 bg-white/[0.03] text-white/60 hover:bg-white/[0.06] hover:text-white/80",
+            )}
+          >
+            {item.label}
+          </button>
+        ))}
+      </nav>
 
+      {tab === "overview" ? (
+        <>
+          <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <CorporateKpiTile
+              label="Founder ownership"
+              value={paul ? `${paul.ownershipPct}%` : "60%"}
+              hint={`${DEMO_COMPANY_FOUNDER} · ordinary equity`}
+            />
+            <CorporateKpiTile
+              label="Employee option pool"
+              value="7%"
+              hint={`${formatShares(seed.optionPool.issuedShares)} issued · ${formatShares(seed.optionPool.reservedShares)} reserved`}
+            />
+            <CorporateKpiTile
+              label="Total ownership"
+              value={`${totalOwnershipPct.toFixed(1).replace(/\.0$/, "")}%`}
+              hint={`${formatShares(totalShares)} shares on register`}
+            />
+            <CorporateKpiTile
+              label="Issued share capital"
+              value={seed.capital.issuedShareCapitalGbp}
+              hint={`Authorised ${seed.capital.authorisedShareCapitalGbp}`}
+            />
+          </section>
+          <CorporateSection
+            title="Register summary"
+            subtitle="High-level ownership split — open Shareholders or Option pool tabs to edit entries."
+          >
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/40">
+                  Shareholders
+                </p>
+                <p className="mt-2 text-2xl font-semibold text-white">{shareholders.length}</p>
+                <p className="text-sm text-white/50">{formatShares(totalShares)} shares issued</p>
+              </div>
+              <div className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/40">
+                  Option grants
+                </p>
+                <p className="mt-2 text-2xl font-semibold text-white">{optionGrants.length}</p>
+                <p className="text-sm text-white/50">{formatShares(totalOptions)} options issued</p>
+              </div>
+            </div>
+          </CorporateSection>
+        </>
+      ) : null}
+
+      {tab === "shareholders" ? (
       <CorporateSection
         title="Shareholders"
         subtitle="Ordinary equity and unallocated option pool reserve."
@@ -161,14 +241,26 @@ export default function NorthstarCapTableWorkspace() {
                   <td className={cn(tdClass(), "tabular-nums")}>{row.ownershipPct}%</td>
                   <td className={cn(tdClass(), "tabular-nums")}>{formatMoney(row.investmentGbp)}</td>
                   <td className={tdClass()}>
-                    <button
-                      type="button"
-                      className="rounded-lg border border-white/10 p-2 text-white/60 hover:text-white"
-                      onClick={() => setShareholderForm(row)}
-                      aria-label={`Edit ${row.holder}`}
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </button>
+                    <div className="flex gap-1">
+                      <button
+                        type="button"
+                        className="rounded-lg border border-white/10 p-2 text-white/60 hover:text-white"
+                        onClick={() => setShareholderForm(row)}
+                        aria-label={`Edit ${row.holder}`}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </button>
+                      <button
+                        type="button"
+                        className="rounded-lg border border-white/10 p-2 text-white/60 hover:text-rose-200"
+                        onClick={() =>
+                          setShareholders((current) => current.filter((item) => item.id !== row.id))
+                        }
+                        aria-label={`Delete ${row.holder}`}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -190,7 +282,9 @@ export default function NorthstarCapTableWorkspace() {
           </table>
         </div>
       </CorporateSection>
+      ) : null}
 
+      {tab === "options" ? (
       <CorporateSection
         title="Employee option grants"
         subtitle="Five team members with 10,000 options each (within 7% ESOP)."
@@ -266,6 +360,37 @@ export default function NorthstarCapTableWorkspace() {
           </table>
         </div>
       </CorporateSection>
+      ) : null}
+
+      {tab === "capital" ? (
+        <CorporateSection
+          title="Share capital"
+          subtitle="Authorised and issued share capital for the Demo workspace."
+        >
+          <div className="grid gap-3 sm:grid-cols-2">
+            <CorporateKpiTile
+              label="Authorised shares"
+              value={formatShares(NORTHSTAR_AUTHORISED_SHARES)}
+              hint="Ordinary £0.001 nominal"
+            />
+            <CorporateKpiTile
+              label="Nominal per share"
+              value={formatMoney(NORTHSTAR_NOMINAL_PER_SHARE_GBP)}
+              hint="GBP nominal value"
+            />
+            <CorporateKpiTile
+              label="Issued share capital"
+              value={seed.capital.issuedShareCapitalGbp}
+              hint="On register"
+            />
+            <CorporateKpiTile
+              label="Authorised share capital"
+              value={seed.capital.authorisedShareCapitalGbp}
+              hint="Companies House filing"
+            />
+          </div>
+        </CorporateSection>
+      ) : null}
 
       {shareholderForm ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
@@ -339,7 +464,7 @@ export default function NorthstarCapTableWorkspace() {
                 </select>
               </label>
               <label className="block text-sm text-white/60">
-                Investment (USD)
+                Investment ({DEMO_REPORTING_CURRENCY})
                 <input
                   className={cn(corporateInputClass(), "mt-1 w-full")}
                   value={shareholderForm.investmentGbp ?? ""}

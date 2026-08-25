@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { ExternalLink, FolderOpen, Pencil, Plus, Trash2 } from "lucide-react";
 
 import {
@@ -11,6 +11,27 @@ import {
   corporatePrimaryButtonClass,
   corporateSecondaryButtonClass,
 } from "@/components/testflighthub/corporate-ui";
+import {
+  DEMO_COMPANY_SHORT_NAME,
+  DEMO_DATAROOM_BASE,
+  DEMO_FUNDING_ROUND_OPTIONS,
+  type DemoFundingRoundId,
+} from "@/lib/demo/demo-company-identity";
+import {
+  loadDemoCurrentFundingRoundId,
+  loadDemoFundraisingDataRooms,
+  loadDemoFundraisingInvestors,
+  loadDemoFundraisingMeetings,
+  loadDemoFundraisingPipeline,
+  loadDemoFundraisingPitchDecks,
+  saveDemoCurrentFundingRoundId,
+  saveDemoFundraisingDataRooms,
+  saveDemoFundraisingInvestors,
+  saveDemoFundraisingMeetings,
+  saveDemoFundraisingPipeline,
+  saveDemoFundraisingPitchDecks,
+} from "@/lib/demo/demo-fundraising-store";
+import { DEMO_REPORTING_CURRENCY } from "@/lib/demo/read-only";
 import { formatReportingMoney } from "@/lib/financial-reporting-currency";
 import {
   NORTHSTAR_FUNDING_ROUNDS,
@@ -31,11 +52,6 @@ import {
   type ShareClassLabel,
   type ShareTypeLabel,
 } from "@/lib/demo/fundraising-data";
-import {
-  getNorthstarDataRooms,
-  getNorthstarFundraisingMeetings,
-  getNorthstarPitchDecks,
-} from "@/lib/demo/module-fixtures";
 import { cn } from "@/lib/utils";
 
 const FUNDRAISING_TILE_STORAGE_KEY = "northstar-fundraising-dashboard-tiles-v1";
@@ -48,7 +64,7 @@ type DashboardTile = {
 };
 
 function formatMoney(value: number) {
-  return formatReportingMoney(value, "USD");
+  return formatReportingMoney(value, DEMO_REPORTING_CURRENCY);
 }
 
 function formatDate(value: string) {
@@ -107,7 +123,7 @@ function buildDefaultDashboardTiles(): DashboardTile[] {
       id: "seed",
       label: "Seed round",
       value: formatMoney(NORTHSTAR_SEED_TARGET_GBP),
-      hint: "In progress · $5M target",
+      hint: "In progress · £4M target",
     },
     {
       id: "seed-close",
@@ -200,6 +216,9 @@ function emptyInvestor(): DemoInvestor {
 export function DemoFundraisingDashboardWorkspace() {
   const [editing, setEditing] = useState(false);
   const [tiles, setTiles] = useState<DashboardTile[]>(() => buildDefaultDashboardTiles());
+  const [currentRoundId, setCurrentRoundId] = useState<DemoFundingRoundId>(() =>
+    typeof window === "undefined" ? "seed" : loadDemoCurrentFundingRoundId(),
+  );
 
   useEffect(() => {
     try {
@@ -226,7 +245,9 @@ export function DemoFundraisingDashboardWorkspace() {
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold text-white">Fundraising Dashboard</h1>
-          <p className="mt-1 text-sm text-white/60">Northstar funding history and investor relations</p>
+          <p className="mt-1 text-sm text-white/60">
+            {DEMO_COMPANY_SHORT_NAME} funding history and investor relations
+          </p>
         </div>
         <button
           type="button"
@@ -281,6 +302,35 @@ export function DemoFundraisingDashboardWorkspace() {
         )}
       </div>
 
+      <CorporateSection
+        title="Current fundraising round"
+        subtitle="Associate pipeline activity and investor outreach with the active raise."
+      >
+        <div className="flex flex-wrap items-center gap-3">
+          <label className="text-xs font-medium uppercase tracking-[0.12em] text-white/45">
+            Active round
+            <select
+              className={cn(corporateInputClass(), "mt-1 min-w-[12rem]")}
+              value={currentRoundId}
+              onChange={(e) => {
+                const next = e.target.value as DemoFundingRoundId;
+                setCurrentRoundId(next);
+                saveDemoCurrentFundingRoundId(next);
+              }}
+            >
+              {DEMO_FUNDING_ROUND_OPTIONS.map((round) => (
+                <option key={round.id} value={round.id}>
+                  {round.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <p className="text-sm text-white/50">
+            Pipeline and meetings reference the selected round across Fundraising views.
+          </p>
+        </div>
+      </CorporateSection>
+
       <CorporateSection title="Funding rounds">
         <div className="space-y-3">
           {NORTHSTAR_FUNDING_ROUNDS.map((round) => (
@@ -322,9 +372,13 @@ export function DemoFundraisingDashboardWorkspace() {
 
 export function DemoFundraisingInvestorsWorkspace() {
   const [investors, setInvestors] = useState<DemoInvestor[]>(() =>
-    NORTHSTAR_INVESTORS.filter((inv) => inv.status === "portfolio").map((inv) => ({ ...inv })),
+    loadDemoFundraisingInvestors().filter((inv) => inv.status === "portfolio"),
   );
   const [editing, setEditing] = useState<DemoInvestor | null>(null);
+
+  useEffect(() => {
+    saveDemoFundraisingInvestors(investors);
+  }, [investors]);
 
   const totalShares = investors.reduce((sum, inv) => sum + inv.sharesIssued, 0);
   const totalShareholdingPct = investors.reduce((sum, inv) => sum + inv.ownershipPct, 0);
@@ -337,6 +391,11 @@ export function DemoFundraisingInvestorsWorkspace() {
       if (exists) return current.map((row) => (row.id === editing.id ? editing : row));
       return [editing, ...current];
     });
+    setEditing(null);
+  }
+
+  function deleteInvestor(id: string) {
+    setInvestors((current) => current.filter((row) => row.id !== id));
     setEditing(null);
   }
 
@@ -404,14 +463,24 @@ export function DemoFundraisingInvestorsWorkspace() {
                     <InvestorDocumentLinks documents={inv.documents} />
                   </td>
                   <td className={tdClass()}>
-                    <button
-                      type="button"
-                      className="rounded-lg border border-white/10 p-2 text-white/60 hover:text-white"
-                      onClick={() => setEditing(inv)}
-                      aria-label={`Edit ${inv.fundName}`}
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </button>
+                    <div className="flex gap-1">
+                      <button
+                        type="button"
+                        className="rounded-lg border border-white/10 p-2 text-white/60 hover:text-white"
+                        onClick={() => setEditing(inv)}
+                        aria-label={`Edit ${inv.fundName}`}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </button>
+                      <button
+                        type="button"
+                        className="rounded-lg border border-white/10 p-2 text-white/60 hover:text-rose-200"
+                        onClick={() => deleteInvestor(inv.id)}
+                        aria-label={`Delete ${inv.fundName}`}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -478,7 +547,7 @@ export function DemoFundraisingInvestorsWorkspace() {
               </label>
               <div className="grid gap-3 sm:grid-cols-2">
                 <label className="block text-sm text-white/60">
-                  Investment (USD)
+                  Investment (GBP)
                   <input
                     type="number"
                     className={cn(corporateInputClass(), "mt-1 w-full")}
@@ -603,13 +672,27 @@ export function DemoFundraisingInvestorsWorkspace() {
                 </label>
               ))}
             </div>
-            <div className="mt-5 flex justify-end gap-2">
-              <button type="button" className={corporateSecondaryButtonClass()} onClick={() => setEditing(null)}>
-                Cancel
-              </button>
-              <button type="button" className={corporatePrimaryButtonClass()} onClick={saveInvestor}>
-                Save
-              </button>
+            <div className="mt-5 flex justify-between gap-2">
+              {investors.some((r) => r.id === editing.id && r.fundName) ? (
+                <button
+                  type="button"
+                  className={corporateSecondaryButtonClass()}
+                  onClick={() => deleteInvestor(editing.id)}
+                >
+                  <Trash2 className="mr-1 inline h-4 w-4" />
+                  Delete
+                </button>
+              ) : (
+                <span />
+              )}
+              <div className="flex gap-2">
+                <button type="button" className={corporateSecondaryButtonClass()} onClick={() => setEditing(null)}>
+                  Cancel
+                </button>
+                <button type="button" className={corporatePrimaryButtonClass()} onClick={saveInvestor}>
+                  Save
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -620,9 +703,13 @@ export function DemoFundraisingInvestorsWorkspace() {
 
 export function DemoFundraisingPipelineWorkspace() {
   const [pipeline, setPipeline] = useState<FundraisingPipelineDeal[]>(() =>
-    NORTHSTAR_FUNDRAISING_PIPELINE_SEED.map((deal) => ({ ...deal })),
+    loadDemoFundraisingPipeline(),
   );
   const [editing, setEditing] = useState<FundraisingPipelineDeal | null>(null);
+
+  useEffect(() => {
+    saveDemoFundraisingPipeline(pipeline);
+  }, [pipeline]);
 
   const openDeals = pipeline.filter((d) => d.stage !== "Passed");
   const pipelineGbp = openDeals.reduce((sum, d) => sum + d.amountGbp, 0);
@@ -642,7 +729,7 @@ export function DemoFundraisingPipelineWorkspace() {
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold text-white">Pipeline</h1>
-          <p className="mt-1 text-sm text-white/60">Seed round — Northstar investor progression.</p>
+          <p className="mt-1 text-sm text-white/60">Seed round — {DEMO_COMPANY_SHORT_NAME} investor progression.</p>
         </div>
         <button
           type="button"
@@ -740,7 +827,7 @@ export function DemoFundraisingPipelineWorkspace() {
                 [
                   ["investor", "Investor contact"],
                   ["firm", "Firm"],
-                  ["amountGbp", "Amount (USD)"],
+                  ["amountGbp", "Amount (GBP)"],
                   ["owner", "Owner"],
                   ["lastTouch", "Last touch"],
                   ["introDate", "Intro date"],
@@ -814,12 +901,52 @@ export function DemoFundraisingPipelineWorkspace() {
 }
 
 export function DemoFundraisingMeetingsWorkspace() {
-  const meetings = getNorthstarFundraisingMeetings();
+  const [meetings, setMeetings] = useState<FundraisingMeeting[]>(() => loadDemoFundraisingMeetings());
+  const [editing, setEditing] = useState<FundraisingMeeting | null>(null);
+
+  useEffect(() => {
+    saveDemoFundraisingMeetings(meetings);
+  }, [meetings]);
+
+  function saveMeeting() {
+    if (!editing?.title.trim()) return;
+    setMeetings((current) => {
+      const exists = current.some((row) => row.id === editing.id);
+      if (exists) return current.map((row) => (row.id === editing.id ? editing : row));
+      return [editing, ...current];
+    });
+    setEditing(null);
+  }
+
   return (
     <div className="mx-auto max-w-6xl space-y-5 px-1 py-6">
-      <header>
-        <h1 className="text-2xl font-semibold text-white">Meetings</h1>
-        <p className="mt-1 text-sm text-white/60">Upcoming Northstar investor meetings.</p>
+      <header className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-semibold text-white">Meetings</h1>
+          <p className="mt-1 text-sm text-white/60">Upcoming investor meetings for {DEMO_COMPANY_SHORT_NAME}.</p>
+        </div>
+        <button
+          type="button"
+          className={corporatePrimaryButtonClass()}
+          onClick={() =>
+            setEditing({
+              id: `meet-${Date.now()}`,
+              title: "",
+              firm: "",
+              investor: "",
+              owner: "Elena Hart",
+              date: new Date().toISOString().slice(0, 10),
+              time: "10:00",
+              withWhom: "",
+              status: "Scheduled",
+              pitchDeckSent: false,
+              meetingLink: "https://meet.demo.unit311central.com/fundraising",
+            })
+          }
+        >
+          <Plus className="mr-1.5 inline h-4 w-4" />
+          Add meeting
+        </button>
       </header>
       <section className="grid gap-3 sm:grid-cols-3">
         <CorporateKpiTile label="Upcoming" value={meetings.length} hint="Scheduled sessions" />
@@ -845,6 +972,7 @@ export function DemoFundraisingMeetingsWorkspace() {
                 <th className={thClass()}>With</th>
                 <th className={thClass()}>Deck</th>
                 <th className={thClass()}>Link</th>
+                <th className={thClass()} />
               </tr>
             </thead>
             <tbody>
@@ -862,12 +990,76 @@ export function DemoFundraisingMeetingsWorkspace() {
                       Join
                     </a>
                   </td>
+                  <td className={tdClass()}>
+                    <div className="flex gap-1">
+                      <button
+                        type="button"
+                        className="rounded-lg border border-white/10 p-2 text-white/60 hover:text-white"
+                        onClick={() => setEditing(meeting)}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </button>
+                      <button
+                        type="button"
+                        className="rounded-lg border border-white/10 p-2 text-white/60 hover:text-rose-200"
+                        onClick={() => setMeetings((rows) => rows.filter((r) => r.id !== meeting.id))}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
       </CorporateSection>
+
+      {editing ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-white/10 bg-[#0b1524] p-5">
+            <h3 className="text-lg font-semibold text-white">Meeting</h3>
+            <div className="mt-4 space-y-3">
+              {(
+                [
+                  ["title", "Title"],
+                  ["firm", "Firm"],
+                  ["date", "Date"],
+                  ["time", "Time"],
+                  ["withWhom", "With"],
+                  ["meetingLink", "Meeting link"],
+                ] as const
+              ).map(([field, label]) => (
+                <label key={field} className="block text-sm text-white/60">
+                  {label}
+                  <input
+                    type={field === "date" ? "date" : "text"}
+                    className={cn(corporateInputClass(), "mt-1 w-full")}
+                    value={(editing[field] as string) ?? ""}
+                    onChange={(e) => setEditing({ ...editing, [field]: e.target.value })}
+                  />
+                </label>
+              ))}
+              <label className="flex items-center gap-2 text-sm text-white/60">
+                <input
+                  type="checkbox"
+                  checked={editing.pitchDeckSent}
+                  onChange={(e) => setEditing({ ...editing, pitchDeckSent: e.target.checked })}
+                />
+                Pitch deck sent
+              </label>
+            </div>
+            <div className="mt-5 flex justify-end gap-2">
+              <button type="button" className={corporateSecondaryButtonClass()} onClick={() => setEditing(null)}>
+                Cancel
+              </button>
+              <button type="button" className={corporatePrimaryButtonClass()} onClick={saveMeeting}>
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -882,8 +1074,12 @@ type DeckForm = {
 };
 
 export function DemoFundraisingPitchDecksWorkspace() {
-  const [decks, setDecks] = useState<PitchDeckVersion[]>(() => getNorthstarPitchDecks());
+  const [decks, setDecks] = useState<PitchDeckVersion[]>(() => loadDemoFundraisingPitchDecks());
   const [form, setForm] = useState<DeckForm | null>(null);
+
+  useEffect(() => {
+    saveDemoFundraisingPitchDecks(decks);
+  }, [decks]);
 
   function saveForm() {
     if (!form || !form.version.trim() || !form.title.trim()) return;
@@ -927,18 +1123,18 @@ export function DemoFundraisingPitchDecksWorkspace() {
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold text-white">Pitch Decks</h1>
-          <p className="mt-1 text-sm text-white/60">Northstar investor materials — add, edit, or remove versions.</p>
+          <p className="mt-1 text-sm text-white/60">Investor pitch materials — add, edit, or archive versions.</p>
         </div>
         <button
           type="button"
           className={corporatePrimaryButtonClass()}
           onClick={() =>
             setForm({
-              version: "3.3",
-              title: "Northstar Industrial Technologies — Investor Overview",
-              fileName: "Northstar_Investor_Overview_v3.3.pdf",
+              version: "1.0",
+              title: `${DEMO_COMPANY_SHORT_NAME} — Investor Overview`,
+              fileName: "Unit311Central_Investor_Overview_v1.0.pdf",
               notes: "",
-              lastUpdatedBy: "Elena Hart",
+              lastUpdatedBy: "Fundraising team",
             })
           }
         >
@@ -1023,13 +1219,50 @@ export function DemoFundraisingPitchDecksWorkspace() {
   );
 }
 
+function emptyDataRoom(): DataRoomRow {
+  return {
+    id: `room-${Date.now()}`,
+    investor: "",
+    firm: "",
+    folderLink: `${DEMO_DATAROOM_BASE}/investor-folder`,
+    documents: 0,
+    lastUpdatedAt: new Date().toISOString(),
+    lastUpdatedBy: "Fundraising team",
+    status: "Open",
+  };
+}
+
 export function DemoFundraisingDataRoomsWorkspace() {
-  const rooms = getNorthstarDataRooms();
+  const [rooms, setRooms] = useState<DataRoomRow[]>(() => loadDemoFundraisingDataRooms());
+  const [editing, setEditing] = useState<DataRoomRow | null>(null);
+
+  useEffect(() => {
+    saveDemoFundraisingDataRooms(rooms);
+  }, [rooms]);
+
+  function saveRoom() {
+    if (!editing?.investor.trim()) return;
+    setRooms((current) => {
+      const exists = current.some((row) => row.id === editing.id);
+      if (exists) return current.map((row) => (row.id === editing.id ? editing : row));
+      return [editing, ...current];
+    });
+    setEditing(null);
+  }
+
   return (
     <div className="mx-auto max-w-6xl space-y-5 px-1 py-6">
-      <header>
-        <h1 className="text-2xl font-semibold text-white">Data Rooms</h1>
-        <p className="mt-1 text-sm text-white/60">Northstar investor data rooms.</p>
+      <header className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-semibold text-white">Data Rooms</h1>
+          <p className="mt-1 text-sm text-white/60">
+            Secure investor folders for {DEMO_COMPANY_SHORT_NAME}.
+          </p>
+        </div>
+        <button type="button" className={corporatePrimaryButtonClass()} onClick={() => setEditing(emptyDataRoom())}>
+          <Plus className="mr-1.5 inline h-4 w-4" />
+          Add data room
+        </button>
       </header>
       <section className="grid gap-3 sm:grid-cols-3">
         <CorporateKpiTile label="Active rooms" value={rooms.length} hint="Current investors" />
@@ -1055,6 +1288,7 @@ export function DemoFundraisingDataRoomsWorkspace() {
                 <th className={thClass()}>Documents</th>
                 <th className={thClass()}>Last updated</th>
                 <th className={thClass()}>Status</th>
+                <th className={thClass()} />
               </tr>
             </thead>
             <tbody>
@@ -1079,12 +1313,90 @@ export function DemoFundraisingDataRoomsWorkspace() {
                   <td className={tdClass()}>
                     <CorporateStatusPill>{room.status}</CorporateStatusPill>
                   </td>
+                  <td className={tdClass()}>
+                    <div className="flex gap-1">
+                      <button
+                        type="button"
+                        className="rounded-lg border border-white/10 p-2 text-white/60 hover:text-white"
+                        onClick={() => setEditing(room)}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </button>
+                      <button
+                        type="button"
+                        className="rounded-lg border border-white/10 p-2 text-white/60 hover:text-rose-200"
+                        onClick={() => setRooms((rows) => rows.filter((r) => r.id !== room.id))}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
       </CorporateSection>
+
+      {editing ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-white/10 bg-[#0b1524] p-5">
+            <h3 className="text-lg font-semibold text-white">Data room</h3>
+            <div className="mt-4 space-y-3">
+              {(
+                [
+                  ["investor", "Investor"],
+                  ["firm", "Firm"],
+                  ["folderLink", "Folder link"],
+                  ["documents", "Document count"],
+                ] as const
+              ).map(([field, label]) => (
+                <label key={field} className="block text-sm text-white/60">
+                  {label}
+                  <input
+                    type={field === "documents" ? "number" : "text"}
+                    className={cn(corporateInputClass(), "mt-1 w-full")}
+                    value={field === "documents" ? editing.documents || "" : editing[field]}
+                    onChange={(e) =>
+                      setEditing({
+                        ...editing,
+                        [field]: field === "documents" ? Number(e.target.value) || 0 : e.target.value,
+                        lastUpdatedAt: new Date().toISOString(),
+                      })
+                    }
+                  />
+                </label>
+              ))}
+              <label className="block text-sm text-white/60">
+                Status
+                <select
+                  className={cn(corporateInputClass(), "mt-1 w-full")}
+                  value={editing.status}
+                  onChange={(e) =>
+                    setEditing({
+                      ...editing,
+                      status: e.target.value as DataRoomRow["status"],
+                      lastUpdatedAt: new Date().toISOString(),
+                    })
+                  }
+                >
+                  <option value="Open">Open</option>
+                  <option value="Restricted">Restricted</option>
+                  <option value="Revoked">Revoked</option>
+                </select>
+              </label>
+            </div>
+            <div className="mt-5 flex justify-end gap-2">
+              <button type="button" className={corporateSecondaryButtonClass()} onClick={() => setEditing(null)}>
+                Cancel
+              </button>
+              <button type="button" className={corporatePrimaryButtonClass()} onClick={saveRoom}>
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
