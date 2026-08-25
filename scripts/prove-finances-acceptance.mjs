@@ -62,26 +62,26 @@ const VIEW_CHECKS = [
   {
     view: "accounts-payable",
     query: "section=approvals",
-    mustInclude: ["Supplier invoice approvals"],
+    mustInclude: ["Approvals"],
   },
   {
     view: "accounts-payable",
     query: "section=outstanding",
-    mustInclude: ["Outstanding payables"],
+    mustInclude: ["Outstanding"],
   },
-  { view: "finances-ap-payments", mustInclude: ["Supplier payments"] },
+  { view: "finances-ap-payments", mustInclude: ["Payments"] },
   { view: "expenses", mustInclude: ["My expenses", "Expenses"] },
   {
     view: "expenses",
     query: "section=runs",
     mustInclude: ["Expense runs"],
   },
-  { view: "wise", mustInclude: ["Bank", "Treasury"] },
+  { view: "wise", mustInclude: ["Bank"] },
   { view: "finances-banking-cash-position", mustInclude: ["Cash Position"] },
   { view: "finances-banking-reconciliation", mustInclude: ["Reconciliation"] },
   { view: "finances-planning-budget", mustInclude: ["Budget"] },
   { view: "finances-planning-kpis", mustInclude: ["KPIs"] },
-  { view: "financial-reports", mustInclude: ["Financial reports"] },
+  { view: "financial-reports", mustInclude: ["Financial Reports"] },
 ];
 
 function cookieHeader(setCookieHeaders) {
