@@ -122,6 +122,19 @@ export function isViewAllowedForGrants(
   ) {
     return true;
   }
+  // Clients Dashboard and Client Directory share the clients module grant.
+  if (
+    view === "clients-dashboard" &&
+    allowedViews.includes("clients")
+  ) {
+    return true;
+  }
+  if (
+    view === "clients" &&
+    allowedViews.includes("clients-dashboard")
+  ) {
+    return true;
+  }
   // Member Intelligence ships with the Members / Client Directory module surface.
   if (
     view === "member-intelligence" &&

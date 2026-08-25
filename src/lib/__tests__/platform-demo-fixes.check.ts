@@ -13,7 +13,9 @@ import {
 } from "@/lib/operator-entitlements-resolve";
 import { buildCentralBusinessCentralNavSection } from "@/lib/platform-workspaces/central-product-nav";
 import {
+  buildWorkspaceProductNavSections,
   repairWorkspaceSubmoduleKeys,
+  resolveWorkspaceNavEnablement,
 } from "@/lib/platform-workspaces/workspace-product-nav";
 import { subModuleKey, defaultEnabledModules } from "@/lib/platform-workspaces/module-catalogue";
 
@@ -54,8 +56,35 @@ assert.ok(!bcLabels.includes("Projects"), "BC catalogue must not nest Projects")
 
 const repaired = repairWorkspaceSubmoduleKeys(["business-central"], []);
 assert.ok(
-  repaired.some((key) => key === subModuleKey("business-central", "crm")),
+  repaired.some((key) => key === subModuleKey("business-central", "clients-dashboard")),
   "Repair must restore missing BC submodule keys",
 );
+
+const clientsOnly = repairWorkspaceSubmoduleKeys(
+  ["business-central"],
+  [subModuleKey("business-central", "clients")],
+);
+assert.ok(
+  clientsOnly.includes(subModuleKey("business-central", "clients-dashboard")),
+  "Repair must pair Client Directory with Clients Dashboard",
+);
+
+const demoLikeEnablement = resolveWorkspaceNavEnablement({
+  workspaceSlug: "acme-corp",
+  workspaceType: "Customer",
+  enabledModules: ["business-central"],
+  enabledSubModules: [subModuleKey("business-central", "clients")],
+});
+const demoLikeNav = buildWorkspaceProductNavSections({
+  workspaceSlug: "acme-corp",
+  workspaceType: "Customer",
+  enablement: demoLikeEnablement,
+});
+const clientsChildren =
+  demoLikeNav
+    .find((section) => section.label === "Business Central")
+    ?.items.find((item) => item.label === "Clients")
+    ?.children?.map((child) => child.label) ?? [];
+assert.deepEqual(clientsChildren, ["Dashboard", "Client Directory"]);
 
 console.log("ok  platform-demo-fixes checks passed\n");

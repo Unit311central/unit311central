@@ -75,6 +75,15 @@ export function repairWorkspaceSubmoduleKeys(
     }
   }
 
+  // Clients Dashboard and Client Directory share the clients module key but are
+  // separate catalogue sub-modules; legacy provisioning often enabled only one.
+  const clientsDirectory = subModuleKey("business-central", "clients");
+  const clientsDashboard = subModuleKey("business-central", "clients-dashboard");
+  if (subSet.has(clientsDirectory) || subSet.has(clientsDashboard)) {
+    subSet.add(clientsDirectory);
+    subSet.add(clientsDashboard);
+  }
+
   return [...subSet];
 }
 
