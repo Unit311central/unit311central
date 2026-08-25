@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   CalendarDays,
@@ -796,6 +796,7 @@ export default function ManagementWorkspace() {
   const [section, setSection] = useState<ManagementSectionId>(() =>
     resolveManagementSection(searchParams.get("section")),
   );
+  const initialSectionRef = useRef(section);
   const { state } = useManagementStore();
   const visiblePacks = useMemo(
     () => filterVisibleManagementFunctionPacks(access, state.functionPacks),
@@ -804,8 +805,21 @@ export default function ManagementWorkspace() {
   const meetingNames = useMemo(() => state.meetings.map((meeting) => meeting.name), [state.meetings]);
 
   useEffect(() => {
-    setSection(resolveManagementSection(searchParams.get("section")));
+    const param = searchParams.get("section");
+    if (!param) return;
+    setSection(resolveManagementSection(param));
   }, [searchParams]);
+
+  useLayoutEffect(() => {
+    const initial = initialSectionRef.current;
+    if (initial === "dashboard") return;
+    const url = new URL(window.location.href);
+    if (url.searchParams.get("section") === initial) return;
+    url.searchParams.set("view", "management");
+    url.searchParams.set("section", initial);
+    window.history.replaceState(null, "", url.toString());
+    setSection(initial);
+  }, []);
 
   function navigateSection(next: ManagementSectionId) {
     setSection(next);
