@@ -86,32 +86,32 @@ export function unit311SupportSeverityLabel(value: Unit311SupportSeverity | null
 export function severityBadgeClass(value: Unit311SupportSeverity | null | undefined): string {
   switch (value) {
     case "p1":
-      return "bg-red-100 text-red-800 dark:bg-red-950/50 dark:text-red-300";
+      return "border-red-400/30 bg-red-500/15 text-red-200";
     case "p2":
-      return "bg-orange-100 text-orange-800 dark:bg-orange-950/50 dark:text-orange-300";
+      return "border-orange-400/30 bg-orange-500/15 text-orange-200";
     case "p3":
-      return "bg-amber-100 text-amber-800 dark:bg-amber-950/50 dark:text-amber-300";
+      return "border-amber-400/30 bg-amber-500/15 text-amber-200";
     case "p4":
-      return "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300";
+      return "border-sky-400/30 bg-sky-500/15 text-sky-200";
     default:
-      return "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400";
+      return "border-white/15 bg-white/[0.04] text-white/45";
   }
 }
 
 export function statusBadgeClass(value: Unit311SupportStatus): string {
   switch (value) {
     case "open":
-      return "bg-blue-100 text-blue-800 dark:bg-blue-950/50 dark:text-blue-300";
+      return "border-sky-400/30 bg-sky-500/15 text-sky-200";
     case "in_progress":
-      return "bg-violet-100 text-violet-800 dark:bg-violet-950/50 dark:text-violet-300";
+      return "border-violet-400/30 bg-violet-500/15 text-violet-200";
     case "awaiting_customer":
-      return "bg-amber-100 text-amber-800 dark:bg-amber-950/50 dark:text-amber-300";
+      return "border-amber-400/30 bg-amber-500/15 text-amber-200";
     case "resolved":
-      return "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300";
+      return "border-emerald-400/30 bg-emerald-500/15 text-emerald-200";
     case "closed":
-      return "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400";
+      return "border-white/15 bg-white/[0.04] text-white/45";
     default:
-      return "bg-slate-100 text-slate-600";
+      return "border-white/15 bg-white/[0.04] text-white/45";
   }
 }
 
