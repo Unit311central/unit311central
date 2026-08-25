@@ -58,6 +58,8 @@
     "prove:saec-installations": "node scripts/prove-saec-installations.mjs",
     "provision:saec-demo-accounts": "node --import tsx scripts/provision-saec-demo-accounts.ts",
     "prove:saec-demo-accounts": "node scripts/prove-saec-demo-accounts.mjs",
+    "prove:saec-complete-demo": "node scripts/prove-saec-complete-demo.mjs",
+    "audit:demo-saec-parity": "node scripts/audit-demo-saec-parity.mjs",
     "prove:workspaces-nav": "node --require ./scripts/test-server-only-hook.cjs --import tsx src/lib/__tests__/workspaces-nav.check.ts",
     "prove:workspaces-phase2": "node --require ./scripts/test-server-only-hook.cjs --import tsx src/lib/__tests__/workspaces-phase2.check.ts",
     "prove:workspaces-phase3": "node --require ./scripts/test-server-only-hook.cjs --import tsx src/lib/__tests__/workspaces-phase3.check.ts",

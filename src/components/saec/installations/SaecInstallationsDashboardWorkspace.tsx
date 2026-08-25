@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Loader2, MapPin, Users, Wrench } from "lucide-react";
+import Link from "next/link";
 
 import SaecInstallationsKpiBar from "@/components/saec/installations/SaecInstallationsKpiBar";
 import SaecSouthAfricaMap from "@/components/saec/installations/SaecSouthAfricaMap";
@@ -142,6 +143,33 @@ export default function SaecInstallationsDashboardWorkspace({
                     <Stat label="Maintenance Due" value={selectedCity.maintenanceDue} />
                     <Stat label="Overdue" value={selectedCity.overdue} />
                     <Stat label="Engineers Assigned" value={selectedCity.engineersAssigned} />
+                    <Stat label="On The Road" value={selectedCity.engineersOnRoad} />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/40">
+                      Recent installations
+                    </p>
+                    <ul className="mt-2 space-y-2">
+                      {selectedCity.recentAssets.map((asset) => (
+                        <li
+                          key={asset.id}
+                          className="rounded-lg border border-white/8 bg-[#0b1524]/60 px-3 py-2"
+                        >
+                          <p className="text-sm font-medium text-white">
+                            <span className="text-sky-300/90">{asset.assetCode}</span>
+                            <span className="text-white/40"> · </span>
+                            {asset.siteName}
+                          </p>
+                          <p className="text-[11px] text-white/45 capitalize">{asset.status}</p>
+                        </li>
+                      ))}
+                    </ul>
+                    <Link
+                      href={`/dashboard?view=${assetType === "elevator" ? "saec-installations-elevators" : "saec-installations-escalators"}`}
+                      className="mt-3 inline-flex text-xs font-semibold text-sky-300 hover:text-sky-200"
+                    >
+                      View all installations →
+                    </Link>
                   </div>
                   <div>
                     <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/40">

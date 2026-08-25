@@ -17,7 +17,7 @@ import {
 import { isCorpCentreSlug } from "@/components/layout/CorpCentreLogoMark";
 import { isAbhiSlug } from "@/lib/abhi-surface";
 import { isOnwardAirSlug } from "@/lib/onwardair-surface";
-import { isTalantonImpactSlug } from "@/lib/talanton-surface";
+import { isSaecSlug } from "@/lib/saec-surface";
 import { loadWorkspaceLoginBrandingBySlug } from "@/lib/platform-workspaces/workspace-login-page-service";
 import { findWorkspaceBySlug } from "@/lib/workspace-host";
 
@@ -142,13 +142,15 @@ export default async function LoginPage({ searchParams }: PageProps) {
         ? "abhi"
         : isOnwardAirSlug(workspaceSlug)
           ? "onwardair"
-          : isDemo || workspaceSlug === "demo"
-            ? "northstar"
-            : workspaceSlug
-              ? "customer"
-              : isCentral
-                ? "central"
-                : "default";
+          : isSaecSlug(workspaceSlug)
+            ? "saec"
+            : isDemo || workspaceSlug === "demo"
+              ? "northstar"
+              : workspaceSlug
+                ? "customer"
+                : isCentral
+                  ? "central"
+                  : "default";
   const loginBranding =
     workspaceSlug && brand === "customer"
       ? await loadWorkspaceLoginBrandingBySlug(workspaceSlug)
@@ -162,6 +164,7 @@ export default async function LoginPage({ searchParams }: PageProps) {
         brand === "abhi" ||
         brand === "onwardair" ||
         brand === "customer" ||
+        brand === "saec" ||
         brand === "central"
           ? "central"
           : "default"

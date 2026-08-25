@@ -9,6 +9,7 @@ import { useRouter } from "next/navigation";
 import MarketingPageShell from "@/components/layout/MarketingPageShell";
 import CorpCentreLogoMark from "@/components/layout/CorpCentreLogoMark";
 import NorthstarLogoMark from "@/components/layout/NorthstarLogoMark";
+import SaecLogoMark from "@/components/layout/SaecLogoMark";
 import AbhiLogoMark from "@/components/layout/AbhiLogoMark";
 import OnwardAirLogoMark from "@/components/layout/OnwardAirLogoMark";
 import TalantonLogoMark from "@/components/layout/TalantonLogoMark";
@@ -46,6 +47,12 @@ import {
   NORTHSTAR_LOGIN_BACKGROUND_QUALITY,
   NORTHSTAR_LOGIN_OVERLAY_CLASS,
 } from "@/lib/demo/login-branding";
+import {
+  SAEC_LOGIN_BACKGROUND,
+  SAEC_LOGIN_BACKGROUND_CLASS,
+  SAEC_LOGIN_BACKGROUND_QUALITY,
+  SAEC_LOGIN_OVERLAY_CLASS,
+} from "@/lib/saec/login-branding";
 
 /** Dark engineering/infrastructure background (4K). */
 const LOGIN_BACKGROUND = "/images/login-workspace-bg.webp";
@@ -208,7 +215,7 @@ export default function Unit311LoginPage({
 }: {
   variant?: "default" | "central";
   /** Tenant login branding. CorpCentre / Talanton / ABHI / OnwardAir / customer / northstar use workspace branding. */
-  brand?: "default" | "central" | "corpcentre" | "talanton" | "abhi" | "onwardair" | "customer" | "northstar";
+  brand?: "default" | "central" | "corpcentre" | "talanton" | "abhi" | "onwardair" | "customer" | "northstar" | "saec";
   /** Display name for generic customer hosts (e.g. Acme). */
   workspaceName?: string | null;
   /** Persisted customer login page title from workspace provisioning. */
@@ -237,6 +244,7 @@ export default function Unit311LoginPage({
   const isAbhi = brand === "abhi";
   const isOnwardAir = brand === "onwardair";
   const isNorthstar = brand === "northstar";
+  const isSaec = brand === "saec";
   const isCustomer = brand === "customer";
   const customerLabel = loginTitle?.trim() || workspaceName?.trim() || "Workspace";
   const customerBackground = loginBackgroundUrl?.trim() || LOGIN_BACKGROUND;
@@ -373,7 +381,7 @@ export default function Unit311LoginPage({
 
   return (
     <MarketingPageShell
-      hideAccentGradients={isNorthstar}
+      hideAccentGradients={isNorthstar || isSaec}
       backgroundImage={
         isOnwardAir
           ? ONWARDAIR_LOGIN_BACKGROUND
@@ -383,11 +391,13 @@ export default function Unit311LoginPage({
               ? TALANTON_LOGIN_BACKGROUND
               : isAbhi
                 ? ABHI_LOGIN_BACKGROUND
-                : isNorthstar
-                  ? NORTHSTAR_LOGIN_BACKGROUND
-                  : isCustomer && loginBackgroundUrl
-                    ? customerBackground
-                    : LOGIN_BACKGROUND
+                : isSaec
+                  ? SAEC_LOGIN_BACKGROUND
+                  : isNorthstar
+                    ? NORTHSTAR_LOGIN_BACKGROUND
+                    : isCustomer && loginBackgroundUrl
+                      ? customerBackground
+                      : LOGIN_BACKGROUND
       }
       backgroundImageClassName={
         isOnwardAir
@@ -398,20 +408,24 @@ export default function Unit311LoginPage({
               ? TALANTON_LOGIN_BACKGROUND_CLASS
               : isAbhi
                 ? ABHI_LOGIN_BACKGROUND_CLASS
-                : isNorthstar
-                  ? NORTHSTAR_LOGIN_BACKGROUND_CLASS
-                  : isCustomer && loginBackgroundUrl
-                    ? "object-cover object-center opacity-90"
-                    : "object-cover object-[center_35%] opacity-80 sm:object-center"
+                : isSaec
+                  ? SAEC_LOGIN_BACKGROUND_CLASS
+                  : isNorthstar
+                    ? NORTHSTAR_LOGIN_BACKGROUND_CLASS
+                    : isCustomer && loginBackgroundUrl
+                      ? "object-cover object-center opacity-90"
+                      : "object-cover object-[center_35%] opacity-80 sm:object-center"
       }
       backgroundImageQuality={
-        isTalanton
-          ? TALANTON_LOGIN_BACKGROUND_QUALITY
-          : isAbhi
-            ? ABHI_LOGIN_BACKGROUND_QUALITY
-            : isNorthstar
-              ? NORTHSTAR_LOGIN_BACKGROUND_QUALITY
-              : 92
+        isSaec
+          ? SAEC_LOGIN_BACKGROUND_QUALITY
+          : isTalanton
+            ? TALANTON_LOGIN_BACKGROUND_QUALITY
+            : isAbhi
+              ? ABHI_LOGIN_BACKGROUND_QUALITY
+              : isNorthstar
+                ? NORTHSTAR_LOGIN_BACKGROUND_QUALITY
+                : 92
       }
       overlayClassName={
         isOnwardAir
@@ -422,11 +436,13 @@ export default function Unit311LoginPage({
               ? TALANTON_LOGIN_OVERLAY_CLASS
               : isAbhi
                 ? ABHI_LOGIN_OVERLAY_CLASS
-                : isNorthstar
-                  ? NORTHSTAR_LOGIN_OVERLAY_CLASS
-                  : isCustomer && loginBackgroundUrl
-                    ? "absolute inset-0 bg-gradient-to-b from-[#020617]/65 via-[#020617]/72 to-[#020617]/82"
-                    : "absolute inset-0 bg-[#020617]/45"
+                : isSaec
+                  ? SAEC_LOGIN_OVERLAY_CLASS
+                  : isNorthstar
+                    ? NORTHSTAR_LOGIN_OVERLAY_CLASS
+                    : isCustomer && loginBackgroundUrl
+                      ? "absolute inset-0 bg-gradient-to-b from-[#020617]/65 via-[#020617]/72 to-[#020617]/82"
+                      : "absolute inset-0 bg-[#020617]/45"
       }
       contentClassName={`${MARKETING_CONTENT_CLASS} flex min-h-[100dvh] flex-col items-center justify-center py-12 sm:py-16`}
     >
@@ -445,6 +461,8 @@ export default function Unit311LoginPage({
             <OnwardAirLogoMark height={90} maxWidth={500} priority />
           ) : isNorthstar ? (
             <NorthstarLogoMark height={70} maxWidth={400} priority />
+          ) : isSaec ? (
+            <SaecLogoMark height={64} maxWidth={320} priority />
           ) : isCustomer ? (
             loginLogoUrl ? (
               <div className="relative flex h-24 w-full max-w-[280px] items-center justify-center">
@@ -501,6 +519,8 @@ export default function Unit311LoginPage({
                     ? "OnwardAir Demo Information Page"
                     : isOnwardAir
                       ? "OnwardAir Login"
+                      : isSaec
+                        ? "SAEC Enterprise Login"
                       : isNorthstar
                         ? "Northstar Industrial Technologies Login"
                       : isCustomer
@@ -522,6 +542,8 @@ export default function Unit311LoginPage({
                     ? "Secure access to your OnwardAir demo portal page"
                     : isOnwardAir
                       ? "Secure access to your OnwardAir workspace"
+                      : isSaec
+                        ? "Secure access to SAEC — elevators, escalators and vertical transportation"
                       : isNorthstar
                         ? "Secure access to Northstar Industrial Technologies"
                       : isCustomer

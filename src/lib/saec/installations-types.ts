@@ -102,6 +102,20 @@ export type SaecMaintenanceRecord = {
   createdAt: string;
 };
 
+export type SaecCitySiteSummary = {
+  id: string;
+  siteName: string;
+  customerName: string;
+  unitCount: number;
+};
+
+export type SaecCityRecentAsset = {
+  id: string;
+  assetCode: string;
+  siteName: string;
+  status: SaecAssetOperationalStatus;
+};
+
 export type SaecCityAggregate = {
   cityId: SaecInstallationCityId;
   cityLabel: string;
@@ -115,14 +129,9 @@ export type SaecCityAggregate = {
   maintenanceDue: number;
   overdue: number;
   engineersAssigned: number;
+  engineersOnRoad: number;
   sites: SaecCitySiteSummary[];
-};
-
-export type SaecCitySiteSummary = {
-  id: string;
-  siteName: string;
-  customerName: string;
-  unitCount: number;
+  recentAssets: SaecCityRecentAsset[];
 };
 
 export type SaecInstallationsDashboardSnapshot = {

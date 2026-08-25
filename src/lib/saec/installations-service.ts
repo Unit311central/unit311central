@@ -263,6 +263,19 @@ function buildCityAggregates(
     const engineersAssigned = new Set(
       cityAssets.map((row) => row.assignedEngineerId).filter(Boolean),
     ).size;
+    const engineersOnRoad = cityAssets.filter(
+      (row) =>
+        row.engineerFieldStatus === "On Site" || row.engineerFieldStatus === "En Route",
+    ).length;
+    const recentAssets = [...cityAssets]
+      .sort((a, b) => String(b.installedDate).localeCompare(String(a.installedDate)))
+      .slice(0, 5)
+      .map((asset) => ({
+        id: asset.id,
+        assetCode: asset.assetCode,
+        siteName: asset.siteName,
+        status: asset.status,
+      }));
     return {
       cityId: city.id,
       cityLabel: city.label,
@@ -276,7 +289,9 @@ function buildCityAggregates(
       maintenanceDue: cityAssets.filter((row) => row.maintenanceStatus === "due").length,
       overdue: cityAssets.filter((row) => row.maintenanceStatus === "overdue").length,
       engineersAssigned,
+      engineersOnRoad,
       sites: [...siteMap.values()].sort((a, b) => b.unitCount - a.unitCount),
+      recentAssets,
     };
   });
 }
