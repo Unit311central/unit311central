@@ -59,13 +59,13 @@ const finalizedErrors = validateBulkExpenseRows(
 );
 assert.ok(finalizedErrors.length > 0);
 
-const draftExpense = {
+const draftExpense = expenseFixture({
   id: "draft-1",
   submitterUserId: "u-1",
   submitterName: "Test",
   purposeDescription: "",
   amount: 0,
-  currency: "USD" as const,
+  currency: "USD",
   dateSubmitted: "2026-08-01",
   paid: false,
   supplier: null,
@@ -75,13 +75,13 @@ const draftExpense = {
   wiseBalanceId: null,
   attachmentPath: null,
   reference: null,
-  recordStatus: "draft" as const,
+  recordStatus: "draft",
   reimbursable: false,
   journalEntryId: null,
   paymentJournalEntryId: null,
   createdAt: "",
   updatedAt: "",
-};
+});
 
 assert.equal(isExpenseDraft(draftExpense), true);
 assert.equal(isCountableExpense(draftExpense), false);
