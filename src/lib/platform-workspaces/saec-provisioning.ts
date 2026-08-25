@@ -1,26 +1,16 @@
-import { defaultEnabledSubModules } from "@/lib/platform-workspaces/module-catalogue";
+import {
+  WORKSPACE_MODULE_IDS,
+  defaultEnabledSubModules,
+} from "@/lib/platform-workspaces/module-catalogue";
 
-/** SAEC Thursday client demo — breadth of platform modules, no Grants. */
-export const SAEC_ENABLED_MODULES = [
-  "home",
-  "executive-assistant",
-  "intelligence",
-  "business-central",
-  "financials",
-  "project-management",
-  "operations",
-  "technology-management",
-  "engineering",
-  "human-resources",
-  "training",
-  "board",
-  "corporate-information",
-  "marketing-events",
-  "external-client-access",
-] as const;
+/** SAEC uses the full central 22-module catalogue; Grants is the sole deliberate exclusion. */
+export const SAEC_ENABLED_MODULES = [...WORKSPACE_MODULE_IDS] as const;
+
+export const SAEC_EXCLUDED_SUBMODULE_KEYS = ["business-central:grants"] as const;
 
 export function saecEnabledSubModules(): string[] {
+  const excluded = new Set<string>(SAEC_EXCLUDED_SUBMODULE_KEYS);
   return defaultEnabledSubModules([...SAEC_ENABLED_MODULES]).filter(
-    (key) => key !== "business-central:grants",
+    (key) => !excluded.has(key),
   );
 }
