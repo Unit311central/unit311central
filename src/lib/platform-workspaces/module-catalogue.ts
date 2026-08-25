@@ -57,7 +57,9 @@ function moduleKeysForView(viewId: string | undefined, moduleId: string): string
     return ["crm"];
   }
 
-  if (view === "management" || view === "content-studio") return ["strategy"];
+  if (view === "management" || view === "content-studio" || view === "information-repository") {
+    return ["strategy"];
+  }
 
   if (view === "internal-work-packages") return ["file-explorer", "email-calendar-messaging"];
 

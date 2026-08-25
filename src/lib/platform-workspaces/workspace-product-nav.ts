@@ -4,7 +4,6 @@
  */
 
 import { DEMO_WORKSPACE_SLUG } from "@/lib/app-domains";
-import { isInterfaceWorxSlug } from "@/lib/interface-worx-surface";
 import {
   buildFinancesNavSection,
 } from "@/lib/finances-nav";
@@ -82,6 +81,12 @@ export function repairWorkspaceSubmoduleKeys(
   if (subSet.has(clientsDirectory) || subSet.has(clientsDashboard)) {
     subSet.add(clientsDirectory);
     subSet.add(clientsDashboard);
+  }
+
+  const businessCentralPrefix = "business-central:";
+  const hasBusinessCentralSub = [...subSet].some((key) => key.startsWith(businessCentralPrefix));
+  if (enabledModules.includes("business-central") && hasBusinessCentralSub) {
+    subSet.add(subModuleKey("business-central", "information-repository"));
   }
 
   return [...subSet];
@@ -276,19 +281,7 @@ export function buildWorkspaceProductNavSections(
 
     if (filteredItems.length === 0) continue;
 
-    const items =
-      spec.id === "business-central" && isInterfaceWorxSlug(options.workspaceSlug)
-        ? [
-            ...filteredItems,
-            {
-              label: "Information Repository",
-              icon: "FileText",
-              view: "information-repository" as const,
-            },
-          ]
-        : filteredItems;
-
-    sections.push({ ...section, items });
+    sections.push({ ...section, items: filteredItems });
   }
 
   return sections;

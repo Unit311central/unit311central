@@ -71,17 +71,23 @@ const demoNav = buildWorkspaceProductNavSections({
 });
 const demoBc = demoNav.find((section) => section.label === "Business Central");
 assert.ok(demoBc && demoBc.kind === "workspace");
-assert.equal(
+assert.ok(
   demoBc.items.some((item) => item.view === "information-repository"),
-  false,
-  "Demo must not gain Information Repository nav",
+  "Demo Business Central must include Information Repository from central catalogue",
+);
+const demoLabels = demoBc.items.map((item) => item.label);
+assert.equal(
+  demoLabels.indexOf("Information Repository"),
+  demoLabels.indexOf("Grants") + 1,
+  "Information Repository must follow Grants in Business Central",
 );
 
 const authSource = readFileSync(
   join(process.cwd(), "src/lib/interface-worx-information-repository-auth.ts"),
   "utf8",
 );
-assert.match(authSource, /isInterfaceWorxSlug/);
+assert.match(authSource, /viewsForWorkspaceEnablement/);
+assert.doesNotMatch(authSource, /isInterfaceWorxSlug/);
 
 const apiSource = readFileSync(
   join(process.cwd(), "src/app/api/information-repository/route.ts"),

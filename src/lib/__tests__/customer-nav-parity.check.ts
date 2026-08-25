@@ -104,7 +104,7 @@ assert.equal(
 // Business Central structure
 const bc = buildCentralBusinessCentralNavSection();
 const bcLabels = bc.items.map((item) => item.label);
-assert.deepEqual(bcLabels, ["Dashboard", "Clients", "Management", "Grants"]);
+assert.deepEqual(bcLabels, ["Dashboard", "Clients", "Management", "Grants", "Information Repository"]);
 assert.ok(!bcLabels.includes("Projects"), "Business Central must not include Projects");
 
 const demoBc = navTree(demoNav)["Business Central"];

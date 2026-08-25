@@ -79,6 +79,7 @@ export function buildCentralBusinessCentralNavSection(): InternalNavSection {
       },
       buildManagementNavItem(),
       { label: "Grants", icon: "ScrollText", view: "grants" },
+      { label: "Information Repository", icon: "FileText", view: "information-repository" },
     ],
   };
 }

@@ -47,6 +47,7 @@ assert.deepEqual(bcLabels, [
   "Clients",
   "Management",
   "Grants",
+  "Information Repository",
 ]);
 const management = buildCentralBusinessCentralNavSection().items.find(
   (item) => item.label === "Management",
@@ -86,5 +87,35 @@ const clientsChildren =
     ?.items.find((item) => item.label === "Clients")
     ?.children?.map((child) => child.label) ?? [];
 assert.deepEqual(clientsChildren, ["Dashboard", "Client Directory"]);
+
+const demoBcEnablement = resolveWorkspaceNavEnablement({
+  workspaceSlug: "demo",
+  workspaceType: "Demo",
+  enabledModules: ["business-central"],
+  enabledSubModules: [
+    subModuleKey("business-central", "business-central-dashboard"),
+    subModuleKey("business-central", "clients"),
+    subModuleKey("business-central", "management"),
+    subModuleKey("business-central", "grants"),
+  ],
+});
+const demoBcNav = buildWorkspaceProductNavSections({
+  workspaceSlug: "demo",
+  workspaceType: "Demo",
+  enablement: demoBcEnablement,
+});
+const demoBcItems =
+  demoBcNav
+    .find((section) => section.label === "Business Central")
+    ?.items.map((item) => item.label) ?? [];
+assert.ok(
+  demoBcItems.includes("Information Repository"),
+  "Repair must enable Information Repository for Business Central workspaces",
+);
+assert.equal(
+  demoBcItems.indexOf("Information Repository"),
+  demoBcItems.indexOf("Grants") + 1,
+  "Information Repository must follow Grants",
+);
 
 console.log("ok  platform-demo-fixes checks passed\n");
