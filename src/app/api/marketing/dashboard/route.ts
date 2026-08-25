@@ -20,9 +20,9 @@ export async function GET() {
       await ensureMarketingWorkspaceSeeded({ workspaceId, workspaceSlug });
       const kpis = await computeMarketingDashboardKpis({ workspaceId });
       const hasData =
-        kpis.mailingSubscribers != null ||
-        kpis.sentNewsletterCount != null ||
-        kpis.externalEventsTotal != null;
+        (kpis.mailingSubscribers ?? 0) > 0 ||
+        (kpis.sentNewsletterCount ?? 0) > 0 ||
+        (kpis.externalEventsTotal ?? 0) > 0;
       return NextResponse.json({ kpis: hasData ? kpis : getSaecMarketingKpis() });
     }
     await ensureMarketingWorkspaceSeeded({ workspaceId, workspaceSlug });
