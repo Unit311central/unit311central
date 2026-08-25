@@ -17,6 +17,13 @@ export const SAEC_TIMEZONE = "Africa/Johannesburg";
 
 export const SAEC_INDUSTRY = "Elevators / Escalators / Vertical Transportation";
 
+/** Official SAEC wordmark — sourced from saec.biz assets. */
+export const SAEC_WORKSPACE_LOGO_SRC = "/images/workspaces/saec/logo.png";
+
+export const SAEC_LOGO_INTRINSIC_WIDTH = 340;
+
+export const SAEC_LOGO_INTRINSIC_HEIGHT = 103;
+
 export function isSaecSlug(slug: string | null | undefined): boolean {
   return (
     String(slug ?? "")

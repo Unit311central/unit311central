@@ -4,6 +4,7 @@ import {
   type ProjectPhase,
 } from "@/lib/projects-data";
 import { ensureInternalProjectsStarterCatalogue } from "@/lib/internal-projects/starter-catalogue";
+import { getSaecFixtureProjects, isSaecBusinessCentralFixtures } from "@/lib/saec/business-central-data";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
 import { createTenancyServerClient } from "@/lib/supabase/tenancy-server";
 import { requireCurrentWorkspace } from "@/lib/workspace-context";
@@ -13,6 +14,7 @@ type DbProject = Parameters<typeof mapInternalProject>[0];
 export type ProjectsWorkspaceScope = {
   /** Explicit override for system callers. Prefer omit to use session context. */
   workspaceId?: string | null;
+  workspaceSlug?: string | null;
 };
 
 function requireProjectsSupabase() {
@@ -121,9 +123,38 @@ async function resolveClientLink(
   return { clientId: null, clientName: requestedName };
 }
 
+async function resolveProjectsWorkspaceSlug(
+  scope?: ProjectsWorkspaceScope,
+): Promise<string | null> {
+  const explicitSlug = scope?.workspaceSlug?.trim();
+  if (explicitSlug) return explicitSlug;
+  try {
+    const workspace = await requireCurrentWorkspace();
+    if (!scope?.workspaceId || scope.workspaceId === workspace.id) {
+      return workspace.slug;
+    }
+  } catch {
+    /* fall through */
+  }
+  const workspaceId = scope?.workspaceId?.trim();
+  if (!workspaceId) return null;
+  const supabase = requireProjectsSupabase();
+  const { data } = await supabase
+    .from("workspaces")
+    .select("slug")
+    .eq("id", workspaceId)
+    .maybeSingle();
+  return (data as { slug?: string } | null)?.slug ?? null;
+}
+
 export async function listProjects(scope?: ProjectsWorkspaceScope): Promise<InternalProject[]> {
+  const workspaceSlug = await resolveProjectsWorkspaceSlug(scope);
+  if (isSaecBusinessCentralFixtures(workspaceSlug)) {
+    return getSaecFixtureProjects();
+  }
+
   const workspaceId = await resolveProjectsWorkspaceId(scope);
-  await ensureInternalProjectsStarterCatalogue(workspaceId);
+  await ensureInternalProjectsStarterCatalogue(workspaceId, workspaceSlug);
   const supabase = requireProjectsSupabase();
   const { data, error } = await supabase
     .from("internal_projects")

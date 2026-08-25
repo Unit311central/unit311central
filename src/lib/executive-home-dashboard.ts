@@ -941,14 +941,20 @@ export function buildExecutiveHomeLiveNarrative(input: {
           if (isBrowserDemoSurface()) {
             companyName = getDemoEnterpriseFixtures().company.tradingName;
             showTreasurySurfaces = cash > 0;
-          } else if (
-            host === "internal.unit311central.com" ||
-            host === "internal.localhost"
-          ) {
-            companyName = "Unit311";
-            showTreasurySurfaces = cash > 0;
+          } else {
+            const { isBrowserSaecSurface, SAEC_COMPANY_NAME } =
+              require("@/lib/saec-surface") as typeof import("@/lib/saec-surface");
+            if (isBrowserSaecSurface()) {
+              companyName = SAEC_COMPANY_NAME;
+            } else if (
+              host === "internal.unit311central.com" ||
+              host === "internal.localhost"
+            ) {
+              companyName = "Unit311";
+              showTreasurySurfaces = cash > 0;
+            }
+            // Customer hosts (OnwardAir, etc.): never surface platform treasury.
           }
-          // Customer hosts (OnwardAir, etc.): never surface platform treasury.
         }
         }
       }
