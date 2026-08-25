@@ -5,6 +5,7 @@ import { useMemo } from "react";
 import { CalendarDays, ClipboardList, FileText, Package } from "lucide-react";
 
 import { computeManagementSummary } from "@/lib/central-capabilities/management-store";
+import { resolveInternalOperationsBasePath } from "@/lib/internal-operations-data";
 import { useOperatorEntitlements } from "@/components/testflighthub/OperatorEntitlementsProvider";
 import {
   managementAccessFromEntitlements,
@@ -16,12 +17,14 @@ import { cn } from "@/lib/utils";
 import { useManagementStore } from "./useManagementStore";
 import { useContentStudioStore } from "./useContentStudioStore";
 
-function viewHref(view: string) {
-  if (typeof window === "undefined") return `?view=${view}`;
-  const base = window.location.pathname.includes("/internaldashboard")
-    ? "/internaldashboard"
-    : "/dashboard";
-  return `${base}?view=${view}`;
+function viewHref(view: string, query?: Record<string, string>) {
+  if (typeof window === "undefined") {
+    const params = new URLSearchParams({ view, ...query });
+    return `/dashboard?${params.toString()}`;
+  }
+  const base = resolveInternalOperationsBasePath(window.location.hostname);
+  const params = new URLSearchParams({ view, ...query });
+  return `${base}?${params.toString()}`;
 }
 
 export default function ExecutiveMyWorkspace() {
@@ -97,7 +100,7 @@ export default function ExecutiveMyWorkspace() {
                   Open
                 </Link>
                 <Link
-                  href={`${viewHref("management")}&section=function-packs`}
+                  href={viewHref("management", { section: "function-packs" })}
                   className={workspaceSecondaryButtonClass()}
                 >
                   Edit

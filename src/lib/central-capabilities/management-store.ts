@@ -1,6 +1,9 @@
 /**
- * Management workspace — editable meetings, function packs, and actions per host.
+ * Management workspace — editable meetings, function packs, and actions per workspace.
  */
+
+import { DEMO_WORKSPACE_SLUG, isDemoDomainHost, parseClientPlatformSubdomainSafe } from "@/lib/app-domains";
+import { readEffectiveBrowserWorkspaceSlug } from "@/lib/demo-enterprise/workspace-tenancy-surface";
 
 import {
   MANAGEMENT_ACTIONS,
@@ -33,22 +36,35 @@ type WorkspaceBucket = {
   listeners: Set<Listener>;
 };
 
-const STORAGE_VERSION = "v1";
+const STORAGE_VERSION = "v2";
+const LEGACY_STORAGE_VERSION = "v1";
 const buckets = new Map<string, WorkspaceBucket>();
 
-function defaultSlug(): string {
-  if (typeof window === "undefined") return "default";
-  return window.location.hostname.trim().toLowerCase() || "default";
+function hostToWorkspaceSlug(host: string): string {
+  const normalized = host.trim().toLowerCase();
+  if (!normalized || normalized === "default") return "default";
+  if (isDemoDomainHost(normalized)) return DEMO_WORKSPACE_SLUG;
+  return parseClientPlatformSubdomainSafe(normalized) ?? normalized;
 }
 
 export function resolveManagementWorkspaceSlug(hostname?: string | null): string {
-  const host = (hostname ?? defaultSlug()).trim().toLowerCase();
-  if (!host || host === "default") return "default";
-  return host;
+  if (hostname != null) {
+    return hostToWorkspaceSlug(hostname);
+  }
+  if (typeof window !== "undefined") {
+    const effective = readEffectiveBrowserWorkspaceSlug();
+    if (effective) return effective;
+    return hostToWorkspaceSlug(window.location.hostname);
+  }
+  return "default";
 }
 
-function storageKey(slug: string): string {
-  return `unit311-management-workspace-${STORAGE_VERSION}:${slug}`;
+function storageKey(slug: string, version = STORAGE_VERSION): string {
+  return `unit311-management-workspace-${version}:${slug}`;
+}
+
+function legacyStorageKey(hostname: string): string {
+  return storageKey(hostname.trim().toLowerCase(), LEGACY_STORAGE_VERSION);
 }
 
 function seedState(): ManagementWorkspaceState {
@@ -87,20 +103,53 @@ function getBucket(slug: string): WorkspaceBucket {
   return bucket;
 }
 
-function readPersistedState(slug: string): ManagementWorkspaceState | null {
+function isEmptyManagementState(state: ManagementWorkspaceState): boolean {
+  return state.meetings.length === 0 && state.functionPacks.length === 0 && state.actions.length === 0;
+}
+
+function normalizePersistedState(parsed: ManagementWorkspaceState | null): ManagementWorkspaceState | null {
+  if (!parsed || !Array.isArray(parsed.meetings) || !Array.isArray(parsed.functionPacks)) {
+    return null;
+  }
+  if (!Array.isArray(parsed.actions)) return null;
+  if (isEmptyManagementState(parsed)) return null;
+  return parsed;
+}
+
+function readRawPersistedState(slug: string): ManagementWorkspaceState | null {
   if (typeof window === "undefined") return null;
   try {
     const raw = window.localStorage.getItem(storageKey(slug));
     if (!raw) return null;
-    const parsed = JSON.parse(raw) as ManagementWorkspaceState;
-    if (!parsed || !Array.isArray(parsed.meetings) || !Array.isArray(parsed.functionPacks)) {
-      return null;
-    }
-    if (!Array.isArray(parsed.actions)) return null;
-    return parsed;
+    return JSON.parse(raw) as ManagementWorkspaceState;
   } catch {
     return null;
   }
+}
+
+function readPersistedState(slug: string): ManagementWorkspaceState | null {
+  if (typeof window === "undefined") return null;
+
+  const current = normalizePersistedState(readRawPersistedState(slug));
+  if (current) return current;
+
+  const legacyHost = window.location.hostname.trim().toLowerCase();
+  if (legacyHost) {
+    try {
+      const legacyRaw = window.localStorage.getItem(legacyStorageKey(legacyHost));
+      if (legacyRaw) {
+        const legacy = normalizePersistedState(JSON.parse(legacyRaw) as ManagementWorkspaceState);
+        if (legacy) {
+          persistState(slug, legacy);
+          return legacy;
+        }
+      }
+    } catch {
+      /* ignore */
+    }
+  }
+
+  return null;
 }
 
 function persistState(slug: string, state: ManagementWorkspaceState) {
@@ -117,8 +166,12 @@ function ensureHydrated(slug: string) {
   if (bucket.hydrated || typeof window === "undefined") return;
   bucket.hydrated = true;
   const persisted = readPersistedState(slug);
-  if (persisted) bucket.state = persisted;
-  else persistState(slug, bucket.state);
+  if (persisted) {
+    bucket.state = persisted;
+    bucket.serverSnapshot = cloneState(persisted);
+  } else {
+    persistState(slug, bucket.state);
+  }
 }
 
 function writeState(slug: string, next: ManagementWorkspaceState) {

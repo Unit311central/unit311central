@@ -21,6 +21,7 @@ import {
   upsertManagementMeeting,
   uploadManagementFunctionPack,
 } from "@/lib/central-capabilities/management-store";
+import { resolveManagementSection } from "@/lib/central-capabilities/management-nav";
 import { CONTENT_STUDIO_FUNCTIONS } from "@/lib/central-capabilities/content-studio-placeholder";
 import {
   buildAbhiNavSections,
@@ -158,6 +159,9 @@ assertSurfaceNav("ABHI", buildAbhiNavSections(internalSurveyNavSections));
 }
 
 {
+  assert.equal(resolveManagementSection("function-packs"), "function-packs");
+  assert.equal(resolveManagementSection("invalid"), "dashboard");
+  assert.equal(resolveManagementWorkspaceSlug("demo.unit311central.com"), "demo");
   const slug = resolveManagementWorkspaceSlug("demo.unit311central.com");
   const meeting = upsertManagementMeeting(slug, {
     name: "Test meeting",

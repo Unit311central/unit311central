@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useRef, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   CalendarDays,
   ClipboardList,
@@ -18,6 +19,7 @@ import {
   managementAccessFromEntitlements,
 } from "@/lib/central-capabilities/access";
 import { computeManagementSummary } from "@/lib/central-capabilities/management-store";
+import { resolveManagementSection } from "@/lib/central-capabilities/management-nav";
 import type {
   ManagementActionPlaceholder,
   ManagementFunctionPackPlaceholder,
@@ -780,6 +782,7 @@ function ManagementActionsPanel({ meetingNames }: { meetingNames: string[] }) {
 }
 
 export default function ManagementWorkspace() {
+  const searchParams = useSearchParams();
   const entitlements = useOperatorEntitlements();
   const access = useMemo(
     () =>
@@ -790,13 +793,31 @@ export default function ManagementWorkspace() {
       }),
     [entitlements.departments, entitlements.roleView, entitlements.roles],
   );
-  const [section, setSection] = useState<ManagementSectionId>("dashboard");
+  const [section, setSection] = useState<ManagementSectionId>(() =>
+    resolveManagementSection(searchParams.get("section")),
+  );
   const { state } = useManagementStore();
   const visiblePacks = useMemo(
     () => filterVisibleManagementFunctionPacks(access, state.functionPacks),
     [access, state.functionPacks],
   );
   const meetingNames = useMemo(() => state.meetings.map((meeting) => meeting.name), [state.meetings]);
+
+  useEffect(() => {
+    setSection(resolveManagementSection(searchParams.get("section")));
+  }, [searchParams]);
+
+  function navigateSection(next: ManagementSectionId) {
+    setSection(next);
+    const url = new URL(window.location.href);
+    url.searchParams.set("view", "management");
+    if (next === "dashboard") {
+      url.searchParams.delete("section");
+    } else {
+      url.searchParams.set("section", next);
+    }
+    window.history.replaceState(null, "", url.toString());
+  }
 
   if (!canAccessManagementWorkspace(access)) {
     return (
@@ -815,7 +836,7 @@ export default function ManagementWorkspace() {
       subtitle={MANAGEMENT_SUBTITLE}
       items={SECTIONS}
       activeId={section}
-      onSelect={setSection}
+      onSelect={navigateSection}
       layout="horizontal"
     >
       {section === "dashboard" ? (

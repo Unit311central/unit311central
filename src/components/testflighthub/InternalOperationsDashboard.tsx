@@ -68,6 +68,7 @@ import {
 } from "@/lib/fundraising-workspace-surface";
 import type { OperatorEntitlementsSnapshot } from "@/lib/operator-entitlements-server";
 import { SALES_MANAGEMENT_QUERY_PARAM_VIEWS } from "@/lib/sales-management-nav";
+import { MANAGEMENT_QUERY_PARAM_VIEWS } from "@/lib/central-capabilities/management-nav";
 import FinancesSubsectionShell from "./FinancesSubsectionShell";
 import WorkspaceLoadingFallback from "./WorkspaceLoadingFallback";
 import WorkspacePane from "./WorkspacePane";
@@ -752,7 +753,8 @@ export default function InternalOperationsDashboard({
         }
       } else if (
         !FINANCES_QUERY_PARAM_VIEWS.has(activeView) &&
-        !SALES_MANAGEMENT_QUERY_PARAM_VIEWS.has(activeView)
+        !SALES_MANAGEMENT_QUERY_PARAM_VIEWS.has(activeView) &&
+        !MANAGEMENT_QUERY_PARAM_VIEWS.has(activeView)
       ) {
         url.searchParams.delete("tab");
         url.searchParams.delete("filter");
