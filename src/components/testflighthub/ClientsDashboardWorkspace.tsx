@@ -400,19 +400,22 @@ export default function ClientsDashboardWorkspace({
   return (
     <div className="space-y-3 sm:space-y-4">
       <section className="rounded-2xl border border-white/15 bg-white/[0.04] p-3 shadow-[0_24px_64px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl sm:p-4">
-        <div className="flex flex-wrap items-start justify-end gap-2">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/40">
+            Quick actions
+          </p>
           <button
             type="button"
             onClick={() => void loadDashboard({ soft: true })}
             disabled={refreshing}
-            className="inline-flex h-9 items-center gap-2 rounded-xl border border-white/15 bg-white/[0.04] px-3 text-xs font-semibold text-white/70 transition-colors hover:border-white/25 hover:bg-white/[0.08] disabled:opacity-60"
+            className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-white/15 bg-white/[0.04] px-2.5 text-[11px] font-semibold text-white/65 transition-colors hover:border-white/25 hover:bg-white/[0.08] disabled:opacity-60"
           >
             <RefreshCw className={cn("h-3.5 w-3.5", refreshing && "animate-spin")} />
             Refresh
           </button>
         </div>
 
-        <div className="mt-3 flex flex-wrap gap-2">
+        <div className="mt-2.5 flex flex-wrap gap-2">
           <Link
             href={clientDirectoryHref()}
             className="inline-flex h-9 items-center gap-2 rounded-xl border border-sky-500/40 bg-sky-500/15 px-3 text-xs font-semibold text-sky-200 transition-colors hover:border-sky-400/60 hover:bg-sky-500/25"

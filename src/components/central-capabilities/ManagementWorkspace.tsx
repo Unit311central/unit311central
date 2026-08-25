@@ -807,12 +807,14 @@ export default function ManagementWorkspace() {
 
   return (
     <div className="space-y-5">
-      <WorkspaceModuleHeader
-        brandLabel={isSaec ? SAEC_COMPANY_NAME : "Business Central"}
-        moduleLabel="Management"
-        title={resolveManagementShellTitle(section)}
-        description={MANAGEMENT_SUBTITLE}
-      />
+      {isSaec ? (
+        <WorkspaceModuleHeader
+          brandLabel={SAEC_COMPANY_NAME}
+          moduleLabel="Management"
+          title={resolveManagementShellTitle(section)}
+          description={MANAGEMENT_SUBTITLE}
+        />
+      ) : null}
       {section === "dashboard" ? (
         <ManagementDashboard
           meetings={state.meetings}

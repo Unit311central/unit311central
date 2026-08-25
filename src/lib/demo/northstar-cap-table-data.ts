@@ -24,6 +24,8 @@ export type NorthstarCapTableRow = {
   pricePerShareGbp: number | null;
   issueDate: string;
   notes: string;
+  /** Shareholder agreement PDF when applicable. */
+  shareholderAgreementUrl?: string;
 };
 
 export type NorthstarOptionGrant = {
@@ -89,6 +91,7 @@ export function buildNorthstarCapTableSnapshot(): NorthstarCapTableSnapshot {
       pricePerShareGbp: 0.303,
       issueDate: "2023-06-15",
       notes: "Lead · UK VC · pre-seed round",
+      shareholderAgreementUrl: "https://dataroom.northstar.demo/legal/ssa-ntv.pdf",
     },
     {
       id: "cap-hfc",
@@ -102,6 +105,7 @@ export function buildNorthstarCapTableSnapshot(): NorthstarCapTableSnapshot {
       pricePerShareGbp: 0.303,
       issueDate: "2023-06-15",
       notes: "UK family office",
+      shareholderAgreementUrl: "https://dataroom.northstar.demo/legal/ssa-hfc.pdf",
     },
     {
       id: "cap-selby",
@@ -115,6 +119,7 @@ export function buildNorthstarCapTableSnapshot(): NorthstarCapTableSnapshot {
       pricePerShareGbp: 0.303,
       issueDate: "2023-06-20",
       notes: "UK family office",
+      shareholderAgreementUrl: "https://dataroom.northstar.demo/legal/ssa-selby.pdf",
     },
     {
       id: "cap-hart-angel",
@@ -128,6 +133,7 @@ export function buildNorthstarCapTableSnapshot(): NorthstarCapTableSnapshot {
       pricePerShareGbp: 0.303,
       issueDate: "2023-06-22",
       notes: "UK angel · non-founder",
+      shareholderAgreementUrl: "https://dataroom.northstar.demo/legal/ssa-webb.pdf",
     },
     {
       id: "cap-aip",
@@ -141,6 +147,7 @@ export function buildNorthstarCapTableSnapshot(): NorthstarCapTableSnapshot {
       pricePerShareGbp: 0.303,
       issueDate: "2023-07-01",
       notes: "US angel syndicate",
+      shareholderAgreementUrl: "https://dataroom.northstar.demo/legal/ssa-aip.pdf",
     },
     {
       id: "cap-esop",

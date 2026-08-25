@@ -109,20 +109,29 @@ function Shell({
   title,
   subtitle,
   children,
+  compact = false,
 }: {
   title: string;
   subtitle: string;
   children: ReactNode;
+  compact?: boolean;
 }) {
   return (
-    <div className="mx-auto max-w-6xl space-y-5 px-1 py-4 sm:py-6">
-      <header className="rounded-2xl border border-white/12 bg-white/[0.03] p-5 sm:p-6">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/40">
-          Northstar · Engineering
-        </p>
-        <h1 className="mt-1 text-2xl font-semibold tracking-tight text-white">{title}</h1>
-        <p className="mt-2 max-w-2xl text-sm leading-relaxed text-white/55">{subtitle}</p>
-      </header>
+    <div className={cn("mx-auto max-w-6xl space-y-4 px-1", compact ? "py-2 sm:py-3" : "py-4 sm:py-6")}>
+      {compact ? (
+        <div className="border-b border-white/10 pb-3">
+          <h1 className="text-lg font-semibold tracking-tight text-white sm:text-xl">{title}</h1>
+          <p className="mt-1 max-w-3xl text-sm text-white/50">{subtitle}</p>
+        </div>
+      ) : (
+        <header className="rounded-2xl border border-white/12 bg-white/[0.03] p-4 sm:p-5">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/40">
+            Northstar · Engineering
+          </p>
+          <h1 className="mt-1 text-2xl font-semibold tracking-tight text-white">{title}</h1>
+          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-white/55">{subtitle}</p>
+        </header>
+      )}
       {children}
     </div>
   );
@@ -457,6 +466,7 @@ export function NorthstarEngineeringProgramsWorkspace() {
 
   return (
     <Shell
+      compact
       title="Programs & Milestones"
       subtitle="Industrial IoT and edge programmes — progress, spend, and milestone gates."
     >
@@ -644,6 +654,7 @@ export function NorthstarEngineeringCapacityWorkspace() {
 
   return (
     <Shell
+      compact
       title="Team & Capacity"
       subtitle="Allocation and weekly load across Manchester, Bristol, and field engineers."
     >
@@ -780,6 +791,7 @@ export function NorthstarEngineeringRisksWorkspace() {
 
   return (
     <Shell
+      compact
       title="Engineering Risks"
       subtitle="Programme-scoped risks with mitigation plans — aligned to capacity and delivery planning."
     >

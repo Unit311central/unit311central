@@ -32,6 +32,7 @@ import { useMobileDetailPanel } from "@/components/ui/ResponsiveMasterDetail";
 import ProjectDetailWorkspace from "./ProjectDetailWorkspace";
 import ProjectsDashboardStrip from "./ProjectsDashboardStrip";
 import NorthstarProjectsDashboardStrip from "@/components/demo/NorthstarProjectsDashboardStrip";
+import NorthstarProjectManagementDashboard from "@/components/demo/NorthstarProjectManagementDashboard";
 import DashboardTopTilesBar from "@/components/testflighthub/DashboardTopTilesBar";
 import {
   DEFAULT_PROJECTS_TILE_LAYOUT,
@@ -858,10 +859,14 @@ export default function ProjectsWorkspace({
   return (
     <div className="space-y-6">
       {isNorthstarDemo ? (
-        <NorthstarProjectsDashboardStrip
-          projects={projects}
-          scope={scope === "all" ? "all" : scope}
-        />
+        scope === "all" ? (
+          <NorthstarProjectManagementDashboard projects={projects} />
+        ) : (
+          <NorthstarProjectsDashboardStrip
+            projects={projects}
+            scope={scope === "all" ? "all" : scope}
+          />
+        )
       ) : (
         <>
           <DashboardTopTilesBar

@@ -686,7 +686,11 @@ export function buildPipelineBySalesperson(
   return [...map.values()].sort((a, b) => b.value - a.value);
 }
 
-export function buildForecastSummary(leads: CrmLead[], quotes: SalesQuote[]) {
+export function buildForecastSummary(
+  leads: CrmLead[],
+  quotes: SalesQuote[],
+  salesStaffCount = 0,
+) {
   const openLeads = leads.filter((lead) => isOpenPipelineLead(lead.status));
   const openPipeline = openLeads.reduce((sum, lead) => sum + (lead.estimatedValue ?? 0), 0);
   const weightedPipeline = openLeads.reduce(
@@ -700,17 +704,35 @@ export function buildForecastSummary(leads: CrmLead[], quotes: SalesQuote[]) {
     .filter((quote) => quote.status === "accepted")
     .reduce((sum, quote) => sum + quote.totalAmount, 0);
 
+  const totalVisibleForecast = openPipeline + committedWon + acceptedQuotes;
+  const weightedForecastTotal = Math.round(weightedPipeline + committedWon + acceptedQuotes);
+
+  const horizons = ([3, 6, 9, 12] as const).map((months) => {
+    const factor = months / 12;
+    return {
+      months,
+      label: `Next ${months} months`,
+      forecastRevenue: Math.round(totalVisibleForecast * factor),
+      weightedForecast: Math.round(weightedForecastTotal * factor),
+      pipelineValue: Math.round(openPipeline * factor),
+      salesStaffCount,
+    };
+  });
+
   return {
     openPipelineValue: openPipeline,
     weightedPipelineValue: Math.round(weightedPipeline),
     committedWonValue: committedWon,
     acceptedQuotesValue: acceptedQuotes,
-    totalVisibleForecast: openPipeline + committedWon + acceptedQuotes,
-    weightedForecastTotal: Math.round(weightedPipeline + committedWon + acceptedQuotes),
+    totalVisibleForecast,
+    weightedForecastTotal,
+    salesStaffCount,
+    horizons,
     assumptions: [
       "Open pipeline uses full estimated values on the Pipeline and Performance views.",
       "Weighted forecast = sum(open opportunity value × win probability) using crm_leads.win_probability, or status defaults when unset.",
       "Committed forecast includes Won opportunities and accepted sales quotes.",
+      "Multi-month horizons prorate the current visible forecast evenly across a 12-month run-rate.",
     ],
   };
 }
@@ -727,6 +749,59 @@ export function buildPerformanceSummary(
 
   const byPerson = buildPipelineBySalesperson(leads, displayNameForUserId);
   const activeTargets = targets.filter((target) => target.targetValue > 0);
+  const today = new Date().toISOString().slice(0, 10);
+
+  const personIds = new Set<string>();
+  for (const lead of leads) {
+    if (lead.ownerUserId) personIds.add(lead.ownerUserId);
+  }
+  for (const target of activeTargets) {
+    if (target.ownerUserId) personIds.add(target.ownerUserId);
+  }
+
+  const bySalesperson = [...personIds].map((userId) => {
+    const scoped = leads.filter((lead) => lead.ownerUserId === userId);
+    const scopedWon = scoped.filter((lead) => lead.status === "Won");
+    const wonValue = scopedWon.reduce((sum, lead) => sum + (lead.estimatedValue ?? 0), 0);
+    const openPipeline = scoped
+      .filter((lead) => isOpenPipelineLead(lead.status))
+      .reduce((sum, lead) => sum + (lead.estimatedValue ?? 0), 0);
+    const weightedPipeline = scoped
+      .filter((lead) => isOpenPipelineLead(lead.status))
+      .reduce(
+        (sum, lead) =>
+          sum + (lead.estimatedValue ?? 0) * (resolveLeadWinProbability(lead) / 100),
+        0,
+      );
+    const currentTarget = activeTargets.find(
+      (target) =>
+        target.ownerUserId === userId &&
+        target.periodStart <= today &&
+        target.periodEnd >= today,
+    );
+    const targetValue = currentTarget?.targetValue ?? 0;
+    const actualValue = currentTarget?.actualValue ?? wonValue;
+    const progressPct =
+      targetValue > 0 ? Math.round((actualValue / targetValue) * 100) : null;
+    const variance = actualValue - targetValue;
+    let status: "ahead" | "on_track" | "behind" = "on_track";
+    if (targetValue > 0) {
+      if (progressPct != null && progressPct >= 105) status = "ahead";
+      else if (progressPct != null && progressPct < 85) status = "behind";
+    }
+
+    return {
+      userId,
+      name: displayNameForUserId(userId),
+      targetValue,
+      actualValue,
+      progressPct,
+      variance,
+      openPipeline,
+      weightedForecast: Math.round(weightedPipeline + wonValue),
+      status,
+    };
+  });
 
   return {
     wonCount: won.length,
@@ -738,6 +813,7 @@ export function buildPerformanceSummary(
     wonValue: won.reduce((sum, lead) => sum + (lead.estimatedValue ?? 0), 0),
     pipelineByPerson: byPerson,
     targetProgress: activeTargets.slice(0, 12),
+    bySalesperson: bySalesperson.sort((a, b) => b.actualValue - a.actualValue),
   };
 }
 
@@ -816,7 +892,7 @@ export function buildReportsSummary(bundle: SalesWorkspaceBundle) {
       { label: "Lost", count: metrics.lostCount, value: bundle.leads.filter((l) => l.status === "Lost").reduce((s, l) => s + (l.estimatedValue ?? 0), 0) },
     ],
     leadTrend: metrics.leadsCreatedByMonth,
-    forecast: buildForecastSummary(bundle.leads, bundle.quotes),
+    forecast: buildForecastSummary(bundle.leads, bundle.quotes, bundle.context.people.length),
     targetProgress: bundle.targets,
     activitySummary: {
       upcoming: buildSalesActivities({

@@ -164,13 +164,13 @@ const NESTED_TEXT = "text-[#D7DEE8]";
 /** Near-instant expand — never delay the user. */
 const EXPAND_MS = 110;
 
-const WORKSPACE_HEADER_H = 36;
-const CARD_PAD_X = 8;
-const CARD_GAP = 10;
+const WORKSPACE_HEADER_H = 32;
+const CARD_PAD_X = 7;
+const CARD_GAP = 8;
 /** Primary module row typography — compact so full labels stay readable in the LHS column. */
-const SIDEBAR_LEAF_FONT_PX = 10.5;
-const SIDEBAR_NESTED_FONT_PX = 9.5;
-const SIDEBAR_MODULE_HEADER_FONT_PX = 9.5;
+const SIDEBAR_LEAF_FONT_PX = 10;
+const SIDEBAR_NESTED_FONT_PX = 9;
+const SIDEBAR_MODULE_HEADER_FONT_PX = 9;
 /** Compact module rows on /overview “CLICK BELOW TO VIEW” rail. */
 const OVERVIEW_EMBED_ITEM_H = 30;
 const OVERVIEW_EMBED_GAP = 5;

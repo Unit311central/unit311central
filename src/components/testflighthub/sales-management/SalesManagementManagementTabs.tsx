@@ -701,6 +701,8 @@ export function SalesManagementPerformanceTab() {
 
   const { data, loading, error, reload } = useSalesWorkspaceSection("performance");
 
+  const [selectedUserId, setSelectedUserId] = useState<string>("");
+
   if (loading) return <SalesManagementLoading label="Loading performance…" />;
 
   if (error || !data) return <SalesManagementError message={error ?? "Unable to load performance."} onRetry={() => void reload()} />;
@@ -708,29 +710,40 @@ export function SalesManagementPerformanceTab() {
   const currency = (data.context.currency ?? "GBP") as "GBP" | "USD" | "AUD";
   const money = (value: number) => formatSalesMoney(value, currency);
 
-
-
   const performance = data.performance as {
-
     wonCount: number;
-
     lostCount: number;
-
     conversionPct: number | null;
-
     openPipelineValue: number;
-
     wonValue: number;
-
     pipelineByPerson: Array<{ assignee: string; count: number; value: number }>;
-
+    bySalesperson?: Array<{
+      userId: string;
+      name: string;
+      targetValue: number;
+      actualValue: number;
+      progressPct: number | null;
+      variance: number;
+      openPipeline: number;
+      weightedForecast: number;
+      status: "ahead" | "on_track" | "behind";
+    }>;
   };
 
-
+  const people = performance.bySalesperson ?? [];
+  const activePerson =
+    people.find((person) => person.userId === selectedUserId) ??
+    people[0] ??
+    null;
 
   const maxPipeline = Math.max(...performance.pipelineByPerson.map((row) => row.value), 1);
 
-
+  const statusClass =
+    activePerson?.status === "ahead"
+      ? "border-emerald-400/30 bg-emerald-500/10 text-emerald-100"
+      : activePerson?.status === "behind"
+        ? "border-amber-400/30 bg-amber-500/10 text-amber-100"
+        : "border-sky-400/30 bg-sky-500/10 text-sky-100";
 
   return (
 
@@ -740,9 +753,53 @@ export function SalesManagementPerformanceTab() {
 
         title="Performance"
 
-        description="Evidence-based performance from CRM outcomes and pipeline ownership."
+        description="Select a salesperson to see target attainment, pipeline, and forecast in one view."
 
       />
+
+      {people.length ? (
+        <WsSection title="Salesperson performance" subtitle="Current quarter target vs actual CRM outcomes" className="p-4 sm:p-5">
+          <div className="flex flex-wrap items-end gap-3">
+            <label className="min-w-[220px] flex-1 space-y-1 text-xs font-medium text-white/55">
+              Salesperson
+              <select
+                className="mt-1 w-full rounded-lg border border-white/10 bg-black/20 px-3 py-2 text-sm text-white outline-none focus:border-violet-400/40"
+                value={activePerson?.userId ?? ""}
+                onChange={(event) => setSelectedUserId(event.target.value)}
+              >
+                {people.map((person) => (
+                  <option key={person.userId} value={person.userId}>
+                    {person.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            {activePerson ? (
+              <span className={cn("rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-wide", statusClass)}>
+                {activePerson.status === "ahead"
+                  ? "Ahead of target"
+                  : activePerson.status === "behind"
+                    ? "Behind target"
+                    : "On target"}
+              </span>
+            ) : null}
+          </div>
+
+          {activePerson ? (
+            <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+              <SalesKpiTile label="Target" value={money(activePerson.targetValue)} hint="Current quarter" />
+              <SalesKpiTile label="Actual" value={money(activePerson.actualValue)} hint="Won + accepted in period" />
+              <SalesKpiTile
+                label="Achieved"
+                value={activePerson.progressPct == null ? "—" : `${activePerson.progressPct}%`}
+                hint={`Variance ${money(activePerson.variance)}`}
+              />
+              <SalesKpiTile label="Open pipeline" value={money(activePerson.openPipeline)} hint="Owned opportunities" />
+              <SalesKpiTile label="Weighted forecast" value={money(activePerson.weightedForecast)} hint="Pipeline × probability + won" />
+            </div>
+          ) : null}
+        </WsSection>
+      ) : null}
 
       <SalesKpiGrid>
 
@@ -881,6 +938,24 @@ export function SalesManagementForecastTab() {
 
     weightedForecastTotal: number;
 
+    salesStaffCount?: number;
+
+    horizons?: Array<{
+
+      months: number;
+
+      label: string;
+
+      forecastRevenue: number;
+
+      weightedForecast: number;
+
+      pipelineValue: number;
+
+      salesStaffCount: number;
+
+    }>;
+
     assumptions: string[];
 
   };
@@ -909,9 +984,29 @@ export function SalesManagementForecastTab() {
 
         title="Forecast"
 
-        description="Forecast built from open pipeline (full and probability-weighted), Won opportunities, and accepted quotes."
+        description={
+          forecast.salesStaffCount
+            ? `We have forecasted ${money(forecast.weightedForecastTotal)} (weighted) across ${forecast.salesStaffCount} sales staff.`
+            : "Forecast built from open pipeline, Won opportunities, and accepted quotes."
+        }
 
       />
+
+      {forecast.horizons?.length ? (
+        <WsSection title="Forecast horizons" subtitle="Prorated from current pipeline and committed revenue" className="p-4 sm:p-5">
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            {forecast.horizons.map((row) => (
+              <SalesRegisterCard key={row.months}>
+                <p className="text-xs font-semibold uppercase tracking-wide text-white/45">{row.label}</p>
+                <p className="mt-2 text-lg font-semibold tabular-nums text-white">{money(row.weightedForecast)}</p>
+                <p className="mt-1 text-xs text-white/45">
+                  Pipeline {money(row.pipelineValue)} · {row.salesStaffCount} sales staff
+                </p>
+              </SalesRegisterCard>
+            ))}
+          </div>
+        </WsSection>
+      ) : null}
 
       <SalesKpiGrid>
 
