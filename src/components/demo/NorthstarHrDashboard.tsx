@@ -107,14 +107,14 @@ export default function NorthstarHrDashboard({ employees }: NorthstarHrDashboard
         </p>
       </header>
 
-      <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <HrKpiTile label="Total Employees" value={kpis.totalEmployees} hint="Active headcount 25" />
-        <HrKpiTile label="Active Employees" value={kpis.activeEmployees} />
-        <HrKpiTile label="Employees On Leave" value={kpis.onLeave} hint="3 on leave today" />
-        <HrKpiTile label="New Starters (30 days)" value={kpis.newStarters30} />
-        <HrKpiTile label="Open Vacancies" value={kpis.openVacancies} hint="3 open roles" />
-        <HrKpiTile label="Performance Reviews Due" value={kpis.reviewsDue} />
-        <HrKpiTile label="Probation Reviews Due" value={kpis.probationReviews} />
+      <section className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-4">
+        <HrKpiTile label="Total Employees" value={kpis.totalEmployees} hint="Active headcount 25" tone="teal" />
+        <HrKpiTile label="Active Employees" value={kpis.activeEmployees} tone="emerald" />
+        <HrKpiTile label="Employees On Leave" value={kpis.onLeave} hint="3 on leave today" tone="sky" />
+        <HrKpiTile label="New Starters (30 days)" value={kpis.newStarters30} tone="cyan" />
+        <HrKpiTile label="Open Vacancies" value={kpis.openVacancies} hint="3 open roles" tone="amber" />
+        <HrKpiTile label="Performance Reviews Due" value={kpis.reviewsDue} tone="violet" />
+        <HrKpiTile label="Probation Reviews Due" value={kpis.probationReviews} tone="rose" />
         <div className="rounded-2xl border border-rose-400/25 bg-rose-500/10 p-4">
           <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-rose-200/80">
             Employee flight risk

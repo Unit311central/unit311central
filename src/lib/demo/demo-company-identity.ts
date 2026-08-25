@@ -1,10 +1,13 @@
 /**
- * Generic Demo workspace company identity — not Northstar Industrial Technologies.
- * Used for Fundraising, Cap Table, Board, and other Demo content surfaces.
+ * Northstar Demo workspace company identity — user-facing copy for Fundraising, Cap Table, Board, etc.
  */
 
-export const DEMO_COMPANY_LEGAL_NAME = "Unit311 Central Demo Ltd";
-export const DEMO_COMPANY_SHORT_NAME = "Unit311 Central Demo";
+import { getDemoEnterpriseFixtures } from "@/lib/demo-enterprise";
+
+const fixtures = getDemoEnterpriseFixtures();
+
+export const DEMO_COMPANY_LEGAL_NAME = fixtures.company.legalName;
+export const DEMO_COMPANY_SHORT_NAME = fixtures.company.tradingName;
 export const DEMO_COMPANY_FOUNDER = "Paul Fotheringham";
 export const DEMO_DATAROOM_BASE = "https://demo.unit311central.com/dataroom";
 

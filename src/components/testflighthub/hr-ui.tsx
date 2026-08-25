@@ -38,15 +38,39 @@ export function HrKpiTile({
   label,
   value,
   hint,
+  tone = "neutral",
 }: {
   label: string;
   value: string | number;
   hint?: string;
+  tone?: "neutral" | "sky" | "emerald" | "amber" | "violet" | "rose" | "teal" | "cyan";
 }) {
+  const toneClass =
+    tone === "sky"
+      ? "border-sky-400/25 bg-sky-500/10"
+      : tone === "emerald"
+        ? "border-emerald-400/25 bg-emerald-500/10"
+        : tone === "amber"
+          ? "border-amber-400/25 bg-amber-500/10"
+          : tone === "violet"
+            ? "border-violet-400/25 bg-violet-500/10"
+            : tone === "rose"
+              ? "border-rose-400/25 bg-rose-500/10"
+              : tone === "teal"
+                ? "border-teal-400/25 bg-teal-500/10"
+                : tone === "cyan"
+                  ? "border-cyan-400/25 bg-cyan-500/10"
+                  : "border-white/10 bg-[#0b1524]/80";
+
   return (
-    <div className="flex h-full min-h-[4.5rem] flex-col justify-center rounded-xl border border-white/10 bg-[#0b1524]/80 px-3.5 py-3.5">
+    <div
+      className={cn(
+        "flex h-full min-h-[4rem] flex-col justify-center rounded-xl border px-3.5 py-3",
+        toneClass,
+      )}
+    >
       <p className="text-[10px] font-medium uppercase tracking-[0.12em] text-white/45">{label}</p>
-      <p className="mt-2 text-2xl font-semibold tabular-nums text-white">{value}</p>
+      <p className="mt-1.5 text-xl font-semibold tabular-nums text-white sm:text-2xl">{value}</p>
       {hint ? <p className="mt-1 text-xs text-white/40">{hint}</p> : null}
     </div>
   );

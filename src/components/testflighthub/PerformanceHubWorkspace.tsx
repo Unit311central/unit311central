@@ -39,6 +39,7 @@ import { getInternalNavHref } from "@/lib/internal-operations-data";
 import { useInternalOperationsBasePath } from "./InternalOperationsBasePathContext";
 import PerformanceReviewSlideOver from "./PerformanceReviewSlideOver";
 import { useHrMockStore } from "./useHrMockStore";
+import { isBrowserDemoSurface } from "@/lib/demo-enterprise";
 import {
   HrFieldLabel,
   HrKpiTile,
@@ -310,17 +311,35 @@ export default function PerformanceHubWorkspace() {
     });
   }
 
+  const demoSurface = typeof window !== "undefined" ? isBrowserDemoSurface() : false;
+
   return (
     <div className="space-y-4">
-      <section className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8">
-        <HrKpiTile label="Reviews Due" value={kpis.due} />
-        <HrKpiTile label="Completed This Quarter" value={kpis.completedThisQuarter} />
-        <HrKpiTile label="Goals On Track" value={kpis.onTrack} />
-        <HrKpiTile label="Goals Behind" value={kpis.behind} />
-        <HrKpiTile label="Requiring Attention" value={kpis.requiringAttention} />
-        <HrKpiTile label="Avg Rating" value={kpis.average ?? "—"} />
-        <HrKpiTile label="Promotion Recs" value={kpis.promotionRecommendations} />
-        <HrKpiTile label="Training Recs" value={kpis.trainingRecommendations} />
+      <section className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8">
+        <HrKpiTile label="Reviews Due" value={kpis.due} tone={demoSurface ? "amber" : "neutral"} />
+        <HrKpiTile
+          label="Completed This Quarter"
+          value={kpis.completedThisQuarter}
+          tone={demoSurface ? "emerald" : "neutral"}
+        />
+        <HrKpiTile label="Goals On Track" value={kpis.onTrack} tone={demoSurface ? "teal" : "neutral"} />
+        <HrKpiTile label="Goals Behind" value={kpis.behind} tone={demoSurface ? "rose" : "neutral"} />
+        <HrKpiTile
+          label="Requiring Attention"
+          value={kpis.requiringAttention}
+          tone={demoSurface ? "violet" : "neutral"}
+        />
+        <HrKpiTile label="Avg Rating" value={kpis.average ?? "—"} tone={demoSurface ? "sky" : "neutral"} />
+        <HrKpiTile
+          label="Promotion Recs"
+          value={kpis.promotionRecommendations}
+          tone={demoSurface ? "cyan" : "neutral"}
+        />
+        <HrKpiTile
+          label="Training Recs"
+          value={kpis.trainingRecommendations}
+          tone={demoSurface ? "neutral" : "neutral"}
+        />
       </section>
 
       <div className="flex flex-wrap gap-1.5">

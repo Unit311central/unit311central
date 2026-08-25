@@ -407,16 +407,37 @@ export default function RecruitmentWorkspace() {
         </div>
       </div>
 
-      <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-        <HrKpiTile label="Open Vacancies" value={activeVacancies.filter((v) => v.status === "open").length} />
-        <HrKpiTile label="Total Candidates" value={store.candidates.length} />
-        <HrKpiTile label="Interviews This Week" value={interviewsThisWeek} />
-        <HrKpiTile label="Offers Outstanding" value={offersOutstanding} />
-        <HrKpiTile label="Hires This Month" value={Math.max(hiresThisMonth, recentHires.length)} />
+      <section className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+        <HrKpiTile
+          label="Open Vacancies"
+          value={activeVacancies.filter((v) => v.status === "open").length}
+          tone={isBrowserDemoSurface() ? "amber" : "neutral"}
+        />
+        <HrKpiTile
+          label="Total Candidates"
+          value={store.candidates.length}
+          tone={isBrowserDemoSurface() ? "sky" : "neutral"}
+        />
+        <HrKpiTile
+          label="Interviews This Week"
+          value={interviewsThisWeek}
+          tone={isBrowserDemoSurface() ? "violet" : "neutral"}
+        />
+        <HrKpiTile
+          label="Offers Outstanding"
+          value={offersOutstanding}
+          tone={isBrowserDemoSurface() ? "teal" : "neutral"}
+        />
+        <HrKpiTile
+          label="Hires This Month"
+          value={Math.max(hiresThisMonth, recentHires.length)}
+          tone={isBrowserDemoSurface() ? "emerald" : "neutral"}
+        />
         <HrKpiTile
           label="Average Time to Hire"
           value={avgTimeToHire != null ? `${avgTimeToHire}d` : "—"}
           hint={avgTimeToHire != null ? "From application to hire" : "No hires yet"}
+          tone={isBrowserDemoSurface() ? "cyan" : "neutral"}
         />
       </section>
 
