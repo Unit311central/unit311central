@@ -173,7 +173,7 @@ export function buildSaecHrMockState(): HrMockState {
         areasForImprovement: "Standardise subcontractor QA sign-off.",
         trainingRecommendations: "Lean site management",
         promotionRecommendation: null,
-        salaryReviewRecommendation: "maintain",
+        salaryReviewRecommendation: "hold",
         managerRecommendation: "develop",
         employeeGoals: "Deliver Centurion Mall commissioning by September.",
         nextReviewDate: isoDaysFromNow(95),

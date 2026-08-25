@@ -40,7 +40,7 @@ begin
 
   if v_manager_id is null then
     insert into public.platform_users (
-      id, workspace_id, username, email, display_name, user_type, is_active, password_hash
+      id, workspace_id, username, email, display_name, user_type, is_active, password_hash, redirect_path
     )
     select
       'f7000001-0001-4001-8001-000000000000',
@@ -50,11 +50,12 @@ begin
       'Emily Hughes',
       'internal',
       true,
-      pu.password_hash
+      pu.password_hash,
+      coalesce(nullif(pu.redirect_path, ''), '/')
     from public.platform_users pu
     where pu.workspace_id = v_demo_id and lower(pu.username) = 'demo@unit311central.com'
     limit 1
-    on conflict (id) do update set display_name = excluded.display_name, email = excluded.email, username = excluded.username;
+    on conflict (id) do update set display_name = excluded.display_name, email = excluded.email, username = excluded.username, redirect_path = coalesce(nullif(public.platform_users.redirect_path, ''), excluded.redirect_path);
 
     v_manager_id := 'f7000001-0001-4001-8001-000000000000';
   end if;
@@ -63,30 +64,30 @@ begin
   set display_name = 'Emily Hughes', email = 'emily.hughes@northstar.demo'
   where id = v_manager_id;
 
-  insert into public.platform_users (id, workspace_id, username, email, display_name, user_type, is_active, password_hash)
-  select v_rep1, v_demo_id, 'elena.hughes@northstar.demo', 'elena.hughes@northstar.demo', 'Elena Hughes', 'internal', true, pu.password_hash
+  insert into public.platform_users (id, workspace_id, username, email, display_name, user_type, is_active, password_hash, redirect_path)
+  select v_rep1, v_demo_id, 'elena.hughes@northstar.demo', 'elena.hughes@northstar.demo', 'Elena Hughes', 'internal', true, pu.password_hash, coalesce(nullif(pu.redirect_path, ''), '/')
   from public.platform_users pu where pu.workspace_id = v_demo_id and lower(pu.username) = 'demo@unit311central.com' limit 1
-  on conflict (id) do update set display_name = excluded.display_name;
+  on conflict (id) do update set display_name = excluded.display_name, redirect_path = coalesce(nullif(public.platform_users.redirect_path, ''), excluded.redirect_path);
 
-  insert into public.platform_users (id, workspace_id, username, email, display_name, user_type, is_active, password_hash)
-  select v_rep2, v_demo_id, 'marcus.webb@northstar.demo', 'marcus.webb@northstar.demo', 'Marcus Webb', 'internal', true, pu.password_hash
+  insert into public.platform_users (id, workspace_id, username, email, display_name, user_type, is_active, password_hash, redirect_path)
+  select v_rep2, v_demo_id, 'marcus.webb@northstar.demo', 'marcus.webb@northstar.demo', 'Marcus Webb', 'internal', true, pu.password_hash, coalesce(nullif(pu.redirect_path, ''), '/')
   from public.platform_users pu where pu.workspace_id = v_demo_id and lower(pu.username) = 'demo@unit311central.com' limit 1
-  on conflict (id) do update set display_name = excluded.display_name;
+  on conflict (id) do update set display_name = excluded.display_name, redirect_path = coalesce(nullif(public.platform_users.redirect_path, ''), excluded.redirect_path);
 
-  insert into public.platform_users (id, workspace_id, username, email, display_name, user_type, is_active, password_hash)
-  select v_rep3, v_demo_id, 'sofia.mendez@northstar.demo', 'sofia.mendez@northstar.demo', 'Sofia Mendez', 'internal', true, pu.password_hash
+  insert into public.platform_users (id, workspace_id, username, email, display_name, user_type, is_active, password_hash, redirect_path)
+  select v_rep3, v_demo_id, 'sofia.mendez@northstar.demo', 'sofia.mendez@northstar.demo', 'Sofia Mendez', 'internal', true, pu.password_hash, coalesce(nullif(pu.redirect_path, ''), '/')
   from public.platform_users pu where pu.workspace_id = v_demo_id and lower(pu.username) = 'demo@unit311central.com' limit 1
-  on conflict (id) do update set display_name = excluded.display_name;
+  on conflict (id) do update set display_name = excluded.display_name, redirect_path = coalesce(nullif(public.platform_users.redirect_path, ''), excluded.redirect_path);
 
-  insert into public.platform_users (id, workspace_id, username, email, display_name, user_type, is_active, password_hash)
-  select v_rep4, v_demo_id, 'connor.walsh@northstar.demo', 'connor.walsh@northstar.demo', 'Connor Walsh', 'internal', true, pu.password_hash
+  insert into public.platform_users (id, workspace_id, username, email, display_name, user_type, is_active, password_hash, redirect_path)
+  select v_rep4, v_demo_id, 'connor.walsh@northstar.demo', 'connor.walsh@northstar.demo', 'Connor Walsh', 'internal', true, pu.password_hash, coalesce(nullif(pu.redirect_path, ''), '/')
   from public.platform_users pu where pu.workspace_id = v_demo_id and lower(pu.username) = 'demo@unit311central.com' limit 1
-  on conflict (id) do update set display_name = excluded.display_name;
+  on conflict (id) do update set display_name = excluded.display_name, redirect_path = coalesce(nullif(public.platform_users.redirect_path, ''), excluded.redirect_path);
 
-  insert into public.platform_users (id, workspace_id, username, email, display_name, user_type, is_active, password_hash)
-  select v_rep5, v_demo_id, 'ryan.oconnor@northstar.demo', 'ryan.oconnor@northstar.demo', 'Ryan O''Connor', 'internal', true, pu.password_hash
+  insert into public.platform_users (id, workspace_id, username, email, display_name, user_type, is_active, password_hash, redirect_path)
+  select v_rep5, v_demo_id, 'ryan.oconnor@northstar.demo', 'ryan.oconnor@northstar.demo', 'Ryan O''Connor', 'internal', true, pu.password_hash, coalesce(nullif(pu.redirect_path, ''), '/')
   from public.platform_users pu where pu.workspace_id = v_demo_id and lower(pu.username) = 'demo@unit311central.com' limit 1
-  on conflict (id) do update set display_name = excluded.display_name;
+  on conflict (id) do update set display_name = excluded.display_name, redirect_path = coalesce(nullif(public.platform_users.redirect_path, ''), excluded.redirect_path);
 
   update public.sales_teams set manager_user_id = v_manager_id, updated_at = now() where id = v_team_id;
 
