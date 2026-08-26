@@ -81,7 +81,7 @@ const directorSeeds: SaecHrTeamMemberSeed[] = SAEC_DIRECTORS.map((person) =>
 const salesTeam: SaecHrTeamMemberSeed[] = [
   member({
     fullName: "Thabo Mokoena",
-    email: "thabo.mokoena@saec.biz",
+    email: "thabo.mokoena@omnitransit.com",
     phone: "+27 11 944 6501",
     address: "Sandton, Gauteng",
     nationality: "South African",
@@ -96,7 +96,7 @@ const salesTeam: SaecHrTeamMemberSeed[] = [
   }),
   member({
     fullName: "Annelize Fourie",
-    email: "annelize.fourie@saec.biz",
+    email: "annelize.fourie@omnitransit.com",
     phone: "+27 21 408 7601",
     address: "Cape Town, Western Cape",
     nationality: "South African",
@@ -111,7 +111,7 @@ const salesTeam: SaecHrTeamMemberSeed[] = [
   }),
   member({
     fullName: "Sipho Maseko",
-    email: "sipho.maseko@saec.biz",
+    email: "sipho.maseko@omnitransit.com",
     phone: "+27 31 555 1201",
     address: "Durban, KwaZulu-Natal",
     nationality: "South African",
@@ -126,7 +126,7 @@ const salesTeam: SaecHrTeamMemberSeed[] = [
   }),
   member({
     fullName: "Zanele Mthembu",
-    email: "zanele.mthembu@saec.biz",
+    email: "zanele.mthembu@omnitransit.com",
     phone: "+27 11 643 1801",
     address: "Johannesburg, Gauteng",
     nationality: "South African",
@@ -141,7 +141,7 @@ const salesTeam: SaecHrTeamMemberSeed[] = [
   }),
   member({
     fullName: "Francois du Plessis",
-    email: "francois.duplessis@saec.biz",
+    email: "francois.duplessis@omnitransit.com",
     phone: "+27 12 460 7520",
     address: "Centurion, Gauteng",
     nationality: "South African",
@@ -168,7 +168,7 @@ const fieldEngineers: SaecHrTeamMemberSeed[] = [
 ].map((name, index) =>
   member({
     fullName: name,
-    email: `${name.toLowerCase().replace(/\s+/g, ".")}@saec.biz`,
+    email: `${name.toLowerCase().replace(/\s+/g, ".")}@omnitransit.com`,
     phone: `+27 12 460 75${30 + index}`,
     address: "Gauteng",
     nationality: "South African",
@@ -195,7 +195,7 @@ const installers: SaecHrTeamMemberSeed[] = [
 ].map((name, index) =>
   member({
     fullName: name,
-    email: `${name.toLowerCase().replace(/\s+/g, ".")}@saec.biz`,
+    email: `${name.toLowerCase().replace(/\s+/g, ".")}@omnitransit.com`,
     phone: `+27 12 460 76${10 + index}`,
     address: "Gauteng",
     nationality: "South African",
@@ -213,7 +213,7 @@ const installers: SaecHrTeamMemberSeed[] = [
 const supportFunctions: SaecHrTeamMemberSeed[] = [
   member({
     fullName: "Refilwe Motsepe",
-    email: "refilwe.motsepe@saec.biz",
+    email: "refilwe.motsepe@omnitransit.com",
     phone: "+27 12 460 7625",
     address: "Pretoria",
     nationality: "South African",
@@ -228,7 +228,7 @@ const supportFunctions: SaecHrTeamMemberSeed[] = [
   }),
   member({
     fullName: "Daniel Kruger",
-    email: "daniel.kruger@saec.biz",
+    email: "daniel.kruger@omnitransit.com",
     phone: "+27 12 460 7626",
     address: "Pretoria",
     nationality: "South African",
@@ -243,7 +243,7 @@ const supportFunctions: SaecHrTeamMemberSeed[] = [
   }),
   member({
     fullName: "Ayanda Zulu",
-    email: "ayanda.zulu@saec.biz",
+    email: "ayanda.zulu@omnitransit.com",
     phone: "+27 12 460 7627",
     address: "Pretoria",
     nationality: "South African",
@@ -258,7 +258,7 @@ const supportFunctions: SaecHrTeamMemberSeed[] = [
   }),
   member({
     fullName: "Charlene Pretorius",
-    email: "charlene.pretorius@saec.biz",
+    email: "charlene.pretorius@omnitransit.com",
     phone: "+27 12 460 7628",
     address: "Pretoria",
     nationality: "South African",
@@ -273,7 +273,7 @@ const supportFunctions: SaecHrTeamMemberSeed[] = [
   }),
   member({
     fullName: "Marcus Engelbrecht",
-    email: "marcus.engelbrecht@saec.biz",
+    email: "marcus.engelbrecht@omnitransit.com",
     phone: "+27 12 460 7629",
     address: "Pretoria",
     nationality: "South African",
@@ -288,7 +288,7 @@ const supportFunctions: SaecHrTeamMemberSeed[] = [
   }),
   member({
     fullName: "Grace Mokoena",
-    email: "grace.mokoena@saec.biz",
+    email: "grace.mokoena@omnitransit.com",
     phone: "+27 12 460 7630",
     address: "Pretoria",
     nationality: "South African",
@@ -313,7 +313,7 @@ const engineeringStaff: SaecHrTeamMemberSeed[] = [
 ].map((name, index) =>
   member({
     fullName: name,
-    email: `${name.toLowerCase().replace(/\s+/g, ".")}@saec.biz`,
+    email: `${name.toLowerCase().replace(/\s+/g, ".")}@omnitransit.com`,
     phone: `+27 12 460 76${40 + index}`,
     address: "Pretoria",
     nationality: "South African",
@@ -356,7 +356,7 @@ const operationsAndAdmin: SaecHrTeamMemberSeed[] = [
 ].map((name, index) =>
   member({
     fullName: name,
-    email: `${name.toLowerCase().replace(/\s+/g, ".")}@saec.biz`,
+    email: `${name.toLowerCase().replace(/\s+/g, ".")}@omnitransit.com`,
     phone: `+27 12 460 77${10 + index}`,
     address: index % 4 === 0 ? "Cape Town" : "Pretoria",
     nationality: "South African",

@@ -38,7 +38,7 @@ set
   email = lower(trim(io.email)),
   updated_at = now()
 from public.internal_operators io, public.workspaces w
-where pu.id = io.id
+where pu.id::text = io.id
   and pu.workspace_id = w.id
   and w.slug = 'saec'
   and (

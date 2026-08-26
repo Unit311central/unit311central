@@ -368,7 +368,7 @@ async function seedSaecWorkspace(workspaceId: string) {
     id: row.id,
     workspace_id: workspaceId,
     name: row.name,
-    email: `${row.id}@saec.fixture`,
+    email: `${row.id}@omnitransit.fixture`,
     organisation: row.segment,
     segment: row.segment,
     status: row.status === "Active" ? "active" : "paused",
