@@ -6,8 +6,8 @@
 import assert from "node:assert/strict";
 
 const SAEC = {
-  origin: "https://saec.unit311central.com",
-  username: process.env.SAEC_DEMO_USERNAME ?? "admin@saec.co.za",
+  origin: "https://omnitransit.unit311central.com",
+  username: process.env.SAEC_DEMO_USERNAME ?? "admin@omnitransit.com",
   password:
     process.env.SAEC_DEMO_PASSWORD ??
     process.env.SAEC_INITIAL_ADMIN_PASSWORD ??

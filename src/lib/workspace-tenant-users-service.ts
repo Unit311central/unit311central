@@ -587,8 +587,7 @@ export async function updateWorkspaceTenantUser(
   const { error: platformError } = await supabase
     .from("platform_users")
     .update(platformPatch)
-    .eq("id", userId)
-    .eq("workspace_id", workspaceId);
+    .eq("id", userId);
   if (platformError) throw new Error(platformError.message);
 
   if (workspaceRole) {

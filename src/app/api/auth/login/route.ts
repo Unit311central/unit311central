@@ -63,6 +63,7 @@ import {
   isTalantonImpactSlug,
   TALANTON_IMPACT_SLUG,
 } from "@/lib/talanton-surface";
+import { canonicalizeSaecWorkspaceSlug } from "@/lib/saec-surface";
 import { workspaceNeedsCustomerOnboarding } from "@/lib/workspace-customer-onboarding-service";
 import {
   DEMO_PORTALS_ADMIN_USERNAME,
@@ -696,9 +697,11 @@ export async function POST(request: NextRequest) {
                       ? new URL(parseValidWorkspaceReturnTo(returnToRaw)!).host
                       : null,
                   );
-    // Alias host talanton.* binds to the canonical talantonimpact workspace.
+    // Alias hosts: talanton.* → talantonimpact; omnitransit.* → saec workspace slug.
     const workspaceSlug =
-      canonicalizeTalantonImpactSlug(resolvedWorkspaceSlug) ?? resolvedWorkspaceSlug;
+      canonicalizeTalantonImpactSlug(resolvedWorkspaceSlug) ??
+      canonicalizeSaecWorkspaceSlug(resolvedWorkspaceSlug) ??
+      resolvedWorkspaceSlug;
 
     if (
       isDemoLoginEnabled() &&

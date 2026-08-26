@@ -309,9 +309,25 @@ export async function authenticatePlatformUser(
   }
 
   const matches = await findPlatformUsersByEmail(normalized);
-  const passwordMatches = matches.filter((user) =>
+  let passwordMatches = matches.filter((user) =>
     verifyPlatformPassword(password, user.password_hash),
   );
+
+  // Tools → Users may update internal_operators before platform_users; resolve via operator row.
+  if (passwordMatches.length === 0) {
+    const { data: operatorRow } = await requirePlatformUsersSupabase()
+      .from("internal_operators")
+      .select("id")
+      .or(`email.eq.${normalized},username.eq.${normalized}`)
+      .maybeSingle();
+    if (operatorRow?.id) {
+      const operatorUser = await findPlatformUserById(String(operatorRow.id));
+      if (operatorUser && verifyPlatformPassword(password, operatorUser.password_hash)) {
+        passwordMatches = [operatorUser];
+      }
+    }
+  }
+
   if (passwordMatches.length === 0) {
     return null;
   }

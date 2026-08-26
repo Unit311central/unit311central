@@ -30,3 +30,25 @@ where w.slug = 'saec'
 on conflict (alias_subdomain) do update
 set workspace_id = excluded.workspace_id,
     workspace_slug = excluded.workspace_slug;
+
+-- Align platform_users login identifiers with Tools → Users (internal_operators) when email/username were edited in UI.
+update public.platform_users pu
+set
+  username = lower(trim(io.username)),
+  email = lower(trim(io.email)),
+  updated_at = now()
+from public.internal_operators io
+join public.workspaces w on w.id = pu.workspace_id
+where pu.id = io.id
+  and w.slug = 'saec'
+  and (
+    lower(trim(pu.username)) is distinct from lower(trim(io.username))
+    or lower(trim(pu.email)) is distinct from lower(trim(io.email))
+  );
+
+update public.sales_teams st
+set name = 'OmniTransit National Sales', updated_at = now()
+from public.workspaces w
+where st.workspace_id = w.id
+  and w.slug = 'saec'
+  and st.name = 'SAEC National Sales';
