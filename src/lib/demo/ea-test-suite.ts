@@ -11,7 +11,7 @@ import { resolveBusinessActionIntent } from "@/lib/ai-operating-assistant/intent
 import { executeEaAcceptanceCase } from "@/lib/ea-acceptance/execute-case";
 import { queryNorthstarModuleTool } from "@/lib/ai-operating-assistant/northstar-executive-tools";
 import { formatNorthstarDemoMoneyCompact } from "@/lib/demo/northstar-money";
-import type { AssistantBusinessContext } from "@/lib/ai-operating-assistant/types";
+import type { AssistantBusinessContext, AssistantChatMessage } from "@/lib/ai-operating-assistant/types";
 import {
   ensureEaWorkspacePacksRegistered,
   getEaWorkspacePackForSlug,
@@ -328,7 +328,7 @@ export async function runDemoEaTestSuite(): Promise<EaTestSuiteReport> {
     }
   });
   await phase3.run("conversation follow-up retains sales context", async () => {
-    const history = [];
+    const history: AssistantChatMessage[] = [];
     const turns = ["How are sales doing?", "Tell me more about that one."];
     for (const prompt of turns) {
       const exec = await executeEaAcceptanceCase(
