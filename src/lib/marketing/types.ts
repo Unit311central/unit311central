@@ -63,6 +63,14 @@ export type MailingContact = {
   status?: "active" | "paused" | "unsubscribed";
   createdAt?: string;
   updatedAt?: string;
+  extensionData?: {
+    subscribers?: number;
+    growth30d?: number;
+    lastCampaign?: string;
+    role?: string;
+    city?: string;
+    readOnly?: boolean;
+  };
 };
 
 /** Trade show / external event the organisation attends. */

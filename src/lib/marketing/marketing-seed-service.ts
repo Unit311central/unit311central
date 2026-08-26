@@ -3,8 +3,12 @@ import { buildAbhiMarketingSeedState } from "@/lib/abhi-marketing-store";
 import {
   SAEC_EXTERNAL_EVENTS,
   SAEC_MANAGED_EVENTS,
+  SAEC_MARKETING_CAMPAIGNS,
+  SAEC_MARKETING_INDIVIDUAL_CONTACTS,
   SAEC_MARKETING_MAILING_LISTS,
+  SAEC_MARKETING_MEDIA,
   SAEC_MARKETING_NEWSLETTERS,
+  SAEC_MARKETING_STORIES,
 } from "@/lib/saec/marketing-seed-data";
 import { isSaecSlug } from "@/lib/saec-surface";
 import {
@@ -59,8 +63,15 @@ export async function seedMarketingWorkspaceIfEmpty(workspaceId: string, slug: s
     return;
   }
   if (isSaecSlug(slug)) {
-    await seedSaecWorkspace(workspaceId);
+    await upsertSaecMarketingCatalogue(workspaceId);
+    return;
   }
+}
+
+/** Idempotent OmniTransit marketing catalogue — always upserts fixture rows. */
+export async function upsertSaecMarketingCatalogue(workspaceId: string) {
+  await ensureMarketingEventsTables();
+  await seedSaecWorkspace(workspaceId);
 }
 
 async function seedAbhiWorkspace(workspaceId: string) {
@@ -343,6 +354,37 @@ async function seedOnwardAirWorkspace(workspaceId: string) {
 async function seedSaecWorkspace(workspaceId: string) {
   const supabase = requireSupabase();
 
+  const listContacts = SAEC_MARKETING_MAILING_LISTS.map((row) => ({
+    id: row.id,
+    workspace_id: workspaceId,
+    name: row.name,
+    email: `${row.id}@omnitransit.fixture`,
+    organisation: row.segment,
+    segment: row.segment,
+    status: row.status === "Active" ? "active" : "paused",
+    extension_data: {
+      subscribers: row.subscribers,
+      growth30d: row.growth30d,
+      lastCampaign: row.lastCampaign,
+      readOnly: true,
+    },
+  }));
+
+  const individualContacts = SAEC_MARKETING_INDIVIDUAL_CONTACTS.map((row) => ({
+    id: row.id,
+    workspace_id: workspaceId,
+    name: row.name,
+    email: row.email,
+    organisation: row.organisation,
+    segment: row.segment,
+    status: "active",
+    extension_data: {
+      role: row.role,
+      city: row.city,
+      readOnly: true,
+    },
+  }));
+
   const newsletters = SAEC_MARKETING_NEWSLETTERS.map((row) => ({
     id: row.id,
     workspace_id: workspaceId,
@@ -364,20 +406,63 @@ async function seedSaecWorkspace(workspaceId: string) {
     extension_data: { audience: row.audience, readOnly: true },
   }));
 
-  const contacts = SAEC_MARKETING_MAILING_LISTS.map((row) => ({
+  const campaigns = SAEC_MARKETING_CAMPAIGNS.map((row) => ({
+    id: row.id,
+    workspace_id: workspaceId,
+    subject: row.subject,
+    body: row.body,
+    status: row.status,
+    recipient_mode: "all",
+    recipient_ids: [],
+    manual_emails: [],
+    scheduled_at: row.scheduledAt,
+    sent_at: row.sentAt,
+    extension_data: {
+      channel: row.channel,
+      opens: row.opens,
+      clicks: row.clicks,
+      conversions: row.conversions,
+      budgetZar: row.budgetZar,
+      readOnly: true,
+    },
+  }));
+
+  const portfolioStories = SAEC_MARKETING_STORIES.map((row) => ({
+    id: row.id,
+    workspace_id: workspaceId,
+    story_kind: "portfolio",
+    title: row.title,
+    summary: row.summary,
+    body: row.body,
+    status: row.status,
+    extension_data: {
+      companyName: row.companyName,
+      city: row.city,
+      impactCategory: row.category,
+      readOnly: true,
+      demo: true,
+    },
+  }));
+
+  const media = SAEC_MARKETING_MEDIA.map((row) => ({
     id: row.id,
     workspace_id: workspaceId,
     name: row.name,
-    email: `${row.id}@omnitransit.fixture`,
-    organisation: row.segment,
-    segment: row.segment,
-    status: row.status === "Active" ? "active" : "paused",
+    media_type: row.mediaType,
+    caption: row.caption,
+    source_id: row.storyId,
+    source_label: row.storyTitle,
+    story_id: row.storyId,
+    journey_story_id: null,
+    url: null,
     extension_data: {
-      subscribers: row.subscribers,
-      growth30d: row.growth30d,
-      lastCampaign: row.lastCampaign,
+      storyTitle: row.storyTitle,
+      city: row.city,
+      author: row.author,
       readOnly: true,
+      demo: true,
     },
+    uploaded_at: "2026-08-01T09:00:00.000Z",
   }));
 
   const externalEvents = SAEC_EXTERNAL_EVENTS.map((row) => ({
@@ -415,7 +500,10 @@ async function seedSaecWorkspace(workspaceId: string) {
   }));
 
   await supabase.from("marketing_newsletters").upsert(newsletters);
-  await supabase.from("marketing_contacts").upsert(contacts);
+  await supabase.from("marketing_contacts").upsert([...listContacts, ...individualContacts]);
+  await supabase.from("marketing_campaigns").upsert(campaigns);
+  await supabase.from("marketing_stories").upsert(portfolioStories);
+  await supabase.from("marketing_media_assets").upsert(media);
   await supabase.from("marketing_external_events").upsert(externalEvents);
   await supabase.from("marketing_managed_events").upsert(managedEvents);
 }

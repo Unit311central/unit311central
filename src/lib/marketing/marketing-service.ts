@@ -565,8 +565,15 @@ export async function computeMarketingDashboardKpis(
   return {
     newsletterOpenRate,
     sentNewsletterCount: sent.length,
-    mailingSubscribers: contacts.filter((row) => row.status !== "unsubscribed").length,
-    mailingGrowth30d: 0,
+    mailingSubscribers: contacts.reduce((sum, row) => {
+      const listSize = row.extensionData?.subscribers;
+      if (typeof listSize === "number") return sum + listSize;
+      return row.status !== "unsubscribed" ? sum + 1 : sum;
+    }, 0),
+    mailingGrowth30d: contacts.reduce(
+      (sum, row) => sum + (row.extensionData?.growth30d ?? 0),
+      0,
+    ),
     externalEventsConfirmed: externalEvents.filter((row) =>
       /confirmed/i.test(row.status),
     ).length,

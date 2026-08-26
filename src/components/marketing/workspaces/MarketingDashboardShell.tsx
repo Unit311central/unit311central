@@ -16,6 +16,7 @@ export function MarketingDashboardShell({
   recentNewsletterTitle,
   upcomingExternalEvents = [],
   liveManagedEvents = [],
+  campaignPerformance = [],
   readOnly = false,
 }: {
   moduleLabel?: string;
@@ -26,6 +27,12 @@ export function MarketingDashboardShell({
   recentNewsletterTitle?: string | null;
   upcomingExternalEvents?: ExternalEvent[];
   liveManagedEvents?: ManagedEvent[];
+  campaignPerformance?: Array<{
+    id: string;
+    subject: string;
+    opens?: number | null;
+    conversions?: number | null;
+  }>;
   readOnly?: boolean;
 }) {
   return (
@@ -87,6 +94,23 @@ export function MarketingDashboardShell({
             {liveManagedEvents.slice(0, 5).map((event) => (
               <li key={event.id}>
                 {event.name} — {event.registered}/{event.capacity} registered
+              </li>
+            ))}
+          </ul>
+        </WorkspaceSection>
+      ) : null}
+
+      {campaignPerformance && campaignPerformance.length > 0 ? (
+        <WorkspaceSection
+          title="Campaign performance"
+          subtitle="Recent outbound programmes and conversion metrics"
+        >
+          <ul className="space-y-2 text-sm text-white/70">
+            {campaignPerformance.slice(0, 6).map((row) => (
+              <li key={row.id}>
+                {row.subject}
+                {row.opens != null ? ` — ${row.opens} opens` : ""}
+                {row.conversions != null ? ` · ${row.conversions} conversions` : ""}
               </li>
             ))}
           </ul>

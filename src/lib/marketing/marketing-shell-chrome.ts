@@ -29,6 +29,12 @@ export function resolveMarketingShellChrome(
         moduleLabel: "Marketing & Events",
         orgName: "Unit311 Central",
       };
+    case "saec":
+      return {
+        brandLabel: "OmniTransit",
+        moduleLabel: "Marketing & Events",
+        orgName: "OmniTransit",
+      };
     default:
       return { orgName: "Workspace" };
   }

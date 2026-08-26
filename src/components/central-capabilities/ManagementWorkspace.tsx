@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useRef, useState, type FormEvent } from "react";
 import { useSearchParams } from "next/navigation";
 import {
@@ -16,6 +17,7 @@ import {
 } from "@/lib/central-capabilities/access";
 import { computeManagementSummary } from "@/lib/central-capabilities/management-store";
 import {
+  MANAGEMENT_SECTION_NAV,
   resolveManagementSection,
   resolveManagementShellTitle,
 } from "@/lib/central-capabilities/management-nav";
@@ -35,10 +37,13 @@ import {
   workspaceSecondaryButtonClass,
 } from "@/components/workspace-ui";
 import { useOperatorEntitlements } from "@/components/testflighthub/OperatorEntitlementsProvider";
+import { useInternalOperationsBasePath } from "@/components/testflighthub/InternalOperationsBasePathContext";
+import { getInternalNavHref } from "@/lib/internal-operations-data";
 import { cn } from "@/lib/utils";
 
 import { useManagementStore } from "./useManagementStore";
 import { isBrowserSaecSurface, SAEC_COMPANY_NAME } from "@/lib/saec-surface";
+import type { ManagementSectionId } from "@/lib/central-capabilities/types";
 
 const MANAGEMENT_SUBTITLE =
   "Recurring meetings, function packs, actions, and decisions for your leadership team.";
@@ -770,6 +775,38 @@ function ManagementActionsPanel({ meetingNames }: { meetingNames: string[] }) {
   );
 }
 
+function ManagementSectionNav({ section }: { section: ManagementSectionId }) {
+  const basePath = useInternalOperationsBasePath();
+  return (
+    <nav
+      aria-label="Management sections"
+      className="flex flex-wrap gap-1.5 overflow-x-auto border-b border-white/10 pb-3"
+    >
+      {MANAGEMENT_SECTION_NAV.map(({ id, label }) => {
+        const href =
+          id === "dashboard"
+            ? getInternalNavHref("management", basePath)
+            : getInternalNavHref("management", basePath, { section: id });
+        const active = section === id;
+        return (
+          <Link
+            key={id}
+            href={href}
+            className={cn(
+              "shrink-0 rounded-xl border px-3 py-2 text-xs font-semibold transition-colors",
+              active
+                ? "border-sky-400/40 bg-sky-500/15 text-sky-100 shadow-[inset_0_0_0_1px_rgba(56,189,248,0.18)]"
+                : "border-white/10 bg-white/[0.03] text-white/60 hover:border-white/20 hover:bg-white/[0.06] hover:text-white/85",
+            )}
+          >
+            {label}
+          </Link>
+        );
+      })}
+    </nav>
+  );
+}
+
 export default function ManagementWorkspace() {
   const searchParams = useSearchParams();
   const entitlements = useOperatorEntitlements();
@@ -815,6 +852,7 @@ export default function ManagementWorkspace() {
           description={MANAGEMENT_SUBTITLE}
         />
       ) : null}
+      <ManagementSectionNav section={section} />
       {section === "dashboard" ? (
         <ManagementDashboard
           meetings={state.meetings}

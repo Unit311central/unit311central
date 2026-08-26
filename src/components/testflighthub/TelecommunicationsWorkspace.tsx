@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Building2, Loader2, Pencil, Plus, Radio, Smartphone, Trash2 } from "lucide-react";
 
 import { formatReportingMoney } from "@/lib/financial-reporting-currency";
+import { isBrowserSaecSurface } from "@/lib/saec-surface";
 import {
   isMobileTelecomService,
   type TechnologyTelecomService,
@@ -26,7 +27,7 @@ const EMPTY_FORM: TechnologyTelecomServiceInput & { location: string } = {
   carrier: "",
   numberOrCircuit: "",
   assignedTo: "",
-  location: "Manchester",
+  location: typeof window !== "undefined" && isBrowserSaecSurface() ? "Pretoria" : "Manchester",
   monthlyCostMinor: 0,
   status: "Active",
   manufacturer: "",
@@ -88,7 +89,9 @@ export default function TelecommunicationsWorkspace() {
 
   const officeSummary = useMemo(() => {
     const offices = [...new Set(rows.map((row) => row.location).filter(Boolean))] as string[];
-    const defaults = ["Manchester", "Bristol", "Austin"];
+    const defaults = isBrowserSaecSurface()
+      ? ["Pretoria", "Johannesburg", "Cape Town", "Durban"]
+      : ["Manchester", "Bristol", "Austin"];
     const list = offices.length ? offices : defaults;
     return list.map((office) => {
       const officeRows = rows.filter((row) => row.location === office);
@@ -221,7 +224,9 @@ export default function TelecommunicationsWorkspace() {
                   <td className="px-3 py-2.5 text-white/65">{handset}</td>
                   <td className="px-3 py-2.5">{row.assignedTo}</td>
                   <td className="px-3 py-2.5">{row.location ?? "—"}</td>
-                  <td className="px-3 py-2.5 tabular-nums">{row.monthlyCostMinor}</td>
+                  <td className="px-3 py-2.5 tabular-nums">
+                    {formatReportingMoney(row.monthlyCostMinor, currency)}
+                  </td>
                   <td className="px-3 py-2.5">
                     <span
                       className={cn(

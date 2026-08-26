@@ -1,4 +1,5 @@
-import { buildTechnologyTelecomStarterCatalogue } from "@/lib/technology-telecom/starter-catalogue";
+import { buildTechnologyTelecomStarterCatalogue, buildSaecTechnologyTelecomCatalogue } from "@/lib/technology-telecom/starter-catalogue";
+import { isSaecSlug } from "@/lib/saec-surface";
 import type {
   TechnologyTelecomService,
   TechnologyTelecomServiceInput,
@@ -70,7 +71,9 @@ export async function ensureTechnologyTelecomStarterCatalogue(
   if ((count ?? 0) > 0) return { inserted: 0, skipped: true };
 
   const currency = await resolveWorkspaceReportingCurrency(workspaceId, workspaceSlug);
-  const catalogue = buildTechnologyTelecomStarterCatalogue();
+  const catalogue = isSaecSlug(workspaceSlug)
+    ? buildSaecTechnologyTelecomCatalogue()
+    : buildTechnologyTelecomStarterCatalogue();
   const payload = catalogue.map((row) => ({
     workspace_id: workspaceId,
     service: row.service,

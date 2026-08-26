@@ -1,4 +1,4 @@
-/** SAEC workspace login — corporate elevator/escalator imagery from saec.biz assets. */
+/** OmniTransit workspace login — vertical transport corporate imagery. */
 export const SAEC_LOGIN_BACKGROUND = "/images/workspaces/saec/login-bg.jpg";
 
 export const SAEC_LOGIN_BACKGROUND_CLASS =

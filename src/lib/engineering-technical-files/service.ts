@@ -19,6 +19,8 @@ import type {
   TechnicalFileVersion,
 } from "@/lib/engineering-technical-files/types";
 import { INTERNAL_FILES_BUCKET } from "@/lib/internal-files-data";
+import { ensureSaecTechnicalFilesDemoCatalogue } from "@/lib/saec/ensure-technical-files-demo";
+import { isSaecSlug } from "@/lib/saec-surface";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
 import { createTenancyServerClient } from "@/lib/supabase/tenancy-server";
 import { requireCurrentWorkspace } from "@/lib/workspace-context";
@@ -199,6 +201,15 @@ export async function listTechnicalFiles(
   },
 ) {
   const ws = await workspaceId(scope);
+  try {
+    const workspace = await requireCurrentWorkspace();
+    if (isSaecSlug(workspace.slug) && workspace.id === ws) {
+      await ensureSaecTechnicalFilesDemoCatalogue(ws);
+    }
+  } catch {
+    /* scoped callers */
+  }
+
   let query = db()
     .from("engineering_technical_files")
     .select("*, engineering_masters(title)")

@@ -138,6 +138,7 @@ export type MarketingStoryRecord = {
 };
 
 export function mapContact(row: DbMarketingContact): MailingContact {
+  const ext = (row.extension_data as Record<string, unknown> | null) ?? {};
   return {
     id: row.id,
     name: row.name,
@@ -147,6 +148,14 @@ export function mapContact(row: DbMarketingContact): MailingContact {
     status: (row.status as MailingContact["status"]) ?? "active",
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+    extensionData: {
+      subscribers: typeof ext.subscribers === "number" ? ext.subscribers : undefined,
+      growth30d: typeof ext.growth30d === "number" ? ext.growth30d : undefined,
+      lastCampaign: typeof ext.lastCampaign === "string" ? ext.lastCampaign : undefined,
+      role: typeof ext.role === "string" ? ext.role : undefined,
+      city: typeof ext.city === "string" ? ext.city : undefined,
+      readOnly: ext.readOnly === true,
+    },
   };
 }
 

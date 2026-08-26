@@ -156,6 +156,23 @@ export function CentralMarketingDashboardWorkspace() {
       ["Under Review", "Submitted", "draft"].includes(String(row.status ?? "")),
     ).length ?? 0;
 
+  const campaignPerformance = useMemo(
+    () =>
+      (bundle?.campaigns ?? []).map((row) => {
+        const ext = (row.extensionData ?? {}) as {
+          opens?: number;
+          conversions?: number;
+        };
+        return {
+          id: row.id,
+          subject: row.subject,
+          opens: ext.opens,
+          conversions: ext.conversions,
+        };
+      }),
+    [bundle?.campaigns],
+  );
+
   return (
     <div className="space-y-4">
       {error ? <ErrorState message={error} /> : null}
@@ -250,6 +267,7 @@ export function CentralMarketingDashboardWorkspace() {
                 String(row.status ?? row.stage ?? ""),
               ),
             )}
+            campaignPerformance={campaignPerformance}
           />
         </>
       )}
