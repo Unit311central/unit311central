@@ -239,6 +239,7 @@ const DEMO_HIDDEN_VIEWS = new Set<InternalOperationsView>([
   "telemetry",
   "platform-analytics",
   "website-analytics",
+  "system-health",
   "workspaces-overview",
   "workspaces-new",
 ]);
@@ -247,6 +248,7 @@ export const CORPCENTRE_HIDDEN_VIEWS = new Set<InternalOperationsView>([
   "telemetry",
   "platform-analytics",
   "website-analytics",
+  "system-health",
   "workspaces-overview",
   "workspaces-new",
   "unit311-details",
@@ -276,6 +278,7 @@ export const TALANTON_HIDDEN_VIEWS = new Set<InternalOperationsView>([
   "telemetry",
   "platform-analytics",
   "website-analytics",
+  "system-health",
   "workspaces-overview",
   "workspaces-new",
   "unit311-details",
@@ -745,6 +748,7 @@ export const ABHI_HIDDEN_VIEWS = new Set<InternalOperationsView>([
   "telemetry",
   "platform-analytics",
   "website-analytics",
+  "system-health",
   "workspaces-overview",
   "workspaces-new",
   "potential-clients",
@@ -1566,6 +1570,11 @@ function injectInternalPlatformAnalytics(
         label: "Website Analytics",
         icon: "Globe",
         view: "website-analytics",
+      },
+      {
+        label: "System Health",
+        icon: "Activity",
+        view: "system-health",
       },
     ],
   };

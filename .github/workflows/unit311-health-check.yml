@@ -1,0 +1,38 @@
+name: Unit311 production health check
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  health-check:
+    name: Probe production /api/health
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Check production health endpoint
+        env:
+          HEALTH_URL: https://client.unit311central.com/api/health
+        run: |
+          set -euo pipefail
+          echo "Checking ${HEALTH_URL}"
+          HTTP_CODE=$(curl --silent --show-error --location --max-time 15 \
+            --write-out "%{http_code}" --output /tmp/unit311-health-body "${HEALTH_URL}")
+          echo "HTTP status: ${HTTP_CODE}"
+          echo "Response body:"
+          cat /tmp/unit311-health-body
+          echo ""
+          if [ "${HTTP_CODE}" != "200" ]; then
+            echo "Production health check failed — expected HTTP 200."
+            exit 1
+          fi
+          if ! grep -q '"status"[[:space:]]*:[[:space:]]*"ok"' /tmp/unit311-health-body; then
+            echo "Production health check failed — response body missing status ok."
+            exit 1
+          fi
+          echo "Production health check passed."
