@@ -207,6 +207,17 @@ function expandPanelClass(isOpen: boolean) {
   );
 }
 
+/** User false = force closed; true = force open; undefined = follow autoOpen (active route). */
+function resolveNavOpen(
+  expanded: Record<string, boolean>,
+  key: string,
+  autoOpen: boolean,
+): boolean {
+  if (expanded[key] === false) return false;
+  if (expanded[key] === true) return true;
+  return autoOpen;
+}
+
 export default function EnterprisePlatformSidebar({
   mobileOpen = false,
   onClose,
@@ -341,9 +352,9 @@ export default function EnterprisePlatformSidebar({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname]);
 
-  function toggleExpanded(key: string) {
+  function toggleExpanded(key: string, currentlyOpen: boolean) {
     setExpanded((current) => {
-      const next = { ...current, [key]: !current[key] };
+      const next = { ...current, [key]: !currentlyOpen };
       if (!sessionOnlyExpand) {
         writeSidebarExpandedState(next);
       }
@@ -507,10 +518,8 @@ export default function EnterprisePlatformSidebar({
         ) ??
           false),
       ) ?? false;
-    const isOpen =
-      hydrated
-        ? Boolean(expanded[key]) || childActive || (expandParentsByDefault && depth === 0)
-        : false;
+    const autoOpen = childActive || (expandParentsByDefault && depth === 0);
+    const isOpen = hydrated ? resolveNavOpen(expanded, key, autoOpen) : false;
     const Chevron = isOpen ? ChevronDown : ChevronRight;
     const Icon = resolveIcon(itemIcon);
 
@@ -519,7 +528,7 @@ export default function EnterprisePlatformSidebar({
         <button
           type="button"
           aria-expanded={isOpen}
-          onClick={() => toggleExpanded(key)}
+          onClick={() => toggleExpanded(key, isOpen)}
           className={cn(
             "group flex w-full items-center gap-1.5 text-left transition-colors duration-75",
             depth > 0 ? "h-6 pl-6 pr-0.5" : "h-6 pl-1 pr-0.5",
@@ -650,9 +659,8 @@ export default function EnterprisePlatformSidebar({
       }
       return isInternalNavItemActive(pathname, item, activeView, basePath, searchParams);
     });
-    const isOpen = hydrated
-      ? Boolean(expanded[workspaceKey]) || workspaceSectionChildActive
-      : false;
+    const autoOpen = workspaceSectionChildActive;
+    const isOpen = hydrated ? resolveNavOpen(expanded, workspaceKey, autoOpen) : false;
     const Icon = resolveIcon(section.icon);
     const color =
       resolveOnwardAirNavAccent(section) ?? section.color ?? theme.accent;
@@ -685,8 +693,8 @@ export default function EnterprisePlatformSidebar({
           type="button"
           aria-expanded={isOpen}
           onClick={() => {
-            const willOpen = !(hydrated && expanded[workspaceKey]);
-            toggleExpanded(workspaceKey);
+            const willOpen = !isOpen;
+            toggleExpanded(workspaceKey, isOpen);
             // Business Productivity landing: open its Dashboard (never File Explorer).
             if (willOpen && section.label === "Business Productivity") {
               const dashboard = section.items.find(
