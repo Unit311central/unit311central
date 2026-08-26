@@ -37,9 +37,9 @@ set
   username = lower(trim(io.username)),
   email = lower(trim(io.email)),
   updated_at = now()
-from public.internal_operators io
-join public.workspaces w on w.id = pu.workspace_id
+from public.internal_operators io, public.workspaces w
 where pu.id = io.id
+  and pu.workspace_id = w.id
   and w.slug = 'saec'
   and (
     lower(trim(pu.username)) is distinct from lower(trim(io.username))
