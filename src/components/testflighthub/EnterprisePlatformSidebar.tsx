@@ -207,15 +207,35 @@ function expandPanelClass(isOpen: boolean) {
   );
 }
 
-/** User false = force closed; true = force open; undefined = follow autoOpen (active route). */
+/** User collapsed set overrides auto-open from active route; explicit true forces open. */
+function splitStoredExpandedState(stored: Record<string, boolean>) {
+  const expandedTrue: Record<string, boolean> = {};
+  const collapsed = new Set<string>();
+  for (const [key, value] of Object.entries(stored)) {
+    if (value === false) collapsed.add(key);
+    else if (value === true) expandedTrue[key] = true;
+  }
+  return { expandedTrue, collapsed };
+}
+
 function resolveNavOpen(
   expanded: Record<string, boolean>,
+  collapsedKeys: Set<string>,
   key: string,
   autoOpen: boolean,
 ): boolean {
-  if (expanded[key] === false) return false;
+  if (collapsedKeys.has(key)) return false;
   if (expanded[key] === true) return true;
   return autoOpen;
+}
+
+function mergeExpandedForStorage(
+  expanded: Record<string, boolean>,
+  collapsedKeys: Set<string>,
+): Record<string, boolean> {
+  const merged: Record<string, boolean> = { ...expanded };
+  for (const key of collapsedKeys) merged[key] = false;
+  return merged;
 }
 
 export default function EnterprisePlatformSidebar({
@@ -230,6 +250,7 @@ export default function EnterprisePlatformSidebar({
   const pathname = usePathname() ?? "";
   const searchParams = useSearchParams();
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const [collapsedKeys, setCollapsedKeys] = useState<Set<string>>(() => new Set());
   const [theme, setTheme] = useState<SidebarThemeTokens>(() => getSidebarTheme(readSidebarThemeId()));
   const [hydrated, setHydrated] = useState(false);
   const [sectionOrderTick, setSectionOrderTick] = useState(0);
@@ -274,8 +295,11 @@ export default function EnterprisePlatformSidebar({
     startTransition(() => {
       if (sessionOnlyExpand) {
         setExpanded({});
+        setCollapsedKeys(new Set());
       } else {
-        setExpanded(readSidebarExpandedState());
+        const { expandedTrue, collapsed } = splitStoredExpandedState(readSidebarExpandedState());
+        setExpanded(expandedTrue);
+        setCollapsedKeys(collapsed);
       }
       setTheme(getSidebarTheme(readSidebarThemeId()));
       setHydrated(true);
@@ -352,13 +376,26 @@ export default function EnterprisePlatformSidebar({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname]);
 
-  function toggleExpanded(key: string, currentlyOpen: boolean) {
-    setExpanded((current) => {
-      const next = { ...current, [key]: !currentlyOpen };
-      if (!sessionOnlyExpand) {
-        writeSidebarExpandedState(next);
-      }
-      return next;
+  function toggleExpanded(key: string, isOpen: boolean) {
+    setCollapsedKeys((currentCollapsed) => {
+      const nextCollapsed = new Set(currentCollapsed);
+      if (isOpen) nextCollapsed.add(key);
+      else nextCollapsed.delete(key);
+
+      setExpanded((currentExpanded) => {
+        const nextExpanded = { ...currentExpanded };
+        if (isOpen) {
+          delete nextExpanded[key];
+        } else {
+          nextExpanded[key] = true;
+        }
+        if (!sessionOnlyExpand) {
+          writeSidebarExpandedState(mergeExpandedForStorage(nextExpanded, nextCollapsed));
+        }
+        return nextExpanded;
+      });
+
+      return nextCollapsed;
     });
   }
 
@@ -519,7 +556,7 @@ export default function EnterprisePlatformSidebar({
           false),
       ) ?? false;
     const autoOpen = childActive || (expandParentsByDefault && depth === 0);
-    const isOpen = hydrated ? resolveNavOpen(expanded, key, autoOpen) : false;
+    const isOpen = hydrated ? resolveNavOpen(expanded, collapsedKeys, key, autoOpen) : false;
     const Chevron = isOpen ? ChevronDown : ChevronRight;
     const Icon = resolveIcon(itemIcon);
 
@@ -660,7 +697,7 @@ export default function EnterprisePlatformSidebar({
       return isInternalNavItemActive(pathname, item, activeView, basePath, searchParams);
     });
     const autoOpen = workspaceSectionChildActive;
-    const isOpen = hydrated ? resolveNavOpen(expanded, workspaceKey, autoOpen) : false;
+    const isOpen = hydrated ? resolveNavOpen(expanded, collapsedKeys, workspaceKey, autoOpen) : false;
     const Icon = resolveIcon(section.icon);
     const color =
       resolveOnwardAirNavAccent(section) ?? section.color ?? theme.accent;
