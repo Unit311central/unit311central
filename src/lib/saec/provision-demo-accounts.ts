@@ -27,13 +27,13 @@ export type SaecDemoAccountSpec = {
 export const SAEC_DEMO_ACCOUNT_SPECS: SaecDemoAccountSpec[] = [
   {
     email: "admin@saec.biz",
-    displayName: "SAEC Demo Administrator",
-    operatorLabel: "SAEC Admin",
+    displayName: "OmniTransit Demo Administrator",
+    operatorLabel: "OmniTransit Admin",
   },
   {
     email: "demo@saec.biz",
-    displayName: "SAEC Demo",
-    operatorLabel: "SAEC Demo",
+    displayName: "OmniTransit Demo",
+    operatorLabel: "OmniTransit Demo",
   },
 ];
 

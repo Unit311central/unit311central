@@ -93,7 +93,7 @@ export const SAEC_FUNDRAISING_PITCH_DECKS: PitchDeckVersion[] = [
     dateAdded: "2021-04-10",
     lastUpdatedAt: "2021-06-01",
     lastUpdatedBy: "John Andrew Ligeti",
-    fileName: "SAEC_Seed_2021.pdf",
+    fileName: "OMT_Seed_2021.pdf",
     notes: "Historical seed materials · no active raise",
   },
 ];

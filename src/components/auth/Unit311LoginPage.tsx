@@ -520,7 +520,7 @@ export default function Unit311LoginPage({
                     : isOnwardAir
                       ? "OnwardAir Login"
                       : isSaec
-                        ? "SAEC Enterprise Login"
+                        ? "OmniTransit Enterprise Login"
                       : isNorthstar
                         ? "Northstar Industrial Technologies Login"
                       : isCustomer
@@ -543,7 +543,7 @@ export default function Unit311LoginPage({
                     : isOnwardAir
                       ? "Secure access to your OnwardAir workspace"
                       : isSaec
-                        ? "Secure access to SAEC — elevators, escalators and vertical transportation"
+                        ? "Secure access to OmniTransit — elevators, escalators and vertical transportation"
                       : isNorthstar
                         ? "Secure access to Northstar Industrial Technologies"
                       : isCustomer
