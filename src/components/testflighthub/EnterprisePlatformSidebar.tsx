@@ -207,34 +207,36 @@ function expandPanelClass(isOpen: boolean) {
   );
 }
 
-/** User collapsed set overrides auto-open from active route; explicit true forces open. */
-function splitStoredExpandedState(stored: Record<string, boolean>) {
-  const expandedTrue: Record<string, boolean> = {};
-  const collapsed = new Set<string>();
+type SidebarNavExpandState = {
+  /** User-pinned open sections (persisted). */
+  pinned: Record<string, boolean>;
+  /** User-collapsed sections — overrides active-route auto-open. */
+  collapsed: string[];
+};
+
+function splitStoredExpandedState(stored: Record<string, boolean>): SidebarNavExpandState {
+  const pinned: Record<string, boolean> = {};
+  const collapsed: string[] = [];
   for (const [key, value] of Object.entries(stored)) {
-    if (value === false) collapsed.add(key);
-    else if (value === true) expandedTrue[key] = true;
+    if (value === false) collapsed.push(key);
+    else if (value === true) pinned[key] = true;
   }
-  return { expandedTrue, collapsed };
+  return { pinned, collapsed };
 }
 
 function resolveNavOpen(
-  expanded: Record<string, boolean>,
-  collapsedKeys: Set<string>,
+  navExpand: SidebarNavExpandState,
   key: string,
   autoOpen: boolean,
 ): boolean {
-  if (collapsedKeys.has(key)) return false;
-  if (expanded[key] === true) return true;
+  if (navExpand.collapsed.includes(key)) return false;
+  if (navExpand.pinned[key] === true) return true;
   return autoOpen;
 }
 
-function mergeExpandedForStorage(
-  expanded: Record<string, boolean>,
-  collapsedKeys: Set<string>,
-): Record<string, boolean> {
-  const merged: Record<string, boolean> = { ...expanded };
-  for (const key of collapsedKeys) merged[key] = false;
+function mergeExpandedForStorage(navExpand: SidebarNavExpandState): Record<string, boolean> {
+  const merged: Record<string, boolean> = { ...navExpand.pinned };
+  for (const key of navExpand.collapsed) merged[key] = false;
   return merged;
 }
 
@@ -249,8 +251,7 @@ export default function EnterprisePlatformSidebar({
 }: EnterprisePlatformSidebarProps) {
   const pathname = usePathname() ?? "";
   const searchParams = useSearchParams();
-  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
-  const [collapsedKeys, setCollapsedKeys] = useState<Set<string>>(() => new Set());
+  const [navExpand, setNavExpand] = useState<SidebarNavExpandState>({ pinned: {}, collapsed: [] });
   const [theme, setTheme] = useState<SidebarThemeTokens>(() => getSidebarTheme(readSidebarThemeId()));
   const [hydrated, setHydrated] = useState(false);
   const [sectionOrderTick, setSectionOrderTick] = useState(0);
@@ -294,12 +295,9 @@ export default function EnterprisePlatformSidebar({
   useEffect(() => {
     startTransition(() => {
       if (sessionOnlyExpand) {
-        setExpanded({});
-        setCollapsedKeys(new Set());
+        setNavExpand({ pinned: {}, collapsed: [] });
       } else {
-        const { expandedTrue, collapsed } = splitStoredExpandedState(readSidebarExpandedState());
-        setExpanded(expandedTrue);
-        setCollapsedKeys(collapsed);
+        setNavExpand(splitStoredExpandedState(readSidebarExpandedState()));
       }
       setTheme(getSidebarTheme(readSidebarThemeId()));
       setHydrated(true);
@@ -377,25 +375,24 @@ export default function EnterprisePlatformSidebar({
   }, [pathname]);
 
   function toggleExpanded(key: string, isOpen: boolean) {
-    setCollapsedKeys((currentCollapsed) => {
-      const nextCollapsed = new Set(currentCollapsed);
-      if (isOpen) nextCollapsed.add(key);
-      else nextCollapsed.delete(key);
-
-      setExpanded((currentExpanded) => {
-        const nextExpanded = { ...currentExpanded };
-        if (isOpen) {
-          delete nextExpanded[key];
-        } else {
-          nextExpanded[key] = true;
-        }
-        if (!sessionOnlyExpand) {
-          writeSidebarExpandedState(mergeExpandedForStorage(nextExpanded, nextCollapsed));
-        }
-        return nextExpanded;
-      });
-
-      return nextCollapsed;
+    setNavExpand((current) => {
+      const collapsed = new Set(current.collapsed);
+      const pinned = { ...current.pinned };
+      if (isOpen) {
+        collapsed.add(key);
+        delete pinned[key];
+      } else {
+        collapsed.delete(key);
+        pinned[key] = true;
+      }
+      const next: SidebarNavExpandState = {
+        pinned,
+        collapsed: [...collapsed],
+      };
+      if (!sessionOnlyExpand) {
+        writeSidebarExpandedState(mergeExpandedForStorage(next));
+      }
+      return next;
     });
   }
 
@@ -556,7 +553,7 @@ export default function EnterprisePlatformSidebar({
           false),
       ) ?? false;
     const autoOpen = childActive || (expandParentsByDefault && depth === 0);
-    const isOpen = hydrated ? resolveNavOpen(expanded, collapsedKeys, key, autoOpen) : false;
+    const isOpen = hydrated ? resolveNavOpen(navExpand, key, autoOpen) : false;
     const Chevron = isOpen ? ChevronDown : ChevronRight;
     const Icon = resolveIcon(itemIcon);
 
@@ -697,7 +694,7 @@ export default function EnterprisePlatformSidebar({
       return isInternalNavItemActive(pathname, item, activeView, basePath, searchParams);
     });
     const autoOpen = workspaceSectionChildActive;
-    const isOpen = hydrated ? resolveNavOpen(expanded, collapsedKeys, workspaceKey, autoOpen) : false;
+    const isOpen = hydrated ? resolveNavOpen(navExpand, workspaceKey, autoOpen) : false;
     const Icon = resolveIcon(section.icon);
     const color =
       resolveOnwardAirNavAccent(section) ?? section.color ?? theme.accent;
