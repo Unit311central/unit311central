@@ -103,7 +103,7 @@ export const SAEC_FUNDRAISING_DATA_ROOMS: DataRoomRow[] = [
     id: "saec-dr-seed",
     investor: "Thabo Nkosi",
     firm: "Veld Capital Partners",
-    folderLink: "https://dataroom.demo.saec.biz/seed-2021",
+    folderLink: "https://dataroom.demo.omnitransit.com/seed-2021",
     lastUpdatedAt: "2021-06-30",
     lastUpdatedBy: "Dewald Lassen",
     documents: 24,

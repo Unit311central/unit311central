@@ -12,7 +12,7 @@ const SAEC_CLIENT_PORTALS: EcaPortalConfig[] = [
     brandAccent: "#F59E0B",
     modules: ["Projects", "Support", "Documents", "Invoices", "Calendar"],
     landingPage: "Dashboard",
-    supportContact: "support@saec.biz",
+    supportContact: "support@omnitransit.com",
     notificationsEnabled: true,
     documentBranding: "OmniTransit",
     users: 6,
@@ -22,7 +22,7 @@ const SAEC_CLIENT_PORTALS: EcaPortalConfig[] = [
     storageGb: 4.2,
     lastLogin: "2026-08-22",
     portalAccessEnabled: true,
-    portalUrl: "https://clients.saec.demo/hyprop",
+    portalUrl: "https://clients.omnitransit.demo/hyprop",
   },
   {
     id: "portal-saec-growthpoint",
@@ -34,7 +34,7 @@ const SAEC_CLIENT_PORTALS: EcaPortalConfig[] = [
     brandAccent: "#38BDF8",
     modules: ["Projects", "Support", "Documents", "Reports"],
     landingPage: "Service status",
-    supportContact: "support@saec.biz",
+    supportContact: "support@omnitransit.com",
     notificationsEnabled: true,
     documentBranding: "OmniTransit",
     users: 8,
@@ -44,7 +44,7 @@ const SAEC_CLIENT_PORTALS: EcaPortalConfig[] = [
     storageGb: 6.1,
     lastLogin: "2026-08-24",
     portalAccessEnabled: true,
-    portalUrl: "https://clients.saec.demo/growthpoint",
+    portalUrl: "https://clients.omnitransit.demo/growthpoint",
   },
   {
     id: "portal-saec-va",
@@ -56,7 +56,7 @@ const SAEC_CLIENT_PORTALS: EcaPortalConfig[] = [
     brandAccent: "#E11D48",
     modules: ["Projects", "Support", "Documents", "Tasks"],
     landingPage: "Projects",
-    supportContact: "support@saec.biz",
+    supportContact: "support@omnitransit.com",
     notificationsEnabled: true,
     documentBranding: "OmniTransit",
     users: 5,
@@ -66,7 +66,7 @@ const SAEC_CLIENT_PORTALS: EcaPortalConfig[] = [
     storageGb: 3.4,
     lastLogin: "2026-08-20",
     portalAccessEnabled: true,
-    portalUrl: "https://clients.saec.demo/vawaterfront",
+    portalUrl: "https://clients.omnitransit.demo/vawaterfront",
   },
 ];
 

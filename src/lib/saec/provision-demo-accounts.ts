@@ -296,6 +296,6 @@ export async function provisionSaecDemoAccounts(password: string): Promise<Provi
     workspaceSlug: ws.slug,
     workspaceName: ws.name,
     accounts,
-    loginUrl: "https://saec.unit311central.com/login",
+    loginUrl: "https://omnitransit.unit311central.com/login",
   };
 }
