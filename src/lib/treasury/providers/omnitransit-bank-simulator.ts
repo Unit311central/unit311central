@@ -2,7 +2,8 @@
  * OmniTransit simulated bank connection (ZAR demo — not a live bank feed).
  */
 
-import { SAEC_CASH_BALANCE_ZAR, SAEC_REPORTING_CURRENCY } from "@/lib/saec/saec-financials";
+import { SAEC_CASH_BALANCE_ZAR } from "@/lib/saec/saec-financials";
+import { SAEC_REPORTING_CURRENCY } from "@/lib/saec-surface";
 import type { TreasuryTransaction } from "@/lib/treasury/treasury-types";
 import type { WiseBalance, WiseConnectionStatus } from "@/lib/wise-service";
 
@@ -151,7 +152,7 @@ export function getOmniTransitBankBalanceTransactions(input: {
       balanceId: tx.balanceId,
       currency: tx.currency,
       date: tx.date,
-      direction: tx.direction,
+      direction: tx.direction === "CREDIT" ? "incoming" : "outgoing",
       description: tx.description,
       reference: tx.reference,
       counterparty: "OmniTransit Treasury (demo)",

@@ -138,7 +138,7 @@ export function SaecBoardMinutesWorkspace() {
       <div className="flex justify-end">
         <button
           type="button"
-          className={corporatePrimaryButtonClass}
+          className={corporatePrimaryButtonClass()}
           onClick={() => {
             if (tab === "minutes") {
               setEditing({
@@ -216,7 +216,7 @@ export function SaecBoardMinutesWorkspace() {
                 <div className="flex shrink-0 gap-1">
                   <button
                     type="button"
-                    className={corporateSecondaryButtonClass}
+                    className={corporateSecondaryButtonClass()}
                     onClick={() =>
                       setEditing({
                         kind: "minutes",
@@ -232,7 +232,7 @@ export function SaecBoardMinutesWorkspace() {
                   </button>
                   <button
                     type="button"
-                    className={corporateSecondaryButtonClass}
+                    className={corporateSecondaryButtonClass()}
                     onClick={() => {
                       deleteOmniTransitMinuteSummary(row.id);
                       refresh();
@@ -252,95 +252,104 @@ export function SaecBoardMinutesWorkspace() {
           <div className="w-full max-w-lg rounded-2xl border border-white/15 bg-[#0b1524] p-5">
             <h3 className="text-lg font-semibold text-white">Edit</h3>
             <div className="mt-4 space-y-3">
-              <CorporateFieldLabel label="Meeting date">
+              <div>
+                <CorporateFieldLabel>Meeting date</CorporateFieldLabel>
                 <input
                   type="date"
-                  className={corporateInputClass}
+                  className={corporateInputClass()}
                   value={editing.meetingDate}
                   onChange={(e) => setEditing({ ...editing, meetingDate: e.target.value })}
                 />
-              </CorporateFieldLabel>
+              </div>
               {editing.kind === "minutes" && (
                 <>
-                  <CorporateFieldLabel label="Title">
+                  <div>
+                    <CorporateFieldLabel>Title</CorporateFieldLabel>
                     <input
-                      className={corporateInputClass}
+                      className={corporateInputClass()}
                       value={editing.meetingTitle}
                       onChange={(e) =>
                         setEditing({ ...editing, meetingTitle: e.target.value })
                       }
                     />
-                  </CorporateFieldLabel>
-                  <CorporateFieldLabel label="Summary">
+                  </div>
+                  <div>
+                    <CorporateFieldLabel>Summary</CorporateFieldLabel>
                     <textarea
-                      className={corporateInputClass}
+                      className={corporateInputClass()}
                       rows={4}
                       value={editing.summary}
                       onChange={(e) => setEditing({ ...editing, summary: e.target.value })}
                     />
-                  </CorporateFieldLabel>
+                  </div>
                 </>
               )}
               {editing.kind === "decision" && (
                 <>
-                  <CorporateFieldLabel label="Decision">
+                  <div>
+                    <CorporateFieldLabel>Decision</CorporateFieldLabel>
                     <input
-                      className={corporateInputClass}
+                      className={corporateInputClass()}
                       value={editing.text}
                       onChange={(e) => setEditing({ ...editing, text: e.target.value })}
                     />
-                  </CorporateFieldLabel>
-                  <CorporateFieldLabel label="Resolution">
+                  </div>
+                  <div>
+                    <CorporateFieldLabel>Resolution</CorporateFieldLabel>
                     <textarea
-                      className={corporateInputClass}
+                      className={corporateInputClass()}
                       rows={3}
                       value={editing.resolution}
                       onChange={(e) =>
                         setEditing({ ...editing, resolution: e.target.value })
                       }
                     />
-                  </CorporateFieldLabel>
+                  </div>
                 </>
               )}
               {editing.kind === "action" && (
                 <>
-                  <CorporateFieldLabel label="Action">
+                  <div>
+                    <CorporateFieldLabel>Action</CorporateFieldLabel>
                     <input
-                      className={corporateInputClass}
+                      className={corporateInputClass()}
                       value={editing.title}
                       onChange={(e) => setEditing({ ...editing, title: e.target.value })}
                     />
-                  </CorporateFieldLabel>
-                  <CorporateFieldLabel label="Owner">
+                  </div>
+                  <div>
+                    <CorporateFieldLabel>Owner</CorporateFieldLabel>
                     <input
-                      className={corporateInputClass}
+                      className={corporateInputClass()}
                       value={editing.owner}
                       onChange={(e) => setEditing({ ...editing, owner: e.target.value })}
                     />
-                  </CorporateFieldLabel>
-                  <CorporateFieldLabel label="Due date">
+                  </div>
+                  <div>
+                    <CorporateFieldLabel>Due date</CorporateFieldLabel>
                     <input
                       type="date"
-                      className={corporateInputClass}
+                      className={corporateInputClass()}
                       value={editing.dueDate}
                       onChange={(e) => setEditing({ ...editing, dueDate: e.target.value })}
                     />
-                  </CorporateFieldLabel>
-                  <CorporateFieldLabel label="Status">
+                  </div>
+                  <div>
+                    <CorporateFieldLabel>Status</CorporateFieldLabel>
                     <input
-                      className={corporateInputClass}
+                      className={corporateInputClass()}
                       value={editing.status}
                       onChange={(e) => setEditing({ ...editing, status: e.target.value })}
                     />
-                  </CorporateFieldLabel>
+                  </div>
                 </>
               )}
             </div>
             <div className="mt-5 flex justify-end gap-2">
-              <button type="button" className={corporateSecondaryButtonClass} onClick={() => setEditing(null)}>
+              <button type="button" className={corporateSecondaryButtonClass()} onClick={() => setEditing(null)}>
                 Cancel
               </button>
-              <button type="button" className={corporatePrimaryButtonClass} onClick={saveEdit}>
+              <button type="button" className={corporatePrimaryButtonClass()} onClick={saveEdit}>
                 Save
               </button>
             </div>

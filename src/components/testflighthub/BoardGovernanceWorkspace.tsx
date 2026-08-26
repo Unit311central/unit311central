@@ -105,12 +105,7 @@ export default function BoardGovernanceWorkspace({
     const { SaecBoardGovernanceSection } =
       require("@/components/saec/board/SaecBoardWorkspaces") as typeof import("@/components/saec/board/SaecBoardWorkspaces");
     const saecSection: "dashboard" | "meetings" | "minutes" | "members" | "risks" =
-      section === "dashboard" ||
-      section === "meetings" ||
-      section === "minutes" ||
-      section === "members"
-        ? section
-        : "risks";
+      section === "dashboard" || section === "meetings" ? section : "risks";
     return (
       <div className="rounded-3xl border border-white/10 bg-[#07111f]/40 p-1 sm:p-2">
         <SaecBoardGovernanceSection section={saecSection} />
