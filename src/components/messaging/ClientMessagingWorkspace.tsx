@@ -173,6 +173,7 @@ export default function ClientMessagingWorkspace({ onUnreadChange }: ClientMessa
           configured?: boolean;
           supabaseUrl?: string;
           supabaseAnonKey?: string;
+          workspaceId?: string;
           error?: string;
         }>(configResponse);
 
@@ -180,6 +181,7 @@ export default function ClientMessagingWorkspace({ onUnreadChange }: ClientMessa
           throw new Error(config.error ?? "Realtime is not configured");
         }
 
+        const workspaceId = config.workspaceId?.trim() || null;
         supabase = createSupabaseBrowserClient(config.supabaseUrl, config.supabaseAnonKey);
         channel = supabase
           .channel(`client-messaging:${room}`, {
@@ -196,6 +198,7 @@ export default function ClientMessagingWorkspace({ onUnreadChange }: ClientMessa
             (payload) => {
               const row = payload.new as {
                 id: string;
+                workspace_id?: string;
                 room: string;
                 operator_id: string;
                 operator_name: string;
@@ -208,6 +211,10 @@ export default function ClientMessagingWorkspace({ onUnreadChange }: ClientMessa
                 call_link?: string | null;
                 created_at: string;
               };
+
+              if (workspaceId && row.workspace_id && row.workspace_id !== workspaceId) {
+                return;
+              }
 
               setMessages((current) => {
                 if (current.some((message) => message.id === row.id)) return current;

@@ -91,6 +91,7 @@
     "prove:ea-provisioning": "node --import tsx src/lib/ai-operating-assistant/__tests__/ea-provisioning.check.ts",
     "prove:ea-inheritance": "node --import tsx src/lib/ai-operating-assistant/__tests__/ea-inheritance.check.ts",
     "prove:workspace-tenancy": "node --import tsx src/lib/supabase/__tests__/workspace-tenancy-security.check.ts",
+    "prove:messaging-tenancy": "node --import tsx src/lib/__tests__/messaging-tenancy-security.check.ts",
     "audit:tenancy-compat": "node --import tsx src/lib/supabase/tenancy-compatibility-audit.ts",
     "prove:ea-all": "npm run prove:abhi-ea && npm run prove:onwardair-ea && npm run prove:talanton-ea && npm run prove:internal-ea && npm run prove:demo-ea && npm run prove:ea-provisioning && npm run prove:ea-inheritance && npm run test:ea-artifacts",
     "test:ea-artifacts": "node --import tsx src/lib/ai-operating-assistant/__tests__/artifact-persistence.check.ts",

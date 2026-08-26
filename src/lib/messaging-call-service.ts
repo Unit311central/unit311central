@@ -1,4 +1,5 @@
-import { createSupabaseServerClient, isSupabaseConfigured } from "@/lib/supabase/server";
+import { isSupabaseConfigured } from "@/lib/supabase/server";
+import { createTenancyServerClient } from "@/lib/supabase/tenancy-server";
 import { clearWebrtcSignals } from "@/lib/executive-call-webrtc-service";
 import type { PlatformSession } from "@/lib/platform-session";
 import { authorizeUserForWorkspace } from "@/lib/workspace-authorization";
@@ -54,7 +55,7 @@ function requireSupabase() {
   if (!isSupabaseConfigured()) {
     throw new Error("Supabase is not configured.");
   }
-  return createSupabaseServerClient();
+  return createTenancyServerClient();
 }
 
 function mapRoom(row: RoomRow): MessagingCallRoom {
