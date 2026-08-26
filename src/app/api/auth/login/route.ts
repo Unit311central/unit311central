@@ -63,7 +63,12 @@ import {
   isTalantonImpactSlug,
   TALANTON_IMPACT_SLUG,
 } from "@/lib/talanton-surface";
-import { canonicalizeSaecWorkspaceSlug } from "@/lib/saec-surface";
+import { canonicalizeSaecWorkspaceSlug, isSaecSlug, SAEC_SLUG } from "@/lib/saec-surface";
+import {
+  isOmnitransitPortalsAllowedUsername,
+} from "@/lib/saec/portals-auth";
+import { verifyOmnitransitPortalsPassword } from "@/lib/saec/portals-auth-server";
+import { resolveOmnitransitBrandPortalHost } from "@/lib/saec/omnitransit-brand-host";
 import { workspaceNeedsCustomerOnboarding } from "@/lib/workspace-customer-onboarding-service";
 import {
   DEMO_PORTALS_ADMIN_USERNAME,
@@ -650,6 +655,74 @@ async function createDemoPortalsCredentialLoginResponse(
   return response;
 }
 
+async function createOmnitransitPortalsExternalLoginResponse(
+  request: NextRequest,
+  usernameRaw: string,
+  password: string,
+  returnToRaw: string | null,
+  nextRaw: string | null,
+  workspaceSlug: string | null,
+) {
+  const username = normalizePlatformUsername(usernameRaw);
+  if (!isSaecSlug(workspaceSlug) || !isOmnitransitPortalsAllowedUsername(username)) {
+    return null;
+  }
+  if (!verifyOmnitransitPortalsPassword(password)) {
+    return null;
+  }
+
+  const portalRedirect = resolveAnyPortalSessionRedirect({
+    redirectPath: nextRaw,
+    nextRaw,
+    username,
+  });
+  if (!portalRedirect) {
+    return null;
+  }
+
+  const sessionRedirectPath = portalRedirect.startsWith("http")
+    ? new URL(portalRedirect).pathname
+    : portalRedirect;
+
+  const workspace = await resolveWorkspaceBinding({
+    workspaceSlug: SAEC_SLUG,
+    fallbackInternal: false,
+  });
+
+  const session: PlatformSession = withSessionWorkspace(
+    {
+      sub: "00000000-0000-4000-8000-00000000otportal",
+      username,
+      displayName: "OmniTransit Portal Demo",
+      userType: "external",
+      redirectPath: sessionRedirectPath,
+      exp: Date.now() + PLATFORM_SESSION_MAX_AGE_SECONDS * 1000,
+    },
+    workspace,
+  );
+
+  const redirectPath = await resolvePostLoginRedirect({
+    redirectPath: sessionRedirectPath,
+    requestHost: getRequestHost(request),
+    returnToRaw,
+    nextRaw,
+    userType: "external",
+    username,
+  });
+
+  const response = NextResponse.json({
+    redirectPath,
+    userType: session.userType,
+    displayName: session.displayName,
+    workspace: workspace
+      ? { id: workspace.id, slug: workspace.slug, name: workspace.name }
+      : null,
+  });
+
+  applyPlatformSessionCookie(response, await createPlatformSessionToken(session), request);
+  return response;
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = (await request.json()) as {
@@ -664,7 +737,10 @@ export async function POST(request: NextRequest) {
     }
 
     const requestHost = getRequestHost(request);
-    const hostWorkspaceSlug = parseClientPlatformSubdomainSafe(requestHost);
+    const omnitransitBrand = resolveOmnitransitBrandPortalHost(requestHost);
+    const hostWorkspaceSlug =
+      parseClientPlatformSubdomainSafe(requestHost) ??
+      (omnitransitBrand ? SAEC_SLUG : null);
     const hostWorkspaceOrigin = hostWorkspaceSlug
       ? customerWorkspaceOrigin(hostWorkspaceSlug)
       : isDemoDomainHost(requestHost)
@@ -873,6 +949,16 @@ export async function POST(request: NextRequest) {
       );
       if (portalsLogin) return portalsLogin;
     }
+
+    const omnitransitPortalLogin = await createOmnitransitPortalsExternalLoginResponse(
+      request,
+      body.username,
+      body.password,
+      returnToRaw,
+      nextRaw,
+      workspaceSlug,
+    );
+    if (omnitransitPortalLogin) return omnitransitPortalLogin;
 
     return NextResponse.json({ error: "Invalid username or password." }, { status: 401 });
   } catch (error) {

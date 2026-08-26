@@ -101,6 +101,15 @@ export function resolvePortalPostLoginUrl(options: {
   }
 
   const path = `/${sessionMatch.route.path}${rest}`;
+  const routeAbsolute = pack.matcher.absoluteUrl(sessionMatch.route);
+  if (routeAbsolute.startsWith("http://") || routeAbsolute.startsWith("https://")) {
+    try {
+      const url = new URL(routeAbsolute);
+      return `${url.origin}${url.pathname}${rest}${url.search}`;
+    } catch {
+      /* fall through */
+    }
+  }
   const origin = customerWorkspaceOrigin(pack.slug) ?? pack.origin;
   return origin ? `${origin.replace(/\/$/, "")}${path}` : path;
 }

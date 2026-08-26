@@ -2,6 +2,7 @@ import { registerPortalPack } from "@/lib/portals/registry";
 import type { PortalWorkspacePack } from "@/lib/portals/types";
 
 import { abhiPortalPack } from "@/lib/portals/workspace-packs/abhi";
+import { omnitransitPortalPack } from "@/lib/portals/workspace-packs/omnitransit";
 import { onwardAirPortalPack } from "@/lib/portals/workspace-packs/onwardair";
 import { talantonPortalPack } from "@/lib/portals/workspace-packs/talanton";
 
@@ -12,6 +13,7 @@ import { talantonPortalPack } from "@/lib/portals/workspace-packs/talanton";
  */
 const PORTAL_WORKSPACE_PACKS: readonly PortalWorkspacePack[] = [
   abhiPortalPack,
+  omnitransitPortalPack,
   onwardAirPortalPack,
   talantonPortalPack,
 ];
@@ -31,4 +33,4 @@ export function resetPortalWorkspacePackBootstrapForTests(): void {
   bootstrapped = false;
 }
 
-export { abhiPortalPack, onwardAirPortalPack, talantonPortalPack };
+export { abhiPortalPack, omnitransitPortalPack, onwardAirPortalPack, talantonPortalPack };

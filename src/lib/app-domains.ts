@@ -1,5 +1,7 @@
 export const CENTRAL_SITE_HOST = "unit311central.com";
 export const UNIT311_SITE_HOST = CENTRAL_SITE_HOST;
+/** Customer-facing brand portal parent domain (e.g. omnitransit.unit311.com). */
+export const UNIT311_BRAND_SITE_HOST = "unit311.com";
 export const INTERNAL_SITE_HOST = `internal.${UNIT311_SITE_HOST}`;
 export const DEMO_SITE_HOST = `demo.${UNIT311_SITE_HOST}`;
 
@@ -143,7 +145,12 @@ export function isUnit311FamilyHost(host: string | null | undefined): boolean {
   if (!normalized) return false;
   if (isLocalDevHost(normalized)) return true;
   if (normalized === UNIT311_SITE_HOST || normalized === `www.${UNIT311_SITE_HOST}`) return true;
-  return normalized.endsWith(`.${UNIT311_SITE_HOST}`);
+  if (normalized.endsWith(`.${UNIT311_SITE_HOST}`)) return true;
+  if (normalized === UNIT311_BRAND_SITE_HOST || normalized === `www.${UNIT311_BRAND_SITE_HOST}`) {
+    return true;
+  }
+  if (normalized.endsWith(`.${UNIT311_BRAND_SITE_HOST}`)) return true;
+  return false;
 }
 
 /**
@@ -156,6 +163,13 @@ export function platformSessionCookieDomain(
   const normalized = normalizeHost(host);
   if (!normalized || isLocalDevHost(normalized)) return undefined;
   if (!isUnit311FamilyHost(normalized)) return undefined;
+  if (
+    normalized === UNIT311_BRAND_SITE_HOST ||
+    normalized === `www.${UNIT311_BRAND_SITE_HOST}` ||
+    normalized.endsWith(`.${UNIT311_BRAND_SITE_HOST}`)
+  ) {
+    return `.${UNIT311_BRAND_SITE_HOST}`;
+  }
   return `.${UNIT311_SITE_HOST}`;
 }
 

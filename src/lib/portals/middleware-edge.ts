@@ -8,6 +8,9 @@ import { ABHI_SLUG } from "@/lib/abhi-surface";
 import { matchOnwardAirClientPortalPathname } from "@/lib/onwardair/client-portal-routes";
 import { isOnwardAirPortalsAllowedUsername } from "@/lib/onwardair/portals-demo";
 import { isOnwardAirSlug, ONWARDAIR_SLUG } from "@/lib/onwardair-surface";
+import { matchOmnitransitPortalPathname } from "@/lib/saec/client-portal-routes";
+import { isOmnitransitPortalsAllowedUsername } from "@/lib/saec/portals-auth";
+import { isSaecSlug, SAEC_SLUG } from "@/lib/saec-surface";
 import type { PortalRouteDefinition } from "@/lib/portals/types";
 import { matchTalantonCompanyPortalPathname } from "@/lib/talanton/company-portal-routes";
 import { isTalantonPortalsAllowedUsername } from "@/lib/talanton/portals-auth";
@@ -31,6 +34,15 @@ const EDGE_PORTAL_PACKS: readonly EdgePortalPack[] = [
     matchPathname: matchOnwardAirClientPortalPathname,
     isAllowedUsername: isOnwardAirPortalsAllowedUsername,
     briefingLoginPath: "/login?next=/portals",
+    usesDedicatedPortalsLogin: false,
+  },
+  {
+    slug: SAEC_SLUG,
+    aliases: ["omnitransit"],
+    implBase: "/omnitransit-portal",
+    matchPathname: matchOmnitransitPortalPathname,
+    isAllowedUsername: isOmnitransitPortalsAllowedUsername,
+    briefingLoginPath: "/login",
     usesDedicatedPortalsLogin: false,
   },
   {
@@ -76,7 +88,12 @@ function getPack(workspaceSlug: string | null | undefined): EdgePortalPack | nul
 export function isPortalWorkspaceSlug(workspaceSlug: string | null | undefined): boolean {
   if (getPack(workspaceSlug)) return true;
   const normalized = normalizeSlug(workspaceSlug);
-  return isOnwardAirSlug(normalized) || isTalantonImpactSlug(normalized) || normalized === ABHI_SLUG;
+  return (
+    isOnwardAirSlug(normalized) ||
+    isTalantonImpactSlug(normalized) ||
+    isSaecSlug(normalized) ||
+    normalized === ABHI_SLUG
+  );
 }
 
 export function portalImplBaseForSlug(workspaceSlug: string): string | null {

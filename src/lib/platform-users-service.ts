@@ -154,6 +154,11 @@ export async function resolveSubscriptionRedirectForUser(
     return null;
   }
 
+  // OmniTransit external portal demo — never force /payment.
+  if (String(user.redirect_path ?? "").match(/^\/(board|hyprop)(\/|$)/i)) {
+    return null;
+  }
+
   // Talanton portfolio company portal demo accounts — never force /payment.
   if (
     String(user.redirect_path ?? "").match(

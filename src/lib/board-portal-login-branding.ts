@@ -1,3 +1,7 @@
+/** Shared boardroom backdrop for executive board portal logins. */
+export const OMNITRANSIT_BOARD_PORTAL_LOGIN_BACKGROUND =
+  "/images/workspaces/omnitransit-board-login-bg.png";
+
 /** Shared boardroom backdrop for Talanton / OnwardAir / ABHI board portal logins. */
 export const BOARD_PORTAL_LOGIN_BACKGROUND = "/images/workspaces/talanton-board-login-bg.png";
 
