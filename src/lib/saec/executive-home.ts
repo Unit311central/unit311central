@@ -11,7 +11,7 @@ export function buildSaecExecutiveHomeKpis(): DashboardKpiItem[] {
     {
       id: "units-managed",
       label: "Units Under Management",
-      value: `${SAEC_DEMO_UNITS_TOTAL}+`,
+      value: String(SAEC_DEMO_UNITS_TOTAL),
       delta: "National footprint",
       tone: "positive",
       hint: "Demonstration portfolio across South Africa",

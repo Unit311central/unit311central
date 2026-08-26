@@ -22,6 +22,7 @@ import {
 } from "@/lib/project-portfolios";
 import { isBrowserCorpCentreSurface } from "@/lib/corpcentre-surface";
 import { isBrowserDemoSurface } from "@/lib/demo-enterprise";
+import { isBrowserSaecSurface } from "@/lib/saec-surface";
 import { isBrowserOnwardAirSurface } from "@/lib/onwardair-surface";
 import { isBrowserTalantonImpactSurface } from "@/lib/talanton-surface";
 import { createInitialUsers } from "@/lib/user-management-data";
@@ -186,6 +187,9 @@ export default function ProjectsWorkspace({
   const isCorpCentre = isBrowserCorpCentreSurface();
   const isNorthstarDemo =
     typeof window !== "undefined" ? isBrowserDemoSurface() : false;
+  const isSaecSurface =
+    typeof window !== "undefined" ? isBrowserSaecSurface() : false;
+  const usePmFocusDashboard = isNorthstarDemo || isSaecSurface;
   const { showDetail, openDetail, closeDetail } = useMobileDetailPanel(false);
 
   const [projects, setProjects] = useState<InternalProject[]>([]);
@@ -858,7 +862,7 @@ export default function ProjectsWorkspace({
   // Field-ops / dashboard path (scope=all)
   return (
     <div className="space-y-6">
-      {isNorthstarDemo ? (
+      {usePmFocusDashboard ? (
         scope === "all" ? (
           <NorthstarProjectManagementDashboard projects={projects} />
         ) : (

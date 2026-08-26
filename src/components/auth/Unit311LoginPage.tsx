@@ -21,10 +21,7 @@ import {
 } from "@/lib/app-domains";
 import { marketingFadeIn, MARKETING_CONTENT_CLASS } from "@/lib/marketing-ui";
 import { navigateRedirectPath } from "@/lib/navigate-redirect";
-import {
-  invalidateCachedJson,
-  PLATFORM_CACHE_KEYS,
-} from "@/lib/platform-fetch-cache";
+import { invalidatePlatformWhoamiCache } from "@/lib/platform-fetch-cache";
 import { SITE_NAME } from "@/lib/site";
 import {
   TALANTON_LOGIN_BACKGROUND,
@@ -347,7 +344,7 @@ export default function Unit311LoginPage({
       }
 
       persistNext(null);
-      invalidateCachedJson(PLATFORM_CACHE_KEYS.whoami);
+      invalidatePlatformWhoamiCache();
 
       const navigationTarget = effectiveReturnTo
         ? resolveReturnNavigationTarget(data.redirectPath, effectiveReturnTo)

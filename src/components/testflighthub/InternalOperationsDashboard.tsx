@@ -342,6 +342,7 @@ import {
 import WorkspaceBusinessCentralDashboard from "@/components/business-central/WorkspaceBusinessCentralDashboard";
 import OnwardAirBusinessCentralDashboard from "@/components/onwardair/OnwardAirBusinessCentralDashboard";
 import SaecBusinessCentralDashboard from "@/components/saec/SaecBusinessCentralDashboard";
+import SaecEngineeringRisksWorkspace from "@/components/saec/SaecEngineeringRisksWorkspace";
 
 const VIEWS_NEEDING_SIMULATOR = new Set<InternalOperationsView>([
   "fleet",
@@ -1388,6 +1389,8 @@ export default function InternalOperationsDashboard({
           {activeView === "engineering-risks" &&
             (isDemoSurface ? (
               <NorthstarEngineeringRisksWorkspace />
+            ) : isBrowserSaecSurface() ? (
+              <SaecEngineeringRisksWorkspace />
             ) : (
               <EngineeringCapacityWorkspace />
             ))}

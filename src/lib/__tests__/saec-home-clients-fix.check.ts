@@ -47,7 +47,7 @@ test("SAEC fixtures exclude Northstar demo records", () => {
   const clients = getSaecFixtureClients();
   const projects = getSaecFixtureProjects();
 
-  assert.ok(clients.length >= 5, "SAEC should ship representative client fixtures");
+  assert.equal(clients.length, 250, "SAEC demo should show 250 clients");
   assert.ok(projects.length >= 5, "SAEC should ship representative project fixtures");
 
   for (const client of clients) {
@@ -90,7 +90,7 @@ test("SAEC Clients dashboard derives client-centric activity", () => {
   const projects = getSaecFixtureProjects();
 
   const kpis = buildClientsDashboardKpis(clients, projects, [], []);
-  assert.ok(kpis.totalClients >= 5);
+  assert.equal(kpis.totalClients, 250);
   assert.ok((kpis.activeProjects ?? 0) > 0);
 
   const activity = buildClientsDashboardActivity({

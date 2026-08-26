@@ -218,8 +218,9 @@ export function OperatorEntitlementsProvider({
   const load = useCallback(async () => {
     try {
       const hostSlug = readHostWorkspaceSlug();
+      const cacheKey = scopedPlatformCacheKey(PLATFORM_CACHE_KEYS.whoami, hostSlug);
       const data = await fetchCachedJson<WhoamiPayload>(
-        scopedPlatformCacheKey(PLATFORM_CACHE_KEYS.whoami, hostSlug),
+        cacheKey,
         "/api/auth/whoami",
         { ttlMs: 60_000 },
       );
@@ -237,7 +238,18 @@ export function OperatorEntitlementsProvider({
 
       setState(buildEntitlementsFromPayload(data, hostSlug, true));
     } catch {
-      setState((current) => ({ ...current, ready: true }));
+      // Retry once with a forced fetch — stale scoped whoami after login caused intermittent 403s.
+      try {
+        const hostSlug = readHostWorkspaceSlug();
+        const data = await fetchCachedJson<WhoamiPayload>(
+          scopedPlatformCacheKey(PLATFORM_CACHE_KEYS.whoami, hostSlug),
+          "/api/auth/whoami",
+          { ttlMs: 60_000, force: true },
+        );
+        setState(buildEntitlementsFromPayload(data, hostSlug, true));
+      } catch {
+        setState((current) => ({ ...current, ready: true }));
+      }
     }
   }, []);
 

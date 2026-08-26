@@ -52,6 +52,11 @@ export function invalidateCachedJson(key: string | RegExp): void {
   }
 }
 
+/** Clear all host-scoped whoami cache entries (login / logout). */
+export function invalidatePlatformWhoamiCache(): void {
+  invalidateCachedJson(/^platform:whoami(?::|$)/);
+}
+
 export async function fetchCachedJson<T>(
   key: string,
   input: RequestInfo | URL,

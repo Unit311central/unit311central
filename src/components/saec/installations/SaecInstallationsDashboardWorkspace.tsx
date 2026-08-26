@@ -158,7 +158,7 @@ export default function SaecInstallationsDashboardWorkspace({
             onSelectCity={setSelectedCityId}
           />
 
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-5 lg:grid-cols-2 lg:gap-6">
             <SaecEquipmentBreakdownPanel
               assetType={assetType}
               items={dashboard.modelBreakdown}

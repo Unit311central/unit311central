@@ -1003,7 +1003,7 @@ export function buildExecutiveHomeLiveNarrative(input: {
 
   const summaryParts = saecHome
     ? [
-        "800+ elevator and escalator units under management across South Africa.",
+        "800 elevator and escalator units under management across South Africa.",
         "400 elevators and 400 escalators in the demonstration portfolio.",
         `${openProjects} installation and modernisation projects in delivery.`,
         `${activeClients.length} active commercial, retail and healthcare clients.`,

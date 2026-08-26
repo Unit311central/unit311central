@@ -3,6 +3,7 @@ import {
   isDemoDomainHost,
   parseClientPlatformSubdomainSafe,
 } from "@/lib/app-domains";
+import { canonicalizeSaecWorkspaceSlug } from "@/lib/saec-surface";
 import {
   isBrowserDemoPreviewActive,
   isOnDemoHostBrowser,
@@ -19,7 +20,9 @@ import {
 export function resolveBrowserPlatformCacheHostSlug(): string | null {
   if (typeof window === "undefined") return null;
   if (isDemoDomainHost(window.location.hostname)) return DEMO_WORKSPACE_SLUG;
-  return parseClientPlatformSubdomainSafe(window.location.hostname);
+  const hostSlug = parseClientPlatformSubdomainSafe(window.location.hostname);
+  if (!hostSlug) return null;
+  return canonicalizeSaecWorkspaceSlug(hostSlug) ?? hostSlug;
 }
 
 function readCachedWhoamiPayload(): { workspaceSlug?: string | null; roles?: string[] | null; role?: string | null } | null {

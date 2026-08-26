@@ -36,6 +36,7 @@ import {
 } from "@/lib/hr-mock-store";
 import { cn } from "@/lib/utils";
 import { isBrowserDemoSurface } from "@/lib/demo-enterprise";
+import { isBrowserSaecSurface } from "@/lib/saec-surface";
 import ResponsiveMasterDetail, { useMobileDetailPanel } from "@/components/ui/ResponsiveMasterDetail";
 import EmployeePerformancePanel from "./EmployeePerformancePanel";
 import EmployeePayrollPanel from "./EmployeePayrollPanel";
@@ -209,7 +210,9 @@ export default function EmployeeRecordWorkspace() {
   }, [selectedId, loadDetail]);
 
   useEffect(() => {
-    if (!isNorthstarDemo || loading || employees.length === 0 || searchParams.get("employeeId")) {
+    const autoSelectSurface =
+      isNorthstarDemo || (typeof window !== "undefined" && isBrowserSaecSurface());
+    if (!autoSelectSurface || loading || employees.length === 0 || searchParams.get("employeeId")) {
       return;
     }
     if (selectedId) return;

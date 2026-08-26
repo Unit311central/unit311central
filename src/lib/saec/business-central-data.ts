@@ -8,6 +8,11 @@ import type { InternalProject } from "@/lib/projects-data";
 import type { LeadStatus } from "@/lib/crm-data";
 import type { OaBcDashboardSummary } from "@/lib/onwardair/business-central-data";
 import {
+  getSaecDemoClientPortfolio,
+  getSaecDemoActiveClientCount,
+  SAEC_DEMO_CLIENT_COUNT,
+} from "@/lib/saec/client-portfolio";
+import {
   isBrowserSaecSurface,
   isSaecSlug,
   SAEC_COMPANY_NAME,
@@ -16,138 +21,11 @@ import {
 
 const FIXTURE_NOW = "2026-08-01T12:00:00.000Z";
 
-function client(partial: Omit<ManagedClient, "createdAt" | "updatedAt">): ManagedClient {
-  return { ...partial, createdAt: FIXTURE_NOW, updatedAt: FIXTURE_NOW };
-}
-
 function project(
   partial: Omit<InternalProject, "createdAt" | "updatedAt">,
 ): InternalProject {
   return { ...partial, createdAt: FIXTURE_NOW, updatedAt: FIXTURE_NOW };
 }
-
-const SAEC_CLIENTS: ManagedClient[] = [
-  client({
-    id: "saec-cli-growthpoint",
-    companyName: "Growthpoint Properties",
-    industry: "Property & Heritage",
-    primaryContact: "Thabo Mokoena",
-    email: "facilities@growthpoint.co.za",
-    phone: "+27 11 944 6500",
-    region: "Gauteng, South Africa",
-    accountStatus: "Active",
-    contractType: "Framework Agreement",
-    taxId: "ZA4123456789",
-    billingAddress: "The Place, 1 Sandton Drive, Sandton 2196",
-    activeProjects: 1,
-    notes: `${SAEC_COMPANY_NAME} vertical transport modernisation portfolio.`,
-  }),
-  client({
-    id: "saec-cli-redefine",
-    companyName: "Redefine Properties",
-    industry: "Property & Heritage",
-    primaryContact: "Lerato Nkosi",
-    email: "ops@redefine.co.za",
-    phone: "+27 11 643 1800",
-    region: "Gauteng, South Africa",
-    accountStatus: "Active",
-    contractType: "Framework Agreement",
-    taxId: "ZA4987654321",
-    billingAddress: "Rosebank, Johannesburg",
-    activeProjects: 1,
-    notes: "Escalator and lift maintenance across retail portfolio.",
-  }),
-  client({
-    id: "saec-cli-hyprop",
-    companyName: "Hyprop Investments",
-    industry: "Property & Heritage",
-    primaryContact: "Pieter van der Merwe",
-    email: "technical@hyprop.co.za",
-    phone: "+27 11 447 9260",
-    region: "Gauteng, South Africa",
-    accountStatus: "Active",
-    contractType: "Retainer",
-    taxId: "ZA4556677889",
-    billingAddress: "Hyprop House, Hyde Park, Johannesburg",
-    activeProjects: 1,
-    notes: "Centurion Mall and regional mall lift programme.",
-  }),
-  client({
-    id: "saec-cli-va-waterfront",
-    companyName: "V&A Waterfront",
-    industry: "Property & Heritage",
-    primaryContact: "Sarah Daniels",
-    email: "engineering@waterfront.co.za",
-    phone: "+27 21 408 7600",
-    region: "Western Cape, South Africa",
-    accountStatus: "Active",
-    contractType: "Project-based",
-    taxId: "ZA4332211100",
-    billingAddress: "Dock Road, Cape Town 8001",
-    activeProjects: 1,
-    notes: "Public escalator and lift upgrade at waterfront precinct.",
-  }),
-  client({
-    id: "saec-cli-killarney",
-    companyName: "Killarney Mall",
-    industry: "Property & Heritage",
-    primaryContact: "David Khumalo",
-    email: "centre.manager@killarneymall.co.za",
-    phone: "+27 11 646 1024",
-    region: "Gauteng, South Africa",
-    accountStatus: "Active",
-    contractType: "Project-based",
-    taxId: "ZA4778899001",
-    billingAddress: "60 Riviera Road, Killarney, Johannesburg",
-    activeProjects: 1,
-    notes: "Escalator modernisation — CANNY commercial units.",
-  }),
-  client({
-    id: "saec-cli-brooklyn",
-    companyName: "Brooklyn Mall",
-    industry: "Property & Heritage",
-    primaryContact: "Nomsa Dlamini",
-    email: "facilities@brooklynmall.co.za",
-    phone: "+27 12 460 0700",
-    region: "Gauteng, South Africa",
-    accountStatus: "Active",
-    contractType: "Retainer",
-    taxId: "ZA4665544332",
-    billingAddress: "Cnr Veale & Fehrsen Streets, Brooklyn, Pretoria",
-    activeProjects: 1,
-    notes: "Comprehensive maintenance and repair contract.",
-  }),
-  client({
-    id: "saec-cli-emperors",
-    companyName: "Emperors Palace",
-    industry: "Property & Heritage",
-    primaryContact: "Johan Steyn",
-    email: "maintenance@emperorspalace.com",
-    phone: "+27 11 928 1600",
-    region: "Gauteng, South Africa",
-    accountStatus: "Active",
-    contractType: "Project-based",
-    taxId: "ZA4889900112",
-    billingAddress: "64 Jones Road, Kempton Park",
-    activeProjects: 1,
-    notes: "Escalator replacement in hospitality precinct.",
-  }),
-  client({
-    id: "saec-cli-nedbank",
-    companyName: "Nedbank Polokwane",
-    industry: "Infrastructure",
-    primaryContact: "Mpho Sebata",
-    email: "branch.facilities@nedbank.co.za",
-    phone: "+27 15 291 8500",
-    region: "Limpopo, South Africa",
-    accountStatus: "Active",
-    contractType: "Retainer",
-    taxId: "ZA4112233445",
-    billingAddress: "78 Hans van Rensburg Street, Polokwane",
-    activeProjects: 0,
-    notes: "Lift service and compliance inspections.",
-  }),
-];
 
 const SAEC_INTERNAL_PROJECTS: InternalProject[] = [
   project({
@@ -316,7 +194,7 @@ export function isSaecBusinessCentralFixtures(slug?: string | null): boolean {
 }
 
 export function getSaecFixtureClients(): ManagedClient[] {
-  return SAEC_CLIENTS.map((row) => ({ ...row }));
+  return getSaecDemoClientPortfolio();
 }
 
 export function getSaecFixtureProjects(): InternalProject[] {
@@ -328,20 +206,20 @@ const SAEC_BC_PIPELINE_STAGES: Array<{
   count: number;
   valueZar: number;
 }> = [
-  { stage: "Cold", count: 2, valueZar: 4_200_000 },
-  { stage: "Warm", count: 3, valueZar: 6_800_000 },
-  { stage: "Hot", count: 2, valueZar: 5_100_000 },
-  { stage: "Active Customer", count: 1, valueZar: 2_300_000 },
+  { stage: "Cold", count: 18, valueZar: 12_400_000 },
+  { stage: "Warm", count: 24, valueZar: 18_600_000 },
+  { stage: "Hot", count: 14, valueZar: 14_200_000 },
+  { stage: "Active Customer", count: 42, valueZar: 8_400_000 },
 ];
 
 /** SAEC Business Central dashboard summary — values in ZAR (reporting currency). */
 export function getSaecBcDashboardSummary(): OaBcDashboardSummary {
   const clients = getSaecFixtureClients();
-  const activeClients = clients.filter((row) => row.accountStatus === "Active").length;
+  const activeClients = getSaecDemoActiveClientCount();
   const pipelineValueZar = SAEC_BC_PIPELINE_STAGES.reduce((sum, row) => sum + row.valueZar, 0);
 
   return {
-    clientsCount: clients.length,
+    clientsCount: SAEC_DEMO_CLIENT_COUNT,
     activeClients,
     arrUsd: 42_500_000,
     pipelineValueUsd: pipelineValueZar,

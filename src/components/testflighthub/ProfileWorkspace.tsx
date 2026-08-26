@@ -11,7 +11,7 @@ import { DEMO_PROSPECT_USERNAME } from "@/lib/demo/read-only";
 import { createInitialUsers } from "@/lib/user-management-data";
 import {
   fetchCachedJson,
-  invalidateCachedJson,
+  invalidatePlatformWhoamiCache,
   PLATFORM_CACHE_KEYS,
 } from "@/lib/platform-fetch-cache";
 
@@ -58,7 +58,7 @@ export default function ProfileWorkspace() {
   async function loadProfile(force = false) {
     setLoading(true);
     setError(null);
-    if (force) invalidateCachedJson(PLATFORM_CACHE_KEYS.whoami);
+    if (force) invalidatePlatformWhoamiCache();
     try {
       const body = await fetchCachedJson<ProfilePayload & { error?: string }>(
         PLATFORM_CACHE_KEYS.whoami,

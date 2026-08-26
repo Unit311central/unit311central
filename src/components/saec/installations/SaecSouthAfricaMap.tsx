@@ -185,7 +185,7 @@ export default function SaecSouthAfricaMap({
   }
 
   return (
-    <div className="relative rounded-2xl border border-white/10 bg-[#0a1628]">
+    <div className="relative w-full rounded-2xl border border-white/12 bg-[#0a1628] shadow-[0_24px_64px_rgba(0,0,0,0.35)]">
       <div className="border-b border-white/8 px-4 py-3 sm:px-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
@@ -265,7 +265,7 @@ export default function SaecSouthAfricaMap({
         )}
 
         {mapLayers && (
-          <div className="mx-auto w-full" style={{ height: "min(48vh, 420px)" }}>
+          <div className="mx-auto w-full" style={{ height: "min(56vh, 520px)" }}>
             <svg
               viewBox={`0 0 ${SA_MAP_VIEWBOX.width} ${SA_MAP_VIEWBOX.height}`}
               preserveAspectRatio="xMidYMid meet"

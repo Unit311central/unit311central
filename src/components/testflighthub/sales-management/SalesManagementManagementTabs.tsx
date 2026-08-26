@@ -1046,14 +1046,26 @@ export function SalesManagementForecastTab() {
       {forecast.horizons?.length ? (
         <WsSection title="Forecast horizons" subtitle="Prorated from current pipeline and committed revenue" className="p-4 sm:p-5">
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            {forecast.horizons.map((row) => (
-              <SalesRegisterCard key={row.months}>
-                <p className="text-xs font-semibold uppercase tracking-wide text-white/45">{row.label}</p>
+            {forecast.horizons.map((row, index) => (
+              <div
+                key={row.months}
+                className={cn(
+                  "rounded-xl border p-4",
+                  index % 4 === 0
+                    ? "border-violet-400/35 bg-gradient-to-br from-violet-500/20 to-violet-900/10"
+                    : index % 4 === 1
+                      ? "border-sky-400/35 bg-gradient-to-br from-sky-500/20 to-sky-900/10"
+                      : index % 4 === 2
+                        ? "border-emerald-400/35 bg-gradient-to-br from-emerald-500/20 to-emerald-900/10"
+                        : "border-amber-400/35 bg-gradient-to-br from-amber-500/20 to-amber-900/10",
+                )}
+              >
+                <p className="text-xs font-semibold uppercase tracking-wide text-white/55">{row.label}</p>
                 <p className="mt-2 text-lg font-semibold tabular-nums text-white">{money(row.weightedForecast)}</p>
                 <p className="mt-1 text-xs text-white/45">
                   Pipeline {money(row.pipelineValue)} · {row.salesStaffCount} sales staff
                 </p>
-              </SalesRegisterCard>
+              </div>
             ))}
           </div>
         </WsSection>

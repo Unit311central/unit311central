@@ -269,6 +269,16 @@ export default function EnterprisePlatformSidebar({
   const [isAbhiSurface] = useState(
     () => typeof window !== "undefined" && isBrowserAbhiSurface(),
   );
+  const [isSaecSurface] = useState(() => {
+    if (typeof window === "undefined") return false;
+    try {
+      const { isBrowserSaecSurface } =
+        require("@/lib/saec-surface") as typeof import("@/lib/saec-surface");
+      return isBrowserSaecSurface();
+    } catch {
+      return false;
+    }
+  });
   /** Inject host-specific nav on first paint — do not wait for sidebar hydration. */
   const [customerHostNav] = useState(() => {
     if (typeof window === "undefined") return false;
@@ -296,13 +306,16 @@ export default function EnterprisePlatformSidebar({
     startTransition(() => {
       if (sessionOnlyExpand) {
         setNavExpand({ pinned: {}, collapsed: [] });
+      } else if (isSaecSurface) {
+        // OmniTransit: fully expanded module tree on each authenticated load.
+        setNavExpand({ pinned: {}, collapsed: [] });
       } else {
         setNavExpand(splitStoredExpandedState(readSidebarExpandedState()));
       }
       setTheme(getSidebarTheme(readSidebarThemeId()));
       setHydrated(true);
     });
-  }, [sessionOnlyExpand]);
+  }, [sessionOnlyExpand, isSaecSurface]);
 
   useEffect(() => {
     const onCustom = () => setSectionOrderTick((n) => n + 1);
@@ -389,7 +402,7 @@ export default function EnterprisePlatformSidebar({
         pinned,
         collapsed: [...collapsed],
       };
-      if (!sessionOnlyExpand) {
+      if (!sessionOnlyExpand && !isSaecSurface) {
         writeSidebarExpandedState(mergeExpandedForStorage(next));
       }
       return next;
@@ -552,8 +565,8 @@ export default function EnterprisePlatformSidebar({
         ) ??
           false),
       ) ?? false;
-    const autoOpen = childActive || (expandParentsByDefault && depth === 0);
-    const isOpen = hydrated ? resolveNavOpen(navExpand, key, autoOpen) : false;
+    const autoOpen = childActive || (expandParentsByDefault && depth === 0) || isSaecSurface;
+    const isOpen = resolveNavOpen(navExpand, key, autoOpen);
     const Chevron = isOpen ? ChevronDown : ChevronRight;
     const Icon = resolveIcon(itemIcon);
 
@@ -693,8 +706,8 @@ export default function EnterprisePlatformSidebar({
       }
       return isInternalNavItemActive(pathname, item, activeView, basePath, searchParams);
     });
-    const autoOpen = workspaceSectionChildActive;
-    const isOpen = hydrated ? resolveNavOpen(navExpand, workspaceKey, autoOpen) : false;
+    const autoOpen = workspaceSectionChildActive || isSaecSurface;
+    const isOpen = resolveNavOpen(navExpand, workspaceKey, autoOpen);
     const Icon = resolveIcon(section.icon);
     const color =
       resolveOnwardAirNavAccent(section) ?? section.color ?? theme.accent;
@@ -709,6 +722,13 @@ export default function EnterprisePlatformSidebar({
           paddingLeft: CARD_PAD_X,
           paddingRight: 6,
           paddingBottom: isOpen ? 4 : 0,
+          ...(workspaceSectionChildActive && isSaecSurface
+            ? {
+                borderColor: color,
+                background: `linear-gradient(135deg, ${color}22 0%, ${theme.card} 55%)`,
+                boxShadow: `inset 0 0 0 1px ${color}40`,
+              }
+            : {}),
         }}
       >
         {/* Subtle left accent — workspace identity without coloured title text */}
@@ -831,7 +851,7 @@ export default function EnterprisePlatformSidebar({
                     item,
                     workspaceKey,
                     0,
-                    Boolean(section.expandChildrenByDefault),
+                    Boolean(section.expandChildrenByDefault) || isSaecSurface,
                   );
                 }
                 const leafActive = isInternalNavItemActive(
