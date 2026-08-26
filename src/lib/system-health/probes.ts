@@ -37,11 +37,8 @@ export async function probeDatabase(): Promise<HealthComponentReport> {
     const client = isSupabaseServiceRoleConfigured()
       ? createSupabaseServiceRoleClient()
       : createSupabaseServerClient();
-    const { error } = await client
-      .from("unit311_applied_migrations")
-      .select("version")
-      .limit(1)
-      .maybeSingle();
+  // Lightweight read against a core table (always present in production).
+    const { error } = await client.from("workspaces").select("id").limit(1);
 
     if (error) {
       return {
@@ -87,12 +84,8 @@ export async function probeSupabase(): Promise<HealthComponentReport> {
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 5000);
-    const res = await fetch(`${url.replace(/\/$/, "")}/rest/v1/`, {
+    const res = await fetch(`${url.replace(/\/$/, "")}/auth/v1/health`, {
       method: "GET",
-      headers: {
-        apikey: key,
-        Authorization: `Bearer ${key}`,
-      },
       signal: controller.signal,
     });
     clearTimeout(timeout);
