@@ -132,7 +132,9 @@ jobs:
           SETUP_SECRET: ${{ secrets.INTERNAL_FILES_SETUP_SECRET }}
         run: |
           set -euo pipefail
-          for attempt in $(seq 1 12); do
+          echo "Cooling down 90s after POST apply before plan verify (Supabase Management API rate limit)..."
+          sleep 90
+          for attempt in $(seq 1 15); do
             response=$(curl -fsS \
               -H "x-setup-secret: ${SETUP_SECRET}" \
               "https://unit311central.com/api/internal/apply-unit311central-pending-migrations")
@@ -141,12 +143,13 @@ jobs:
             if echo "$response" | jq -e '.queryError == null' >/dev/null 2>&1; then
               break
             fi
-            if [ "$attempt" -eq 12 ]; then
+            if [ "$attempt" -eq 15 ]; then
               echo "Migration plan verify failed after retries"
               exit 1
             fi
-            echo "queryError present — retrying after Supabase Management API cooldown..."
-            sleep 20
+            backoff=$((20 * attempt))
+            echo "queryError present — retrying after ${backoff}s Supabase Management API cooldown..."
+            sleep "$backoff"
           done
           echo "$response" | jq -e '
             ([.plan.pending[]?] | length) == 0

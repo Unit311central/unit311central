@@ -45,6 +45,19 @@ function createPgMigrationQueryClient(client: ClientBase): MigrationQueryClient 
   };
 }
 
+const RETRYABLE_MANAGEMENT_API_STATUSES = new Set([429, 502, 503, 504]);
+const MANAGEMENT_API_MAX_ATTEMPTS = 6;
+const MANAGEMENT_API_BASE_DELAY_MS = 2_000;
+const MANAGEMENT_API_MAX_DELAY_MS = 30_000;
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function managementApiRetryDelayMs(attempt: number): number {
+  return Math.min(MANAGEMENT_API_MAX_DELAY_MS, MANAGEMENT_API_BASE_DELAY_MS * 2 ** (attempt - 1));
+}
+
 export function createManagementApiMigrationQueryClient(options: {
   token: string;
   projectRef?: string;
@@ -57,40 +70,56 @@ export function createManagementApiMigrationQueryClient(options: {
       params?: unknown[],
     ): Promise<{ rows: T[] }> {
       const query = bindSqlParams(sql, params);
-      const response = await fetch(
-        `https://api.supabase.com/v1/projects/${projectRef}/database/query`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${options.token}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ query }),
-        },
-      );
+      let lastError: MigrationQueryError | null = null;
 
-      const data = (await response.json()) as Array<T> | { message?: string };
-      if (!response.ok) {
+      for (let attempt = 1; attempt <= MANAGEMENT_API_MAX_ATTEMPTS; attempt++) {
+        const response = await fetch(
+          `https://api.supabase.com/v1/projects/${projectRef}/database/query`,
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${options.token}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ query }),
+          },
+        );
+
+        const data = (await response.json()) as Array<T> | { message?: string };
+        if (response.ok) {
+          if (!Array.isArray(data)) {
+            throw new MigrationQueryError(
+              "Management API query returned a non-array response.",
+              response.status,
+              data,
+            );
+          }
+
+          return { rows: data };
+        }
+
         const message =
           typeof data === "object" && data !== null && "message" in data
             ? String(data.message)
             : JSON.stringify(data).slice(0, 500);
-        throw new MigrationQueryError(
+        lastError = new MigrationQueryError(
           `Management API query failed (${response.status}): ${message}`,
           response.status,
           data,
         );
+
+        if (
+          RETRYABLE_MANAGEMENT_API_STATUSES.has(response.status) &&
+          attempt < MANAGEMENT_API_MAX_ATTEMPTS
+        ) {
+          await sleep(managementApiRetryDelayMs(attempt));
+          continue;
+        }
+
+        throw lastError;
       }
 
-      if (!Array.isArray(data)) {
-        throw new MigrationQueryError(
-          "Management API query returned a non-array response.",
-          response.status,
-          data,
-        );
-      }
-
-      return { rows: data };
+      throw lastError ?? new MigrationQueryError("Management API query failed after retries.");
     },
   };
 }
