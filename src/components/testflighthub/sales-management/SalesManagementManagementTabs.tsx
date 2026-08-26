@@ -38,7 +38,7 @@ import { BadgePercent, CalendarRange, ClipboardList, Pencil, Plus, Trash2 } from
 
 
 
-import { formatSalesMoney } from "@/lib/sales-management-insights";
+import { formatSalesMoney, resolveSalesUiCurrency } from "@/lib/sales-management-insights";
 
 import { useInternalOperationsBasePath } from "@/components/testflighthub/InternalOperationsBasePathContext";
 
@@ -363,7 +363,7 @@ export function SalesManagementTargetsTab() {
 
     progressPct: number | null;
 
-    currency: "GBP" | "USD" | "AUD";
+    currency: "GBP" | "USD" | "AUD" | "ZAR";
 
   }>;
 
@@ -448,7 +448,9 @@ export function SalesManagementTargetsTab() {
     actual: target.actualValue,
   }));
 
-  const currency = targets[0]?.currency ?? (data.context.currency as "GBP" | "USD" | "AUD") ?? "GBP";
+  const currency = targets[0]?.currency
+    ? resolveSalesUiCurrency(targets[0].currency)
+    : resolveSalesUiCurrency(data.context.currency);
 
 
 
@@ -756,7 +758,7 @@ export function SalesManagementPerformanceTab() {
 
   if (error || !data) return <SalesManagementError message={error ?? "Unable to load performance."} onRetry={() => void reload()} />;
 
-  const currency = (data.context.currency ?? "GBP") as "GBP" | "USD" | "AUD";
+  const currency = resolveSalesUiCurrency(data.context.currency);
   const money = (value: number) => formatSalesMoney(value, currency);
 
   const performance = data.performance as {
@@ -970,7 +972,7 @@ export function SalesManagementForecastTab() {
 
   if (error || !data) return <SalesManagementError message={error ?? "Unable to load forecast."} onRetry={() => void reload()} />;
 
-  const currency = (data.context.currency ?? "GBP") as "GBP" | "USD" | "AUD";
+  const currency = resolveSalesUiCurrency(data.context.currency);
   const money = (value: number) => formatSalesMoney(value, currency);
 
   const forecast = data.forecast as {
@@ -1439,7 +1441,7 @@ export function SalesManagementReportsTab() {
   const basePath = useInternalOperationsBasePath();
   const { data, loading, error, reload } = useSalesWorkspaceSection("reports");
   const href = (tab: string) => getInternalNavHref("sales-management", basePath, { tab });
-  const currency = (data?.context.currency ?? "GBP") as "GBP" | "USD" | "AUD";
+  const currency = resolveSalesUiCurrency(data?.context.currency);
   const money = (value: number) => formatSalesMoney(value, currency);
 
   if (loading) return <SalesManagementLoading label="Loading reports…" />;

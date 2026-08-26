@@ -334,6 +334,7 @@ function computeActualForTarget(
 
 async function loadTargets(
   workspaceId: string,
+  workspaceSlug: string,
   teams: SalesTeam[],
   leads: CrmLead[],
   quotes: SalesQuote[],
@@ -351,6 +352,7 @@ async function loadTargets(
   }
 
   const teamNameById = new Map(teams.map((team) => [team.id, team.name]));
+  const reportingCurrency = resolveSlugReportingCurrency(workspaceSlug) as SalesReportingCurrency;
 
   return (data ?? []).map((row) => {
     const ownerUserId = row.owner_user_id ? String(row.owner_user_id) : null;
@@ -368,7 +370,7 @@ async function loadTargets(
       targetValue,
       actualValue: 0,
       progressPct: null,
-      currency: (row.currency as SalesReportingCurrency) ?? "GBP",
+      currency: (row.currency as SalesReportingCurrency) ?? reportingCurrency,
       notes: row.notes ? String(row.notes) : null,
     };
     record.actualValue = computeActualForTarget(record, leads, quotes);
@@ -564,6 +566,8 @@ export async function loadSalesQuotesForWorkspace(input: {
     linesByQuote.set(quoteId, items);
   }
 
+  const reportingCurrency = resolveSlugReportingCurrency(input.workspaceSlug) as SalesReportingCurrency;
+
   return (data ?? []).map((row) => ({
     id: String(row.id),
     workspaceId: String(row.workspace_id),
@@ -574,7 +578,7 @@ export async function loadSalesQuotesForWorkspace(input: {
     contactName: row.contact_name ? String(row.contact_name) : null,
     contactEmail: row.contact_email ? String(row.contact_email) : null,
     title: String(row.title ?? "Sales quote"),
-    currency: String(row.currency ?? "GBP"),
+    currency: String(row.currency ?? reportingCurrency),
     subtotal: Number(row.subtotal) || 0,
     taxAmount: Number(row.tax_amount) || 0,
     totalAmount: Number(row.total_amount) || 0,
@@ -635,6 +639,7 @@ export async function loadSalesWorkspaceBundle(input: {
   );
   const targets = await loadTargets(
     input.workspaceId,
+    input.workspaceSlug,
     teams,
     leads,
     quotes,

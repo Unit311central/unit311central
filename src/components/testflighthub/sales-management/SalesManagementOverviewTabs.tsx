@@ -30,7 +30,7 @@ import { useInternalOperationsBasePath } from "@/components/testflighthub/Intern
 
 import { getInternalNavHref } from "@/lib/internal-operations-data";
 
-import { formatSalesMoney } from "@/lib/sales-management-insights";
+import { formatSalesMoney, resolveSalesUiCurrency } from "@/lib/sales-management-insights";
 
 import type { CrmLead } from "@/lib/crm-data";
 
@@ -118,7 +118,7 @@ export function SalesManagementMySalesTab() {
 
   };
 
-  const currency = (data.context.currency ?? "GBP") as "GBP" | "USD" | "AUD";
+  const currency = resolveSalesUiCurrency(data.context.currency);
 
   const money = (value: number) => formatSalesMoney(value, currency);
 
@@ -476,7 +476,7 @@ export function SalesManagementSalesTeamTab() {
 
                       <td className="px-4 py-3 tabular-nums">{row.openOpportunityCount}</td>
 
-                      <td className="px-4 py-3 tabular-nums">{formatSalesMoney(row.pipelineValue, data.context.currency ?? "GBP")}</td>
+                      <td className="px-4 py-3 tabular-nums">{formatSalesMoney(row.pipelineValue, resolveSalesUiCurrency(data.context.currency))}</td>
 
                       <td className="px-4 py-3 tabular-nums">{row.wonCount}</td>
 
