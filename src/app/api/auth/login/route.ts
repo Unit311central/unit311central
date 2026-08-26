@@ -11,6 +11,7 @@ import { applyPortalsBriefingGateCookie } from "@/lib/portals/briefing/cookies";
 import {
   resolveAnyPortalPostLoginUrl,
   resolveAnyPortalSessionRedirect,
+  resolvePortalPostLoginUrl,
   resolvePortalSessionRedirect,
 } from "@/lib/portals/post-login";
 import {
@@ -701,14 +702,23 @@ async function createOmnitransitPortalsExternalLoginResponse(
     workspace,
   );
 
-  const redirectPath = await resolvePostLoginRedirect({
-    redirectPath: sessionRedirectPath,
-    requestHost: getRequestHost(request),
-    returnToRaw,
-    nextRaw,
-    userType: "external",
-    username,
-  });
+  const redirectPath =
+    resolvePortalPostLoginUrl({
+      workspaceSlug: SAEC_SLUG,
+      redirectPath: sessionRedirectPath,
+      nextRaw,
+      returnToRaw,
+      requestHost: getRequestHost(request),
+      username,
+    }) ??
+    (await resolvePostLoginRedirect({
+      redirectPath: sessionRedirectPath,
+      requestHost: getRequestHost(request),
+      returnToRaw,
+      nextRaw,
+      userType: "external",
+      username,
+    }));
 
   const response = NextResponse.json({
     redirectPath,

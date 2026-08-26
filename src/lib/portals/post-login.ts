@@ -1,4 +1,8 @@
-import { customerWorkspaceOrigin, parseSafePostLoginNext } from "@/lib/app-domains";
+import {
+  customerWorkspaceOrigin,
+  parseClientPlatformSubdomainSafe,
+  parseSafePostLoginNext,
+} from "@/lib/app-domains";
 import {
   resolveNorthstarDemoClientPortalPostLoginUrl,
   resolveNorthstarDemoClientPortalRedirect,
@@ -8,6 +12,8 @@ import {
   getPortalPackBySlug,
   listPortalWorkspacePacks,
 } from "@/lib/portals/registry";
+import { canonicalizeSaecWorkspaceSlug } from "@/lib/saec-surface";
+import { resolveOmnitransitBrandPortalHost } from "@/lib/saec/omnitransit-brand-host";
 import type { PortalRouteDefinition } from "@/lib/portals/types";
 
 function extractPathCandidate(value: string | null | undefined): string | null {
@@ -45,16 +51,17 @@ export function resolvePortalSessionRedirect(options: {
   const pack = getPortalPackBySlug(options.workspaceSlug);
   if (!pack) return null;
 
-  const byUsername = portalRouteForUsername(pack.routes, options.username);
   const nextMatch = pack.matcher.matchPathname(extractPathCandidate(options.nextRaw) ?? "");
-  const storedMatch = pack.matcher.matchPathname(options.redirectPath ?? "");
-
-  if (nextMatch && (!byUsername || nextMatch.route.path === byUsername.path)) {
+  if (nextMatch) {
     return `/${nextMatch.route.path}`;
   }
-  if (storedMatch && (!byUsername || storedMatch.route.path === byUsername.path)) {
+
+  const storedMatch = pack.matcher.matchPathname(options.redirectPath ?? "");
+  if (storedMatch) {
     return `/${storedMatch.route.path}`;
   }
+
+  const byUsername = portalRouteForUsername(pack.routes, options.username);
   if (byUsername) {
     return `/${byUsername.path}`;
   }
@@ -127,6 +134,24 @@ export function resolveAnyPortalPostLoginUrl(options: {
 }): string | null {
   const northstarDemo = resolveNorthstarDemoClientPortalPostLoginUrl(options);
   if (northstarDemo) return northstarDemo;
+
+  const hostSlug =
+    parseClientPlatformSubdomainSafe(options.requestHost) ??
+    resolveOmnitransitBrandPortalHost(options.requestHost)?.workspaceSlug;
+  const preferredSlug =
+    canonicalizeSaecWorkspaceSlug(hostSlug) ??
+    (hostSlug ? getPortalPackBySlug(hostSlug)?.slug : null);
+  if (preferredSlug) {
+    const preferredUrl = resolvePortalPostLoginUrl({
+      workspaceSlug: preferredSlug,
+      redirectPath: options.redirectPath,
+      nextRaw: options.nextRaw,
+      returnToRaw: options.returnToRaw,
+      requestHost: options.requestHost,
+      username: options.username,
+    });
+    if (preferredUrl) return preferredUrl;
+  }
 
   for (const pack of listPortalWorkspacePacks()) {
     const url = resolvePortalPostLoginUrl({
