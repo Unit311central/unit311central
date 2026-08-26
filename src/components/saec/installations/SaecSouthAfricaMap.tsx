@@ -15,6 +15,12 @@ import {
   type SaMapViewTransform,
 } from "@/lib/saec/south-africa-map-project";
 import type { SaecCityAggregate, SaecInstallationAssetType } from "@/lib/saec/installations-types";
+import {
+  cityStatusSegments,
+  cityStatusStrokeColor,
+  dominantCityStatus,
+  type CityStatusSegment,
+} from "@/lib/saec/installations-map-status";
 import { cn } from "@/lib/utils";
 
 type SaecSouthAfricaMapProps = {
@@ -30,6 +36,95 @@ const MAX_SCALE = 2.2;
 
 function assetTypeLabel(assetType: SaecInstallationAssetType): string {
   return assetType === "elevator" ? "Elevators" : "Escalators";
+}
+
+function polar(cx: number, cy: number, radius: number, angleDeg: number) {
+  const rad = ((angleDeg - 90) * Math.PI) / 180;
+  return { x: cx + radius * Math.cos(rad), y: cy + radius * Math.sin(rad) };
+}
+
+function donutSegmentPath(
+  cx: number,
+  cy: number,
+  outerR: number,
+  innerR: number,
+  startAngle: number,
+  endAngle: number,
+): string {
+  if (endAngle - startAngle >= 360) {
+    return [
+      `M ${cx} ${cy - outerR}`,
+      `A ${outerR} ${outerR} 0 1 1 ${cx - 0.01} ${cy - outerR}`,
+      `M ${cx} ${cy - innerR}`,
+      `A ${innerR} ${innerR} 0 1 0 ${cx + 0.01} ${cy - innerR}`,
+      "Z",
+    ].join(" ");
+  }
+  const outerStart = polar(cx, cy, outerR, endAngle);
+  const outerEnd = polar(cx, cy, outerR, startAngle);
+  const innerStart = polar(cx, cy, innerR, startAngle);
+  const innerEnd = polar(cx, cy, innerR, endAngle);
+  const largeArc = endAngle - startAngle > 180 ? 1 : 0;
+  return [
+    `M ${outerStart.x} ${outerStart.y}`,
+    `A ${outerR} ${outerR} 0 ${largeArc} 0 ${outerEnd.x} ${outerEnd.y}`,
+    `L ${innerStart.x} ${innerStart.y}`,
+    `A ${innerR} ${innerR} 0 ${largeArc} 1 ${innerEnd.x} ${innerEnd.y}`,
+    "Z",
+  ].join(" ");
+}
+
+function CityStatusDonut({
+  cx,
+  cy,
+  segments,
+  selected,
+  dominant,
+}: {
+  cx: number;
+  cy: number;
+  segments: CityStatusSegment[];
+  selected: boolean;
+  dominant: CityStatusSegment["key"];
+}) {
+  const outerR = selected ? 18 : 16;
+  const innerR = selected ? 10 : 9;
+  const total = segments.reduce((sum, row) => sum + row.value, 0);
+  let angle = 0;
+
+  return (
+    <g>
+      {segments.map((segment) => {
+        const sweep = total > 0 ? (segment.value / total) * 360 : 0;
+        const start = angle;
+        const end = angle + sweep;
+        angle = end;
+        if (sweep <= 0) return null;
+        return (
+          <path
+            key={segment.key}
+            d={donutSegmentPath(cx, cy, outerR, innerR, start, end)}
+            fill={segment.color}
+            className="pointer-events-none"
+            opacity={0.95}
+          />
+        );
+      })}
+      <circle
+        r={innerR - 1}
+        fill="#0b1524"
+        className="pointer-events-none"
+      />
+      <circle
+        r={outerR + 1}
+        fill="none"
+        stroke={cityStatusStrokeColor(dominant)}
+        strokeWidth={selected ? 2.5 : 1.5}
+        className="pointer-events-none"
+        opacity={0.9}
+      />
+    </g>
+  );
 }
 
 export default function SaecSouthAfricaMap({
@@ -60,10 +155,10 @@ export default function SaecSouthAfricaMap({
     };
   }, []);
 
-  const markerColors =
+  const markerBadge =
     assetType === "elevator"
-      ? { fill: "#06b6d4", fillSelected: "#22d3ee", stroke: "#e0f2fe", badge: "bg-cyan-500/20 text-cyan-100 border-cyan-400/30" }
-      : { fill: "#f59e0b", fillSelected: "#fbbf24", stroke: "#fef3c7", badge: "bg-amber-500/20 text-amber-100 border-amber-400/30" };
+      ? "bg-cyan-500/20 text-cyan-100 border-cyan-400/30"
+      : "bg-amber-500/20 text-amber-100 border-amber-400/30";
 
   const cityMarkers = useMemo(
     () =>
@@ -103,7 +198,7 @@ export default function SaecSouthAfricaMap({
             <span
               className={cn(
                 "rounded-full border px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em]",
-                markerColors.badge,
+                markerBadge,
               )}
             >
               {assetTypeLabel(assetType)}
@@ -151,7 +246,7 @@ export default function SaecSouthAfricaMap({
             Maintenance Due
           </span>
           <span className="text-white/30">·</span>
-          <span>Click a city marker for installation detail</span>
+          <span>Marker colours show online, offline, and maintenance mix per city</span>
         </div>
       </div>
 
@@ -170,7 +265,7 @@ export default function SaecSouthAfricaMap({
         )}
 
         {mapLayers && (
-          <div className="mx-auto w-full" style={{ height: "min(34vh, 300px)" }}>
+          <div className="mx-auto w-full" style={{ height: "min(48vh, 420px)" }}>
             <svg
               viewBox={`0 0 ${SA_MAP_VIEWBOX.width} ${SA_MAP_VIEWBOX.height}`}
               preserveAspectRatio="xMidYMid meet"
@@ -226,9 +321,9 @@ export default function SaecSouthAfricaMap({
 
               {cityMarkers.map(({ city, point, labelOffsetX, labelOffsetY }) => {
                 const selected = city.cityId === selectedCityId;
-                const visualRadius = selected ? 18 : 16;
                 const hitRadius = 28;
-                const fill = selected ? markerColors.fillSelected : markerColors.fill;
+                const segments = cityStatusSegments(city);
+                const dominant = dominantCityStatus(city);
                 return (
                   <g
                     key={city.cityId}
@@ -241,25 +336,24 @@ export default function SaecSouthAfricaMap({
                       className="cursor-pointer"
                       onClick={() => onSelectCity(city.cityId)}
                     />
-                    <circle
-                      r={visualRadius}
-                      fill={fill}
-                      stroke={markerColors.stroke}
-                      strokeWidth={selected ? 2.5 : 2}
-                      opacity={0.92}
-                      className="pointer-events-none"
+                    <CityStatusDonut
+                      cx={0}
+                      cy={0}
+                      segments={segments}
+                      selected={selected}
+                      dominant={dominant}
                     />
                     <text
                       y={1}
                       textAnchor="middle"
                       fill="#ffffff"
                       className="pointer-events-none"
-                      style={{ fontSize: 11, fontWeight: 700 }}
+                      style={{ fontSize: 10, fontWeight: 700 }}
                     >
                       {city.total}
                     </text>
                     <text
-                      y={labelOffsetY + 14}
+                      y={labelOffsetY + 16}
                       x={labelOffsetX}
                       textAnchor="middle"
                       fill="#1e293b"

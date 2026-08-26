@@ -127,6 +127,44 @@ export default function SaecInstallationAssetRegister({
     setOpenServiceFilter(filter === "open-service");
   }, [searchParams]);
 
+  const activeFilters = useMemo(() => {
+    const labels: string[] = [];
+    if (openServiceFilter) labels.push("Open service assignments");
+    if (statusFilter === "online") labels.push("Online only");
+    if (statusFilter === "offline") labels.push("Offline only");
+    if (statusFilter === "maintenance") labels.push("Maintenance status");
+    if (maintenanceFilter === "due") labels.push("Maintenance due");
+    if (maintenanceFilter === "overdue") labels.push("Overdue maintenance");
+    if (maintenanceFilter === "scheduled") labels.push("Scheduled maintenance");
+    if (maintenanceFilter === "ok") labels.push("Maintenance OK");
+    if (cityFilter !== "all") {
+      const city = SAEC_INSTALLATION_CITIES.find((row) => row.id === cityFilter);
+      labels.push(city ? `City: ${city.label}` : "Filtered city");
+    }
+    return labels;
+  }, [openServiceFilter, statusFilter, maintenanceFilter, cityFilter]);
+
+  function clearUrlFilters() {
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("status");
+    params.delete("maintenance");
+    params.delete("filter");
+    params.delete("city");
+    const query = params.toString();
+    window.location.assign(query ? `/dashboard?${query}` : "/dashboard");
+  }
+
+  function clearLocalFilters() {
+    setStatusFilter("all");
+    setMaintenanceFilter("all");
+    setCityFilter("all");
+    setModelFilter("all");
+    setEngineerFilter("all");
+    setContractFilter("all");
+    setOpenServiceFilter(false);
+    setSearch("");
+  }
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return assets.filter((asset) => {
@@ -328,6 +366,37 @@ export default function SaecInstallationAssetRegister({
         </div>
       </section>
 
+      {activeFilters.length > 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-sky-400/25 bg-sky-500/10 px-4 py-3 text-sm text-sky-100">
+          <div>
+            <p className="font-semibold text-white">
+              Filtered view — {filtered.length.toLocaleString("en-ZA")}{" "}
+              {assetType === "elevator" ? "elevator" : "escalator"}
+              {filtered.length === 1 ? "" : "s"}
+            </p>
+            <p className="mt-0.5 text-xs text-sky-100/75">{activeFilters.join(" · ")}</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                clearLocalFilters();
+                clearUrlFilters();
+              }}
+              className="rounded-lg border border-white/15 px-3 py-1.5 text-xs font-semibold text-white/80 hover:bg-white/5"
+            >
+              Clear filters
+            </button>
+            <a
+              href={`/dashboard?view=${assetType === "elevator" ? "saec-installations-dashboard" : "saec-installations-dashboard"}`}
+              className="rounded-lg border border-sky-400/30 bg-sky-500/15 px-3 py-1.5 text-xs font-semibold text-sky-100"
+            >
+              Back to dashboard
+            </a>
+          </div>
+        </div>
+      )}
+
       {error && (
         <div className="rounded-xl border border-red-400/25 bg-red-500/10 px-4 py-3 text-sm text-red-100">
           {error}
@@ -357,6 +426,13 @@ export default function SaecInstallationAssetRegister({
                 </tr>
               </thead>
               <tbody>
+                {filtered.length === 0 && (
+                  <tr>
+                    <td colSpan={9} className="px-3 py-8 text-center text-sm text-white/45">
+                      No installations match the current filters.
+                    </td>
+                  </tr>
+                )}
                 {filtered.slice(0, 120).map((asset) => (
                   <tr
                     key={asset.id}
@@ -370,7 +446,9 @@ export default function SaecInstallationAssetRegister({
                     <td className="px-3 py-2 text-white/80">{asset.siteName}</td>
                     <td className="px-3 py-2 text-white/65">{asset.model}</td>
                     <td className="px-3 py-2 text-white/65">{asset.cityLabel}</td>
-                    <td className="px-3 py-2 capitalize text-white/65">{asset.status}</td>
+                    <td className="px-3 py-2">
+                      <StatusBadge status={asset.status} maintenanceStatus={asset.maintenanceStatus} />
+                    </td>
                     <td className="px-3 py-2 text-white/65">{asset.assignedEngineerName ?? "—"}</td>
                     <td className="px-3 py-2 text-white/65">{asset.nextMaintenanceDate ?? "—"}</td>
                     <td className="px-3 py-2 capitalize text-white/65">{asset.contractStatus}</td>
@@ -511,6 +589,38 @@ export default function SaecInstallationAssetRegister({
         </div>
       )}
     </div>
+  );
+}
+
+function StatusBadge({
+  status,
+  maintenanceStatus,
+}: {
+  status: SaecInstallationAsset["status"];
+  maintenanceStatus: SaecInstallationAsset["maintenanceStatus"];
+}) {
+  const tone =
+    status === "offline"
+      ? "border-red-400/35 bg-red-500/15 text-red-100"
+      : status === "maintenance"
+        ? "border-amber-400/35 bg-amber-500/15 text-amber-100"
+        : maintenanceStatus === "due" || maintenanceStatus === "overdue"
+          ? "border-amber-400/25 bg-amber-500/10 text-amber-100"
+          : "border-emerald-400/35 bg-emerald-500/15 text-emerald-100";
+  const label =
+    status === "offline"
+      ? "Offline"
+      : status === "maintenance"
+        ? "Maintenance"
+        : maintenanceStatus === "overdue"
+          ? "Online · Overdue"
+          : maintenanceStatus === "due"
+            ? "Online · Due"
+            : "Online";
+  return (
+    <span className={cn("inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide", tone)}>
+      {label}
+    </span>
   );
 }
 

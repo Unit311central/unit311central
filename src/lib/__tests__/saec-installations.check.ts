@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 
 import { augmentSaecOperationsNav } from "@/lib/saec/installations-nav";
+import { cityStatusSegments } from "@/lib/saec/installations-map-status";
 import { assertSaecSeedTotals, buildSaecInstallationSeed } from "@/lib/saec/installations-seed";
 import { buildWorkspaceProductNavSections } from "@/lib/platform-workspaces/workspace-product-nav";
 import {
@@ -32,5 +33,23 @@ const nav = buildWorkspaceProductNavSections({
 });
 const operations = nav.find((section) => section.label === "Operations");
 assert.ok(operations?.items.some((item) => item.label === "Installations"));
+
+const sampleCity = {
+  cityId: "johannesburg" as const,
+  cityLabel: "Johannesburg",
+  latitude: -26.2,
+  longitude: 28.04,
+  total: 10,
+  online: 7,
+  offline: 2,
+  maintenanceDue: 3,
+  overdue: 1,
+  engineersAssigned: 2,
+  engineersOnRoad: 1,
+  sites: [],
+  recentAssets: [],
+};
+const segments = cityStatusSegments(sampleCity);
+assert.equal(segments.reduce((sum, row) => sum + row.value, 0), 10);
 
 console.log("saec-installations.check.ts: all assertions passed");
