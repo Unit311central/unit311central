@@ -10,7 +10,7 @@ Checks **critical** components only:
 
 1. Application runtime (handler is responding).
 2. Supabase API reachability (configured URL responds).
-3. Database connectivity (lightweight `select 1`, or REST read against `workspaces` limit 1).
+3. Database connectivity (Supabase Management API / Postgres `select 1`, or REST read against `workspaces` limit 1).
 
 Response is intentionally minimal:
 
