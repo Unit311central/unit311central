@@ -1068,6 +1068,8 @@ export default function InternalOperationsDashboard({
               <OnwardAirBoardMeetingsWorkspace />
             ) : isBrowserDemoSurface() ? (
               <NorthstarBoardMeetingsWorkspace />
+            ) : isBrowserSaecSurface() ? (
+              <BoardGovernanceWorkspace section="meetings" />
             ) : (
               <BoardMeetingsWorkspace />
             ))}

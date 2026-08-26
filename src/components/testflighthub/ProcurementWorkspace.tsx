@@ -67,6 +67,7 @@ import {
   uid,
 } from "@/lib/procurement-mock-store";
 import { isBrowserOnwardAirSurface } from "@/lib/onwardair-surface";
+import { isBrowserSaecSurface } from "@/lib/saec-surface";
 import { downloadPurchaseOrderPdf } from "@/lib/procurement-pdf-service";
 import { cn } from "@/lib/utils";
 import { useProcurementMockStore } from "./useProcurementMockStore";
@@ -105,7 +106,8 @@ const AI_KIND_LABELS: Record<string, string> = {
 };
 
 const IS_OA = typeof window !== "undefined" && isBrowserOnwardAirSurface();
-const DEFAULT_CURRENCY = IS_OA ? "USD" : "EUR";
+const IS_SAEC = typeof window !== "undefined" && isBrowserSaecSurface();
+const DEFAULT_CURRENCY = IS_OA ? "USD" : IS_SAEC ? "ZAR" : "EUR";
 const DEFAULT_TAX_PCT = IS_OA ? 8.25 : 21;
 const DEFAULT_COST_CENTRE = IS_OA ? "OPS-HOU" : "OPS-BCN";
 const DEFAULT_DELIVERY = IS_OA

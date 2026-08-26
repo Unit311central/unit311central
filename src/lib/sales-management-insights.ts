@@ -8,7 +8,7 @@ import {
 
 export type SalesManagementCrmVariant = "default" | "prospects" | "opportunities";
 
-export type SalesReportingCurrency = Extract<ReportingCurrency, "AUD" | "GBP" | "USD">;
+export type SalesReportingCurrency = Extract<ReportingCurrency, "AUD" | "GBP" | "USD" | "ZAR">;
 
 export function salesReportingCurrency(workspaceSlug?: string | null): SalesReportingCurrency {
   if (workspaceSlug) {
@@ -18,6 +18,16 @@ export function salesReportingCurrency(workspaceSlug?: string | null): SalesRepo
     return resolveBrowserReportingCurrency() as SalesReportingCurrency;
   }
   return "USD";
+}
+
+export function resolveSalesUiCurrency(currency?: string | null): SalesReportingCurrency {
+  const normalized = String(currency ?? "")
+    .trim()
+    .toUpperCase();
+  if (normalized === "AUD" || normalized === "GBP" || normalized === "USD" || normalized === "ZAR") {
+    return normalized;
+  }
+  return salesReportingCurrency();
 }
 
 /** Default win probability when crm_leads.win_probability is null. */
@@ -47,7 +57,14 @@ export function resolveLeadWinProbability(lead: CrmLead): number {
 }
 
 export function formatSalesMoney(amount: number, currency = salesReportingCurrency()): string {
-  const locale = currency === "AUD" ? "en-AU" : "en-GB";
+  const locale =
+    currency === "AUD"
+      ? "en-AU"
+      : currency === "ZAR"
+        ? "en-ZA"
+        : currency === "USD"
+          ? "en-US"
+          : "en-GB";
   return new Intl.NumberFormat(locale, {
     style: "currency",
     currency,
