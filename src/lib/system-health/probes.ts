@@ -31,18 +31,6 @@ async function probeDatabaseViaRest(): Promise<boolean> {
   }
 }
 
-async function probeDatabaseViaManagementOrPg(): Promise<boolean> {
-  const row = await queryScalarViaManagementApi<{ health_ok?: number }>(
-    "select 1 as health_ok",
-  );
-  if (row?.health_ok === 1) return true;
-
-  const pgOk = await withResolvedDatabaseClient(async (client) => {
-    const result = await client.query("select 1 as health_ok");
-    return result.rows[0]?.health_ok === 1;
-  });
-  return pgOk === true;
-}
 
 async function isSupabaseApiReachable(url: string, anonKey: string): Promise<boolean> {
   const base = url.replace(/\/$/, "");
@@ -92,7 +80,13 @@ export async function probeDatabase(): Promise<HealthComponentReport> {
     };
   }
 
-  if (await probeDatabaseViaRest()) {
+  const viaApi = await queryScalarViaManagementApi<{ workspaces?: boolean }>(
+    `select exists (
+      select 1 from information_schema.tables
+      where table_schema = 'public' and table_name = 'workspaces'
+    ) as workspaces`,
+  );
+  if (viaApi?.workspaces === true) {
     return okReport({
       id: "database",
       label: "Database",
@@ -101,7 +95,25 @@ export async function probeDatabase(): Promise<HealthComponentReport> {
     });
   }
 
-  if (await probeDatabaseViaManagementOrPg()) {
+  const viaDb = await withResolvedDatabaseClient(async (client) => {
+    const result = await client.query<{ workspaces: boolean }>(
+      `select exists (
+        select 1 from information_schema.tables
+        where table_schema = 'public' and table_name = 'workspaces'
+      ) as workspaces`,
+    );
+    return result.rows[0]?.workspaces === true;
+  });
+  if (viaDb) {
+    return okReport({
+      id: "database",
+      label: "Database",
+      critical: true,
+      detail: "PostgreSQL connectivity confirmed",
+    });
+  }
+
+  if (await probeDatabaseViaRest()) {
     return okReport({
       id: "database",
       label: "Database",
@@ -140,6 +152,22 @@ export async function probeSupabase(): Promise<HealthComponentReport> {
         label: "Supabase",
         critical: true,
         detail: "Supabase API reachable",
+      });
+    }
+
+    // Management API / Postgres DB probes succeeded — Supabase platform is operational.
+    const viaApi = await queryScalarViaManagementApi<{ workspaces?: boolean }>(
+      `select exists (
+        select 1 from information_schema.tables
+        where table_schema = 'public' and table_name = 'workspaces'
+      ) as workspaces`,
+    );
+    if (viaApi?.workspaces === true) {
+      return okReport({
+        id: "supabase",
+        label: "Supabase",
+        critical: true,
+        detail: "Supabase platform operational",
       });
     }
 
