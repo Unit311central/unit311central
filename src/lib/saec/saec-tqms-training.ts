@@ -123,7 +123,7 @@ export function applySaecTqmsSeed(base: TqmsMockState): TqmsMockState {
       {
         id: "saec-tqms-act",
         at: new Date().toISOString(),
-        label: "SAEC training & QMS loaded",
+        label: "OmniTransit training & QMS loaded",
         detail: "Elevator/escalator courses and quality procedures.",
       },
       ...base.activity.slice(0, 4),

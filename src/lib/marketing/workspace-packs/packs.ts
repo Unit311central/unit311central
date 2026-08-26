@@ -72,7 +72,7 @@ export const internalMarketingPack = centralPlatformPack("internal", "Unit311 In
 /** Northstar Demo uses the same central marketing renderers as Internal — not Talanton/ABHI packs. */
 export const demoMarketingPack = centralPlatformPack("demo", "Northstar Demo");
 
-export const saecMarketingPack = centralPlatformPack("saec", "SAEC");
+export const saecMarketingPack = centralPlatformPack("saec", "OmniTransit");
 
 export const onwardAirMarketingPack: MarketingWorkspacePack = {
   id: "onwardair",

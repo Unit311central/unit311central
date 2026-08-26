@@ -55,3 +55,15 @@ export async function shouldUseOnwardAirBankSimulator(): Promise<boolean> {
     return false;
   }
 }
+
+/** OmniTransit (SAEC slug) Finance → Bank uses a ZAR read-only simulator. */
+export async function shouldUseOmniTransitBankSimulator(): Promise<boolean> {
+  try {
+    const { getCurrentWorkspace } = await import("@/lib/workspace-context");
+    const workspace = await getCurrentWorkspace();
+    const { isOmniTransitBankWorkspaceSlug } = await import("@/lib/treasury/bank-provider");
+    return isOmniTransitBankWorkspaceSlug(workspace?.slug ?? null);
+  } catch {
+    return false;
+  }
+}

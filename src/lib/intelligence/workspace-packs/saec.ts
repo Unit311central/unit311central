@@ -18,7 +18,7 @@ const SAEC_SOURCES = [
     id: "saec-src-ops",
     workspaceSlug: SLUG,
     domainId: "company-intelligence",
-    name: "SAEC operations",
+    name: "OmniTransit operations",
     kind: "ops_derived" as const,
     refreshCadence: "P1D",
     description: "Installations, maintenance SLAs, and project delivery signals.",
@@ -75,7 +75,7 @@ function companyProvider(): IntelligenceDomainProvider {
       return saecCompanyIntelligenceRecords().find((row) => row.id === recordId) ?? null;
     },
     async buildBriefing(ctx) {
-      return briefingFromSections(ctx.workspaceSlug, "company-intelligence", "SAEC company intelligence", [
+      return briefingFromSections(ctx.workspaceSlug, "company-intelligence", "OmniTransit company intelligence", [
         {
           id: "operations",
           title: "Operational highlights",
@@ -103,7 +103,7 @@ function clientProvider(): IntelligenceDomainProvider {
       return saecClientIntelligenceRecords().find((row) => row.id === recordId) ?? null;
     },
     async buildBriefing(ctx) {
-      return briefingFromSections(ctx.workspaceSlug, "client-intelligence", "SAEC client intelligence", [
+      return briefingFromSections(ctx.workspaceSlug, "client-intelligence", "OmniTransit client intelligence", [
         {
           id: "portfolio",
           title: "Key accounts",
@@ -145,13 +145,13 @@ function marketProvider(): IntelligenceDomainProvider {
 export const saecIntelligencePack: IntelligenceWorkspacePackRegistration = {
   id: "saec-intelligence",
   slug: SLUG,
-  label: "SAEC Intelligence",
+  label: "OmniTransit Intelligence",
   hostSurface: "customer",
   domains: [
     {
       id: "company-intelligence",
       label: "Company Intelligence",
-      description: "SAEC operational and performance intelligence.",
+      description: "OmniTransit operational and performance intelligence.",
       navViews: ["demo-company-intelligence"],
       providerId: "saec.company-intelligence",
     },

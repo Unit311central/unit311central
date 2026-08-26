@@ -44,7 +44,7 @@ import {
 } from "@/lib/ai-operating-assistant/workspace-packs/client-pack-ui";
 import { saveFileToFolderPath } from "@/lib/pdf-file-storage";
 import { cn } from "@/lib/utils";
-import { resolveBrowserWorkspaceProductName } from "@/lib/workspace-brand";
+import { resolveBrowserWorkspaceAssistantButtonLabel, resolveBrowserWorkspaceProductName } from "@/lib/workspace-brand";
 import {
   fetchCachedJson,
   invalidateCachedJson,
@@ -250,8 +250,7 @@ export default function ExecutiveAssistantPanel({
     typeof window !== "undefined" ? workspacePackSupportsBoardPack() : false;
   const [assistantTitle, setAssistantTitle] = useState("Executive Assistant");
   useLayoutEffect(() => {
-    const name = resolveBrowserWorkspaceProductName().trim();
-    setAssistantTitle(name ? `${name} Executive Assistant` : "Executive Assistant");
+    setAssistantTitle(resolveBrowserWorkspaceAssistantButtonLabel());
   }, []);
   const abortRef = useRef<AbortController | null>(null);
   const threadRef = useRef<HTMLDivElement | null>(null);

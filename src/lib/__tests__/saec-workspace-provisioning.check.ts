@@ -27,8 +27,8 @@ test("SAEC uses full central catalogue minus Grants submodule", () => {
 
   const fullSubCount = defaultEnabledSubModules(WORKSPACE_MODULE_IDS).length;
   const saecSubs = saecEnabledSubModules();
-  assert.equal(fullSubCount, 157);
-  assert.equal(saecSubs.length, 156);
+  assert.equal(fullSubCount, 158);
+  assert.equal(saecSubs.length, fullSubCount - SAEC_EXCLUDED_SUBMODULE_KEYS.length);
   assert.equal(SAEC_EXCLUDED_SUBMODULE_KEYS.length, 1);
   assert.equal(SAEC_EXCLUDED_SUBMODULE_KEYS[0], "business-central:grants");
   assert.equal(saecSubs.includes("business-central:grants"), false);

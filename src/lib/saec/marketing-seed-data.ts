@@ -4,7 +4,7 @@ export const SAEC_MARKETING_NEWSLETTERS = [
   {
     id: "saec-nl-001",
     title: "August mall modernisation update",
-    subject: "SAEC — Centurion & Killarney programme progress",
+    subject: "OmniTransit — Centurion & Killarney programme progress",
     preview: "Commissioning milestones, safety briefings, and client spotlight.",
     status: "sent",
     audience: "Property & retail clients",
@@ -78,7 +78,7 @@ export const SAEC_EXTERNAL_EVENTS = [
 export const SAEC_MANAGED_EVENTS = [
   {
     id: "saec-me-001",
-    name: "SAEC client technical briefing — KLK range",
+    name: "OmniTransit client technical briefing — KLK range",
     venue: "Johannesburg HQ auditorium",
     date: "2026-09-05",
     capacity: 48,

@@ -2,6 +2,7 @@ import { createTenancyServerClient } from "@/lib/supabase/tenancy-server";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
 import { normalizeCustomerHostname } from "@/lib/platform-workspaces/workspace-hostname";
 import { canonicalizeOnwardAirSlug } from "@/lib/onwardair-surface";
+import { canonicalizeSaecWorkspaceSlug } from "@/lib/saec-surface";
 import { canonicalizeTalantonImpactSlug } from "@/lib/talanton-surface";
 
 export type WorkspaceHostAliasRecord = {
@@ -136,6 +137,9 @@ export function canonicalizeWorkspaceHostSubdomain(
   const raw = subdomain.trim().toLowerCase();
   if (!raw) return raw;
   const codeAlias =
-    canonicalizeOnwardAirSlug(raw) ?? canonicalizeTalantonImpactSlug(raw) ?? null;
+    canonicalizeOnwardAirSlug(raw) ??
+    canonicalizeTalantonImpactSlug(raw) ??
+    canonicalizeSaecWorkspaceSlug(raw) ??
+    null;
   return codeAlias ?? dbResolvedSlug ?? raw;
 }

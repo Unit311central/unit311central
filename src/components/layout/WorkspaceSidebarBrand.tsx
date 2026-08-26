@@ -182,7 +182,7 @@ export default function WorkspaceSidebarBrand({
             : brand === "interfaceworx"
               ? "Interface Worx home"
             : brand === "saec"
-              ? "SAEC home"
+              ? "OmniTransit home"
             : brand === "northstar"
               ? "Northstar Industrial Technologies home"
               : brand === "customer"

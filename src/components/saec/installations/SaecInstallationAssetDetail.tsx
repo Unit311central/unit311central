@@ -143,7 +143,7 @@ export default function SaecInstallationAssetDetail({
           <Row label="Current assignment" value={asset.assetCode} />
           <Row label="Location" value={asset.cityLabel} />
           <p className="text-[11px] text-white/35">
-            Linked to SAEC HR / Engineering roster (demo employees).
+            Linked to OmniTransit HR / Engineering roster (demo employees).
           </p>
         </div>
       )}

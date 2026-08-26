@@ -22,7 +22,7 @@ export function buildSaecExecutiveHomeKpis(): DashboardKpiItem[] {
       value: String(SAEC_DEMO_ELEVATORS),
       delta: "Installed base",
       tone: "neutral",
-      hint: "Elevator installations under SAEC management",
+      hint: "Elevator installations under OmniTransit management",
     },
     {
       id: "escalators",

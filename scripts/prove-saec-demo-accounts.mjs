@@ -4,14 +4,14 @@
  */
 import assert from "node:assert/strict";
 
-const ORIGIN = "https://saec.unit311central.com";
+const ORIGIN = "https://omnitransit.unit311central.com";
 const DEMO_ORIGIN = "https://demo.unit311central.com";
 const IFW_ORIGIN = "https://interfaceworx.unit311central.com";
 const PASSWORD = process.env.SAEC_DEMO_PASSWORD ?? "";
 
 const ACCOUNTS = [
-  { email: "admin@saec.biz", label: "admin@saec.biz" },
-  { email: "demo@saec.biz", label: "demo@saec.biz" },
+  { email: "admin@omnitransit.com", label: "admin@omnitransit.com" },
+  { email: "demo@omnitransit.com", label: "demo@omnitransit.com" },
 ];
 
 const MODULE_VIEWS = [

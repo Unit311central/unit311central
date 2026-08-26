@@ -30,7 +30,7 @@ export function listSaecFixtureInvoices(): LedgerInvoice[] {
     const overdue = index < 2;
     return {
       id: `saec-inv-open-${index + 1}`,
-      invoiceNumber: `SAEC-2026-${String(880 - index).padStart(4, "0")}`,
+      invoiceNumber: `OMT-2026-${String(880 - index).padStart(4, "0")}`,
       clientId: client.id,
       clientName: client.name,
       organisationId: null,
@@ -57,7 +57,7 @@ export function listSaecFixtureInvoices(): LedgerInvoice[] {
   const paid: LedgerInvoice[] = [
     {
       id: "saec-inv-paid-1",
-      invoiceNumber: "SAEC-2026-0860",
+      invoiceNumber: "OMT-2026-0860",
       clientId: "saec-cli-emperors",
       clientName: "Emperors Palace",
       organisationId: null,
@@ -67,7 +67,7 @@ export function listSaecFixtureInvoices(): LedgerInvoice[] {
       currency: CURRENCY,
       amount: 1_850_000,
       status: "paid",
-      paymentReference: "SAEC-0860",
+      paymentReference: "OMT-0860",
       pdfPath: null,
       journalEntryId: "saec-je-rev-2026-06",
       paymentJournalEntryId: "saec-je-pay-0860",

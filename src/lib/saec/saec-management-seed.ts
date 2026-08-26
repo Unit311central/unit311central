@@ -10,7 +10,7 @@ export const SAEC_MANAGEMENT_MEETINGS: ManagementMeetingPlaceholder[] = [
     name: "Weekly executive operating review",
     schedule: "Tuesday 08:30 · 75 minutes · Johannesburg HQ boardroom",
     participants: ["CEO", "CFO", "COO", "CTO", "Head of Sales", "HR", "Engineering lead"],
-    functionPackLabel: "August 2026 SAEC operating cycle",
+    functionPackLabel: "August 2026 OmniTransit operating cycle",
     packsReady: 6,
     packsTotal: 7,
     readiness: [

@@ -132,13 +132,13 @@ const SAEC_SNAPSHOT: ProductivitySnapshot = {
     resolvedToday: 4,
     critical: 1,
     items: [
-      { id: "TK-SAEC-42", title: "Escalator fault — Killarney Mall", status: "Critical" },
-      { id: "TK-SAEC-38", title: "Lift inspection certificate upload", status: "Waiting" },
-      { id: "TK-SAEC-35", title: "Brooklyn Mall service callback", status: "Open" },
+      { id: "TK-OMT-42", title: "Escalator fault — Killarney Mall", status: "Critical" },
+      { id: "TK-OMT-38", title: "Lift inspection certificate upload", status: "Waiting" },
+      { id: "TK-OMT-35", title: "Brooklyn Mall service callback", status: "Open" },
     ],
   },
   social: [
-    { network: "LinkedIn", text: "SAEC mall modernisation post — 890 impressions.", time: "Today" },
+    { network: "LinkedIn", text: "OmniTransit mall modernisation post — 890 impressions.", time: "Today" },
     { network: "Facebook", text: "V&A Waterfront case study scheduled.", time: "Yesterday" },
   ],
   approvals: [

@@ -151,7 +151,7 @@ export function buildSaecProcurementState(): ProcurementMockState {
   const requisitions: PurchaseRequisition[] = [
     {
       id: "saec-req-1",
-      requestNumber: "PR-2026-SAEC-104",
+      requestNumber: "PR-2026-OMT-104",
       requestDate: isoDaysFromNow(-4),
       requestedBy: "Pieter van der Merwe",
       department: "Engineering",
@@ -201,7 +201,7 @@ export function buildSaecProcurementState(): ProcurementMockState {
   const purchaseOrders: PurchaseOrder[] = [
     {
       id: "saec-po-1",
-      poNumber: "PO-2026-SAEC-088",
+      poNumber: "PO-2026-OMT-088",
       supplierId: "saec-sup-wire",
       supplierName: "WireCo Southern Africa (demo)",
       supplierContact: "Lindiwe Maseko <l.maseko@wireco.demo>",

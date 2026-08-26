@@ -4,9 +4,9 @@
  */
 import assert from "node:assert/strict";
 
-const ORIGIN = "https://saec.unit311central.com";
+const ORIGIN = "https://omnitransit.unit311central.com";
 const PASSWORD = process.env.SAEC_DEMO_PASSWORD ?? "";
-const USER = process.env.SAEC_DEMO_USERNAME ?? "admin@saec.biz";
+const USER = process.env.SAEC_DEMO_USERNAME ?? "admin@omnitransit.com";
 
 const LEGACY_MARKERS = [
   "Northstar Industrial",

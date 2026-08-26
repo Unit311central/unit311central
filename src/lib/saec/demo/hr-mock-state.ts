@@ -210,7 +210,7 @@ export function buildSaecHrMockState(): HrMockState {
       {
         id: uid("saec-hr-act"),
         at: isoDaysFromNow(0),
-        label: "SAEC HR dataset loaded",
+        label: "OmniTransit HR dataset loaded",
         detail: "Demonstration employees and recruitment pipeline.",
       },
     ],
