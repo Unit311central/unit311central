@@ -107,7 +107,7 @@ function clientNames(): string[] {
 }
 
 function employeeNames(): string[] {
-  return buildNorthstarDemoUsers().map((u) => (u.displayName ?? u.username ?? "").toLowerCase()).filter(Boolean);
+  return buildNorthstarDemoUsers().map((u) => (u.fullName ?? u.username ?? "").toLowerCase()).filter(Boolean);
 }
 
 export function detectDemoMissingEntityQuestion(message: string): string | null {

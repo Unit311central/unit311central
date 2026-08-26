@@ -255,7 +255,7 @@ export async function runDemoEaTestSuite(): Promise<EaTestSuiteReport> {
   await phase3.run("sales-management module executes as sales not intelligence", async () => {
     const result = await queryNorthstarModuleTool(
       { module: "sales-management", question: "How are sales doing?" },
-      { business, userId: business.user.id },
+      { business },
     );
     const prose = String((result.items?.[0] as { prose?: string })?.prose ?? result.summary?.message ?? "");
     if (/intelligence posture/i.test(prose)) {
