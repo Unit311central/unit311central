@@ -1,19 +1,19 @@
 {
-  "name": "bcn-drone-center-mobile",
+  "name": "unit311-central-mobile",
   "version": "0.1.0",
   "private": true,
-  "description": "Capacitor shell for internal.unit311central.com (Unit311 Central production)",
+  "description": "Capacitor shell for Unit311 Central (workspace login on unit311central.com)",
   "scripts": {
     "sync": "cap sync",
     "open:android": "cap open android",
-    "build:android": "cap sync android && cd android && ./gradlew assembleDebug"
+    "build:android": "cap sync android && cd android && node -e \"require('child_process').execSync(process.platform==='win32'?'gradlew.bat assembleDebug':'./gradlew assembleDebug',{stdio:'inherit',shell:true})\""
   },
   "dependencies": {
-    "@capacitor/android": "^7.0.1",
-    "@capacitor/core": "^7.0.1"
+    "@capacitor/android": "^6.2.1",
+    "@capacitor/core": "^6.2.1"
   },
   "devDependencies": {
-    "@capacitor/cli": "^7.0.1",
+    "@capacitor/cli": "^6.2.1",
     "typescript": "^5"
   }
 }

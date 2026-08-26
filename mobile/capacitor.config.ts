@@ -5,7 +5,7 @@ const config: CapacitorConfig = {
   appName: "Unit311 Central",
   webDir: "www",
   server: {
-    url: "https://internal.unit311central.com",
+    url: "https://unit311central.com/login",
     cleartext: false,
     androidScheme: "https",
   },
