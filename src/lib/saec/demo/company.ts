@@ -1,12 +1,18 @@
-import { SAEC_COMPANY_NAME, SAEC_COUNTRY, SAEC_REPORTING_CURRENCY } from "@/lib/saec-surface";
+import {
+  OMNITRANSIT_DISPLAY_NAME,
+  SAEC_COMPANY_NAME,
+  SAEC_COUNTRY,
+  SAEC_REPORTING_CURRENCY,
+} from "@/lib/saec-surface";
 
-export const SAEC_LEGAL_NAME = "South African Elevator Company";
+export const SAEC_LEGAL_NAME = "OmniTransit Group";
 export const SAEC_ABBREVIATION = SAEC_COMPANY_NAME;
+export const OMNITRANSIT_LEGAL_NAME = SAEC_LEGAL_NAME;
 export const SAEC_PRIMARY_CURRENCY = SAEC_REPORTING_CURRENCY;
 
 export const SAEC_HEAD_OFFICE = {
   id: "saec-office-pretoria-hq",
-  name: "SAEC Head Office",
+  name: "OmniTransit Head Office",
   addressLine: "Waterkloof Golf Club, Eclipse Road",
   city: "Pretoria",
   region: "Gauteng",
@@ -15,7 +21,7 @@ export const SAEC_HEAD_OFFICE = {
   timezone: "Africa/Johannesburg",
 } as const;
 
-/** Historical seed round — original USD; display in ZAR on SAEC surfaces. */
+/** Historical seed round — original USD; display in ZAR on OmniTransit surfaces. */
 export const SAEC_HISTORICAL_SEED_ROUND = {
   label: "Seed round (closed)",
   closedYearsAgo: 5,
@@ -27,3 +33,5 @@ export const SAEC_HISTORICAL_SEED_ROUND = {
 
 export const SAEC_DEMO_INVESTOR_COUNT = 5;
 export const SAEC_DEMO_EMPLOYEE_TARGET = 50;
+
+export const OMNITRANSIT_DISPLAY_NAME_EXPORT = OMNITRANSIT_DISPLAY_NAME;

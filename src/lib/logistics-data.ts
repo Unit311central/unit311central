@@ -344,6 +344,17 @@ function isAbhiLogisticsSurface() {
   }
 }
 
+function isOmniTransitLogisticsSurface() {
+  if (typeof window === "undefined") return false;
+  try {
+    const { isBrowserSaecSurface } =
+      require("@/lib/saec-surface") as typeof import("@/lib/saec-surface");
+    return isBrowserSaecSurface();
+  } catch {
+    return false;
+  }
+}
+
 function isTalantonLogisticsSurface() {
   if (typeof window === "undefined") return false;
   try {
@@ -658,6 +669,11 @@ export function getLogisticsMockShipments(): LogisticsShipment[] {
       require("@/lib/onwardair/operations-data") as typeof import("@/lib/onwardair/operations-data");
     return ONWARDAIR_LOGISTICS_SHIPMENTS;
   }
+  if (isOmniTransitLogisticsSurface()) {
+    const { OMNITRANSIT_LOGISTICS_SHIPMENTS } =
+      require("@/lib/saec/omnitransit-logistics-data") as typeof import("@/lib/saec/omnitransit-logistics-data");
+    return OMNITRANSIT_LOGISTICS_SHIPMENTS;
+  }
   if (isAbhiLogisticsSurface()) return ABHI_LOGISTICS_SHIPMENTS;
   if (isTalantonLogisticsSurface()) return TALANTON_LOGISTICS_SHIPMENTS;
   if (isCorpCentreLogisticsSurface()) return CORPCENTRE_LOGISTICS_SHIPMENTS;
@@ -670,6 +686,11 @@ export function getFeaturedLogisticsRoute(): FeaturedRouteSnapshot {
       require("@/lib/onwardair/operations-data") as typeof import("@/lib/onwardair/operations-data");
     return FEATURED_HOUSTON_ROUTE;
   }
+  if (isOmniTransitLogisticsSurface()) {
+    const { FEATURED_OMNITRANSIT_ROUTE } =
+      require("@/lib/saec/omnitransit-logistics-data") as typeof import("@/lib/saec/omnitransit-logistics-data");
+    return FEATURED_OMNITRANSIT_ROUTE;
+  }
   if (isAbhiLogisticsSurface()) return FEATURED_LONDON_CAMBRIDGE_ROUTE;
   if (isTalantonLogisticsSurface()) return FEATURED_NAIROBI_NEWYORK_ROUTE;
   return isDemoLogisticsSurface() ? FEATURED_LONDON_NEW_YORK_ROUTE : FEATURED_BARCELONA_LONDON_ROUTE;
@@ -677,6 +698,7 @@ export function getFeaturedLogisticsRoute(): FeaturedRouteSnapshot {
 
 export function getLogisticsBrandName() {
   if (isOnwardAirLogisticsSurface()) return "OnwardAir Logistics";
+  if (isOmniTransitLogisticsSurface()) return "OmniTransit Logistics";
   if (isAbhiLogisticsSurface()) return "ABHI Logistics";
   if (isTalantonLogisticsSurface()) return "Talanton Logistics";
   if (isDemoLogisticsSurface()) {

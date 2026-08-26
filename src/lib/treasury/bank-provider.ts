@@ -5,6 +5,7 @@
 
 import { demoWorkspaceSlug } from "@/lib/runtime-surface";
 import { isOnwardAirSlug } from "@/lib/onwardair-surface";
+import { isSaecSlug } from "@/lib/saec-surface";
 import { INTERNAL_WORKSPACE_SLUG } from "@/lib/workspace-host";
 
 export function isDemoWiseWorkspaceSlug(slug: string | null | undefined): boolean {
@@ -21,11 +22,16 @@ export function isOnwardAirBankWorkspaceSlug(slug: string | null | undefined): b
   return isOnwardAirSlug(slug);
 }
 
+export function isOmniTransitBankWorkspaceSlug(slug: string | null | undefined): boolean {
+  return isSaecSlug(slug);
+}
+
 /** Workspaces allowed to use the Bank treasury UI (live or simulated). */
 export function isWiseTreasuryWorkspaceSlug(slug: string | null | undefined): boolean {
   return (
     isDemoWiseWorkspaceSlug(slug) ||
     isLiveWiseWorkspaceSlug(slug) ||
-    isOnwardAirBankWorkspaceSlug(slug)
+    isOnwardAirBankWorkspaceSlug(slug) ||
+    isOmniTransitBankWorkspaceSlug(slug)
   );
 }

@@ -51,6 +51,38 @@ export const ABHI_REP_COMMISSIONS: RepCommissionRow[] = [
   },
 ];
 
+/** OmniTransit (SAEC) partner commissions — ZAR amounts in amountEur field. */
+export const OMNITRANSIT_REP_COMMISSIONS: RepCommissionRow[] = [
+  {
+    repId: "rep-omt-1",
+    client: "Hyprop Investments",
+    period: "Aug 2026",
+    amountEur: 185_000,
+    status: "Paid",
+  },
+  {
+    repId: "rep-omt-1",
+    client: "Growthpoint Properties",
+    period: "Q3 2026",
+    amountEur: 142_500,
+    status: "Outstanding",
+  },
+  {
+    repId: "rep-omt-2",
+    client: "Redefine Properties",
+    period: "Jul 2026",
+    amountEur: 96_800,
+    status: "Upcoming",
+  },
+  {
+    repId: "rep-omt-3",
+    client: "Attacq Limited",
+    period: "Aug 2026",
+    amountEur: 78_400,
+    status: "Outstanding",
+  },
+];
+
 /** Northstar demo partners — amounts stored in amountEur field, displayed as GBP. */
 export const NORTHSTAR_REP_COMMISSIONS: RepCommissionRow[] = [
   {
@@ -110,6 +142,13 @@ function activeRepCommissions(): RepCommissionRow[] {
       const { isBrowserAbhiSurface } =
         require("@/lib/abhi-surface") as typeof import("@/lib/abhi-surface");
       if (isBrowserAbhiSurface()) return ABHI_REP_COMMISSIONS;
+    } catch {
+      // Fall through.
+    }
+    try {
+      const { isBrowserSaecSurface } =
+        require("@/lib/saec-surface") as typeof import("@/lib/saec-surface");
+      if (isBrowserSaecSurface()) return OMNITRANSIT_REP_COMMISSIONS;
     } catch {
       // Fall through.
     }

@@ -49,6 +49,11 @@ import { isOverviewPortalAccessAllowed, isFreshOverviewDocumentNavigation, isOve
 import { isOnwardAirSlug } from "@/lib/onwardair-surface";
 import { isTalantonImpactSlug, TALANTON_HOST_ALIAS_SLUG, TALANTON_IMPACT_SLUG } from "@/lib/talanton-surface";
 import {
+  OMNITRANSIT_HOST_ALIAS_SLUG,
+  SAEC_SLUG,
+  canonicalizeSaecWorkspaceSlug,
+} from "@/lib/saec-surface";
+import {
   matchDemoClientPortalPathname,
   PRIMARY_DEMO_CLIENT_PORTAL_SLUG,
 } from "@/lib/demo/demo-client-portal-routes";
@@ -281,11 +286,22 @@ export async function middleware(request: NextRequest) {
       );
     }
 
-    const headers = withHostHeaders(request, { workspaceSlug });
-    const workspaceOrigin = `https://${workspaceSlug}.${UNIT311_SITE_HOST}`;
+    // Canonical OmniTransit host is omnitransit.* (workspace slug remains saec).
+    if (workspaceSlug === SAEC_SLUG) {
+      return redirectExternal(
+        `https://${OMNITRANSIT_HOST_ALIAS_SLUG}.${UNIT311_SITE_HOST}${pathname === "/" ? "" : pathname}${search}`,
+      );
+    }
+
+    const resolvedWorkspaceSlug = canonicalizeSaecWorkspaceSlug(workspaceSlug) ?? workspaceSlug;
+    const publicHostSubdomain =
+      resolvedWorkspaceSlug === SAEC_SLUG ? OMNITRANSIT_HOST_ALIAS_SLUG : workspaceSlug;
+
+    const headers = withHostHeaders(request, { workspaceSlug: resolvedWorkspaceSlug });
+    const workspaceOrigin = `https://${publicHostSubdomain}.${UNIT311_SITE_HOST}`;
     const workspaceResponseHeaders = {
       "x-unit311-workspace": "1",
-      "x-unit311-workspace-slug": workspaceSlug,
+      "x-unit311-workspace-slug": resolvedWorkspaceSlug,
     };
 
     // OnwardAir: never expose /client-portal/* implementation URLs on the customer host.
@@ -308,7 +324,7 @@ export async function middleware(request: NextRequest) {
       const portalMatch = matchPortalPathnameForSlug(workspaceSlug, pathname);
       const portalImplBase = portalImplBaseForSlug(workspaceSlug);
       if (portalMatch && portalImplBase) {
-        const gate = await evaluateCustomerHostSessionGate(request, workspaceSlug);
+        const gate = await evaluateCustomerHostSessionGate(request, resolvedWorkspaceSlug);
         const isLoginRest =
           portalMatch.rest === "/login" || portalMatch.rest.startsWith("/login/");
 
@@ -492,7 +508,7 @@ export async function middleware(request: NextRequest) {
     // Talanton / ABHI externals may only use login/api/static + their assigned portal.
     // Apex `/` and `/login` are the organisation entry — never hijack into /{company}.
     if (isPortalWorkspaceSlug(workspaceSlug)) {
-      const externalGate = await evaluateCustomerHostSessionGate(request, workspaceSlug);
+      const externalGate = await evaluateCustomerHostSessionGate(request, resolvedWorkspaceSlug);
       if (externalGate.status === "ok" && externalGate.session.userType === "external") {
         const portalHome = canonicalizePortalRedirect(externalGate.session.redirectPath);
         const isPortalPath = matchPortalPathnameForSlug(workspaceSlug, pathname) != null;
@@ -540,7 +556,7 @@ export async function middleware(request: NextRequest) {
         }
       }
 
-      const gate = await evaluateCustomerHostSessionGate(request, workspaceSlug);
+      const gate = await evaluateCustomerHostSessionGate(request, resolvedWorkspaceSlug);
       const response = NextResponse.next({ request: { headers } });
 
       if (gate.status === "invalid" || gate.status === "forbidden") {
@@ -642,7 +658,7 @@ export async function middleware(request: NextRequest) {
         }
       }
 
-      const gate = await evaluateCustomerHostSessionGate(request, workspaceSlug);
+      const gate = await evaluateCustomerHostSessionGate(request, resolvedWorkspaceSlug);
       if (gate.status === "anonymous" || gate.status === "invalid") {
         const bounce = customerHostLoginRedirect(workspaceOrigin, "/testing");
         if (gate.status === "invalid") {
@@ -652,7 +668,7 @@ export async function middleware(request: NextRequest) {
       }
 
       if (gate.status === "workspace_missing") {
-        const gatewayPath = `${WORKSPACE_HOST_ROUTE_PREFIX}/${encodeURIComponent(workspaceSlug)}`;
+        const gatewayPath = `${WORKSPACE_HOST_ROUTE_PREFIX}/${encodeURIComponent(resolvedWorkspaceSlug)}`;
         return rewriteTo(request, gatewayPath, headers, workspaceResponseHeaders);
       }
 
@@ -703,7 +719,7 @@ export async function middleware(request: NextRequest) {
         }
       }
 
-      const gate = await evaluateCustomerHostSessionGate(request, workspaceSlug);
+      const gate = await evaluateCustomerHostSessionGate(request, resolvedWorkspaceSlug);
 
       if (gate.status === "anonymous" || gate.status === "invalid") {
         const bounce = customerHostLoginRedirect(workspaceOrigin);
@@ -714,7 +730,7 @@ export async function middleware(request: NextRequest) {
       }
 
       if (gate.status === "workspace_missing") {
-        const gatewayPath = `${WORKSPACE_HOST_ROUTE_PREFIX}/${encodeURIComponent(workspaceSlug)}`;
+        const gatewayPath = `${WORKSPACE_HOST_ROUTE_PREFIX}/${encodeURIComponent(resolvedWorkspaceSlug)}`;
         return rewriteTo(request, gatewayPath, headers, workspaceResponseHeaders);
       }
 

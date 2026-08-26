@@ -175,6 +175,15 @@ export function customerWorkspaceOrigin(slug: string): string | null {
   if (!/^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/.test(normalized)) {
     return null;
   }
+  try {
+    const { canonicalizeSaecWorkspaceSlug, resolveSaecCustomerHostSubdomain } =
+      require("@/lib/saec-surface") as typeof import("@/lib/saec-surface");
+    if (canonicalizeSaecWorkspaceSlug(normalized)) {
+      return `https://${resolveSaecCustomerHostSubdomain()}.${UNIT311_SITE_HOST}`;
+    }
+  } catch {
+    /* optional at build edges */
+  }
   return `https://${normalized}.${UNIT311_SITE_HOST}`;
 }
 

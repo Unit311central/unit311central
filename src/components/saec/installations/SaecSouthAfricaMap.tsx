@@ -190,7 +190,7 @@ export default function SaecSouthAfricaMap({
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-sky-300/85">
-              SAEC Installation Footprint
+              OmniTransit Installation Footprint
             </p>
             <h3 className="mt-1 text-base font-semibold text-white">South Africa</h3>
           </div>
@@ -272,7 +272,7 @@ export default function SaecSouthAfricaMap({
               width="100%"
               height="100%"
               role="img"
-              aria-label="Geographic map of South Africa showing SAEC installation clusters"
+              aria-label="Geographic map of South Africa showing OmniTransit installation clusters"
             >
               <defs>
                 <linearGradient id="saec-ocean-fill" x1="0%" y1="0%" x2="100%" y2="100%">

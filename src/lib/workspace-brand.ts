@@ -18,6 +18,7 @@ import { readBrowserDemoPreviewSlug } from "@/lib/demo/workspace-preview";
 import { isAbhiSlug } from "@/lib/abhi-surface";
 import { isCorpCentreWorkspaceSlug } from "@/lib/corpcentre-financials";
 import { CONTACT, SITE_NAME } from "@/lib/site";
+import { isSaecSlug, OMNITRANSIT_DISPLAY_NAME } from "@/lib/saec-surface";
 import { isTalantonImpactSlug } from "@/lib/talanton-surface";
 import { INTERNAL_WORKSPACE_SLUG } from "@/lib/workspace-host";
 
@@ -72,6 +73,7 @@ export function resolveBrandKindFromSlug(slug: string | null | undefined): Works
   if (isCorpCentreWorkspaceSlug(normalized)) return "corpcentre";
   if (isTalantonImpactSlug(normalized)) return "talanton";
   if (isAbhiSlug(normalized)) return "abhi";
+  if (isSaecSlug(normalized)) return "customer";
   return "customer";
 }
 
@@ -106,7 +108,11 @@ export function buildWorkspaceBrand(input: {
 
   let displayName = namedTenantDisplayName(kind, input.name);
   if (kind === "customer") {
-    displayName = input.name?.trim() || (slug ? titleCaseSlug(slug) : "Workspace");
+    if (isSaecSlug(slug)) {
+      displayName = input.name?.trim() || OMNITRANSIT_DISPLAY_NAME;
+    } else {
+      displayName = input.name?.trim() || (slug ? titleCaseSlug(slug) : "Workspace");
+    }
   } else if (kind === "platform") {
     displayName = "Unit311 Central";
   }
@@ -130,7 +136,9 @@ export function buildWorkspaceBrand(input: {
     slug,
     displayName,
     productName,
-    assistantName: `${displayName} Executive Assistant`,
+    assistantName: isSaecSlug(slug)
+      ? `${OMNITRANSIT_DISPLAY_NAME} Assistant`
+      : `${displayName} Executive Assistant`,
     logoUrl: input.logoUrl?.trim() || null,
     supportEmail,
     emailFooterLabel,
@@ -197,6 +205,13 @@ export function resolveBrowserWorkspaceProductName(): string {
   if (brandKind === "abhi") return "ABHI";
   if (brandKind === "corpcentre") return "Corp.Centre";
   if (host.includes("onwardair")) return "OnwardAir";
+  try {
+    const { isBrowserSaecSurface } =
+      require("@/lib/saec-surface") as typeof import("@/lib/saec-surface");
+    if (isBrowserSaecSurface()) return OMNITRANSIT_DISPLAY_NAME;
+  } catch {
+    /* optional */
+  }
 
   const match = host.match(/^([a-z0-9-]+)\.unit311central\.com$/i);
   if (match?.[1] && !["www", "app", "login"].includes(match[1])) {
@@ -211,6 +226,15 @@ export function resolveBrowserWorkspaceProductName(): string {
 }
 
 export function resolveBrowserWorkspaceAssistantButtonLabel(): string {
+  if (typeof window !== "undefined") {
+    try {
+      const { isBrowserSaecSurface } =
+        require("@/lib/saec-surface") as typeof import("@/lib/saec-surface");
+      if (isBrowserSaecSurface()) return `${OMNITRANSIT_DISPLAY_NAME} Assistant`;
+    } catch {
+      /* optional */
+    }
+  }
   const name = resolveBrowserWorkspaceProductName().trim();
   return name ? `${name} Assistant` : "Assistant";
 }

@@ -22,6 +22,7 @@ import PartnerJobsPanel from "@/components/testflighthub/PartnerJobsPanel";
 import { isBrowserAbhiSurface } from "@/lib/abhi-surface";
 import { isNorthstarDemoBrowser } from "@/lib/demo/module-fixtures";
 import { isBrowserOnwardAirSurface } from "@/lib/onwardair-surface";
+import { isBrowserSaecSurface } from "@/lib/saec-surface";
 import {
   ABHI_REPRESENTATIVES_DASHBOARD_TILES,
   DEFAULT_NORTHSTAR_REPRESENTATIVES_TILE_LAYOUT,
@@ -61,8 +62,11 @@ function inputClassName() {
   return "mt-1.5 w-full rounded-xl border border-white/10 bg-[#0b1524] px-3 py-2 text-sm text-white outline-none transition-colors focus:border-sky-400/50";
 }
 
-function formatCommissionAmount(amount: number, currency: "GBP" | "EUR" | "USD") {
-  const locale = currency === "USD" ? "en-US" : "en-GB";
+type CommissionCurrency = "GBP" | "EUR" | "USD" | "ZAR";
+
+function formatCommissionAmount(amount: number, currency: CommissionCurrency) {
+  const locale =
+    currency === "USD" ? "en-US" : currency === "ZAR" ? "en-ZA" : "en-GB";
   return new Intl.NumberFormat(locale, {
     style: "currency",
     currency,
@@ -70,9 +74,10 @@ function formatCommissionAmount(amount: number, currency: "GBP" | "EUR" | "USD")
   }).format(amount);
 }
 
-function commissionCurrencySymbol(currency: "GBP" | "EUR" | "USD") {
+function commissionCurrencySymbol(currency: CommissionCurrency) {
   if (currency === "USD") return "$";
   if (currency === "GBP") return "£";
+  if (currency === "ZAR") return "R";
   return "€";
 }
 
@@ -86,8 +91,11 @@ export default function RepresentativesWorkspace({
   const isAbhi = isBrowserAbhiSurface();
   const isOnwardAir = isBrowserOnwardAirSurface();
   const isNorthstar = isNorthstarDemoBrowser();
-  const commissionCurrency: "GBP" | "EUR" | "USD" = isOnwardAir
+  const isOmniTransit = isBrowserSaecSurface();
+  const commissionCurrency: CommissionCurrency = isOnwardAir
     ? "USD"
+    : isOmniTransit
+      ? "ZAR"
     : isAbhi || isNorthstar
       ? "GBP"
       : "EUR";

@@ -90,6 +90,18 @@ export default function BoardGovernanceWorkspace({
   }
 
   if (isSaec) {
+    if (section === "members") {
+      return <BoardDirectorsWorkspace />;
+    }
+    if (section === "minutes") {
+      const { SaecBoardMinutesWorkspace } =
+        require("@/components/saec/board/SaecBoardMinutesWorkspace") as typeof import("@/components/saec/board/SaecBoardMinutesWorkspace");
+      return (
+        <div className="rounded-3xl border border-white/10 bg-[#07111f]/40 p-1 sm:p-2">
+          <SaecBoardMinutesWorkspace />
+        </div>
+      );
+    }
     const { SaecBoardGovernanceSection } =
       require("@/components/saec/board/SaecBoardWorkspaces") as typeof import("@/components/saec/board/SaecBoardWorkspaces");
     const saecSection: "dashboard" | "meetings" | "minutes" | "members" | "risks" =

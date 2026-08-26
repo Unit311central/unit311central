@@ -14,7 +14,7 @@ import {
   getSaecFixtureProjects,
   isSaecBusinessCentralFixtures,
 } from "@/lib/saec/business-central-data";
-import { SAEC_REPORTING_CURRENCY, SAEC_SLUG, SAEC_WORKSPACE_LOGO_SRC } from "@/lib/saec-surface";
+import { SAEC_REPORTING_CURRENCY, SAEC_SLUG, SAEC_WORKSPACE_LOGO_SRC, OMNITRANSIT_DISPLAY_NAME } from "@/lib/saec-surface";
 import { resolveSlugReportingCurrency } from "@/lib/financial-reporting-currency";
 
 const LEGACY_MARKERS = [
@@ -37,9 +37,10 @@ function assertNoLegacyMarkers(text: string, label: string) {
   }
 }
 
-test("SAEC slug resolves to ZAR and logo path", () => {
+test("SAEC slug resolves to ZAR and OmniTransit logo path", () => {
   assert.equal(resolveSlugReportingCurrency(SAEC_SLUG), SAEC_REPORTING_CURRENCY);
-  assert.equal(SAEC_WORKSPACE_LOGO_SRC, "/images/workspaces/saec/logo.png");
+  assert.equal(SAEC_WORKSPACE_LOGO_SRC, "/images/workspaces/omnitransit-logo.svg");
+  assert.equal(OMNITRANSIT_DISPLAY_NAME, "OmniTransit");
 });
 
 test("SAEC fixtures exclude Northstar demo records", () => {

@@ -89,7 +89,7 @@ export const SAEC_FUNDRAISING_PITCH_DECKS: PitchDeckVersion[] = [
   {
     id: "saec-deck-seed",
     version: "v3.2",
-    title: "SAEC Seed Deck (2021)",
+    title: "OmniTransit Seed Deck (2021)",
     dateAdded: "2021-04-10",
     lastUpdatedAt: "2021-06-01",
     lastUpdatedBy: "John Andrew Ligeti",

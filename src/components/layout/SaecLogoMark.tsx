@@ -17,7 +17,7 @@ type SaecLogoMarkProps = {
   priority?: boolean;
 };
 
-/** SAEC workspace wordmark — official logo on transparent (sidebar). */
+/** OmniTransit workspace wordmark — sidebar and login. */
 export default function SaecLogoMark({
   className,
   height = 32,
@@ -45,7 +45,7 @@ export default function SaecLogoMark({
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={SAEC_WORKSPACE_LOGO_SRC}
-        alt="SAEC"
+        alt="OmniTransit"
         width={width}
         height={displayHeight}
         decoding="async"

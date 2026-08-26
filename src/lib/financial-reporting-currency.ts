@@ -106,6 +106,7 @@ export function resolveBrowserReportingCurrency(): ReportingCurrency {
   }
 
   const host = window.location.hostname.split(":")[0].trim().toLowerCase();
+  if (host === "omnitransit.unit311central.com" || host === "omnitransit.localhost") return "ZAR";
   if (host === "saec.unit311central.com" || host === "saec.localhost") return "ZAR";
 
   return DEFAULT_REPORTING_CURRENCY;

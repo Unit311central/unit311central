@@ -209,7 +209,7 @@ export default function SaecInstallationsDashboardWorkspace({
 
           <p className="text-[11px] text-white/30">
             <Wrench className="mr-1 inline h-3 w-3" />
-            Demonstration dataset — not verified SAEC operational figures.
+            Demonstration dataset — not verified OmniTransit operational figures.
           </p>
         </>
       )}

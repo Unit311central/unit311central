@@ -88,6 +88,14 @@ export async function generateMetadata({
     };
   }
 
+  if (isSaecSlug(workspaceSlug)) {
+    return {
+      title: "Login | OmniTransit",
+      description: "Secure access to your OmniTransit workspace.",
+      robots: { index: false, follow: false },
+    };
+  }
+
   if (workspaceSlug) {
     const workspace = await findWorkspaceBySlug(workspaceSlug);
     const name = workspace?.name?.trim() || workspaceSlug;

@@ -4,8 +4,8 @@ export default function SaecInstallationsElevatorsWorkspace() {
   return (
     <SaecInstallationAssetRegister
       assetType="elevator"
-      title="Elevators"
-      subtitle="SAEC elevator asset register — demonstration data across South Africa."
+      title="OmniTransit Elevators"
+      subtitle="OmniTransit elevator asset register — demonstration data across South Africa."
     />
   );
 }

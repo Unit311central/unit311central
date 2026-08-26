@@ -1,0 +1,80 @@
+/**
+ * OmniTransit in-transit logistics — three South Africa domestic routes.
+ */
+
+import type { LogisticsShipment } from "@/lib/logistics-data";
+
+export const OMNITRANSIT_LOGISTICS_SHIPMENTS: LogisticsShipment[] = [
+  {
+    id: "omt-shp-001",
+    trackingNumber: "OMT-ZA-0001",
+    direction: "outbound",
+    status: "In transit",
+    carrier: "Unit311 Courier",
+    carrierTrackingUrl: "https://www.unit311central.com",
+    sentAt: "2026-08-22T06:30:00.000Z",
+    eta: "2026-08-25T14:00:00.000Z",
+    origin: "Johannesburg, Gauteng",
+    destination: "Durban, KwaZulu-Natal",
+    recipient: "OmniTransit Durban depot",
+    sender: "OmniTransit — Logistics",
+    sentBy: "Lerato Dube",
+    contents: "Escalator step chains (CANNY) — 2 pallets",
+    weightKg: 420,
+    notes: "Priority spares for Umhlanga retail centre contract.",
+    featured: true,
+  },
+  {
+    id: "omt-shp-002",
+    trackingNumber: "OMT-ZA-0002",
+    direction: "outbound",
+    status: "In transit",
+    carrier: "Unit311 Courier",
+    carrierTrackingUrl: "https://www.unit311central.com",
+    sentAt: "2026-08-23T08:15:00.000Z",
+    eta: "2026-08-26T11:30:00.000Z",
+    origin: "Cape Town, Western Cape",
+    destination: "Bloemfontein, Free State",
+    recipient: "OmniTransit Free State service hub",
+    sender: "OmniTransit — Cape Town warehouse",
+    sentBy: "Pieter van Wyk",
+    contents: "Elevator controller boards + door operator kits",
+    weightKg: 86,
+    notes: "Hospital modernisation programme — signature required.",
+  },
+  {
+    id: "omt-shp-003",
+    trackingNumber: "OMT-ZA-0003",
+    direction: "outbound",
+    status: "In transit",
+    carrier: "Unit311 Courier",
+    carrierTrackingUrl: "https://www.unit311central.com",
+    sentAt: "2026-08-24T07:00:00.000Z",
+    eta: "2026-08-27T16:45:00.000Z",
+    origin: "Gqeberha (Port Elizabeth), Eastern Cape",
+    destination: "Pretoria, Gauteng",
+    recipient: "OmniTransit Pretoria HQ — engineering",
+    sender: "OmniTransit — Eastern Cape depot",
+    sentBy: "Nomsa Khumalo",
+    contents: "Hydraulic pump assemblies + commissioning tool cases",
+    weightKg: 148,
+    notes: "Return-to-base refurbishment batch for national rollout.",
+  },
+];
+
+export const FEATURED_OMNITRANSIT_ROUTE = {
+  shipmentId: "omt-shp-001",
+  label: "Johannesburg → Durban",
+  currentLeg: "ground" as const,
+  progressPct: 58,
+  currentLocationLabel: "N3 corridor — Harrismith",
+  origin: { name: "Johannesburg", lat: -26.2041, lng: 28.0473 },
+  destination: { name: "Durban", lat: -29.8587, lng: 31.0218 },
+  route: [
+    { lat: -26.2041, lng: 28.0473 },
+    { lat: -27.5, lng: 29.5 },
+    { lat: -28.7, lng: 30.2 },
+    { lat: -29.8587, lng: 31.0218 },
+  ],
+  currentPosition: { lat: -28.15, lng: 29.78 },
+};
