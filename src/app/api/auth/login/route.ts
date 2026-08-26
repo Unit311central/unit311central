@@ -672,18 +672,16 @@ async function createOmnitransitPortalsExternalLoginResponse(
     return null;
   }
 
-  const portalRedirect = resolveAnyPortalSessionRedirect({
-    redirectPath: nextRaw,
-    nextRaw,
-    username,
-  });
-  if (!portalRedirect) {
-    return null;
-  }
+  const pack = getPortalPackBySlug(SAEC_SLUG);
+  if (!pack) return null;
 
-  const sessionRedirectPath = portalRedirect.startsWith("http")
-    ? new URL(portalRedirect).pathname
-    : portalRedirect;
+  const nextPath = String(nextRaw ?? "")
+    .trim()
+    .split("?")[0];
+  const nextMatch = pack.matcher.matchPathname(nextPath.startsWith("/") ? nextPath : `/${nextPath}`);
+  if (!nextMatch) return null;
+
+  const sessionRedirectPath = `/${nextMatch.route.path}`;
 
   const workspace = await resolveWorkspaceBinding({
     workspaceSlug: SAEC_SLUG,
@@ -702,26 +700,18 @@ async function createOmnitransitPortalsExternalLoginResponse(
     workspace,
   );
 
-  const redirectPath =
-    resolvePortalPostLoginUrl({
-      workspaceSlug: SAEC_SLUG,
-      redirectPath: sessionRedirectPath,
-      nextRaw,
-      returnToRaw,
-      requestHost: getRequestHost(request),
-      username,
-    }) ??
-    (await resolvePostLoginRedirect({
-      redirectPath: sessionRedirectPath,
-      requestHost: getRequestHost(request),
-      returnToRaw,
-      nextRaw,
-      userType: "external",
-      username,
-    }));
+  const portalUrl = resolvePortalPostLoginUrl({
+    workspaceSlug: SAEC_SLUG,
+    redirectPath: sessionRedirectPath,
+    nextRaw,
+    returnToRaw,
+    requestHost: getRequestHost(request),
+    username,
+  });
+  if (!portalUrl) return null;
 
   const response = NextResponse.json({
-    redirectPath,
+    redirectPath: portalUrl,
     userType: session.userType,
     displayName: session.displayName,
     workspace: workspace
