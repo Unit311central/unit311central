@@ -69,6 +69,7 @@ import {
   isOmnitransitPortalsAllowedUsername,
 } from "@/lib/saec/portals-auth";
 import { verifyOmnitransitPortalsPassword } from "@/lib/saec/portals-auth-server";
+import { omnitransitPortalAbsoluteUrl } from "@/lib/saec/client-portal-routes";
 import { resolveOmnitransitBrandPortalHost } from "@/lib/saec/omnitransit-brand-host";
 import { workspaceNeedsCustomerOnboarding } from "@/lib/workspace-customer-onboarding-service";
 import {
@@ -700,14 +701,7 @@ async function createOmnitransitPortalsExternalLoginResponse(
     workspace,
   );
 
-  const portalUrl = resolvePortalPostLoginUrl({
-    workspaceSlug: SAEC_SLUG,
-    redirectPath: sessionRedirectPath,
-    nextRaw,
-    returnToRaw,
-    requestHost: getRequestHost(request),
-    username,
-  });
+  const portalUrl = omnitransitPortalAbsoluteUrl(nextMatch.route);
   if (!portalUrl) return null;
 
   const response = NextResponse.json({
