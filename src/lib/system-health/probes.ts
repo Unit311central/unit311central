@@ -1,4 +1,8 @@
 import {
+  queryScalarViaManagementApi,
+  withResolvedDatabaseClient,
+} from "@/lib/internal-db-migrations";
+import {
   createSupabaseServerClient,
   createSupabaseServiceRoleClient,
   isSupabaseConfigured,
@@ -11,6 +15,61 @@ function okReport(
   partial: Omit<HealthComponentReport, "status"> & { status?: HealthComponentStatus },
 ): HealthComponentReport {
   return { ...partial, status: partial.status ?? "ok" };
+}
+
+async function probeDatabaseViaRest(): Promise<boolean> {
+  if (!isSupabaseConfigured()) return false;
+
+  try {
+    const client = isSupabaseServiceRoleConfigured()
+      ? createSupabaseServiceRoleClient()
+      : createSupabaseServerClient();
+    const { error } = await client.from("workspaces").select("id").limit(1);
+    return !error;
+  } catch {
+    return false;
+  }
+}
+
+async function probeDatabaseViaManagementOrPg(): Promise<boolean> {
+  const row = await queryScalarViaManagementApi<{ health_ok?: number }>(
+    "select 1 as health_ok",
+  );
+  if (row?.health_ok === 1) return true;
+
+  const pgOk = await withResolvedDatabaseClient(async (client) => {
+    const result = await client.query("select 1 as health_ok");
+    return result.rows[0]?.health_ok === 1;
+  });
+  return pgOk === true;
+}
+
+async function isSupabaseApiReachable(url: string, anonKey: string): Promise<boolean> {
+  const base = url.replace(/\/$/, "");
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 5000);
+
+  try {
+    const healthRes = await fetch(`${base}/auth/v1/health`, {
+      method: "GET",
+      signal: controller.signal,
+    });
+    if (healthRes.ok) return true;
+
+    const restRes = await fetch(`${base}/rest/v1/`, {
+      method: "GET",
+      headers: {
+        apikey: anonKey,
+        Authorization: `Bearer ${anonKey}`,
+      },
+      signal: controller.signal,
+    });
+    return restRes.status > 0 && restRes.status < 500;
+  } catch {
+    return false;
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 export async function probeApplication(): Promise<HealthComponentReport> {
@@ -33,38 +92,31 @@ export async function probeDatabase(): Promise<HealthComponentReport> {
     };
   }
 
-  try {
-    const client = isSupabaseServiceRoleConfigured()
-      ? createSupabaseServiceRoleClient()
-      : createSupabaseServerClient();
-  // Lightweight read against a core table (always present in production).
-    const { error } = await client.from("workspaces").select("id").limit(1);
-
-    if (error) {
-      return {
-        id: "database",
-        label: "Database",
-        critical: true,
-        status: "failed",
-        detail: "Database query failed",
-      };
-    }
-
+  if (await probeDatabaseViaRest()) {
     return okReport({
       id: "database",
       label: "Database",
       critical: true,
       detail: "PostgreSQL connectivity confirmed",
     });
-  } catch {
-    return {
+  }
+
+  if (await probeDatabaseViaManagementOrPg()) {
+    return okReport({
       id: "database",
       label: "Database",
       critical: true,
-      status: "failed",
-      detail: "Database query failed",
-    };
+      detail: "PostgreSQL connectivity confirmed",
+    });
   }
+
+  return {
+    id: "database",
+    label: "Database",
+    critical: true,
+    status: "failed",
+    detail: "Database query failed",
+  };
 }
 
 export async function probeSupabase(): Promise<HealthComponentReport> {
@@ -82,30 +134,22 @@ export async function probeSupabase(): Promise<HealthComponentReport> {
   }
 
   try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 5000);
-    const res = await fetch(`${url.replace(/\/$/, "")}/auth/v1/health`, {
-      method: "GET",
-      signal: controller.signal,
-    });
-    clearTimeout(timeout);
-
-    if (!res.ok) {
-      return {
+    if (await isSupabaseApiReachable(url, key)) {
+      return okReport({
         id: "supabase",
         label: "Supabase",
         critical: true,
-        status: "failed",
-        detail: "Supabase API not reachable",
-      };
+        detail: "Supabase API reachable",
+      });
     }
 
-    return okReport({
+    return {
       id: "supabase",
       label: "Supabase",
       critical: true,
-      detail: "Supabase API reachable",
-    });
+      status: "failed",
+      detail: "Supabase API not reachable",
+    };
   } catch {
     return {
       id: "supabase",
