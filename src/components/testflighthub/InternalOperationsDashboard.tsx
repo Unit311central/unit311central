@@ -284,6 +284,7 @@ import {
   Unit311PlatformSupportWorkspace,
   PlatformAnalyticsWorkspace,
   WebsiteAnalyticsWorkspace,
+  SystemHealthWorkspace,
   ManagementWorkspace,
   ContentStudioWorkspace,
   WhiteboardWorkspace,
@@ -1341,6 +1342,12 @@ export default function InternalOperationsDashboard({
             </WorkspaceErrorBoundary>
           )}
 
+          {activeView === "system-health" && isInternalHost && (
+            <WorkspaceErrorBoundary title="System Health">
+              <SystemHealthWorkspace />
+            </WorkspaceErrorBoundary>
+          )}
+
           {activeView === "workspaces-overview" && isInternalHost && (
             <WorkspaceErrorBoundary title="Workspace Overview">
               <WorkspacesOverviewWorkspace />
@@ -1669,6 +1676,7 @@ function AccessViewGuard({
     if (
       (activeView === "platform-analytics" ||
         activeView === "website-analytics" ||
+        activeView === "system-health" ||
         activeView === "workspaces-overview" ||
         activeView === "workspaces-new") &&
       !isInternalHost

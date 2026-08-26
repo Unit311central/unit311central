@@ -15,7 +15,8 @@ import {
   resolveMessagingWorkspaceId,
   type MessagingWorkspaceScope,
 } from "@/lib/messaging-workspace";
-import { createSupabaseServerClient, isSupabaseConfigured } from "@/lib/supabase/server";
+import { isSupabaseConfigured } from "@/lib/supabase/server";
+import { createTenancyServerClient } from "@/lib/supabase/tenancy-server";
 
 type DbMessage = Parameters<typeof mapChatMessage>[0];
 type DbChannel = Parameters<typeof mapMessageChannel>[0];
@@ -27,7 +28,21 @@ function requireMessagingSupabase() {
   if (!isSupabaseConfigured()) {
     throw new Error("Supabase is not configured. Set SUPABASE_URL and SUPABASE_ANON_KEY.");
   }
-  return createSupabaseServerClient();
+  return createTenancyServerClient();
+}
+
+async function requireMessageInWorkspace(messageId: string, workspaceId: string) {
+  const supabase = requireMessagingSupabase();
+  const { data, error } = await supabase
+    .from("internal_messages")
+    .select("id")
+    .eq("id", messageId)
+    .eq("workspace_id", workspaceId)
+    .is("deleted_at", null)
+    .maybeSingle();
+
+  if (error) throw new Error(error.message);
+  if (!data) throw new Error("Message not found.");
 }
 
 export async function listMessages(
@@ -167,6 +182,8 @@ export async function setMessageSaved(
     if (error) throw new Error(error.message);
     return { saved: false };
   }
+
+  await requireMessageInWorkspace(input.messageId, workspaceId);
 
   const { error } = await supabase.from("internal_message_saves").upsert(
     {

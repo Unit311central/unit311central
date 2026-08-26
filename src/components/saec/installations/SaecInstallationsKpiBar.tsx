@@ -4,6 +4,7 @@ import type { SaecInstallationsKpis } from "@/lib/saec/installations-types";
 import { cn } from "@/lib/utils";
 
 export type SaecKpiNavigateTarget =
+  | "online"
   | "offline"
   | "maintenance-due"
   | "overdue"
@@ -61,7 +62,7 @@ export default function SaecInstallationsKpiBar({
   return (
     <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
       <Tile label={`Total ${assetTypeLabel}`} value={kpis.total} />
-      <Tile label="Online" value={kpis.online} tone="good" />
+      <Tile label="Online" value={kpis.online} tone="good" onClick={onNavigate ? () => onNavigate("online") : undefined} />
       <Tile
         label="Offline"
         value={kpis.offline}

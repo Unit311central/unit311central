@@ -75,6 +75,9 @@ export default function SaecInstallationsDashboardWorkspace({
   function handleKpiNavigate(target: SaecKpiNavigateTarget) {
     const base = `/dashboard?view=${registerView}`;
     switch (target) {
+      case "online":
+        window.location.assign(`${base}&status=online`);
+        return;
       case "offline":
         window.location.assign(`${base}&status=offline`);
         return;
@@ -148,26 +151,24 @@ export default function SaecInstallationsDashboardWorkspace({
             onNavigate={handleKpiNavigate}
           />
 
-          <div className="grid gap-4 lg:grid-cols-[minmax(0,1.45fr)_minmax(240px,1fr)]">
-            <SaecSouthAfricaMap
-              cities={dashboard.cities}
-              selectedCityId={selectedCityId}
-              assetType={assetType}
-              onSelectCity={setSelectedCityId}
-            />
+          <SaecSouthAfricaMap
+            cities={dashboard.cities}
+            selectedCityId={selectedCityId}
+            assetType={assetType}
+            onSelectCity={setSelectedCityId}
+          />
 
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1">
-              <SaecEquipmentBreakdownPanel
-                assetType={assetType}
-                items={dashboard.modelBreakdown}
-                total={dashboard.kpis.total}
-              />
-              <SaecOperationalSnapshotPanel
-                kpis={dashboard.kpis}
-                cities={dashboard.cities}
-                assetTypeLabel={assetLabel}
-              />
-            </div>
+          <div className="grid gap-4 md:grid-cols-2">
+            <SaecEquipmentBreakdownPanel
+              assetType={assetType}
+              items={dashboard.modelBreakdown}
+              total={dashboard.kpis.total}
+            />
+            <SaecOperationalSnapshotPanel
+              kpis={dashboard.kpis}
+              cities={dashboard.cities}
+              assetTypeLabel={assetLabel}
+            />
           </div>
 
           {selectedCity && (
