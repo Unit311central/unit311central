@@ -82,7 +82,7 @@ const SEED_QUOTES: SalesQuote[] = [
   {
     id: "saec-quote-003",
     workspaceId: WS,
-    quoteNumber: "Q-2026-SAEC-0076",
+    quoteNumber: "Q-2026-OMT-0076",
     crmLeadId: "b1000001-0001-4001-8001-000000000007",
     clientId: null,
     companyName: "Killarney Mall",

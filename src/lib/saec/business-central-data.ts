@@ -249,7 +249,7 @@ const SAEC_PROJECTS: InternalProject[] = [
     startDate: "2025-03-01",
     endDate: "2026-12-15",
     progressPct: 61,
-    notes: "52-storey lift upgrade — SAEC technical competency showcase.",
+    notes: "52-storey lift upgrade — OmniTransit technical competency showcase.",
   }),
   project({
     id: "saec-prj-centurion",
