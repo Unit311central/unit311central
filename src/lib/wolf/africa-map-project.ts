@@ -1,66 +1,81 @@
-/** Africa map projection utilities for WOLF Estate (client-safe). */
+/**
+ * WOLF Estate geographic map projection utilities (client-safe, WOLF Central only).
+ *
+ * Follows the proven SAEC South Africa map approach: a plain equirectangular
+ * projection of real Natural Earth country boundaries into an SVG viewBox, with
+ * a scale/translate view transform for zoom and pan. WOLF-specific and isolated;
+ * it does not import or modify any SAEC code.
+ *
+ * The default bounds frame the Kenya → South Africa operational region so the
+ * first viewport naturally shows the WOLF demo reserves (one in Kenya, two in
+ * South Africa) rather than the whole continent.
+ */
 
-export const AFRICA_MAP_BOUNDS = {
-  minLon: -18,
-  maxLon: 51,
-  minLat: -35,
-  maxLat: 37,
+/**
+ * Eastern / southern Africa operational frame (WGS84) — covers the region from
+ * Kenya (north) down through South Africa (south) with light ocean/neighbour
+ * context so all three demo reserves sit comfortably inside the first viewport.
+ */
+export const WOLF_MAP_BOUNDS = {
+  minLon: 8,
+  maxLon: 52,
+  minLat: -37,
+  maxLat: 8,
 };
 
-export const AFRICA_MAP_VIEWBOX = {
-  width: 720,
-  height: 640,
-  padding: 28,
+// Aspect ratio matches the bounds (lon 44° : lat 45°) to avoid distortion.
+export const WOLF_MAP_VIEWBOX = {
+  width: 760,
+  height: 777,
+  padding: 34,
 };
 
-export type AfricaMapPoint = { x: number; y: number };
+export type WolfMapPoint = { x: number; y: number };
 
-export type AfricaMapViewTransform = {
-  scale: number;
-  x: number;
-  y: number;
-};
+export const WOLF_MAP_ATTRIBUTION =
+  "Map geography: Natural Earth 110m (public domain). Administrative boundaries for demonstration.";
 
-export const AFRICA_MAP_DEFAULT_TRANSFORM: AfricaMapViewTransform = {
-  scale: 1,
-  x: 0,
-  y: 0,
-};
-
-export const AFRICA_MAP_ATTRIBUTION =
-  "Map geography: Natural Earth 50m (public domain). Administrative boundaries for demonstration.";
-
-export const AFRICA_MAP_GEO_URL = "/api/wolf/map-geography";
+export const WOLF_MAP_GEO_URL = "/api/wolf/map-geography";
 
 type LonLat = [number, number];
 type MapPolygon = { type: "Polygon"; coordinates: LonLat[][] };
 type MapMultiPolygon = { type: "MultiPolygon"; coordinates: LonLat[][][] };
 type MapGeometry = MapPolygon | MapMultiPolygon;
 
-export type AfricaMapFeatureCollection = {
+export type WolfMapFeatureCollection = {
   type: "FeatureCollection";
-  features: Array<{ type: "Feature"; geometry: MapGeometry; properties?: Record<string, unknown> }>;
+  features: Array<{
+    type: "Feature";
+    geometry: MapGeometry;
+    properties?: { name?: string } & Record<string, unknown>;
+  }>;
 };
 
-export type AfricaMapLayers = {
-  continentPath: string;
+/** One rendered country: its display name plus SVG path strings (one per ring). */
+export type WolfMapCountry = {
+  name: string;
+  paths: string[];
 };
 
-export function projectAfricaLonLat(
+export type WolfMapLayers = {
+  countries: WolfMapCountry[];
+};
+
+export function projectWolfLonLat(
   longitude: number,
   latitude: number,
-  view = AFRICA_MAP_VIEWBOX,
-): AfricaMapPoint {
+  view = WOLF_MAP_VIEWBOX,
+): WolfMapPoint {
   const usableWidth = view.width - view.padding * 2;
   const usableHeight = view.height - view.padding * 2;
-  const lonSpan = AFRICA_MAP_BOUNDS.maxLon - AFRICA_MAP_BOUNDS.minLon;
-  const latSpan = AFRICA_MAP_BOUNDS.maxLat - AFRICA_MAP_BOUNDS.minLat;
-  const x = view.padding + ((longitude - AFRICA_MAP_BOUNDS.minLon) / lonSpan) * usableWidth;
-  const y = view.padding + ((AFRICA_MAP_BOUNDS.maxLat - latitude) / latSpan) * usableHeight;
+  const lonSpan = WOLF_MAP_BOUNDS.maxLon - WOLF_MAP_BOUNDS.minLon;
+  const latSpan = WOLF_MAP_BOUNDS.maxLat - WOLF_MAP_BOUNDS.minLat;
+  const x = view.padding + ((longitude - WOLF_MAP_BOUNDS.minLon) / lonSpan) * usableWidth;
+  const y = view.padding + ((WOLF_MAP_BOUNDS.maxLat - latitude) / latSpan) * usableHeight;
   return { x, y };
 }
 
-function ringToPath(ring: LonLat[], project: (lon: number, lat: number) => AfricaMapPoint): string {
+function ringToPath(ring: LonLat[], project: (lon: number, lat: number) => WolfMapPoint): string {
   if (!ring.length) return "";
   const segments = ring.map((coord, index) => {
     const { x, y } = project(coord[0], coord[1]);
@@ -71,7 +86,7 @@ function ringToPath(ring: LonLat[], project: (lon: number, lat: number) => Afric
 
 function geometryToPaths(
   geometry: MapGeometry,
-  project: (lon: number, lat: number) => AfricaMapPoint,
+  project: (lon: number, lat: number) => WolfMapPoint,
 ): string[] {
   if (geometry.type === "Polygon") {
     return geometry.coordinates.map((ring) => ringToPath(ring, project));
@@ -84,31 +99,24 @@ function geometryToPaths(
   return [];
 }
 
-export function buildAfricaMapLayers(
-  continent: AfricaMapFeatureCollection,
-  project = projectAfricaLonLat,
-): AfricaMapLayers {
-  const paths = continent.features.flatMap((feature) => geometryToPaths(feature.geometry, project));
-  return {
-    continentPath: paths.join(" "),
-  };
+export function buildWolfMapLayers(
+  region: WolfMapFeatureCollection,
+  project = projectWolfLonLat,
+): WolfMapLayers {
+  const countries = region.features
+    .map((feature) => ({
+      name: typeof feature.properties?.name === "string" ? feature.properties.name : "",
+      paths: geometryToPaths(feature.geometry, project),
+    }))
+    .filter((country) => country.paths.length > 0);
+  return { countries };
 }
 
-export async function loadAfricaMapLayers(): Promise<AfricaMapLayers> {
-  const response = await fetch(AFRICA_MAP_GEO_URL, { cache: "force-cache" });
+export async function loadWolfMapLayers(): Promise<WolfMapLayers> {
+  const response = await fetch(WOLF_MAP_GEO_URL, { cache: "force-cache" });
   if (!response.ok) {
-    throw new Error("Failed to load Africa map geography.");
+    throw new Error("Failed to load WOLF region map geography.");
   }
-  const continent = (await response.json()) as AfricaMapFeatureCollection;
-  return buildAfricaMapLayers(continent);
-}
-
-export function applyMapViewTransform(
-  transform: AfricaMapViewTransform,
-  point: AfricaMapPoint,
-): AfricaMapPoint {
-  return {
-    x: point.x * transform.scale + transform.x,
-    y: point.y * transform.scale + transform.y,
-  };
+  const region = (await response.json()) as WolfMapFeatureCollection;
+  return buildWolfMapLayers(region);
 }

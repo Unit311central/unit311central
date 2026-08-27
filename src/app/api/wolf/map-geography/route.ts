@@ -10,7 +10,10 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   try {
     await requireWolfCentralWorkspace();
-    const filePath = path.join(process.cwd(), "public/geo/wolf/africa-continent.geojson");
+    const filePath = path.join(
+      process.cwd(),
+      "public/geo/wolf/southern-east-africa-countries.geojson",
+    );
     const body = await readFile(filePath, "utf8");
     return new NextResponse(body, {
       status: 200,
@@ -21,7 +24,7 @@ export async function GET() {
     });
   } catch (error) {
     const message =
-      error instanceof Error ? error.message : "Failed to load Africa map geography.";
+      error instanceof Error ? error.message : "Failed to load WOLF region map geography.";
     const status =
       message.includes("Authentication") || message.includes("Workspace context") ? 401 : 500;
     return NextResponse.json({ error: message }, { status });
