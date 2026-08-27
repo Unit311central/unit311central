@@ -690,7 +690,7 @@ async function createOmnitransitPortalsExternalLoginResponse(
 
   const session: PlatformSession = withSessionWorkspace(
     {
-      sub: "00000000-0000-4000-8000-00000000otportal",
+      sub: "00000000-0000-4000-8000-00000000ae01",
       username,
       displayName: "OmniTransit Portal Demo",
       userType: "external",

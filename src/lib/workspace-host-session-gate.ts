@@ -84,7 +84,7 @@ export async function evaluateCustomerHostSessionGate(
   if (!decision.allowed) {
     // Password-gated external portal logins use synthetic session IDs (no platform_users row).
     if (
-      decision.reason === "user_not_found" &&
+      (decision.reason === "user_not_found" || decision.reason === "error") &&
       session.userType === "external" &&
       session.workspaceId === workspace.id &&
       canonicalizePortalRedirect(session.redirectPath)
