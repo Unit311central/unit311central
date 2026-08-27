@@ -55,6 +55,11 @@ import {
   canonicalizeSaecWorkspaceSlug,
 } from "@/lib/saec-surface";
 import {
+  WOLF_CENTRAL_HOST_ALIAS,
+  WOLF_CENTRAL_SLUG,
+  canonicalizeWolfCentralSlug,
+} from "@/lib/wolf/wolf-surface";
+import {
   matchDemoClientPortalPathname,
   PRIMARY_DEMO_CLIENT_PORTAL_SLUG,
 } from "@/lib/demo/demo-client-portal-routes";
@@ -295,9 +300,23 @@ export async function middleware(request: NextRequest) {
       );
     }
 
-    const resolvedWorkspaceSlug = canonicalizeSaecWorkspaceSlug(workspaceSlug) ?? workspaceSlug;
+    // Canonical WOLF Central host is wolf.* (workspace slug remains wolf-central).
+    if (workspaceSlugFromCentral === WOLF_CENTRAL_SLUG) {
+      return redirectExternal(
+        `https://${WOLF_CENTRAL_HOST_ALIAS}.${UNIT311_SITE_HOST}${pathname === "/" ? "" : pathname}${search}`,
+      );
+    }
+
+    const resolvedWorkspaceSlug =
+      canonicalizeWolfCentralSlug(workspaceSlug) ??
+      canonicalizeSaecWorkspaceSlug(workspaceSlug) ??
+      workspaceSlug;
     const publicHostSubdomain =
-      resolvedWorkspaceSlug === SAEC_SLUG ? OMNITRANSIT_HOST_ALIAS_SLUG : workspaceSlug;
+      resolvedWorkspaceSlug === SAEC_SLUG
+        ? OMNITRANSIT_HOST_ALIAS_SLUG
+        : resolvedWorkspaceSlug === WOLF_CENTRAL_SLUG
+          ? WOLF_CENTRAL_HOST_ALIAS
+          : workspaceSlug;
 
     const headers = withHostHeaders(request, { workspaceSlug: resolvedWorkspaceSlug });
     const workspaceOrigin = `https://${publicHostSubdomain}.${UNIT311_SITE_HOST}`;

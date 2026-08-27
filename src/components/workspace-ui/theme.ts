@@ -3,7 +3,7 @@
  * Workspace packs / branding can select a preset without duplicating components.
  */
 
-export type WorkspaceUiThemeId = "default" | "talanton-emerald";
+export type WorkspaceUiThemeId = "default" | "talanton-emerald" | "wolf-earth";
 
 export type WorkspaceUiTheme = {
   id: WorkspaceUiThemeId;
@@ -51,9 +51,30 @@ const TALANTON_EMERALD_THEME: WorkspaceUiTheme = {
     "pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-emerald-400/40 to-transparent",
 };
 
+const WOLF_EARTH_THEME: WorkspaceUiTheme = {
+  id: "wolf-earth",
+  primaryButtonClass:
+    "inline-flex h-9 items-center justify-center gap-2 rounded-xl border border-emerald-500/35 bg-emerald-900/30 px-3 text-xs font-semibold text-emerald-100 transition-colors hover:border-emerald-400/50 hover:bg-emerald-800/35",
+  secondaryButtonClass:
+    "inline-flex h-9 items-center justify-center gap-2 rounded-xl border border-white/12 bg-white/[0.04] px-3 text-xs font-semibold text-white/75 transition-colors hover:bg-white/[0.08]",
+  inputClass:
+    "w-full rounded-lg border border-white/10 bg-[#0a1210] px-3 py-2 text-sm text-white/85 outline-none placeholder:text-white/30 focus:border-emerald-500/40",
+  labelClass: "mb-1.5 block text-[11px] font-medium text-white/45",
+  moduleHeaderClassName:
+    "relative overflow-hidden rounded-2xl border border-emerald-900/40 bg-[radial-gradient(ellipse_at_top_left,_rgba(26,77,58,0.35),_transparent_55%),linear-gradient(135deg,#0c1410_0%,#080c0a_55%,#060908_100%)] px-5 py-6 sm:px-7 sm:py-7",
+  moduleHeaderEyebrowClassName:
+    "text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-300/80",
+  moduleHeaderAccentClassName: "text-[11px] font-medium tracking-wide text-emerald-200/50",
+  generatedPanelClassName:
+    "relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-[#0f1f18]/85 via-[#0a1410]/95 to-[#080c0a] p-5 sm:p-6",
+  generatedPanelAccentLineClassName:
+    "pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-emerald-500/35 to-transparent",
+};
+
 const THEMES: Record<WorkspaceUiThemeId, WorkspaceUiTheme> = {
   default: DEFAULT_THEME,
   "talanton-emerald": TALANTON_EMERALD_THEME,
+  "wolf-earth": WOLF_EARTH_THEME,
 };
 
 export function getWorkspaceUiTheme(themeId: WorkspaceUiThemeId = "default"): WorkspaceUiTheme {

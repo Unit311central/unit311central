@@ -1,7 +1,7 @@
 /**
  * Demo module structure freeze — regression guard.
  *
- * Demo MUST remain on the complete central catalogue (22 modules, 157 submodules).
+ * Demo MUST remain on the complete central catalogue (22 modules, 158 submodules).
  * Fails if demo-provisioning or migration drift from module-catalogue.ts.
  *
  * Run: npm run prove:demo-module-structure
@@ -20,8 +20,8 @@ import {
 } from "@/lib/platform-workspaces/demo-provisioning";
 import {
   WORKSPACE_MODULE_CATALOGUE,
-  WORKSPACE_MODULE_IDS,
-  allCatalogueModuleSelections,
+  WORKSPACE_CORE_MODULE_IDS,
+  defaultEnabledSubModules,
   getWorkspaceModuleEntry,
   subModuleKey,
 } from "@/lib/platform-workspaces/module-catalogue";
@@ -31,8 +31,6 @@ import {
 } from "@/lib/platform-workspaces/workspace-product-nav";
 import { UNIT311_PENDING_MIGRATIONS } from "@/lib/unit311-pending-migrations";
 
-const catalogue = allCatalogueModuleSelections();
-
 assert.equal(
   DEMO_CATALOGUE_MODULE_COUNT,
   22,
@@ -40,29 +38,34 @@ assert.equal(
 );
 assert.equal(
   DEMO_CATALOGUE_SUBMODULE_COUNT,
-  157,
-  "Central catalogue must expose 157 submodule keys",
+  158,
+  "Central catalogue must expose 158 submodule keys",
 );
 
 assert.deepEqual(
   [...DEMO_ENABLED_MODULES],
-  [...WORKSPACE_MODULE_IDS],
-  "Demo enabled module IDs must equal WORKSPACE_MODULE_IDS",
+  [...WORKSPACE_CORE_MODULE_IDS],
+  "Demo enabled module IDs must equal WORKSPACE_CORE_MODULE_IDS",
 );
+
+const coreCatalogueSelection = {
+  enabledModules: [...WORKSPACE_CORE_MODULE_IDS],
+  enabledSubModules: defaultEnabledSubModules([...WORKSPACE_CORE_MODULE_IDS]),
+};
 
 assert.deepEqual(
   demoEnabledSubModules().sort(),
-  catalogue.enabledSubModules.sort(),
-  "Demo enabled submodule IDs must equal allCatalogueModuleSelections()",
+  coreCatalogueSelection.enabledSubModules.sort(),
+  "Demo enabled submodule IDs must equal core catalogue submodules",
 );
 
 assert.deepEqual(
   demoCatalogueEnablement().enabledModules.sort(),
-  catalogue.enabledModules.sort(),
+  coreCatalogueSelection.enabledModules.sort(),
 );
 assert.deepEqual(
   demoCatalogueEnablement().enabledSubModules.sort(),
-  catalogue.enabledSubModules.sort(),
+  coreCatalogueSelection.enabledSubModules.sort(),
 );
 
 assert.ok(
@@ -97,7 +100,7 @@ const demoEnablement = resolveWorkspaceNavEnablement({
 });
 
 assert.equal(demoEnablement.enabledModules.length, 22);
-assert.equal(demoEnablement.enabledSubModules.length, 157);
+assert.equal(demoEnablement.enabledSubModules.length, 158);
 
 const nav = buildWorkspaceProductNavSections({
   workspaceSlug: DEMO_SLUG,
@@ -113,8 +116,8 @@ const topLevelLabels = nav.flatMap((section) =>
       : [],
 );
 
-assert.equal(nav.length, WORKSPACE_MODULE_CATALOGUE.length);
-assert.equal(topLevelLabels.length, WORKSPACE_MODULE_CATALOGUE.length);
+assert.equal(nav.length, WORKSPACE_CORE_MODULE_IDS.length);
+assert.equal(topLevelLabels.length, WORKSPACE_CORE_MODULE_IDS.length);
 
 assert.ok(topLevelLabels.includes("HOME"), "Demo nav must include HOME pin");
 assert.ok(

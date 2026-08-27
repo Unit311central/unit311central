@@ -13,6 +13,7 @@ import { isDemoWorkspaceSlug } from "@/lib/demo/read-only";
 import { isOnwardAirSlug } from "@/lib/onwardair-surface";
 import { isTalantonImpactSlug } from "@/lib/talanton-surface";
 import { isSaecSlug } from "@/lib/saec-surface";
+import { isWolfCentralSlug } from "@/lib/wolf/wolf-surface";
 import { INTERNAL_WORKSPACE_SLUG } from "@/lib/workspace-host";
 
 export function isCustomerWorkspaceSlug(slug: string | null | undefined): boolean {
@@ -32,6 +33,7 @@ export function isCustomerWorkspaceSlug(slug: string | null | undefined): boolea
   if (isCorpCentreWorkspaceSlug(normalized)) return false;
   if (isDemoWorkspaceSlug(normalized)) return false;
   if (isSaecSlug(normalized)) return false;
+  if (isWolfCentralSlug(normalized)) return false;
   return true;
 }
 

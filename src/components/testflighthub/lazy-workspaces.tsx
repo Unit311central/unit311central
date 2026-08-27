@@ -169,4 +169,25 @@ export const SaecInstallationsElevatorsWorkspace = lazyWorkspace(
 export const SaecInstallationsEscalatorsWorkspace = lazyWorkspace(
   () => import("@/components/saec/installations/SaecInstallationsEscalatorsWorkspace"),
 );
+export const WolfEstateDashboard = lazyWorkspace(
+  () => import("@/components/wolf/WolfEstateDashboard"),
+);
+export const WolfSafariParksWorkspace = lazyWorkspace(
+  () => import("@/components/wolf/WolfSafariParksWorkspace"),
+);
+export const WolfAnimalsSummaryWorkspace = lazyWorkspace(
+  () => import("@/components/wolf/WolfAnimalsSummaryWorkspace"),
+);
+export const WolfContainmentSummaryWorkspace = lazyWorkspace(
+  () => import("@/components/wolf/WolfContainmentSummaryWorkspace"),
+);
+export const WolfEnvironmentSummaryWorkspace = lazyWorkspace(
+  () => import("@/components/wolf/WolfEnvironmentSummaryWorkspace"),
+);
+export const WolfDroneSummaryWorkspace = lazyWorkspace(
+  () => import("@/components/wolf/WolfDroneSummaryWorkspace"),
+);
+export const WolfFleetSummaryWorkspace = lazyWorkspace(
+  () => import("@/components/wolf/WolfFleetSummaryWorkspace"),
+);
 export const TelemetryDashboard = lazyWorkspace(() => import("@/components/telemetry/TelemetryDashboard"));

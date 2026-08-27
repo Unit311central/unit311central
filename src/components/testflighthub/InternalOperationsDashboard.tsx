@@ -46,6 +46,7 @@ import { isBrowserAbhiSurface } from "@/lib/abhi-surface";
 import { isBrowserTalantonImpactSurface } from "@/lib/talanton-surface";
 import { isBrowserOnwardAirSurface } from "@/lib/onwardair-surface";
 import { isBrowserSaecSurface } from "@/lib/saec-surface";
+import { isBrowserWolfCentralSurface } from "@/lib/wolf/wolf-surface";
 import NorthstarCorporateDashboard from "@/components/demo/NorthstarCorporateDashboard";
 import { isBrowserDemoSurface } from "@/lib/demo-enterprise";
 import type { ReportingCurrency } from "@/lib/financial-reporting-currency";
@@ -292,6 +293,13 @@ import {
   SaecInstallationsDashboardWorkspace,
   SaecInstallationsElevatorsWorkspace,
   SaecInstallationsEscalatorsWorkspace,
+  WolfEstateDashboard,
+  WolfSafariParksWorkspace,
+  WolfAnimalsSummaryWorkspace,
+  WolfContainmentSummaryWorkspace,
+  WolfEnvironmentSummaryWorkspace,
+  WolfDroneSummaryWorkspace,
+  WolfFleetSummaryWorkspace,
 } from "./lazy-workspaces";
 import { type ManagedUser } from "@/lib/user-management-data";
 import { useInfoEmailWhatsAppPoller } from "@/hooks/useInfoEmailWhatsAppPoller";
@@ -460,6 +468,9 @@ function readInitialView(
     resolveRuntimeSurface(window.location.hostname) === "customer"
   ) {
     return "home";
+  }
+  if (fromQuery === "home" && isBrowserWolfCentralSurface()) {
+    return "wolf-estate";
   }
   return fromQuery;
 }
@@ -1456,6 +1467,14 @@ export default function InternalOperationsDashboard({
           {activeView === "saec-installations-dashboard" && <SaecInstallationsDashboardWorkspace />}
           {activeView === "saec-installations-elevators" && <SaecInstallationsElevatorsWorkspace />}
           {activeView === "saec-installations-escalators" && <SaecInstallationsEscalatorsWorkspace />}
+
+          {activeView === "wolf-estate" && <WolfEstateDashboard />}
+          {activeView === "wolf-safari-parks" && <WolfSafariParksWorkspace />}
+          {activeView === "wolf-animals" && <WolfAnimalsSummaryWorkspace />}
+          {activeView === "wolf-containment" && <WolfContainmentSummaryWorkspace />}
+          {activeView === "wolf-environment" && <WolfEnvironmentSummaryWorkspace />}
+          {activeView === "wolf-drone-operations" && <WolfDroneSummaryWorkspace />}
+          {activeView === "wolf-fleet" && <WolfFleetSummaryWorkspace />}
 
           {activeView === "fundraising-dashboard" && <FundraisingDashboardHost />}
           {activeView === "fundraising-investors" && <FundraisingInvestorsHost />}

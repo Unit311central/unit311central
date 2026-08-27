@@ -1,9 +1,7 @@
 /**
- * Top-level Unit311Central module catalogue for Workspaces provisioning (22 modules).
- * Product numbering 1–22 — Workspaces (23) is internal-only and excluded.
- *
- * Derived from the central product nav (`central-product-nav.ts`), not workspace-specific
- * nav injection and not tutorial coverage.
+ * Top-level Unit311Central module catalogue for Workspaces provisioning.
+ * Core product numbering 1–22; WOLF specialist extensions 23–27.
+ * Workspaces (internal) is excluded from customer catalogue.
  */
 
 import {
@@ -159,13 +157,16 @@ function moduleKeysForView(viewId: string | undefined, moduleId: string): string
     return ["users"];
   }
 
-  if (
-    view === "profile" ||
+  if (view === "profile" ||
     view === "settings" ||
     view === "billing" ||
     view === "appearance"
   ) {
     return ["profiles"];
+  }
+
+  if (view.startsWith("wolf-")) {
+    return [view];
   }
 
   // Module-level fallback for any future central views in this module family.
@@ -190,6 +191,11 @@ function moduleKeysForView(viewId: string | undefined, moduleId: string): string
     "external-client-access": ["users"],
     settings: ["profiles"],
     intelligence: ["strategy"],
+    "wolf-animals": ["wolf-animals"],
+    "wolf-containment": ["wolf-containment"],
+    "wolf-environment": ["wolf-environment"],
+    "wolf-drone-operations": ["wolf-drone-operations"],
+    "wolf-fleet": ["wolf-fleet"],
   };
 
   return moduleFallbacks[moduleId] ?? [];
@@ -213,6 +219,13 @@ export const WORKSPACE_MODULE_CATALOGUE: readonly WorkspaceModuleCatalogueEntry[
   buildWorkspaceModuleCatalogue();
 
 export const WORKSPACE_MODULE_IDS = WORKSPACE_MODULE_CATALOGUE.map((entry) => entry.id);
+
+/** Original 22-module central catalogue (excludes WOLF specialist extensions). */
+export const WORKSPACE_CORE_MODULE_IDS = WORKSPACE_MODULE_CATALOGUE.filter(
+  (entry) => !entry.id.startsWith("wolf-"),
+).map((entry) => entry.id);
+
+export const WORKSPACE_CORE_MODULE_COUNT = WORKSPACE_CORE_MODULE_IDS.length;
 
 export const WORKSPACE_PROVISIONING_FUNCTION_COUNT = WORKSPACE_MODULE_CATALOGUE.reduce(
   (total, entry) => total + entry.subModules.length,

@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
-  WORKSPACE_MODULE_IDS,
+  WORKSPACE_CORE_MODULE_IDS,
   defaultEnabledSubModules,
 } from "@/lib/platform-workspaces/module-catalogue";
 import {
@@ -23,9 +23,9 @@ test("SAEC slug resolves to ZAR reporting currency", () => {
 
 test("SAEC uses full central catalogue minus Grants submodule", () => {
   assert.equal(SAEC_ENABLED_MODULES.length, 22);
-  assert.deepEqual([...SAEC_ENABLED_MODULES], [...WORKSPACE_MODULE_IDS]);
+  assert.deepEqual([...SAEC_ENABLED_MODULES], [...WORKSPACE_CORE_MODULE_IDS]);
 
-  const fullSubCount = defaultEnabledSubModules(WORKSPACE_MODULE_IDS).length;
+  const fullSubCount = defaultEnabledSubModules(WORKSPACE_CORE_MODULE_IDS).length;
   const saecSubs = saecEnabledSubModules();
   assert.equal(fullSubCount, 158);
   assert.equal(saecSubs.length, fullSubCount - SAEC_EXCLUDED_SUBMODULE_KEYS.length);

@@ -147,7 +147,7 @@ assert.ok(demoTree["Engineering"], "Demo must include Engineering");
 assert.ok(customerTree["Engineering"], "Customer must include Engineering");
 
 // Wizard catalogue still has 22 modules
-assert.equal(WORKSPACE_MODULE_CATALOGUE.length, 22);
+assert.equal(WORKSPACE_MODULE_CATALOGUE.length, 27);
 const marketing = WORKSPACE_MODULE_CATALOGUE.find((entry) => entry.id === "marketing-events");
 assert.ok(
   marketing?.subModules.some((sub) => sub.viewId === "social"),

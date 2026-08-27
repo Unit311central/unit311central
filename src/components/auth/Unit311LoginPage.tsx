@@ -10,6 +10,7 @@ import MarketingPageShell from "@/components/layout/MarketingPageShell";
 import CorpCentreLogoMark from "@/components/layout/CorpCentreLogoMark";
 import NorthstarLogoMark from "@/components/layout/NorthstarLogoMark";
 import SaecLogoMark from "@/components/layout/SaecLogoMark";
+import WolfLogoMark from "@/components/layout/WolfLogoMark";
 import AbhiLogoMark from "@/components/layout/AbhiLogoMark";
 import OnwardAirLogoMark from "@/components/layout/OnwardAirLogoMark";
 import TalantonLogoMark from "@/components/layout/TalantonLogoMark";
@@ -212,7 +213,7 @@ export default function Unit311LoginPage({
 }: {
   variant?: "default" | "central";
   /** Tenant login branding. CorpCentre / Talanton / ABHI / OnwardAir / customer / northstar use workspace branding. */
-  brand?: "default" | "central" | "corpcentre" | "talanton" | "abhi" | "onwardair" | "customer" | "northstar" | "saec";
+  brand?: "default" | "central" | "corpcentre" | "talanton" | "abhi" | "onwardair" | "customer" | "northstar" | "saec" | "wolf";
   /** Display name for generic customer hosts (e.g. Acme). */
   workspaceName?: string | null;
   /** Persisted customer login page title from workspace provisioning. */
@@ -235,13 +236,15 @@ export default function Unit311LoginPage({
     brand === "talanton" ||
     brand === "abhi" ||
     brand === "onwardair" ||
-    brand === "customer";
+    brand === "customer" ||
+    brand === "wolf";
   const isCorpCentre = brand === "corpcentre";
   const isTalanton = brand === "talanton";
   const isAbhi = brand === "abhi";
   const isOnwardAir = brand === "onwardair";
   const isNorthstar = brand === "northstar";
   const isSaec = brand === "saec";
+  const isWolf = brand === "wolf";
   const isCustomer = brand === "customer";
   const customerLabel = loginTitle?.trim() || workspaceName?.trim() || "Workspace";
   const customerBackground = loginBackgroundUrl?.trim() || LOGIN_BACKGROUND;
@@ -378,7 +381,7 @@ export default function Unit311LoginPage({
 
   return (
     <MarketingPageShell
-      hideAccentGradients={isNorthstar || isSaec}
+      hideAccentGradients={isNorthstar || isSaec || isWolf}
       backgroundImage={
         isOnwardAir
           ? ONWARDAIR_LOGIN_BACKGROUND
@@ -435,6 +438,8 @@ export default function Unit311LoginPage({
                 ? ABHI_LOGIN_OVERLAY_CLASS
                 : isSaec
                   ? SAEC_LOGIN_OVERLAY_CLASS
+                  : isWolf
+                    ? "absolute inset-0 bg-gradient-to-b from-[#050a08]/88 via-[#080c0a]/92 to-[#040605]/96"
                   : isNorthstar
                     ? NORTHSTAR_LOGIN_OVERLAY_CLASS
                     : isCustomer && loginBackgroundUrl
@@ -460,6 +465,8 @@ export default function Unit311LoginPage({
             <NorthstarLogoMark height={70} maxWidth={400} priority />
           ) : isSaec ? (
             <SaecLogoMark height={64} maxWidth={320} priority />
+          ) : isWolf ? (
+            <WolfLogoMark size="lg" />
           ) : isCustomer ? (
             loginLogoUrl ? (
               <div className="relative flex h-24 w-full max-w-[280px] items-center justify-center">

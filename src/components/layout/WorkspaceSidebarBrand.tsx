@@ -12,11 +12,13 @@ import InterfaceWorxLogoMark, {
 import NorthstarLogoMark, { isNorthstarDemoSlug } from "@/components/layout/NorthstarLogoMark";
 import OnwardAirLogoMark, { isOnwardAirSlug } from "@/components/layout/OnwardAirLogoMark";
 import SaecLogoMark, { isSaecSlug } from "@/components/layout/SaecLogoMark";
+import WolfLogoMark from "@/components/layout/WolfLogoMark";
 import TalantonLogoMark, {
   isTalantonImpactSlug,
 } from "@/components/layout/TalantonLogoMark";
 import Unit311CentralWordmark from "@/components/layout/Unit311CentralWordmark";
 import { isDemoDomainHost } from "@/lib/app-domains";
+import { isWolfCentralSlug } from "@/lib/wolf/wolf-surface";
 import { readBrowserDemoPreviewSlug } from "@/lib/demo/workspace-preview";
 import { cn } from "@/lib/utils";
 
@@ -59,6 +61,7 @@ type BrandKind =
   | "onwardair"
   | "interfaceworx"
   | "saec"
+  | "wolf"
   | "customer";
 
 function resolveBrandKind(slug: string | null): BrandKind {
@@ -72,6 +75,7 @@ function resolveBrandKind(slug: string | null): BrandKind {
   if (isOnwardAirSlug(slug)) return "onwardair";
   if (isInterfaceWorxSlug(slug)) return "interfaceworx";
   if (isSaecSlug(slug)) return "saec";
+  if (isWolfCentralSlug(slug)) return "wolf";
   return "customer";
 }
 
@@ -151,6 +155,8 @@ export default function WorkspaceSidebarBrand({
       <InterfaceWorxLogoMark height={32} maxWidth={180} />
     ) : brand === "saec" ? (
       <SaecLogoMark height={32} maxWidth={180} />
+    ) : brand === "wolf" ? (
+      <WolfLogoMark size="sm" />
     ) : brand === "northstar" ? (
       <NorthstarLogoMark height={40} maxWidth={230} />
     ) : brand === "customer" ? (
@@ -183,6 +189,8 @@ export default function WorkspaceSidebarBrand({
               ? "Interface Worx home"
             : brand === "saec"
               ? "OmniTransit home"
+            : brand === "wolf"
+              ? "WOLF Central home"
             : brand === "northstar"
               ? "Northstar Industrial Technologies home"
               : brand === "customer"

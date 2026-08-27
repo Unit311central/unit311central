@@ -1,22 +1,22 @@
 /**
  * Demo workspace module enablement — frozen to the full central catalogue.
- * Authoritative: module-catalogue.ts (WORKSPACE_MODULE_IDS + allCatalogueModuleSelections).
+ * Authoritative: module-catalogue.ts (WORKSPACE_CORE_MODULE_IDS + all catalogue submodules).
  *
  * DO NOT shrink this list without an explicit owner request to change Demo structure.
  */
 
 import {
-  WORKSPACE_MODULE_IDS,
+  WORKSPACE_CORE_MODULE_IDS,
   allCatalogueModuleSelections,
   defaultEnabledSubModules,
 } from "@/lib/platform-workspaces/module-catalogue";
 
 export const DEMO_SLUG = "demo";
 
-/** All 22 top-level catalogue modules — Demo includes Grants and Sales Management. */
-export const DEMO_ENABLED_MODULES = [...WORKSPACE_MODULE_IDS] as const;
+/** All 22 top-level core catalogue modules — Demo includes Grants and Sales Management. */
+export const DEMO_ENABLED_MODULES = [...WORKSPACE_CORE_MODULE_IDS] as const;
 
-/** All 157 catalogue submodule keys for Demo. */
+/** All core catalogue submodule keys for Demo. */
 export function demoEnabledSubModules(): string[] {
   return defaultEnabledSubModules([...DEMO_ENABLED_MODULES]);
 }
@@ -26,7 +26,11 @@ export function demoCatalogueEnablement(): {
   enabledModules: string[];
   enabledSubModules: string[];
 } {
-  return allCatalogueModuleSelections();
+  const enabledModules = [...WORKSPACE_CORE_MODULE_IDS];
+  return {
+    enabledModules,
+    enabledSubModules: defaultEnabledSubModules(enabledModules),
+  };
 }
 
 export const DEMO_CATALOGUE_MODULE_COUNT = DEMO_ENABLED_MODULES.length;

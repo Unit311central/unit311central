@@ -11,6 +11,8 @@ import {
   type WorkspaceNavEnablement,
 } from "@/lib/platform-workspaces/workspace-product-nav";
 import { INTERNAL_WORKSPACE_SLUG } from "@/lib/workspace-host";
+import { isWolfCentralSlug } from "@/lib/wolf/wolf-surface";
+import { buildWolfCentralNavSections } from "@/lib/wolf/wolf-nav";
 import type { InternalNavSection } from "@/lib/internal-operations-data";
 
 export type WorkspaceNavContext = {
@@ -39,6 +41,10 @@ export function usesInternalPlatformNav(
  * customers use the canonical product catalogue filtered by enablement.
  */
 export function resolveWorkspaceNavBaseSections(ctx: WorkspaceNavContext): readonly InternalNavSection[] {
+  if (isWolfCentralSlug(ctx.workspaceSlug)) {
+    return buildWolfCentralNavSections();
+  }
+
   if (usesLegacySpecialistNav(ctx.workspaceSlug)) {
     return internalSurveyNavSections;
   }

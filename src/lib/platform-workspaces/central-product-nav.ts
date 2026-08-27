@@ -220,8 +220,60 @@ function requireSection(label: string): InternalNavSection {
   return section;
 }
 
+/** WOLF specialist modules — provisioning catalogue (WOLF Central uses dedicated nav). */
+export function buildWolfAnimalsNavSection(): InternalNavSection {
+  return {
+    kind: "workspace",
+    label: "Animals",
+    icon: "Binoculars",
+    color: "#1a4d3a",
+    items: [{ label: "Summary", icon: "ScanSearch", view: "wolf-animals" }],
+  };
+}
+
+export function buildWolfContainmentNavSection(): InternalNavSection {
+  return {
+    kind: "workspace",
+    label: "Containment",
+    icon: "Shield",
+    color: "#8b4513",
+    items: [{ label: "Summary", icon: "ShieldCheck", view: "wolf-containment" }],
+  };
+}
+
+export function buildWolfEnvironmentNavSection(): InternalNavSection {
+  return {
+    kind: "workspace",
+    label: "Environment",
+    icon: "CloudSun",
+    color: "#3d5c4a",
+    items: [{ label: "Summary", icon: "ThermometerSun", view: "wolf-environment" }],
+  };
+}
+
+export function buildWolfDroneOperationsNavSection(): InternalNavSection {
+  return {
+    kind: "workspace",
+    label: "Drone Operations",
+    icon: "Plane",
+    color: "#2d4a3e",
+    items: [{ label: "Summary", icon: "Radar", view: "wolf-drone-operations" }],
+  };
+}
+
+export function buildWolfFleetNavSection(): InternalNavSection {
+  return {
+    kind: "workspace",
+    label: "Fleet",
+    icon: "Boxes",
+    color: "#1e3a2f",
+    items: [{ label: "Summary", icon: "Package", view: "wolf-fleet" }],
+  };
+}
+
 /**
- * Ordered 22-module central product nav used to derive the Workspaces provisioning catalogue.
+ * Ordered central product nav used to derive the Workspaces provisioning catalogue.
+ * Core Unit311 modules (1–22) plus WOLF specialist extensions (23–27).
  */
 export function buildCentralProductNavSections(): readonly CentralProductModuleSpec[] {
   return [
@@ -356,6 +408,36 @@ export function buildCentralProductNavSections(): readonly CentralProductModuleS
       id: "settings",
       label: "SETTINGS",
       section: requireSection("Settings"),
+    },
+    {
+      number: 23,
+      id: "wolf-animals",
+      label: "WOLF ANIMALS",
+      section: buildWolfAnimalsNavSection(),
+    },
+    {
+      number: 24,
+      id: "wolf-containment",
+      label: "WOLF CONTAINMENT",
+      section: buildWolfContainmentNavSection(),
+    },
+    {
+      number: 25,
+      id: "wolf-environment",
+      label: "WOLF ENVIRONMENT",
+      section: buildWolfEnvironmentNavSection(),
+    },
+    {
+      number: 26,
+      id: "wolf-drone-operations",
+      label: "WOLF DRONE OPS",
+      section: buildWolfDroneOperationsNavSection(),
+    },
+    {
+      number: 27,
+      id: "wolf-fleet",
+      label: "WOLF FLEET",
+      section: buildWolfFleetNavSection(),
     },
   ] as const;
 }

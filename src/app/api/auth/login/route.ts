@@ -65,6 +65,7 @@ import {
   TALANTON_IMPACT_SLUG,
 } from "@/lib/talanton-surface";
 import { canonicalizeSaecWorkspaceSlug, isSaecSlug, SAEC_SLUG } from "@/lib/saec-surface";
+import { canonicalizeWolfCentralSlug, isWolfCentralSlug } from "@/lib/wolf/wolf-surface";
 import {
   isOmnitransitPortalsAllowedUsername,
 } from "@/lib/saec/portals-auth";
@@ -768,6 +769,7 @@ export async function POST(request: NextRequest) {
     // Alias hosts: talanton.* → talantonimpact; omnitransit.* → saec workspace slug.
     const workspaceSlug =
       canonicalizeTalantonImpactSlug(resolvedWorkspaceSlug) ??
+      canonicalizeWolfCentralSlug(resolvedWorkspaceSlug) ??
       canonicalizeSaecWorkspaceSlug(resolvedWorkspaceSlug) ??
       resolvedWorkspaceSlug;
 

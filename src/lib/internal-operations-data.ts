@@ -261,7 +261,14 @@ export type InternalOperationsView =
   | "sales-management"
   | "saec-installations-dashboard"
   | "saec-installations-elevators"
-  | "saec-installations-escalators";
+  | "saec-installations-escalators"
+  | "wolf-estate"
+  | "wolf-safari-parks"
+  | "wolf-animals"
+  | "wolf-containment"
+  | "wolf-environment"
+  | "wolf-drone-operations"
+  | "wolf-fleet";
 
 /** App Router folder path (middleware may rewrite `/` → this on the internal host). */
 export const INTERNAL_OPERATIONS_APP_PATH = "/internaldashboard";
@@ -565,6 +572,13 @@ export const internalOperationsViews: InternalOperationsView[] = [
   "saec-installations-dashboard",
   "saec-installations-elevators",
   "saec-installations-escalators",
+  "wolf-estate",
+  "wolf-safari-parks",
+  "wolf-animals",
+  "wolf-containment",
+  "wolf-environment",
+  "wolf-drone-operations",
+  "wolf-fleet",
 ];
 
 /** Nav aliases that share one implementation until modules are redesigned. */
@@ -1456,6 +1470,13 @@ export const internalViewTitles: Record<
   "saec-installations-dashboard": { title: "Dashboard", subtitle: "Operations · Installations" },
   "saec-installations-elevators": { title: "Elevators", subtitle: "Operations · Installations" },
   "saec-installations-escalators": { title: "Escalators", subtitle: "Operations · Installations" },
+  "wolf-estate": { title: "WOLF Estate", subtitle: "WOLF Central" },
+  "wolf-safari-parks": { title: "Safari Parks", subtitle: "WOLF Central" },
+  "wolf-animals": { title: "Animals summary", subtitle: "WOLF Central" },
+  "wolf-containment": { title: "Containment summary", subtitle: "WOLF Central" },
+  "wolf-environment": { title: "Environment summary", subtitle: "WOLF Central" },
+  "wolf-drone-operations": { title: "Drone operations summary", subtitle: "WOLF Central" },
+  "wolf-fleet": { title: "Fleet summary", subtitle: "WOLF Central" },
   "fundraising-dashboard": { title: "Dashboard", subtitle: "Fundraising" },
   "fundraising-investors": { title: "Investors", subtitle: "Fundraising" },
   "fundraising-cap-table": { title: "Cap Table Management", subtitle: "Fundraising" },
