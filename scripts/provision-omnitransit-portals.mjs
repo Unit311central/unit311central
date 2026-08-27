@@ -48,7 +48,7 @@ const admin = createClient(SUPABASE_URL, SERVICE_KEY, {
 const SLUG = "saec";
 const BOARD_CLIENT_ID = "saec-cli-board-portal";
 const HYPROP_CLIENT_ID = "saec-cli-hyprop";
-const BOARD_URL = "https://omnitransit.unit311.com/board";
+const BOARD_URL = "https://omnitransit.unit311central.com/board";
 const HYPROP_URL = "https://omnitransit.unit311central.com/hyprop";
 
 async function main() {

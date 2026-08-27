@@ -70,7 +70,6 @@ import {
 } from "@/lib/saec/portals-auth";
 import { verifyOmnitransitPortalsPassword } from "@/lib/saec/portals-auth-server";
 import { omnitransitPortalAbsoluteUrl, type OmnitransitPortalRoute } from "@/lib/saec/client-portal-routes";
-import { resolveOmnitransitBrandPortalHost } from "@/lib/saec/omnitransit-brand-host";
 import { workspaceNeedsCustomerOnboarding } from "@/lib/workspace-customer-onboarding-service";
 import {
   DEMO_PORTALS_ADMIN_USERNAME,
@@ -731,10 +730,9 @@ export async function POST(request: NextRequest) {
     }
 
     const requestHost = getRequestHost(request);
-    const omnitransitBrand = resolveOmnitransitBrandPortalHost(requestHost);
     const hostWorkspaceSlug =
-      parseClientPlatformSubdomainSafe(requestHost) ??
-      (omnitransitBrand ? SAEC_SLUG : null);
+      canonicalizeSaecWorkspaceSlug(parseClientPlatformSubdomainSafe(requestHost)) ??
+      parseClientPlatformSubdomainSafe(requestHost);
     const hostWorkspaceOrigin = hostWorkspaceSlug
       ? customerWorkspaceOrigin(hostWorkspaceSlug)
       : isDemoDomainHost(requestHost)

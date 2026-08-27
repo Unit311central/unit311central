@@ -46,7 +46,6 @@ import {
 } from "@/lib/portals/briefing/cookies";
 import { getOnwardAirClientPortalByPath } from "@/lib/onwardair/client-portal-routes";
 import { getOmnitransitPortalByPath } from "@/lib/saec/client-portal-routes";
-import { resolveOmnitransitBrandPortalHost } from "@/lib/saec/omnitransit-brand-host";
 import { isOverviewPortalAccessAllowed, isFreshOverviewDocumentNavigation, isOverviewAuthBypassEnabled } from "@/lib/onwardair/overview-gate";
 import { isOnwardAirSlug } from "@/lib/onwardair-surface";
 import { isTalantonImpactSlug, TALANTON_HOST_ALIAS_SLUG, TALANTON_IMPACT_SLUG } from "@/lib/talanton-surface";
@@ -265,10 +264,8 @@ export async function middleware(request: NextRequest) {
   }
 
   // --- Customer workspace hosts: route into the app (existence checked in /ws/[slug]) ---
-  const omnitransitBrand = resolveOmnitransitBrandPortalHost(host);
   const workspaceSlugFromCentral = parseClientPlatformSubdomainSafe(host);
-  const workspaceSlug =
-    workspaceSlugFromCentral ?? (omnitransitBrand ? OMNITRANSIT_HOST_ALIAS_SLUG : null);
+  const workspaceSlug = workspaceSlugFromCentral;
   if (workspaceSlug) {
     // Canonical CorpCentre host is corpcentre.*; keep old corporatecentre.* working.
     if (workspaceSlugFromCentral === "corporatecentre") {
@@ -303,34 +300,11 @@ export async function middleware(request: NextRequest) {
       resolvedWorkspaceSlug === SAEC_SLUG ? OMNITRANSIT_HOST_ALIAS_SLUG : workspaceSlug;
 
     const headers = withHostHeaders(request, { workspaceSlug: resolvedWorkspaceSlug });
-    const workspaceOrigin = omnitransitBrand
-      ? omnitransitBrand.origin
-      : `https://${publicHostSubdomain}.${UNIT311_SITE_HOST}`;
+    const workspaceOrigin = `https://${publicHostSubdomain}.${UNIT311_SITE_HOST}`;
     const workspaceResponseHeaders = {
       "x-unit311-workspace": "1",
       "x-unit311-workspace-slug": resolvedWorkspaceSlug,
     };
-
-    if (omnitransitBrand && (pathname === "/" || pathname === "")) {
-      return redirectExternal(`${workspaceOrigin}/board${search}`);
-    }
-
-    if (
-      !omnitransitBrand &&
-      (workspaceSlug === OMNITRANSIT_HOST_ALIAS_SLUG || resolvedWorkspaceSlug === SAEC_SLUG) &&
-      (pathname === "/board" || pathname.startsWith("/board/"))
-    ) {
-      return redirectExternal(`https://omnitransit.unit311.com${pathname}${search}`);
-    }
-
-    if (
-      omnitransitBrand &&
-      (pathname === "/hyprop" || pathname.startsWith("/hyprop/"))
-    ) {
-      return redirectExternal(
-        `https://${OMNITRANSIT_HOST_ALIAS_SLUG}.${UNIT311_SITE_HOST}${pathname}${search}`,
-      );
-    }
 
     // OmniTransit: never expose /omnitransit-portal/* implementation URLs on public hosts.
     if (
@@ -341,13 +315,9 @@ export async function middleware(request: NextRequest) {
       const route = getOmnitransitPortalByPath(parts[1] ?? "");
       if (route) {
         const rest = parts.length > 2 ? `/${parts.slice(2).join("/")}` : "";
-        const routeOrigin =
-          route.portalKind === "board" ? omnitransitBrand?.origin ?? workspaceOrigin : workspaceOrigin;
-        return redirectExternal(`${routeOrigin}/${route.path}${rest}${search}`);
+        return redirectExternal(`${workspaceOrigin}/${route.path}${rest}${search}`);
       }
-      return redirectExternal(
-        omnitransitBrand ? `${workspaceOrigin}/board${search}` : `${workspaceOrigin}/login${search}`,
-      );
+      return redirectExternal(`${workspaceOrigin}/login${search}`);
     }
 
     // OnwardAir: never expose /client-portal/* implementation URLs on the customer host.
@@ -495,7 +465,7 @@ export async function middleware(request: NextRequest) {
     // Customer-host apex is always the organisation login page.
     // Never auto-enter /dashboard from a leftover Domain=.unit311central.com session
     // (e.g. after Demo/ABHI/Talanton/internal login, including Incognito multi-tab).
-    if (!omnitransitBrand && (pathname === "/" || pathname === "")) {
+    if (pathname === "/" || pathname === "") {
       const bounce = redirectExternal(`${workspaceOrigin}/login${search}`);
       clearPlatformSessionCookie(bounce, request);
       return bounce;

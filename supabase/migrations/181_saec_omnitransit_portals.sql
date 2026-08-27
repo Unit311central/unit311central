@@ -40,7 +40,7 @@ BEGIN
     'Centurion',
     'Board Access',
     'OmniTransit Board Portal — external board member access (demo)',
-    'https://omnitransit.unit311.com/board',
+    'https://omnitransit.unit311central.com/board',
     'demo@omnitransit.com',
     'OmniTransit Board Member',
     'active',

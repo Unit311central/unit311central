@@ -119,6 +119,7 @@ export const UNIT311_PENDING_MIGRATIONS = [
   "supabase/migrations/177_messaging_tenant_isolation_rls.sql",
   "supabase/migrations/178_omnitransit_rebrand.sql",
   "supabase/migrations/181_saec_omnitransit_portals.sql",
+  "supabase/migrations/182_saec_omnitransit_board_portal_url.sql",
 ] as const;
 
 export const SALES_MANAGEMENT_FOUNDATION_MIGRATION =

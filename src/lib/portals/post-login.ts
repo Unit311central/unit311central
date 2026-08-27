@@ -13,7 +13,6 @@ import {
   listPortalWorkspacePacks,
 } from "@/lib/portals/registry";
 import { canonicalizeSaecWorkspaceSlug } from "@/lib/saec-surface";
-import { resolveOmnitransitBrandPortalHost } from "@/lib/saec/omnitransit-brand-host";
 import type { PortalRouteDefinition } from "@/lib/portals/types";
 
 function extractPathCandidate(value: string | null | undefined): string | null {
@@ -135,9 +134,7 @@ export function resolveAnyPortalPostLoginUrl(options: {
   const northstarDemo = resolveNorthstarDemoClientPortalPostLoginUrl(options);
   if (northstarDemo) return northstarDemo;
 
-  const hostSlug =
-    parseClientPlatformSubdomainSafe(options.requestHost) ??
-    resolveOmnitransitBrandPortalHost(options.requestHost)?.workspaceSlug;
+  const hostSlug = parseClientPlatformSubdomainSafe(options.requestHost);
   const preferredSlug =
     canonicalizeSaecWorkspaceSlug(hostSlug) ??
     (hostSlug ? getPortalPackBySlug(hostSlug)?.slug : null);

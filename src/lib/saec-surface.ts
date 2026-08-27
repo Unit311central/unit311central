@@ -57,7 +57,6 @@ export function isBrowserSaecSurface(): boolean {
   if (typeof window === "undefined") return false;
   const host = normalizeHost(window.location.hostname);
   if (host === `${OMNITRANSIT_HOST_ALIAS_SLUG}.unit311central.com`) return true;
-  if (host === `${OMNITRANSIT_HOST_ALIAS_SLUG}.unit311.com`) return true;
   if (host === `${OMNITRANSIT_HOST_ALIAS_SLUG}.localhost`) return true;
   if (host === `${SAEC_SLUG}.unit311central.com`) return true;
   if (host === `${SAEC_SLUG}.localhost`) return true;

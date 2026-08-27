@@ -1,13 +1,10 @@
 /**
  * Route-based OmniTransit external portals (board + client sites).
- * Board: https://omnitransit.unit311.com/board
+ * Board: https://omnitransit.unit311central.com/board
  * Client: https://omnitransit.unit311central.com/hyprop
  */
 
-import {
-  OMNITRANSIT_BOARD_PORTAL_ORIGIN,
-  OMNITRANSIT_CLIENT_PORTAL_ORIGIN,
-} from "@/lib/saec/omnitransit-brand-host";
+import { OMNITRANSIT_PORTAL_ORIGIN } from "@/lib/saec/omnitransit-brand-host";
 import { OMNITRANSIT_PORTALS_DEMO_USERNAME } from "@/lib/saec/portals-auth";
 
 export type OmnitransitPortalRoute = {
@@ -80,9 +77,7 @@ export function matchOmnitransitPortalPathname(pathname: string): {
 }
 
 export function omnitransitPortalAbsoluteUrl(route: OmnitransitPortalRoute): string {
-  const origin =
-    route.portalKind === "board" ? OMNITRANSIT_BOARD_PORTAL_ORIGIN : OMNITRANSIT_CLIENT_PORTAL_ORIGIN;
-  return `${origin}${route.redirectPath}`;
+  return `${OMNITRANSIT_PORTAL_ORIGIN}${route.redirectPath}`;
 }
 
 export function resolveOmnitransitPortalAbsoluteUrl(client: { id?: string | null }): string | null {
