@@ -8,21 +8,28 @@
  * not touch SAEC or any other workspace.
  */
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import path from "node:path";
 
 import {
   WOLF_MAP_BOUNDS,
   WOLF_MAP_VIEWBOX,
+  WOLF_OPERATIONAL_COUNTRY_NAMES,
   buildWolfMapLayers,
   projectWolfLonLat,
   type WolfMapFeatureCollection,
 } from "@/lib/wolf/africa-map-project";
 import { WOLF_DEMO_RESERVE_SEEDS } from "@/lib/wolf/central/demo-seed";
 
-// The frame must actually span Kenya (north, ~+5° lat) down through South
-// Africa (south, ~-34° lat), not the whole continent.
-assert.ok(WOLF_MAP_BOUNDS.maxLat >= 5, "frame must reach into Kenya");
+// The frame must focus on Kenya (north) through South Africa (south), not the
+// whole continent.
+assert.ok(WOLF_MAP_BOUNDS.maxLat >= 4, "frame must reach into Kenya");
 assert.ok(WOLF_MAP_BOUNDS.minLat <= -34, "frame must reach the South Africa coast");
-assert.ok(WOLF_MAP_BOUNDS.minLon <= 26 && WOLF_MAP_BOUNDS.maxLon >= 41, "frame must span reserve longitudes");
+assert.ok(
+  WOLF_MAP_BOUNDS.minLon >= 20 && WOLF_MAP_BOUNDS.maxLon <= 42,
+  "frame must stay within the Kenya → South Africa corridor",
+);
+assert.ok(WOLF_MAP_BOUNDS.maxLon - WOLF_MAP_BOUNDS.minLon <= 22, "frame must not span the whole continent");
 
 const { width, height, padding } = WOLF_MAP_VIEWBOX;
 
@@ -39,17 +46,23 @@ for (const seed of WOLF_DEMO_RESERVE_SEEDS) {
   );
 }
 
-// Demo composition: exactly one Kenya reserve and two South Africa reserves.
+// Kenya sits near the top of the operational frame; South Africa near the bottom.
 const kenya = WOLF_DEMO_RESERVE_SEEDS.filter((s) => s.country === "Kenya");
 const southAfrica = WOLF_DEMO_RESERVE_SEEDS.filter((s) => s.country === "South Africa");
 assert.equal(kenya.length, 1, "expected one Kenya demo reserve");
 assert.equal(southAfrica.length, 2, "expected two South Africa demo reserves");
 
-// Kenya sits north of South Africa, so it must project higher (smaller y).
 const kenyaY = projectWolfLonLat(kenya[0].longitude, kenya[0].latitude).y;
 for (const sa of southAfrica) {
   const saY = projectWolfLonLat(sa.longitude, sa.latitude).y;
   assert.ok(kenyaY < saY, `Kenya reserve should render north of ${sa.name}`);
+}
+
+const usableHeight = height - padding * 2;
+assert.ok(kenyaY <= padding + usableHeight * 0.28, "Kenya reserve should sit in the upper map band");
+for (const sa of southAfrica) {
+  const saY = projectWolfLonLat(sa.longitude, sa.latitude).y;
+  assert.ok(saY >= padding + usableHeight * 0.55, `${sa.name} should sit in the lower map band`);
 }
 
 // GeoJSON → SVG path conversion produces real per-country geometry.
@@ -72,11 +85,53 @@ const sample: WolfMapFeatureCollection = {
         ],
       },
     },
+    {
+      type: "Feature",
+      properties: { name: "Madagascar" },
+      geometry: {
+        type: "Polygon",
+        coordinates: [
+          [
+            [43.0, -12.0],
+            [50.0, -12.0],
+            [50.0, -25.0],
+            [43.0, -25.0],
+            [43.0, -12.0],
+          ],
+        ],
+      },
+    },
   ],
 };
 const layers = buildWolfMapLayers(sample);
 assert.equal(layers.countries.length, 1);
 assert.equal(layers.countries[0].name, "South Africa");
 assert.ok(layers.countries[0].paths[0].startsWith("M "), "country ring should be an SVG path");
+
+// Operational country filter must include Kenya and South Africa, exclude Madagascar.
+assert.ok(WOLF_OPERATIONAL_COUNTRY_NAMES.has("Kenya"));
+assert.ok(WOLF_OPERATIONAL_COUNTRY_NAMES.has("South Africa"));
+assert.ok(!WOLF_OPERATIONAL_COUNTRY_NAMES.has("Madagascar"));
+
+// Bundled geography should expose multiple corridor countries, not one merged blob.
+const geoPath = path.join(
+  process.cwd(),
+  "public/geo/wolf/southern-east-africa-countries.geojson",
+);
+const bundled = JSON.parse(readFileSync(geoPath, "utf8")) as WolfMapFeatureCollection;
+const bundledLayers = buildWolfMapLayers(bundled);
+assert.ok(bundledLayers.countries.length >= 8, "expected multiple operational countries in corridor");
+assert.ok(
+  bundledLayers.countries.some((country) => country.name === "Kenya"),
+  "Kenya must be present",
+);
+assert.ok(
+  bundledLayers.countries.some((country) => country.name === "South Africa"),
+  "South Africa must be present",
+);
+assert.ok(
+  !bundledLayers.countries.some((country) => country.name === "Madagascar"),
+  "Madagascar must be excluded from the operational map",
+);
 
 console.log("wolf-estate-map.check.ts — all assertions passed.");

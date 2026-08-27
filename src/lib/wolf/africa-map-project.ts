@@ -12,22 +12,54 @@
  */
 
 /**
- * Eastern / southern Africa operational frame (WGS84) — covers the region from
- * Kenya (north) down through South Africa (south) with light ocean/neighbour
- * context so all three demo reserves sit comfortably inside the first viewport.
+ * Kenya → South Africa operational corridor (WGS84).
+ * Tight framing keeps Kenya near the top, South Africa at the bottom, and
+ * excludes the wider continent (Madagascar, Horn of Africa, central Congo, etc.).
  */
 export const WOLF_MAP_BOUNDS = {
-  minLon: 8,
-  maxLon: 52,
-  minLat: -37,
-  maxLat: 8,
+  minLon: 22,
+  maxLon: 40,
+  minLat: -35.5,
+  maxLat: 5.5,
 };
 
-// Aspect ratio matches the bounds (lon 44° : lat 45°) to avoid distortion.
+/** Countries rendered on the WOLF operational map (Natural Earth names). */
+export const WOLF_OPERATIONAL_COUNTRY_NAMES = new Set([
+  "Kenya",
+  "Tanzania",
+  "Uganda",
+  "Rwanda",
+  "Burundi",
+  "Malawi",
+  "Zambia",
+  "Mozambique",
+  "Zimbabwe",
+  "Botswana",
+  "Namibia",
+  "South Africa",
+  "Lesotho",
+  "eSwatini",
+]);
+
+/** Subtle alternating land tones — keeps country boundaries readable on dark ocean. */
+export const WOLF_COUNTRY_FILL_PALETTE = [
+  "#1a4634",
+  "#1f523c",
+  "#173a2b",
+  "#224a38",
+  "#1c4a36",
+] as const;
+
+export function wolfCountryFillColor(index: number, selected: boolean): string {
+  if (selected) return "#2f7355";
+  return WOLF_COUNTRY_FILL_PALETTE[index % WOLF_COUNTRY_FILL_PALETTE.length];
+}
+
+// Aspect ratio matches the bounds (lon 18° : lat 41°) to avoid distortion.
 export const WOLF_MAP_VIEWBOX = {
-  width: 760,
-  height: 777,
-  padding: 34,
+  width: 540,
+  height: 1240,
+  padding: 30,
 };
 
 export type WolfMapPoint = { x: number; y: number };
@@ -108,7 +140,11 @@ export function buildWolfMapLayers(
       name: typeof feature.properties?.name === "string" ? feature.properties.name : "",
       paths: geometryToPaths(feature.geometry, project),
     }))
-    .filter((country) => country.paths.length > 0);
+    .filter(
+      (country) =>
+        country.paths.length > 0 && WOLF_OPERATIONAL_COUNTRY_NAMES.has(country.name),
+    )
+    .sort((a, b) => a.name.localeCompare(b.name));
   return { countries };
 }
 

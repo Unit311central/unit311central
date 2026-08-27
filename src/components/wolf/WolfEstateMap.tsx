@@ -8,6 +8,7 @@ import {
   WOLF_MAP_VIEWBOX,
   loadWolfMapLayers,
   projectWolfLonLat,
+  wolfCountryFillColor,
   type WolfMapLayers,
 } from "@/lib/wolf/africa-map-project";
 import type { WolfReserveRecord } from "@/lib/wolf/central/types";
@@ -242,21 +243,23 @@ export default function WolfEstateMap({
           <rect x={-BASE_W} y={-BASE_H} width={BASE_W * 3} height={BASE_H * 3} fill="#081311" />
 
           {/* Geography layer — real Natural Earth country boundaries. */}
-          {layers?.countries.map((country) => {
+          {layers?.countries.map((country, countryIndex) => {
             const isSelectedCountry =
               selectedReserve != null &&
               country.name.toLowerCase() === selectedReserve.country.toLowerCase();
+            const fill = wolfCountryFillColor(countryIndex, isSelectedCountry);
+            const stroke = isSelectedCountry ? "#8ff0c4" : "#6bc49a";
             return country.paths.map((path, index) => (
               <path
                 key={`${country.name}-${index}`}
                 d={path}
-                fill={isSelectedCountry ? "#2f7355" : "#1f5137"}
-                stroke={isSelectedCountry ? "#8ff0c4" : "#4a9b74"}
-                strokeWidth={isSelectedCountry ? 2 : 1.1}
-                strokeOpacity={isSelectedCountry ? 1 : 0.85}
+                fill={fill}
+                stroke={stroke}
+                strokeWidth={isSelectedCountry ? 2.2 : 1.35}
+                strokeOpacity={isSelectedCountry ? 1 : 0.92}
                 strokeLinejoin="round"
                 vectorEffect="non-scaling-stroke"
-                opacity={selectedReserve == null || isSelectedCountry ? 1 : 0.82}
+                opacity={selectedReserve == null || isSelectedCountry ? 1 : 0.88}
               />
             ));
           })}
