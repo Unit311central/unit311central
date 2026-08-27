@@ -92,6 +92,7 @@ const nextConfig: NextConfig = {
       "./docs/WORKSPACE_ARCHITECTURE.md",
       "./docs/EXECUTIVE_AI_PLATFORM.md",
     ],
+    "/api/wolf/map-geography": ["./public/geo/wolf/southern-east-africa-countries.geojson"],
   },
   outputFileTracingExcludes: {
     "*": [

@@ -134,4 +134,8 @@ assert.ok(
   "Madagascar must be excluded from the operational map",
 );
 
+// Empty feature collections must not silently render a blank map.
+const emptyLayers = buildWolfMapLayers({ type: "FeatureCollection", features: [] });
+assert.equal(emptyLayers.countries.length, 0, "empty GeoJSON should produce no countries");
+
 console.log("wolf-estate-map.check.ts — all assertions passed.");

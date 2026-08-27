@@ -59,6 +59,7 @@
     "provision:saec-demo-accounts": "node --import tsx scripts/provision-saec-demo-accounts.ts",
     "prove:saec-demo-accounts": "node scripts/prove-saec-demo-accounts.mjs",
     "prove:saec-complete-demo": "node scripts/prove-saec-complete-demo.mjs",
+    "prove:wolf-estate-map": "node --import tsx src/lib/wolf/__tests__/wolf-estate-map.check.ts && node scripts/prove-wolf-estate-map.mjs",
     "audit:demo-saec-parity": "node scripts/audit-demo-saec-parity.mjs",
     "prove:workspaces-nav": "node --require ./scripts/test-server-only-hook.cjs --import tsx src/lib/__tests__/workspaces-nav.check.ts",
     "prove:workspaces-phase2": "node --require ./scripts/test-server-only-hook.cjs --import tsx src/lib/__tests__/workspaces-phase2.check.ts",

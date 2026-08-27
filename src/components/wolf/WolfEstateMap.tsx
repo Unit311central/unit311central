@@ -255,10 +255,9 @@ export default function WolfEstateMap({
                 d={path}
                 fill={fill}
                 stroke={stroke}
-                strokeWidth={isSelectedCountry ? 2.2 : 1.35}
+                strokeWidth={(isSelectedCountry ? 2.2 : 1.35) / view.scale}
                 strokeOpacity={isSelectedCountry ? 1 : 0.92}
                 strokeLinejoin="round"
-                vectorEffect="non-scaling-stroke"
                 opacity={selectedReserve == null || isSelectedCountry ? 1 : 0.88}
               />
             ));

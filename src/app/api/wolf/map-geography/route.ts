@@ -19,7 +19,7 @@ export async function GET() {
       status: 200,
       headers: {
         "Content-Type": "application/geo+json",
-        "Cache-Control": "public, max-age=86400, immutable",
+        "Cache-Control": "private, no-store, max-age=0, must-revalidate",
       },
     });
   } catch (error) {

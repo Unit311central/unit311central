@@ -67,7 +67,11 @@ export type WolfMapPoint = { x: number; y: number };
 export const WOLF_MAP_ATTRIBUTION =
   "Map geography: Natural Earth 110m (public domain). Administrative boundaries for demonstration.";
 
-export const WOLF_MAP_GEO_URL = "/api/wolf/map-geography";
+/** Authenticated API route (same GeoJSON as the public static file below). */
+export const WOLF_MAP_GEO_API_URL = "/api/wolf/map-geography";
+
+/** Public Natural Earth bundle — used as a resilient client fallback when the API is unavailable. */
+export const WOLF_MAP_GEO_STATIC_URL = "/geo/wolf/southern-east-africa-countries.geojson";
 
 type LonLat = [number, number];
 type MapPolygon = { type: "Polygon"; coordinates: LonLat[][] };
@@ -148,11 +152,47 @@ export function buildWolfMapLayers(
   return { countries };
 }
 
-export async function loadWolfMapLayers(): Promise<WolfMapLayers> {
-  const response = await fetch(WOLF_MAP_GEO_URL, { cache: "force-cache" });
+function isWolfMapFeatureCollection(value: unknown): value is WolfMapFeatureCollection {
+  if (!value || typeof value !== "object") return false;
+  const candidate = value as WolfMapFeatureCollection;
+  return candidate.type === "FeatureCollection" && Array.isArray(candidate.features);
+}
+
+async function fetchWolfMapFeatureCollection(url: string): Promise<WolfMapFeatureCollection> {
+  const response = await fetch(url, {
+    cache: "no-store",
+    credentials: "same-origin",
+  });
   if (!response.ok) {
-    throw new Error("Failed to load WOLF region map geography.");
+    throw new Error(`Failed to load WOLF region map geography from ${url} (${response.status}).`);
   }
-  const region = (await response.json()) as WolfMapFeatureCollection;
-  return buildWolfMapLayers(region);
+  const region = (await response.json()) as unknown;
+  if (!isWolfMapFeatureCollection(region)) {
+    throw new Error(`WOLF map geography response from ${url} was not valid GeoJSON.`);
+  }
+  return region;
+}
+
+export async function loadWolfMapLayers(): Promise<WolfMapLayers> {
+  let region: WolfMapFeatureCollection | null = null;
+  let lastError: Error | null = null;
+
+  for (const url of [WOLF_MAP_GEO_API_URL, WOLF_MAP_GEO_STATIC_URL]) {
+    try {
+      region = await fetchWolfMapFeatureCollection(url);
+      break;
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error("Failed to load WOLF region map geography.");
+    }
+  }
+
+  if (!region) {
+    throw lastError ?? new Error("Failed to load WOLF region map geography.");
+  }
+
+  const layers = buildWolfMapLayers(region);
+  if (layers.countries.length === 0) {
+    throw new Error("WOLF map geography loaded but no operational countries were rendered.");
+  }
+  return layers;
 }
