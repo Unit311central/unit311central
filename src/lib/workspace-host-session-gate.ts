@@ -6,6 +6,7 @@ import {
   parseClientPlatformSubdomainSafe,
   parseSafePostLoginNext,
 } from "@/lib/app-domains";
+import { canonicalizePortalRedirect } from "@/lib/portals/middleware-edge";
 import { resolveDemoRole } from "@/lib/demo/read-only";
 import { demoWorkspaceSlug } from "@/lib/runtime-surface";
 import {
@@ -81,6 +82,20 @@ export async function evaluateCustomerHostSessionGate(
   });
 
   if (!decision.allowed) {
+    // Password-gated external portal logins use synthetic session IDs (no platform_users row).
+    if (
+      decision.reason === "user_not_found" &&
+      session.userType === "external" &&
+      session.workspaceId === workspace.id &&
+      canonicalizePortalRedirect(session.redirectPath)
+    ) {
+      return {
+        status: "ok",
+        session,
+        workspace,
+        needsRebind: sessionNeedsWorkspaceRebind(session, workspace),
+      };
+    }
     return { status: "forbidden", session };
   }
 
