@@ -1,6 +1,6 @@
 /**
  * Demo WOLF estate deployments — seed definitions for WOLF Central only.
- * Not customer workspaces; Pailex customer workspace is explicitly deferred.
+ * PAILEX customer workspace links to the pailex-demo reserve via futureWorkspaceSlug.
  */
 
 import type { WolfEstateAlert, WolfReserveRecord } from "@/lib/wolf/central/types";

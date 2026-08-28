@@ -213,7 +213,7 @@ export default function Unit311LoginPage({
 }: {
   variant?: "default" | "central";
   /** Tenant login branding. CorpCentre / Talanton / ABHI / OnwardAir / customer / northstar use workspace branding. */
-  brand?: "default" | "central" | "corpcentre" | "talanton" | "abhi" | "onwardair" | "customer" | "northstar" | "saec" | "wolf";
+  brand?: "default" | "central" | "corpcentre" | "talanton" | "abhi" | "onwardair" | "customer" | "northstar" | "saec" | "wolf" | "pailex";
   /** Display name for generic customer hosts (e.g. Acme). */
   workspaceName?: string | null;
   /** Persisted customer login page title from workspace provisioning. */
@@ -237,7 +237,8 @@ export default function Unit311LoginPage({
     brand === "abhi" ||
     brand === "onwardair" ||
     brand === "customer" ||
-    brand === "wolf";
+    brand === "wolf" ||
+    brand === "pailex";
   const isCorpCentre = brand === "corpcentre";
   const isTalanton = brand === "talanton";
   const isAbhi = brand === "abhi";
@@ -245,6 +246,7 @@ export default function Unit311LoginPage({
   const isNorthstar = brand === "northstar";
   const isSaec = brand === "saec";
   const isWolf = brand === "wolf";
+  const isPailex = brand === "pailex";
   const isCustomer = brand === "customer";
   const customerLabel = loginTitle?.trim() || workspaceName?.trim() || "Workspace";
   const customerBackground = loginBackgroundUrl?.trim() || LOGIN_BACKGROUND;
@@ -381,7 +383,7 @@ export default function Unit311LoginPage({
 
   return (
     <MarketingPageShell
-      hideAccentGradients={isNorthstar || isSaec || isWolf}
+      hideAccentGradients={isNorthstar || isSaec || isWolf || isPailex}
       backgroundImage={
         isOnwardAir
           ? ONWARDAIR_LOGIN_BACKGROUND
@@ -438,7 +440,7 @@ export default function Unit311LoginPage({
                 ? ABHI_LOGIN_OVERLAY_CLASS
                 : isSaec
                   ? SAEC_LOGIN_OVERLAY_CLASS
-                  : isWolf
+                  : isWolf || isPailex
                     ? "absolute inset-0 bg-gradient-to-b from-[#050a08]/88 via-[#080c0a]/92 to-[#040605]/96"
                   : isNorthstar
                     ? NORTHSTAR_LOGIN_OVERLAY_CLASS
@@ -467,6 +469,14 @@ export default function Unit311LoginPage({
             <SaecLogoMark height={64} maxWidth={320} priority />
           ) : isWolf ? (
             <WolfLogoMark size="lg" />
+          ) : isPailex ? (
+            <div className="flex flex-col items-center gap-2 text-center">
+              <WolfLogoMark size="lg" />
+              <p className="text-lg font-semibold tracking-tight text-white">PAILEX</p>
+              <p className="text-[10px] font-medium uppercase tracking-[0.2em] text-emerald-300/80">
+                WOLF Wildlife Operations
+              </p>
+            </div>
           ) : isCustomer ? (
             loginLogoUrl ? (
               <div className="relative flex h-24 w-full max-w-[280px] items-center justify-center">

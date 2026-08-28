@@ -169,6 +169,19 @@ function moduleKeysForView(viewId: string | undefined, moduleId: string): string
     return [view];
   }
 
+  if (view.startsWith("pailex-")) {
+    if (view.startsWith("pailex-animals")) return ["wolf-animals"];
+    if (view.startsWith("pailex-containment")) return ["wolf-containment"];
+    if (view.startsWith("pailex-environment")) return ["wolf-environment"];
+    if (view.startsWith("pailex-fleet")) return ["wolf-fleet"];
+    if (view.startsWith("pailex-drone")) return ["wolf-drone-operations"];
+    if (view.startsWith("pailex-support")) return ["support"];
+    if (view.startsWith("pailex-training")) return ["training"];
+    if (view.startsWith("pailex-projects") || view.startsWith("pailex-documents")) return ["projects"];
+    if (view === "pailex-dashboard") return [];
+    return ["home"];
+  }
+
   // Module-level fallback for any future central views in this module family.
   const moduleFallbacks: Record<string, string[]> = {
     "business-central": ["clients", "crm"],

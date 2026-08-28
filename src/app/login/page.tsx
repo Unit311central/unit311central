@@ -21,6 +21,7 @@ import { isSaecSlug } from "@/lib/saec-surface";
 import { isTalantonImpactSlug } from "@/lib/talanton-surface";
 import { loadWorkspaceLoginBrandingBySlug } from "@/lib/platform-workspaces/workspace-login-page-service";
 import { findWorkspaceBySlug } from "@/lib/workspace-host";
+import { isPailexSlug, canonicalizePailexSlug } from "@/lib/pailex/pailex-surface";
 import { canonicalizeWolfCentralSlug, isWolfCentralSlug } from "@/lib/wolf/wolf-surface";
 
 function workspaceSlugFromReturnTo(returnTo: string | null | undefined): string | null {
@@ -139,7 +140,9 @@ export default async function LoginPage({ searchParams }: PageProps) {
   const workspaceSlug =
     rawWorkspaceSlug && canonicalizeWolfCentralSlug(rawWorkspaceSlug)
       ? canonicalizeWolfCentralSlug(rawWorkspaceSlug)
-      : rawWorkspaceSlug;
+      : rawWorkspaceSlug && canonicalizePailexSlug(rawWorkspaceSlug)
+        ? canonicalizePailexSlug(rawWorkspaceSlug)
+        : rawWorkspaceSlug;
   const returnTo =
     parseLoginReturnTo(params.return_to)?.origin ??
     (workspaceSlug ? customerWorkspaceOrigin(workspaceSlug) : null) ??
@@ -160,6 +163,8 @@ export default async function LoginPage({ searchParams }: PageProps) {
             ? "saec"
             : isWolfCentralSlug(workspaceSlug)
               ? "wolf"
+            : isPailexSlug(workspaceSlug)
+              ? "pailex"
             : isDemo || workspaceSlug === "demo"
               ? "northstar"
               : workspaceSlug
@@ -182,6 +187,7 @@ export default async function LoginPage({ searchParams }: PageProps) {
         brand === "customer" ||
         brand === "saec" ||
         brand === "wolf" ||
+        brand === "pailex" ||
         brand === "central"
           ? "central"
           : "default"

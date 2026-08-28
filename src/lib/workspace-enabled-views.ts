@@ -3,6 +3,8 @@ import { isDemoWorkspaceSlug } from "@/lib/demo/read-only";
 import type { InternalOperationsView } from "@/lib/internal-operations-data";
 import { isInternalOperationsView } from "@/lib/internal-operations-data";
 import { isViewAllowedForGrants } from "@/lib/internal-role-views";
+import { isPailexSlug } from "@/lib/pailex/pailex-surface";
+import { isPailexWorkspaceView } from "@/lib/pailex/pailex-views";
 import {
   getWorkspaceModuleEntry,
   type WorkspaceModuleCatalogueEntry,
@@ -85,6 +87,8 @@ export function isViewAllowedForWorkspaceGrants(
   const slug = String(options?.workspaceSlug ?? "")
     .trim()
     .toLowerCase();
+  if (isPailexSlug(slug) && isPailexWorkspaceView(view)) return true;
+
   if (slug !== DEMO_WORKSPACE_SLUG && slug !== "demo") return false;
 
   const enabledViews = viewsForWorkspaceEnablement(

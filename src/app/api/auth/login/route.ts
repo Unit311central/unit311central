@@ -65,6 +65,7 @@ import {
   TALANTON_IMPACT_SLUG,
 } from "@/lib/talanton-surface";
 import { canonicalizeSaecWorkspaceSlug, isSaecSlug, SAEC_SLUG } from "@/lib/saec-surface";
+import { canonicalizePailexSlug } from "@/lib/pailex/pailex-surface";
 import { canonicalizeWolfCentralSlug, isWolfCentralSlug } from "@/lib/wolf/wolf-surface";
 import {
   isOmnitransitPortalsAllowedUsername,
@@ -770,6 +771,7 @@ export async function POST(request: NextRequest) {
     const workspaceSlug =
       canonicalizeTalantonImpactSlug(resolvedWorkspaceSlug) ??
       canonicalizeWolfCentralSlug(resolvedWorkspaceSlug) ??
+      canonicalizePailexSlug(resolvedWorkspaceSlug) ??
       canonicalizeSaecWorkspaceSlug(resolvedWorkspaceSlug) ??
       resolvedWorkspaceSlug;
 

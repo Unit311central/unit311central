@@ -60,6 +60,7 @@
     "prove:saec-demo-accounts": "node scripts/prove-saec-demo-accounts.mjs",
     "prove:saec-complete-demo": "node scripts/prove-saec-complete-demo.mjs",
     "prove:wolf-estate-map": "node --import tsx src/lib/wolf/__tests__/wolf-estate-map.check.ts && node scripts/prove-wolf-estate-map.mjs",
+    "prove:pailex-workspace": "node --import tsx src/lib/pailex/__tests__/pailex-workspace.check.ts && node --import tsx src/lib/wolf/__tests__/wolf-nav.check.ts && node --import tsx src/lib/__tests__/wolf-central.check.ts",
     "audit:demo-saec-parity": "node scripts/audit-demo-saec-parity.mjs",
     "prove:workspaces-nav": "node --require ./scripts/test-server-only-hook.cjs --import tsx src/lib/__tests__/workspaces-nav.check.ts",
     "prove:workspaces-phase2": "node --require ./scripts/test-server-only-hook.cjs --import tsx src/lib/__tests__/workspaces-phase2.check.ts",

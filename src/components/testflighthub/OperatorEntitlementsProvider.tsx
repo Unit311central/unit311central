@@ -15,6 +15,7 @@ import type { CommandCentreHomeTileId } from "@/lib/command-centre-home-tiles";
 import type { InternalOperationsView } from "@/lib/internal-operations-data";
 import { isViewAllowedForGrants } from "@/lib/internal-role-views";
 import { isViewAllowedForWorkspaceGrants } from "@/lib/workspace-enabled-views";
+import { isPailexSlug } from "@/lib/pailex/pailex-surface";
 import { usesInternalPlatformNav } from "@/lib/platform-workspaces/workspace-nav-resolver";
 import { isSpecialistWorkspaceSlug } from "@/lib/platform-workspaces/workspace-product-nav";
 import type { OperatorEntitlementsSnapshot } from "@/lib/operator-entitlements-server";
@@ -98,6 +99,7 @@ function navCanRenderWithoutWhoami(snapshot: {
 }): boolean {
   if (snapshot.enabledModules?.length) return true;
   if (isSpecialistWorkspaceSlug(snapshot.workspaceSlug)) return true;
+  if (isPailexSlug(snapshot.workspaceSlug)) return true;
   if (usesInternalPlatformNav(snapshot.workspaceSlug, snapshot.workspaceType)) return true;
   return false;
 }

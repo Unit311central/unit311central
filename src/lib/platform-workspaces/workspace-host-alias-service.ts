@@ -4,6 +4,7 @@ import { normalizeCustomerHostname } from "@/lib/platform-workspaces/workspace-h
 import { canonicalizeOnwardAirSlug } from "@/lib/onwardair-surface";
 import { canonicalizeSaecWorkspaceSlug } from "@/lib/saec-surface";
 import { canonicalizeTalantonImpactSlug } from "@/lib/talanton-surface";
+import { canonicalizePailexSlug } from "@/lib/pailex/pailex-surface";
 import { canonicalizeWolfCentralSlug } from "@/lib/wolf/wolf-surface";
 
 export type WorkspaceHostAliasRecord = {
@@ -142,6 +143,7 @@ export function canonicalizeWorkspaceHostSubdomain(
     canonicalizeTalantonImpactSlug(raw) ??
     canonicalizeSaecWorkspaceSlug(raw) ??
     canonicalizeWolfCentralSlug(raw) ??
+    canonicalizePailexSlug(raw) ??
     null;
   return codeAlias ?? dbResolvedSlug ?? raw;
 }

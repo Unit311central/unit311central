@@ -268,7 +268,36 @@ export type InternalOperationsView =
   | "wolf-containment"
   | "wolf-environment"
   | "wolf-drone-operations"
-  | "wolf-fleet";
+  | "wolf-fleet"
+  | "pailex-dashboard"
+  | "pailex-animals-registry"
+  | "pailex-animals-monitoring"
+  | "pailex-animals-census"
+  | "pailex-animals-health"
+  | "pailex-containment-perimeter"
+  | "pailex-containment-patrols"
+  | "pailex-containment-incidents"
+  | "pailex-containment-alerts"
+  | "pailex-environment-weather"
+  | "pailex-environment-fire"
+  | "pailex-environment-flood"
+  | "pailex-environment-monitoring"
+  | "pailex-fleet-vehicles"
+  | "pailex-fleet-drones"
+  | "pailex-fleet-equipment"
+  | "pailex-drone-operations"
+  | "pailex-drone-missions"
+  | "pailex-drone-flight-logs"
+  | "pailex-support-requests"
+  | "pailex-support-maintenance"
+  | "pailex-training"
+  | "pailex-training-certifications"
+  | "pailex-training-competency"
+  | "pailex-projects-active"
+  | "pailex-projects-tasks"
+  | "pailex-documents"
+  | "pailex-documents-procedures"
+  | "pailex-documents-reports";
 
 /** App Router folder path (middleware may rewrite `/` → this on the internal host). */
 export const INTERNAL_OPERATIONS_APP_PATH = "/internaldashboard";
@@ -579,6 +608,35 @@ export const internalOperationsViews: InternalOperationsView[] = [
   "wolf-environment",
   "wolf-drone-operations",
   "wolf-fleet",
+  "pailex-dashboard",
+  "pailex-animals-registry",
+  "pailex-animals-monitoring",
+  "pailex-animals-census",
+  "pailex-animals-health",
+  "pailex-containment-perimeter",
+  "pailex-containment-patrols",
+  "pailex-containment-incidents",
+  "pailex-containment-alerts",
+  "pailex-environment-weather",
+  "pailex-environment-fire",
+  "pailex-environment-flood",
+  "pailex-environment-monitoring",
+  "pailex-fleet-vehicles",
+  "pailex-fleet-drones",
+  "pailex-fleet-equipment",
+  "pailex-drone-operations",
+  "pailex-drone-missions",
+  "pailex-drone-flight-logs",
+  "pailex-support-requests",
+  "pailex-support-maintenance",
+  "pailex-training",
+  "pailex-training-certifications",
+  "pailex-training-competency",
+  "pailex-projects-active",
+  "pailex-projects-tasks",
+  "pailex-documents",
+  "pailex-documents-procedures",
+  "pailex-documents-reports",
 ];
 
 /** Nav aliases that share one implementation until modules are redesigned. */
@@ -1477,6 +1535,35 @@ export const internalViewTitles: Record<
   "wolf-environment": { title: "Environment summary", subtitle: "WOLF Central" },
   "wolf-drone-operations": { title: "Drone operations summary", subtitle: "WOLF Central" },
   "wolf-fleet": { title: "Fleet summary", subtitle: "WOLF Central" },
+  "pailex-dashboard": { title: "Dashboard", subtitle: "PAILEX · WOLF Wildlife Operations" },
+  "pailex-animals-registry": { title: "Animal Registry", subtitle: "PAILEX · Animals" },
+  "pailex-animals-monitoring": { title: "Monitoring", subtitle: "PAILEX · Animals" },
+  "pailex-animals-census": { title: "Census", subtitle: "PAILEX · Animals" },
+  "pailex-animals-health": { title: "Health / Incidents", subtitle: "PAILEX · Animals" },
+  "pailex-containment-perimeter": { title: "Perimeter", subtitle: "PAILEX · Containment" },
+  "pailex-containment-patrols": { title: "Patrols", subtitle: "PAILEX · Containment" },
+  "pailex-containment-incidents": { title: "Incidents", subtitle: "PAILEX · Containment" },
+  "pailex-containment-alerts": { title: "Alerts", subtitle: "PAILEX · Containment" },
+  "pailex-environment-weather": { title: "Weather", subtitle: "PAILEX · Environment" },
+  "pailex-environment-fire": { title: "Fire", subtitle: "PAILEX · Environment" },
+  "pailex-environment-flood": { title: "Flood", subtitle: "PAILEX · Environment" },
+  "pailex-environment-monitoring": { title: "Environmental Monitoring", subtitle: "PAILEX · Environment" },
+  "pailex-fleet-vehicles": { title: "Vehicles", subtitle: "PAILEX · Fleet" },
+  "pailex-fleet-drones": { title: "Drones", subtitle: "PAILEX · Fleet" },
+  "pailex-fleet-equipment": { title: "Equipment", subtitle: "PAILEX · Fleet" },
+  "pailex-drone-operations": { title: "Operations", subtitle: "PAILEX · Drone Operations" },
+  "pailex-drone-missions": { title: "Missions", subtitle: "PAILEX · Drone Operations" },
+  "pailex-drone-flight-logs": { title: "Flight Logs", subtitle: "PAILEX · Drone Operations" },
+  "pailex-support-requests": { title: "Support Requests", subtitle: "PAILEX · Support" },
+  "pailex-support-maintenance": { title: "Maintenance / Service", subtitle: "PAILEX · Support" },
+  "pailex-training": { title: "Training", subtitle: "PAILEX · Training" },
+  "pailex-training-certifications": { title: "Certifications", subtitle: "PAILEX · Training" },
+  "pailex-training-competency": { title: "Staff Competency", subtitle: "PAILEX · Training" },
+  "pailex-projects-active": { title: "Active Projects", subtitle: "PAILEX · Projects" },
+  "pailex-projects-tasks": { title: "Tasks", subtitle: "PAILEX · Projects" },
+  "pailex-documents": { title: "Documents", subtitle: "PAILEX · Documents" },
+  "pailex-documents-procedures": { title: "Procedures", subtitle: "PAILEX · Documents" },
+  "pailex-documents-reports": { title: "Reports", subtitle: "PAILEX · Documents" },
   "fundraising-dashboard": { title: "Dashboard", subtitle: "Fundraising" },
   "fundraising-investors": { title: "Investors", subtitle: "Fundraising" },
   "fundraising-cap-table": { title: "Cap Table Management", subtitle: "Fundraising" },

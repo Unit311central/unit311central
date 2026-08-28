@@ -18,6 +18,7 @@ import TalantonLogoMark, {
 } from "@/components/layout/TalantonLogoMark";
 import Unit311CentralWordmark from "@/components/layout/Unit311CentralWordmark";
 import { isDemoDomainHost } from "@/lib/app-domains";
+import { isPailexSlug, canonicalizePailexSlug } from "@/lib/pailex/pailex-surface";
 import { isWolfCentralSlug } from "@/lib/wolf/wolf-surface";
 import { readBrowserDemoPreviewSlug } from "@/lib/demo/workspace-preview";
 import { cn } from "@/lib/utils";
@@ -62,6 +63,7 @@ type BrandKind =
   | "interfaceworx"
   | "saec"
   | "wolf"
+  | "pailex"
   | "customer";
 
 function resolveBrandKind(slug: string | null): BrandKind {
@@ -76,6 +78,7 @@ function resolveBrandKind(slug: string | null): BrandKind {
   if (isInterfaceWorxSlug(slug)) return "interfaceworx";
   if (isSaecSlug(slug)) return "saec";
   if (isWolfCentralSlug(slug)) return "wolf";
+  if (isPailexSlug(slug)) return "pailex";
   return "customer";
 }
 
@@ -157,6 +160,13 @@ export default function WorkspaceSidebarBrand({
       <SaecLogoMark height={32} maxWidth={180} />
     ) : brand === "wolf" ? (
       <WolfLogoMark size="sm" />
+    ) : brand === "pailex" ? (
+      <span className="flex flex-col leading-tight">
+        <span className="text-[15px] font-semibold tracking-tight text-white">PAILEX</span>
+        <span className="text-[9px] font-medium uppercase tracking-[0.16em] text-emerald-300/75">
+          WOLF Wildlife Operations
+        </span>
+      </span>
     ) : brand === "northstar" ? (
       <NorthstarLogoMark height={40} maxWidth={230} />
     ) : brand === "customer" ? (
@@ -191,6 +201,8 @@ export default function WorkspaceSidebarBrand({
               ? "OmniTransit home"
             : brand === "wolf"
               ? "WOLF Central home"
+            : brand === "pailex"
+              ? "PAILEX home"
             : brand === "northstar"
               ? "Northstar Industrial Technologies home"
               : brand === "customer"

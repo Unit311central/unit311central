@@ -1,0 +1,36 @@
+name: Provision PAILEX
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  provision:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Provision PAILEX via production internal API
+        env:
+          SETUP_SECRET: ${{ secrets.INTERNAL_FILES_SETUP_SECRET }}
+          PAILEX_PASSWORD: ${{ secrets.PAILEX_INITIAL_ADMIN_PASSWORD }}
+        run: |
+          set -euo pipefail
+          if [ -z "${SETUP_SECRET:-}" ]; then
+            echo "INTERNAL_FILES_SETUP_SECRET is not configured on this repo."
+            exit 1
+          fi
+          if [ -z "${PAILEX_PASSWORD:-}" ]; then
+            echo "PAILEX_INITIAL_ADMIN_PASSWORD is not configured on this repo."
+            exit 1
+          fi
+          response=$(curl -fsS -X POST \
+            -H "x-setup-secret: ${SETUP_SECRET}" \
+            -H "Content-Type: application/json" \
+            -d "$(jq -n --arg password "$PAILEX_PASSWORD" '{password: $password}')" \
+            "https://unit311central.com/api/internal/provision-pailex")
+          echo "$response" | jq .
+          echo "$response" | jq -e '.ok == true' >/dev/null
+          echo "$response" | jq -e '.slug == "pailex"' >/dev/null
+          echo "$response" | jq -e '.initialAdminEmail == "admin@pailex.unit311central.com"' >/dev/null

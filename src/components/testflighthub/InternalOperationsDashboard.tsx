@@ -47,6 +47,8 @@ import { isBrowserTalantonImpactSurface } from "@/lib/talanton-surface";
 import { isBrowserOnwardAirSurface } from "@/lib/onwardair-surface";
 import { isBrowserSaecSurface } from "@/lib/saec-surface";
 import { isBrowserWolfCentralSurface } from "@/lib/wolf/wolf-surface";
+import { isBrowserPailexSurface } from "@/lib/pailex/pailex-surface";
+import { isPailexWorkspaceView } from "@/lib/pailex/pailex-views";
 import NorthstarCorporateDashboard from "@/components/demo/NorthstarCorporateDashboard";
 import { isBrowserDemoSurface } from "@/lib/demo-enterprise";
 import type { ReportingCurrency } from "@/lib/financial-reporting-currency";
@@ -300,6 +302,7 @@ import {
   WolfEnvironmentSummaryWorkspace,
   WolfDroneSummaryWorkspace,
   WolfFleetSummaryWorkspace,
+  PailexViewHost,
 } from "./lazy-workspaces";
 import { type ManagedUser } from "@/lib/user-management-data";
 import { useInfoEmailWhatsAppPoller } from "@/hooks/useInfoEmailWhatsAppPoller";
@@ -471,6 +474,9 @@ function readInitialView(
   }
   if (fromQuery === "home" && isBrowserWolfCentralSurface()) {
     return "wolf-estate";
+  }
+  if (fromQuery === "home" && isBrowserPailexSurface()) {
+    return "pailex-dashboard";
   }
   return fromQuery;
 }
@@ -728,7 +734,7 @@ export default function InternalOperationsDashboard({
       resolveRuntimeSurface(window.location.hostname) === "customer" &&
       CUSTOMER_PLATFORM_HIDDEN_VIEWS.has(activeView)
     ) {
-      setActiveView("home");
+      setActiveView(isBrowserPailexSurface() ? "pailex-dashboard" : "home");
     }
   }, [activeView]);
 
@@ -1475,6 +1481,8 @@ export default function InternalOperationsDashboard({
           {activeView === "wolf-environment" && <WolfEnvironmentSummaryWorkspace />}
           {activeView === "wolf-drone-operations" && <WolfDroneSummaryWorkspace />}
           {activeView === "wolf-fleet" && <WolfFleetSummaryWorkspace />}
+
+          {isPailexWorkspaceView(activeView) ? <PailexViewHost view={activeView} /> : null}
 
           {activeView === "fundraising-dashboard" && <FundraisingDashboardHost />}
           {activeView === "fundraising-investors" && <FundraisingInvestorsHost />}
