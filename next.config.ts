@@ -71,6 +71,10 @@ const nextConfig: NextConfig = {
   },
   experimental: {
     optimizePackageImports: ["lucide-react", "recharts", "date-fns"],
+    // Server production bundles were emitting ~148 MB of .js.map files into
+    // .next/server, bloating the Vercel deployment output and causing ENOSPC.
+    // Server source maps are debug-only and not needed at runtime.
+    serverSourceMaps: false,
   },
   // Architecture diagram live-seeds read these at runtime on Vercel (docs/ is otherwise excluded).
   outputFileTracingIncludes: {
