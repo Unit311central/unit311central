@@ -97,14 +97,45 @@ const nextConfig: NextConfig = {
       "./docs/EXECUTIVE_AI_PLATFORM.md",
     ],
     "/api/wolf/map-geography": ["./public/geo/wolf/southern-east-africa-countries.geojson"],
+    "/api/saec/installations/map-geography": [
+      "./public/geo/saec/south-africa-country.geojson",
+      "./public/geo/saec/south-africa-provinces.geojson",
+    ],
+    "/api/demo/board-deck": ["./public/samples/**"],
+    "/api/abhi/board-deck": [
+      "./public/images/workspaces/abhi-logo.png",
+      "./public/images/workspaces/abhi.jpg",
+    ],
+    "/api/talanton/board-deck": [
+      "./public/images/workspaces/talantonimpact-logo.png",
+      "./public/images/talanton/harry-turner.jpg",
+    ],
+    "/api/executive-assistant/**": [
+      "./public/images/workspaces/abhi-logo.png",
+      "./public/images/workspaces/abhi.jpg",
+      "./public/images/workspaces/northstar-logo.png",
+      "./public/images/workspaces/northstar-logo-print.jpg",
+      "./public/images/workspaces/talantonimpact-logo.png",
+      "./public/images/workspaces/onwardair-logo.png",
+      "./public/images/workspaces/onwardair-logo-dark.png",
+      "./public/images/talanton/harry-turner.jpg",
+      "./public/samples/**",
+    ],
   },
   outputFileTracingExcludes: {
     "*": [
+      // Static assets are deployed separately via public/ — must not be duplicated into every serverless trace.
+      "public/**",
+      "**/*.map",
       "node_modules/playwright/**",
       "node_modules/@playwright/**",
       "node_modules/@esbuild/**",
       "node_modules/webpack/**",
       "node_modules/terser/**",
+      "node_modules/@img/sharp-wasm32/**",
+      // Vercel Node functions run on glibc Amazon Linux; musl SWC/sharp binaries are unused duplicates.
+      "node_modules/@next/swc-linux-x64-musl/**",
+      "node_modules/@img/sharp-linuxmusl-x64/**",
       "docs/**",
       "mobile-android/**",
       "tmp/**",
