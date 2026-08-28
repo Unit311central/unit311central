@@ -5,10 +5,11 @@ import { Pause, Play, RotateCcw } from "lucide-react";
 
 import {
   WOLF_AI_WILDLIFE_VISION_DURATION_SEC,
-  WOLF_AI_WILDLIFE_VISION_HUD,
   WOLF_AI_WILDLIFE_VISION_VIDEO_SRC,
+  getWildlifeVisionHudAt,
 } from "@/lib/wolf/ai-wildlife-vision/config";
 import { createWildlifeVisionDetectionProvider } from "@/lib/wolf/ai-wildlife-vision/detection-provider";
+import { WildlifeSpeciesIcon } from "@/lib/wolf/ai-wildlife-vision/species-icons";
 import type { WildlifeSpecies, WildlifeUniqueCounts } from "@/lib/wolf/ai-wildlife-vision/types";
 import { WILDLIFE_SPECIES, WILDLIFE_SPECIES_LABELS } from "@/lib/wolf/ai-wildlife-vision/types";
 import { wolfCardClass, wolfEyebrowClass, wolfShellClass } from "@/components/wolf/wolf-ui";
@@ -139,6 +140,7 @@ export default function WolfAiWildlifeVisionDemo() {
 
   const elapsedLabel = formatElapsed(playbackTimeSec);
   const durationLabel = formatElapsed(WOLF_AI_WILDLIFE_VISION_DURATION_SEC);
+  const hud = getWildlifeVisionHudAt(playbackTimeSec);
 
   return (
     <div className={`${wolfShellClass} px-4 py-6 sm:px-6 sm:py-8`}>
@@ -147,7 +149,8 @@ export default function WolfAiWildlifeVisionDemo() {
           <p className={wolfEyebrowClass}>Tools · Demo</p>
           <h1 className="mt-1 text-2xl font-semibold text-white">AI Wildlife Vision</h1>
           <p className="mt-2 max-w-2xl text-sm text-white/50">
-            Demonstration of WOLF AI wildlife detection and unique-animal tracking.
+            High-altitude aerial survey demonstration — WOLF AI wildlife detection and unique-animal
+            tracking over a game reserve.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -167,7 +170,9 @@ export default function WolfAiWildlifeVisionDemo() {
               <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-300/80">
                 FPV Drone feed
               </p>
-              <p className="text-sm font-medium text-white/80">African game reserve · aerial survey</p>
+              <p className="text-sm font-medium text-white/80">
+                African game reserve · high-altitude survey pass
+              </p>
             </div>
             <span className="inline-flex items-center gap-1.5 rounded-full border border-red-500/40 bg-red-500/15 px-2.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.12em] text-red-300">
               <span className="live-video-pulse h-1.5 w-1.5 rounded-full bg-red-400" />
@@ -197,19 +202,28 @@ export default function WolfAiWildlifeVisionDemo() {
                 <span className="text-red-300">●</span> LIVE
               </p>
               <p className="rounded border border-white/15 bg-black/50 px-2 py-1 backdrop-blur-sm">
-                ALT {WOLF_AI_WILDLIFE_VISION_HUD.altitudeM}m
+                ALT {hud.altitudeM}m
               </p>
               <p className="rounded border border-white/15 bg-black/50 px-2 py-1 backdrop-blur-sm">
-                SPD {WOLF_AI_WILDLIFE_VISION_HUD.speedMps}m/s
+                SPD {hud.speedMps}m/s
+              </p>
+              <p className="rounded border border-white/15 bg-black/50 px-2 py-1 backdrop-blur-sm">
+                HDG {hud.headingDeg}°
               </p>
             </div>
 
             <div className="pointer-events-none absolute right-3 top-3 space-y-1 text-right font-mono text-[10px] text-white/90 sm:right-4 sm:top-4 sm:text-[11px]">
               <p className="rounded border border-white/15 bg-black/50 px-2 py-1 backdrop-blur-sm">
-                {WOLF_AI_WILDLIFE_VISION_HUD.resolution}
+                FOV {hud.fov}
               </p>
               <p className="rounded border border-white/15 bg-black/50 px-2 py-1 backdrop-blur-sm">
-                {WOLF_AI_WILDLIFE_VISION_HUD.fps} FPS
+                MODE {hud.mode}
+              </p>
+              <p className="rounded border border-white/15 bg-black/50 px-2 py-1 backdrop-blur-sm">
+                {hud.resolution}
+              </p>
+              <p className="rounded border border-white/15 bg-black/50 px-2 py-1 backdrop-blur-sm">
+                {hud.fps} FPS
               </p>
               <p className="rounded border border-white/15 bg-black/50 px-2 py-1 backdrop-blur-sm">
                 {elapsedLabel} / {durationLabel}
@@ -219,7 +233,7 @@ export default function WolfAiWildlifeVisionDemo() {
             {detections.map((detection) => (
               <div
                 key={detection.trackId}
-                className="pointer-events-none absolute border-2 border-[#39ff14] shadow-[0_0_12px_rgba(57,255,20,0.45)]"
+                className="pointer-events-none absolute border border-[#39ff14] shadow-[0_0_8px_rgba(57,255,20,0.4)]"
                 style={{
                   left: `${detection.box.x * 100}%`,
                   top: `${detection.box.y * 100}%`,
@@ -227,10 +241,10 @@ export default function WolfAiWildlifeVisionDemo() {
                   height: `${detection.box.height * 100}%`,
                 }}
               >
-                <span className="absolute -top-5 left-0 whitespace-nowrap bg-[#39ff14] px-1.5 py-0.5 font-mono text-[9px] font-bold uppercase tracking-[0.08em] text-black sm:text-[10px]">
+                <span className="absolute -top-4 left-0 max-w-[9rem] truncate bg-[#39ff14] px-1 py-0.5 font-mono text-[8px] font-bold uppercase tracking-[0.06em] text-black sm:text-[9px]">
                   {detection.label} {(detection.confidence * 100).toFixed(0)}%
                 </span>
-                <span className="absolute -bottom-0.5 -right-0.5 h-2 w-2 border border-[#39ff14] bg-[#39ff14]/30" aria-hidden />
+                <span className="absolute -bottom-0.5 -right-0.5 h-1.5 w-1.5 border border-[#39ff14] bg-[#39ff14]/30" aria-hidden />
               </div>
             ))}
           </div>
@@ -292,7 +306,12 @@ export default function WolfAiWildlifeVisionDemo() {
           <ul className="mt-5 flex-1 space-y-3">
             {WILDLIFE_SPECIES.map((species) => (
               <li key={species} className="flex items-center justify-between gap-3">
-                <span className="text-sm text-white/70">{WILDLIFE_SPECIES_LABELS[species]}</span>
+                <span className="flex items-center gap-2.5 text-sm text-white/70">
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-white/10 bg-white/[0.04] text-emerald-200/90">
+                    <WildlifeSpeciesIcon species={species} className="h-4 w-4" />
+                  </span>
+                  {WILDLIFE_SPECIES_LABELS[species]}
+                </span>
                 <CountValue value={displayCounts.bySpecies[species]} />
               </li>
             ))}

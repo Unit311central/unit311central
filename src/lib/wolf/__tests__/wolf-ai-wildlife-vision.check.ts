@@ -6,43 +6,62 @@
 import assert from "node:assert/strict";
 
 import { WOLF_AI_WILDLIFE_VISION_DURATION_SEC } from "@/lib/wolf/ai-wildlife-vision/config";
+import { getWildlifeVisionHudAt } from "@/lib/wolf/ai-wildlife-vision/config";
 import { createWildlifeVisionDetectionProvider } from "@/lib/wolf/ai-wildlife-vision/detection-provider";
-import { getSimulatedUniqueCountsAt } from "@/lib/wolf/ai-wildlife-vision/simulated-detections";
+import {
+  WOLF_AI_WILDLIFE_VISION_FINAL_COUNTS,
+  getSimulatedDetectionsAt,
+  getSimulatedUniqueCountsAt,
+} from "@/lib/wolf/ai-wildlife-vision/simulated-detections";
 
 const provider = createWildlifeVisionDetectionProvider("simulated");
 
 assert.equal(provider.mode, "simulated");
 assert.equal(provider.durationSec, 30);
 
+const aerialScan = getSimulatedDetectionsAt(4);
+assert.equal(aerialScan.length, 0, "no detections during nadir establishing pass");
+
 const at5 = getSimulatedUniqueCountsAt(5);
-assert.equal(at5.bySpecies.zebra, 4);
-assert.equal(at5.bySpecies.eland, 2);
-assert.equal(at5.totalUnique, 6);
+assert.equal(at5.totalUnique, 0);
+
+const at10 = getSimulatedUniqueCountsAt(10.5);
+assert.equal(at10.bySpecies.zebra, 3);
+assert.equal(at10.bySpecies.wildebeest, 2);
+assert.equal(at10.bySpecies.impala, 1);
+assert.equal(at10.totalUnique, 6);
 
 const at12 = getSimulatedUniqueCountsAt(12);
-assert.equal(at12.bySpecies.zebra, 11);
-assert.equal(at12.bySpecies.eland, 4);
-assert.equal(at12.bySpecies.giraffe, 2);
+assert.equal(at12.bySpecies.zebra, 7);
+assert.equal(at12.bySpecies.wildebeest, 6);
+assert.equal(at12.bySpecies.impala, 4);
+assert.equal(at12.bySpecies.giraffe, 0);
 assert.equal(at12.totalUnique, 17);
 
 const at20 = getSimulatedUniqueCountsAt(20);
-assert.equal(at20.bySpecies.zebra, 18);
-assert.equal(at20.bySpecies.eland, 7);
-assert.equal(at20.bySpecies.giraffe, 3);
-assert.equal(at20.bySpecies.wildebeest, 8);
-assert.equal(at20.totalUnique, 36);
+assert.equal(at20.bySpecies.zebra, 8);
+assert.equal(at20.bySpecies.wildebeest, 10);
+assert.equal(at20.bySpecies.impala, 6);
+assert.equal(at20.bySpecies.eland, 0);
+assert.equal(at20.bySpecies.buffalo, 0);
+assert.equal(at20.bySpecies.rhino, 0);
+assert.equal(at20.totalUnique, 24);
 
 const at30 = getSimulatedUniqueCountsAt(WOLF_AI_WILDLIFE_VISION_DURATION_SEC);
-assert.equal(at30.bySpecies.zebra, 23);
-assert.equal(at30.bySpecies.eland, 8);
-assert.equal(at30.bySpecies.giraffe, 4);
-assert.equal(at30.bySpecies.wildebeest, 17);
-assert.equal(at30.bySpecies.impala, 6);
-assert.equal(at30.bySpecies.buffalo, 3);
-assert.equal(at30.bySpecies.rhino, 2);
-assert.equal(at30.totalUnique, 63);
+assert.deepEqual(at30, WOLF_AI_WILDLIFE_VISION_FINAL_COUNTS);
+assert.equal(at30.totalUnique, 24);
 
-const midPlayback = provider.getDetectionsAt(10);
+const midPlayback = provider.getDetectionsAt(15);
 assert.ok(midPlayback.length > 0, "expected visible simulated detections mid-playback");
+assert.ok(
+  midPlayback.every((detection) => ["zebra", "wildebeest", "impala"].includes(detection.species)),
+  "demo footage only contains zebra, wildebeest, and impala",
+);
+
+const hudMid = getWildlifeVisionHudAt(15);
+assert.ok(hudMid.altitudeM >= 650 && hudMid.altitudeM <= 750);
+assert.equal(hudMid.speedMps, 24);
+assert.equal(hudMid.fov, "Wide");
+assert.equal(hudMid.mode, "Survey");
 
 console.log("wolf-ai-wildlife-vision.check.ts — all assertions passed.");

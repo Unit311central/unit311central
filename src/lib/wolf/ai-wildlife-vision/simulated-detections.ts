@@ -5,7 +5,7 @@ import type {
   WildlifeSpecies,
   WildlifeUniqueCounts,
 } from "@/lib/wolf/ai-wildlife-vision/types";
-import { WILDLIFE_SPECIES_LABELS } from "@/lib/wolf/ai-wildlife-vision/types";
+import { WILDLIFE_SPECIES, WILDLIFE_SPECIES_LABELS } from "@/lib/wolf/ai-wildlife-vision/types";
 
 type DetectionKeyframe = {
   timeSec: number;
@@ -18,72 +18,6 @@ type SimulatedTrack = {
   confidence: number;
   keyframes: DetectionKeyframe[];
 };
-
-const COUNT_MILESTONES: Array<{
-  timeSec: number;
-  counts: Record<WildlifeSpecies, number>;
-}> = [
-  {
-    timeSec: 0,
-    counts: {
-      zebra: 0,
-      eland: 0,
-      giraffe: 0,
-      wildebeest: 0,
-      impala: 0,
-      buffalo: 0,
-      rhino: 0,
-    },
-  },
-  {
-    timeSec: 5,
-    counts: {
-      zebra: 4,
-      eland: 2,
-      giraffe: 0,
-      wildebeest: 0,
-      impala: 0,
-      buffalo: 0,
-      rhino: 0,
-    },
-  },
-  {
-    timeSec: 12,
-    counts: {
-      zebra: 11,
-      eland: 4,
-      giraffe: 2,
-      wildebeest: 0,
-      impala: 0,
-      buffalo: 0,
-      rhino: 0,
-    },
-  },
-  {
-    timeSec: 20,
-    counts: {
-      zebra: 18,
-      eland: 7,
-      giraffe: 3,
-      wildebeest: 8,
-      impala: 0,
-      buffalo: 0,
-      rhino: 0,
-    },
-  },
-  {
-    timeSec: 30,
-    counts: {
-      zebra: 23,
-      eland: 8,
-      giraffe: 4,
-      wildebeest: 17,
-      impala: 6,
-      buffalo: 3,
-      rhino: 2,
-    },
-  },
-];
 
 function track(
   trackId: string,
@@ -99,71 +33,116 @@ function track(
   return { trackId, species, confidence, keyframes };
 }
 
-/** Pre-authored tracks — positions tuned for generic savanna aerial footage. */
+/**
+ * Tracks tuned to the composite high-altitude survey demo:
+ * - 0–9s: nadir savanna establishing pass (no animals visible)
+ * - 9.5–30s: wildlife concentration zone (zebra, wildebeest, impala only)
+ */
 const SIMULATED_TRACKS: SimulatedTrack[] = [
-  track("zebra-a1", "zebra", 0.94, [
-    { start: 0.4, end: 4.8, from: { x: 0.08, y: 0.58, width: 0.11, height: 0.09 }, to: { x: 0.22, y: 0.56, width: 0.12, height: 0.1 } },
-    { start: 18.0, end: 22.5, from: { x: 0.62, y: 0.52, width: 0.1, height: 0.08 }, to: { x: 0.74, y: 0.5, width: 0.11, height: 0.09 } },
+  // Left zebra herd — enters as survey zone comes into view
+  track("zebra-z01", "zebra", 0.94, [
+    { start: 9.8, end: 16.5, from: { x: 0.028, y: 0.505, width: 0.028, height: 0.036 }, to: { x: 0.055, y: 0.498, width: 0.028, height: 0.036 } },
+    { start: 16.5, end: 22.0, from: { x: 0.055, y: 0.498, width: 0.028, height: 0.036 }, to: { x: 0.038, y: 0.502, width: 0.027, height: 0.035 } },
   ]),
-  track("zebra-a2", "zebra", 0.91, [
-    { start: 1.0, end: 5.2, from: { x: 0.18, y: 0.62, width: 0.1, height: 0.08 }, to: { x: 0.31, y: 0.6, width: 0.11, height: 0.09 } },
-    { start: 19.5, end: 24.0, from: { x: 0.48, y: 0.55, width: 0.12, height: 0.09 }, to: { x: 0.6, y: 0.53, width: 0.11, height: 0.08 } },
+  track("zebra-z02", "zebra", 0.91, [
+    { start: 10.0, end: 17.0, from: { x: 0.052, y: 0.512, width: 0.027, height: 0.035 }, to: { x: 0.078, y: 0.506, width: 0.028, height: 0.036 } },
+    { start: 17.0, end: 23.5, from: { x: 0.078, y: 0.506, width: 0.028, height: 0.036 }, to: { x: 0.062, y: 0.509, width: 0.027, height: 0.035 } },
   ]),
-  track("zebra-a3", "zebra", 0.89, [
-    { start: 2.2, end: 6.0, from: { x: 0.28, y: 0.57, width: 0.09, height: 0.07 }, to: { x: 0.4, y: 0.55, width: 0.1, height: 0.08 } },
-    { start: 21.0, end: 26.0, from: { x: 0.35, y: 0.48, width: 0.1, height: 0.08 }, to: { x: 0.47, y: 0.46, width: 0.11, height: 0.09 } },
+  track("zebra-z03", "zebra", 0.89, [
+    { start: 10.3, end: 18.0, from: { x: 0.074, y: 0.498, width: 0.026, height: 0.034 }, to: { x: 0.098, y: 0.492, width: 0.027, height: 0.035 } },
+    { start: 18.0, end: 24.0, from: { x: 0.098, y: 0.492, width: 0.027, height: 0.035 }, to: { x: 0.082, y: 0.496, width: 0.026, height: 0.034 } },
   ]),
-  track("zebra-a4", "zebra", 0.92, [
-    { start: 3.5, end: 7.5, from: { x: 0.52, y: 0.6, width: 0.11, height: 0.09 }, to: { x: 0.64, y: 0.58, width: 0.1, height: 0.08 } },
-    { start: 23.0, end: 28.5, from: { x: 0.7, y: 0.44, width: 0.12, height: 0.1 }, to: { x: 0.82, y: 0.42, width: 0.11, height: 0.09 } },
+  track("zebra-z04", "zebra", 0.92, [
+    { start: 10.8, end: 19.5, from: { x: 0.096, y: 0.508, width: 0.027, height: 0.035 }, to: { x: 0.118, y: 0.502, width: 0.028, height: 0.036 } },
   ]),
-  track("eland-b1", "eland", 0.9, [
-    { start: 1.5, end: 6.5, from: { x: 0.42, y: 0.5, width: 0.13, height: 0.11 }, to: { x: 0.55, y: 0.48, width: 0.14, height: 0.12 } },
-    { start: 14.0, end: 18.5, from: { x: 0.2, y: 0.46, width: 0.15, height: 0.12 }, to: { x: 0.33, y: 0.44, width: 0.14, height: 0.11 } },
+  track("zebra-z05", "zebra", 0.9, [
+    { start: 11.5, end: 20.0, from: { x: 0.115, y: 0.515, width: 0.026, height: 0.034 }, to: { x: 0.132, y: 0.509, width: 0.027, height: 0.035 } },
   ]),
-  track("eland-b2", "eland", 0.88, [
-    { start: 4.0, end: 9.0, from: { x: 0.58, y: 0.52, width: 0.12, height: 0.1 }, to: { x: 0.7, y: 0.5, width: 0.13, height: 0.11 } },
-    { start: 16.5, end: 21.0, from: { x: 0.08, y: 0.42, width: 0.14, height: 0.11 }, to: { x: 0.2, y: 0.4, width: 0.13, height: 0.1 } },
+
+  // Right zebra group at waterhole
+  track("zebra-z06", "zebra", 0.93, [
+    { start: 11.2, end: 19.0, from: { x: 0.598, y: 0.488, width: 0.028, height: 0.036 }, to: { x: 0.622, y: 0.482, width: 0.028, height: 0.036 } },
+    { start: 19.0, end: 26.5, from: { x: 0.622, y: 0.482, width: 0.028, height: 0.036 }, to: { x: 0.608, y: 0.486, width: 0.027, height: 0.035 } },
   ]),
-  track("giraffe-c1", "giraffe", 0.93, [
-    { start: 8.0, end: 13.5, from: { x: 0.12, y: 0.32, width: 0.08, height: 0.22 }, to: { x: 0.18, y: 0.3, width: 0.09, height: 0.24 } },
-    { start: 24.5, end: 29.5, from: { x: 0.55, y: 0.28, width: 0.09, height: 0.25 }, to: { x: 0.62, y: 0.26, width: 0.08, height: 0.23 } },
+  track("zebra-z07", "zebra", 0.88, [
+    { start: 11.8, end: 20.5, from: { x: 0.628, y: 0.496, width: 0.027, height: 0.035 }, to: { x: 0.652, y: 0.49, width: 0.028, height: 0.036 } },
+    { start: 20.5, end: 28.0, from: { x: 0.652, y: 0.49, width: 0.028, height: 0.036 }, to: { x: 0.638, y: 0.494, width: 0.027, height: 0.035 } },
   ]),
-  track("giraffe-c2", "giraffe", 0.9, [
-    { start: 10.5, end: 16.0, from: { x: 0.68, y: 0.34, width: 0.07, height: 0.2 }, to: { x: 0.74, y: 0.32, width: 0.08, height: 0.22 } },
+  track("zebra-z08", "zebra", 0.87, [
+    { start: 12.5, end: 21.0, from: { x: 0.658, y: 0.502, width: 0.026, height: 0.034 }, to: { x: 0.682, y: 0.496, width: 0.027, height: 0.035 } },
+    { start: 21.0, end: 29.0, from: { x: 0.682, y: 0.496, width: 0.027, height: 0.035 }, to: { x: 0.668, y: 0.5, width: 0.026, height: 0.034 } },
   ]),
-  track("wildebeest-d1", "wildebeest", 0.87, [
-    { start: 14.5, end: 19.5, from: { x: 0.25, y: 0.54, width: 0.1, height: 0.08 }, to: { x: 0.38, y: 0.52, width: 0.11, height: 0.09 } },
-    { start: 26.0, end: 30.0, from: { x: 0.44, y: 0.5, width: 0.1, height: 0.08 }, to: { x: 0.56, y: 0.48, width: 0.11, height: 0.09 } },
+
+  // Distant wildebeest line across background plain
+  track("wildebeest-w01", "wildebeest", 0.86, [
+    { start: 10.2, end: 28.0, from: { x: 0.045, y: 0.318, width: 0.02, height: 0.024 }, to: { x: 0.068, y: 0.316, width: 0.02, height: 0.024 } },
   ]),
-  track("wildebeest-d2", "wildebeest", 0.86, [
-    { start: 15.5, end: 20.5, from: { x: 0.46, y: 0.56, width: 0.09, height: 0.07 }, to: { x: 0.58, y: 0.54, width: 0.1, height: 0.08 } },
+  track("wildebeest-w02", "wildebeest", 0.84, [
+    { start: 10.5, end: 28.5, from: { x: 0.088, y: 0.322, width: 0.019, height: 0.023 }, to: { x: 0.11, y: 0.32, width: 0.019, height: 0.023 } },
   ]),
-  track("wildebeest-d3", "wildebeest", 0.85, [
-    { start: 17.0, end: 22.0, from: { x: 0.62, y: 0.5, width: 0.1, height: 0.08 }, to: { x: 0.74, y: 0.48, width: 0.11, height: 0.09 } },
+  track("wildebeest-w03", "wildebeest", 0.85, [
+    { start: 10.8, end: 29.0, from: { x: 0.132, y: 0.316, width: 0.02, height: 0.024 }, to: { x: 0.154, y: 0.314, width: 0.02, height: 0.024 } },
   ]),
-  track("impala-e1", "impala", 0.84, [
-    { start: 20.5, end: 25.5, from: { x: 0.14, y: 0.48, width: 0.07, height: 0.06 }, to: { x: 0.24, y: 0.46, width: 0.08, height: 0.07 } },
+  track("wildebeest-w04", "wildebeest", 0.83, [
+    { start: 11.2, end: 29.0, from: { x: 0.178, y: 0.32, width: 0.019, height: 0.023 }, to: { x: 0.2, y: 0.318, width: 0.019, height: 0.023 } },
   ]),
-  track("impala-e2", "impala", 0.83, [
-    { start: 22.0, end: 27.0, from: { x: 0.3, y: 0.44, width: 0.07, height: 0.06 }, to: { x: 0.4, y: 0.42, width: 0.08, height: 0.07 } },
+  track("wildebeest-w05", "wildebeest", 0.82, [
+    { start: 11.5, end: 29.0, from: { x: 0.228, y: 0.314, width: 0.018, height: 0.022 }, to: { x: 0.248, y: 0.312, width: 0.018, height: 0.022 } },
   ]),
-  track("buffalo-f1", "buffalo", 0.91, [
-    { start: 24.0, end: 29.0, from: { x: 0.52, y: 0.46, width: 0.14, height: 0.11 }, to: { x: 0.64, y: 0.44, width: 0.15, height: 0.12 } },
+  track("wildebeest-w06", "wildebeest", 0.84, [
+    { start: 12.0, end: 29.0, from: { x: 0.278, y: 0.318, width: 0.019, height: 0.023 }, to: { x: 0.298, y: 0.316, width: 0.019, height: 0.023 } },
   ]),
-  track("rhino-g1", "rhino", 0.95, [
-    { start: 26.5, end: 30.0, from: { x: 0.72, y: 0.5, width: 0.16, height: 0.12 }, to: { x: 0.84, y: 0.48, width: 0.15, height: 0.11 } },
+  track("wildebeest-w07", "wildebeest", 0.81, [
+    { start: 12.5, end: 29.0, from: { x: 0.328, y: 0.312, width: 0.018, height: 0.022 }, to: { x: 0.348, y: 0.31, width: 0.018, height: 0.022 } },
   ]),
-  track("zebra-a5", "zebra", 0.9, [
-    { start: 6.0, end: 11.0, from: { x: 0.05, y: 0.5, width: 0.1, height: 0.08 }, to: { x: 0.17, y: 0.48, width: 0.11, height: 0.09 } },
+  track("wildebeest-w08", "wildebeest", 0.85, [
+    { start: 13.0, end: 29.0, from: { x: 0.378, y: 0.316, width: 0.019, height: 0.023 }, to: { x: 0.398, y: 0.314, width: 0.019, height: 0.023 } },
   ]),
-  track("zebra-a6", "zebra", 0.88, [
-    { start: 9.0, end: 14.0, from: { x: 0.38, y: 0.54, width: 0.1, height: 0.08 }, to: { x: 0.5, y: 0.52, width: 0.11, height: 0.09 } },
+  track("wildebeest-w09", "wildebeest", 0.83, [
+    { start: 13.5, end: 29.0, from: { x: 0.428, y: 0.31, width: 0.018, height: 0.022 }, to: { x: 0.448, y: 0.308, width: 0.018, height: 0.022 } },
   ]),
-  track("eland-b3", "eland", 0.87, [
-    { start: 11.0, end: 16.0, from: { x: 0.72, y: 0.46, width: 0.13, height: 0.1 }, to: { x: 0.82, y: 0.44, width: 0.12, height: 0.09 } },
+  track("wildebeest-w10", "wildebeest", 0.82, [
+    { start: 14.0, end: 29.0, from: { x: 0.478, y: 0.314, width: 0.019, height: 0.023 }, to: { x: 0.498, y: 0.312, width: 0.019, height: 0.023 } },
+  ]),
+
+  // Impala / springbok near central water
+  track("impala-i01", "impala", 0.9, [
+    { start: 10.5, end: 18.5, from: { x: 0.398, y: 0.472, width: 0.018, height: 0.028 }, to: { x: 0.418, y: 0.468, width: 0.018, height: 0.028 } },
+    { start: 18.5, end: 25.0, from: { x: 0.418, y: 0.468, width: 0.018, height: 0.028 }, to: { x: 0.405, y: 0.471, width: 0.017, height: 0.027 } },
+  ]),
+  track("impala-i02", "impala", 0.88, [
+    { start: 11.0, end: 19.5, from: { x: 0.422, y: 0.478, width: 0.017, height: 0.027 }, to: { x: 0.442, y: 0.474, width: 0.018, height: 0.028 } },
+    { start: 19.5, end: 26.0, from: { x: 0.442, y: 0.474, width: 0.018, height: 0.028 }, to: { x: 0.428, y: 0.477, width: 0.017, height: 0.027 } },
+  ]),
+  track("impala-i03", "impala", 0.86, [
+    { start: 11.5, end: 20.0, from: { x: 0.448, y: 0.484, width: 0.017, height: 0.027 }, to: { x: 0.468, y: 0.48, width: 0.018, height: 0.028 } },
+    { start: 20.0, end: 27.0, from: { x: 0.468, y: 0.48, width: 0.018, height: 0.028 }, to: { x: 0.455, y: 0.483, width: 0.017, height: 0.027 } },
+  ]),
+  track("impala-i04", "impala", 0.85, [
+    { start: 12.0, end: 21.0, from: { x: 0.472, y: 0.476, width: 0.017, height: 0.027 }, to: { x: 0.492, y: 0.472, width: 0.018, height: 0.028 } },
+    { start: 21.0, end: 28.0, from: { x: 0.492, y: 0.472, width: 0.018, height: 0.028 }, to: { x: 0.478, y: 0.475, width: 0.017, height: 0.027 } },
+  ]),
+  track("impala-i05", "impala", 0.84, [
+    { start: 12.8, end: 22.0, from: { x: 0.498, y: 0.482, width: 0.016, height: 0.026 }, to: { x: 0.516, y: 0.478, width: 0.017, height: 0.027 } },
+    { start: 22.0, end: 29.0, from: { x: 0.516, y: 0.478, width: 0.017, height: 0.027 }, to: { x: 0.502, y: 0.481, width: 0.016, height: 0.026 } },
+  ]),
+  track("impala-i06", "impala", 0.82, [
+    { start: 13.5, end: 23.0, from: { x: 0.522, y: 0.474, width: 0.016, height: 0.026 }, to: { x: 0.54, y: 0.47, width: 0.017, height: 0.027 } },
+    { start: 23.0, end: 29.5, from: { x: 0.54, y: 0.47, width: 0.017, height: 0.027 }, to: { x: 0.526, y: 0.473, width: 0.016, height: 0.026 } },
   ]),
 ];
+
+function emptyCounts(): Record<WildlifeSpecies, number> {
+  return {
+    zebra: 0,
+    eland: 0,
+    giraffe: 0,
+    wildebeest: 0,
+    impala: 0,
+    buffalo: 0,
+    rhino: 0,
+  };
+}
 
 function clamp01(value: number): number {
   return Math.min(1, Math.max(0, value));
@@ -180,6 +159,11 @@ function interpolateBox(a: NormalisedBoundingBox, b: NormalisedBoundingBox, t: n
     width: lerp(a.width, b.width, t),
     height: lerp(a.height, b.height, t),
   };
+}
+
+function trackFirstSeenSec(trackDef: SimulatedTrack): number {
+  if (trackDef.keyframes.length === 0) return Number.POSITIVE_INFINITY;
+  return Math.min(...trackDef.keyframes.map((frame) => frame.timeSec));
 }
 
 function boxAtTime(trackDef: SimulatedTrack, timeSec: number): NormalisedBoundingBox | null {
@@ -201,34 +185,6 @@ function boxAtTime(trackDef: SimulatedTrack, timeSec: number): NormalisedBoundin
   return frames[frames.length - 1].box;
 }
 
-function interpolateCounts(timeSec: number): WildlifeUniqueCounts {
-  const clamped = clamp01(timeSec / WOLF_AI_WILDLIFE_VISION_DURATION_SEC) * WOLF_AI_WILDLIFE_VISION_DURATION_SEC;
-
-  let start = COUNT_MILESTONES[0];
-  let end = COUNT_MILESTONES[COUNT_MILESTONES.length - 1];
-
-  for (let index = 0; index < COUNT_MILESTONES.length - 1; index += 1) {
-    if (clamped >= COUNT_MILESTONES[index].timeSec && clamped <= COUNT_MILESTONES[index + 1].timeSec) {
-      start = COUNT_MILESTONES[index];
-      end = COUNT_MILESTONES[index + 1];
-      break;
-    }
-  }
-
-  const span = end.timeSec - start.timeSec || 1;
-  const t = clamp01((clamped - start.timeSec) / span);
-
-  const bySpecies = {} as Record<WildlifeSpecies, number>;
-  let totalUnique = 0;
-  for (const species of Object.keys(start.counts) as WildlifeSpecies[]) {
-    const value = Math.round(lerp(start.counts[species], end.counts[species], t));
-    bySpecies[species] = value;
-    totalUnique += value;
-  }
-
-  return { bySpecies, totalUnique };
-}
-
 export function getSimulatedDetectionsAt(timeSec: number): WildlifeDetection[] {
   const clamped = Math.min(WOLF_AI_WILDLIFE_VISION_DURATION_SEC, Math.max(0, timeSec));
   const detections: WildlifeDetection[] = [];
@@ -248,6 +204,21 @@ export function getSimulatedDetectionsAt(timeSec: number): WildlifeDetection[] {
   return detections;
 }
 
+/** Unique counts derived from track first-seen times — no fabricated milestones. */
 export function getSimulatedUniqueCountsAt(timeSec: number): WildlifeUniqueCounts {
-  return interpolateCounts(timeSec);
+  const clamped = clamp01(timeSec / WOLF_AI_WILDLIFE_VISION_DURATION_SEC) * WOLF_AI_WILDLIFE_VISION_DURATION_SEC;
+  const bySpecies = emptyCounts();
+
+  for (const trackDef of SIMULATED_TRACKS) {
+    if (clamped < trackFirstSeenSec(trackDef)) continue;
+    bySpecies[trackDef.species] += 1;
+  }
+
+  const totalUnique = WILDLIFE_SPECIES.reduce((sum, species) => sum + bySpecies[species], 0);
+  return { bySpecies, totalUnique };
 }
+
+/** Expected end-of-demo totals for regression checks. */
+export const WOLF_AI_WILDLIFE_VISION_FINAL_COUNTS = getSimulatedUniqueCountsAt(
+  WOLF_AI_WILDLIFE_VISION_DURATION_SEC,
+);
