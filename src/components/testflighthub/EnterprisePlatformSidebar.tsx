@@ -86,6 +86,11 @@ import { isBrowserAbhiSurface } from "@/lib/abhi-surface";
 import { isBrowserOnwardAirSurface } from "@/lib/onwardair-surface";
 import { isBrowserTalantonImpactSurface } from "@/lib/talanton-surface";
 import {
+  isPailexNavSurface,
+  isPailexNavWorkspace,
+  PAILEX_SIDEBAR_SECTION_GAP_PX,
+} from "@/lib/pailex/pailex-sidebar";
+import {
   getSidebarTheme,
   readSidebarExpandedState,
   readSidebarThemeId,
@@ -279,6 +284,9 @@ export default function EnterprisePlatformSidebar({
       return false;
     }
   });
+  const [isPailexSurface] = useState(
+    () => typeof window !== "undefined" && isPailexNavSurface(),
+  );
   /** Inject host-specific nav on first paint — do not wait for sidebar hydration. */
   const [customerHostNav] = useState(() => {
     if (typeof window === "undefined") return false;
@@ -289,13 +297,15 @@ export default function EnterprisePlatformSidebar({
         isBrowserTalantonImpactSurface() ||
         isBrowserOnwardAirSurface() ||
         isBrowserAbhiSurface() ||
-        isBrowserSaecSurface()
+        isBrowserSaecSurface() ||
+        isPailexNavSurface()
       );
     } catch {
       return (
         isBrowserTalantonImpactSurface() ||
         isBrowserOnwardAirSurface() ||
-        isBrowserAbhiSurface()
+        isBrowserAbhiSurface() ||
+        isPailexNavSurface()
       );
     }
   });
@@ -865,7 +875,7 @@ export default function EnterprisePlatformSidebar({
                   view: item.view,
                   href: item.href,
                   icon: item.icon,
-                  depth: 0,
+                  depth: isPailexSurface ? 1 : 0,
                   badge: item.badge,
                 });
               })}
@@ -888,7 +898,11 @@ export default function EnterprisePlatformSidebar({
       { allowHostSurfaces: hydrated || customerHostNav },
     );
     const withQaNav = injectTestWorkspaceQaNav(filtered, workspaceSlug);
-    if (typeof window !== "undefined" && (hydrated || customerHostNav)) {
+    if (
+      typeof window !== "undefined" &&
+      (hydrated || customerHostNav) &&
+      !isPailexNavWorkspace(effectiveWorkspaceSlug)
+    ) {
       const custom = loadSidebarNavCustom(withQaNav, effectiveWorkspaceSlug);
       return applySidebarSectionOrder(withQaNav, custom);
     }
@@ -967,7 +981,16 @@ export default function EnterprisePlatformSidebar({
           overviewEmbed ? "px-2 pb-2 xl:px-2.5 2xl:px-3" : "px-5",
         )}
       >
-        <div className="flex flex-col" style={{ gap: overviewEmbed ? OVERVIEW_EMBED_GAP : CARD_GAP }}>
+        <div
+          className="flex flex-col"
+          style={{
+            gap: overviewEmbed
+              ? OVERVIEW_EMBED_GAP
+              : isPailexSurface
+                ? PAILEX_SIDEBAR_SECTION_GAP_PX
+                : CARD_GAP,
+          }}
+        >
           {pinSections.map((section) =>
             section.items.map((item) =>
               renderPinItem(item, resolveOnwardAirNavAccent(section) ?? section.color),

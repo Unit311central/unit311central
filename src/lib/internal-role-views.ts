@@ -443,6 +443,17 @@ function isTalantonNavSurface(): boolean {
   }
 }
 
+function isPailexNavSurface(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    const { isBrowserPailexSurface } =
+      require("@/lib/pailex/pailex-surface") as typeof import("@/lib/pailex/pailex-surface");
+    return isBrowserPailexSurface();
+  } catch {
+    return false;
+  }
+}
+
 /** Server-safe Talanton LHS nav — same shape as the live customer sidebar. */
 export function buildTalantonImpactNavSections(
   sections: readonly InternalNavSection[],
@@ -1787,6 +1798,11 @@ export function filterInternalNavSectionsForDemoSurface(
   // Host detectors read `window`. Keep them off until the sidebar has hydrated so
   // SSR HTML and the first client paint match (avoids React hydration crashes).
   const allowHostSurfaces = options?.allowHostSurfaces !== false;
+
+  // PAILEX: bespoke reserve nav only — never inject Tools / Unit311 Support overlays.
+  if (allowHostSurfaces && isPailexNavSurface()) {
+    return [...sections];
+  }
 
   // Talanton customer host: strip QMS/Website, restore Training, prepend Portfolio Companies.
   if (allowHostSurfaces && isTalantonNavSurface()) {

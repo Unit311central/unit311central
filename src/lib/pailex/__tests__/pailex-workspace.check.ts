@@ -12,7 +12,7 @@ import { isViewAllowedForWorkspaceGrants } from "@/lib/workspace-enabled-views";
 import { DEMO_ENABLED_MODULES } from "@/lib/platform-workspaces/demo-provisioning";
 import { SAEC_ENABLED_MODULES } from "@/lib/platform-workspaces/saec-provisioning";
 import { wolfCentralEnabledModules } from "@/lib/wolf/wolf-central-provisioning";
-import { buildPailexNavSections } from "@/lib/pailex/pailex-nav";
+import { buildPailexNavSections, PAILEX_NAV_SECTION_LABELS } from "@/lib/pailex/pailex-nav";
 import {
   pailexEnabledModules,
   pailexEnabledSubModules,
@@ -35,9 +35,10 @@ assert.ok(!isCustomerWorkspaceSlug(PAILEX_HOST_ALIAS));
 assert.equal(canonicalizeWorkspaceHostSubdomain(PAILEX_HOST_ALIAS, null), PAILEX_SLUG);
 
 const pailexNav = resolveWorkspaceNavBaseSections({ workspaceSlug: PAILEX_SLUG });
-assert.ok(pailexNav.some((section) => section.label === "Animals"));
-assert.ok(pailexNav.some((section) => section.label === "Drone Operations"));
-assert.ok(pailexNav.some((section) => section.label === "Settings"));
+for (const label of PAILEX_NAV_SECTION_LABELS) {
+  assert.ok(pailexNav.some((section) => section.label === label), `Missing section: ${label}`);
+}
+assert.ok(!pailexNav.some((section) => section.label === "Tools"));
 assert.ok(!pailexNav.some((section) => section.label === "Business Central"));
 assert.ok(!pailexNav.some((section) => section.label === "Finances"));
 

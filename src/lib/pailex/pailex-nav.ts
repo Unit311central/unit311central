@@ -1,6 +1,6 @@
 /**
- * PAILEX customer workspace navigation — WOLF wildlife-operations IA.
- * All listed routes are implemented; no placeholder "Coming soon" items.
+ * PAILEX customer workspace navigation — reserve operations IA.
+ * All routes are implemented; no placeholders or catalogue leakage.
  */
 
 import type { InternalNavSection } from "@/lib/internal-operations-data";
@@ -12,11 +12,26 @@ const WOLF_ENV = "#3d5c4a";
 const WOLF_FLEET = "#1e3a2f";
 const WOLF_ADMIN = "#1a1a1a";
 
+/** Expected top-level section labels (title case — sidebar renders uppercase). */
+export const PAILEX_NAV_SECTION_LABELS = [
+  "Animals",
+  "Containment",
+  "Environment",
+  "Fleet",
+  "Drone Operations",
+  "Support",
+  "Training",
+  "Projects",
+  "Documents",
+  "Settings",
+] as const;
+
 export function buildPailexNavSections(): readonly InternalNavSection[] {
   return [
     {
       kind: "pin",
       label: null,
+      color: WOLF_GREEN,
       items: [{ label: "Dashboard", icon: "LayoutDashboard", view: "pailex-dashboard" }],
     },
     {
@@ -25,19 +40,19 @@ export function buildPailexNavSections(): readonly InternalNavSection[] {
       icon: "Binoculars",
       color: WOLF_GREEN,
       items: [
-        { label: "Animal Registry", icon: "List", view: "pailex-animals-registry" },
+        { label: "Registry", icon: "ClipboardList", view: "pailex-animals-registry" },
         { label: "Monitoring", icon: "ScanSearch", view: "pailex-animals-monitoring" },
-        { label: "Census", icon: "ClipboardList", view: "pailex-animals-census" },
-        { label: "Health / Incidents", icon: "HeartPulse", view: "pailex-animals-health" },
+        { label: "Census", icon: "List", view: "pailex-animals-census" },
+        { label: "Health", icon: "HeartHandshake", view: "pailex-animals-health" },
       ],
     },
     {
       kind: "workspace",
       label: "Containment",
-      icon: "Shield",
+      icon: "ShieldCheck",
       color: WOLF_RUST,
       items: [
-        { label: "Perimeter", icon: "Fence", view: "pailex-containment-perimeter" },
+        { label: "Perimeter", icon: "ShieldCheck", view: "pailex-containment-perimeter" },
         { label: "Patrols", icon: "Footprints", view: "pailex-containment-patrols" },
         { label: "Incidents", icon: "AlertTriangle", view: "pailex-containment-incidents" },
         { label: "Alerts", icon: "Bell", view: "pailex-containment-alerts" },
@@ -52,7 +67,7 @@ export function buildPailexNavSections(): readonly InternalNavSection[] {
         { label: "Weather", icon: "Cloud", view: "pailex-environment-weather" },
         { label: "Fire", icon: "Flame", view: "pailex-environment-fire" },
         { label: "Flood", icon: "Waves", view: "pailex-environment-flood" },
-        { label: "Environmental Monitoring", icon: "ThermometerSun", view: "pailex-environment-monitoring" },
+        { label: "Monitoring", icon: "ThermometerSun", view: "pailex-environment-monitoring" },
       ],
     },
     {
@@ -61,7 +76,7 @@ export function buildPailexNavSections(): readonly InternalNavSection[] {
       icon: "Truck",
       color: WOLF_FLEET,
       items: [
-        { label: "Vehicles", icon: "Car", view: "pailex-fleet-vehicles" },
+        { label: "Vehicles", icon: "Truck", view: "pailex-fleet-vehicles" },
         { label: "Drones", icon: "Plane", view: "pailex-fleet-drones" },
         { label: "Equipment", icon: "Wrench", view: "pailex-fleet-equipment" },
       ],
@@ -83,8 +98,8 @@ export function buildPailexNavSections(): readonly InternalNavSection[] {
       icon: "LifeBuoy",
       color: WOLF_ADMIN,
       items: [
-        { label: "Support Requests", icon: "MessageSquare", view: "pailex-support-requests" },
-        { label: "Maintenance / Service", icon: "Wrench", view: "pailex-support-maintenance" },
+        { label: "Requests", icon: "MessageSquare", view: "pailex-support-requests" },
+        { label: "Maintenance", icon: "Wrench", view: "pailex-support-maintenance" },
       ],
     },
     {
@@ -95,7 +110,7 @@ export function buildPailexNavSections(): readonly InternalNavSection[] {
       items: [
         { label: "Training", icon: "BookOpen", view: "pailex-training" },
         { label: "Certifications", icon: "Award", view: "pailex-training-certifications" },
-        { label: "Staff Competency", icon: "Users", view: "pailex-training-competency" },
+        { label: "Competency", icon: "Users", view: "pailex-training-competency" },
       ],
     },
     {
@@ -125,8 +140,8 @@ export function buildPailexNavSections(): readonly InternalNavSection[] {
       icon: "Settings",
       color: WOLF_ADMIN,
       items: [
-        { label: "Workspace Settings", icon: "Settings", view: "settings" },
-        { label: "Users / Access", icon: "Users", view: "users" },
+        { label: "Settings", icon: "Settings", view: "settings" },
+        { label: "Users", icon: "Users", view: "users" },
       ],
     },
   ];
