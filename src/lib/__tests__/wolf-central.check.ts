@@ -49,8 +49,9 @@ assert.equal(
 
 const wolfNav = resolveWorkspaceNavBaseSections({ workspaceSlug: WOLF_CENTRAL_SLUG });
 assert.ok(wolfNav.some((section) => section.label === "Safari Parks"));
-assert.ok(wolfNav.some((section) => section.label === "Settings"));
+assert.ok(wolfNav.some((section) => section.label === "Administration"));
 assert.ok(!wolfNav.some((section) => section.label === "Business Central"));
+assert.ok(!wolfNav.some((section) => section.label === "Inventory"));
 
 const wolfModules = wolfCentralEnabledModules();
 assert.ok(wolfModules.includes("wolf-animals"));
