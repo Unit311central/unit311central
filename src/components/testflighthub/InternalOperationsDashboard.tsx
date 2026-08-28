@@ -302,6 +302,7 @@ import {
   WolfEnvironmentSummaryWorkspace,
   WolfDroneSummaryWorkspace,
   WolfFleetSummaryWorkspace,
+  WolfAiWildlifeVisionDemo,
   PailexViewHost,
 } from "./lazy-workspaces";
 import { type ManagedUser } from "@/lib/user-management-data";
@@ -1481,6 +1482,7 @@ export default function InternalOperationsDashboard({
           {activeView === "wolf-environment" && <WolfEnvironmentSummaryWorkspace />}
           {activeView === "wolf-drone-operations" && <WolfDroneSummaryWorkspace />}
           {activeView === "wolf-fleet" && <WolfFleetSummaryWorkspace />}
+          {activeView === "wolf-ai-wildlife-vision" && <WolfAiWildlifeVisionDemo />}
 
           {isPailexWorkspaceView(activeView) ? <PailexViewHost view={activeView} /> : null}
 

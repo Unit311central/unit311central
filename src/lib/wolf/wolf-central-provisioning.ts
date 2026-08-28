@@ -10,6 +10,7 @@ export const WOLF_CENTRAL_ENABLED_MODULES = [
   "wolf-environment",
   "wolf-drone-operations",
   "wolf-fleet",
+  "wolf-tools",
   "settings",
 ] as const;
 
@@ -21,6 +22,7 @@ export const WOLF_CENTRAL_ENABLED_SUBMODULES = [
   "wolf-environment:wolf-environment",
   "wolf-drone-operations:wolf-drone-operations",
   "wolf-fleet:wolf-fleet",
+  "wolf-tools:wolf-ai-wildlife-vision",
   "settings:settings",
   "settings:appearance",
   "settings:users",

@@ -26,9 +26,9 @@ const wolfNav = buildWolfCentralNavSections();
 const allLabels = wolfNav.flatMap((section) => collectLabels(section.items));
 
 assert.ok(!allLabels.some((label) => /coming soon/i.test(label)), "nav must not expose Coming soon items");
-assert.equal(wolfNav.length, 8, "expected one pin + seven operational workspace groups");
+assert.equal(wolfNav.length, 9, "expected one pin + eight operational workspace groups");
 assert.equal(wolfNav.filter((section) => section.kind === "pin").length, 1);
-assert.equal(wolfNav.filter((section) => section.kind === "workspace").length, 7);
+assert.equal(wolfNav.filter((section) => section.kind === "workspace").length, 8);
 
 const sectionTitles = wolfNav
   .filter((section) => section.kind === "workspace")
@@ -40,6 +40,7 @@ assert.deepEqual(sectionTitles, [
   "Containment",
   "Environment",
   "Fleet & Assets",
+  "Tools",
   "Administration",
 ]);
 
@@ -84,12 +85,14 @@ assert.deepEqual(
     "wolf-environment",
     "wolf-estate",
     "wolf-fleet",
+    "wolf-ai-wildlife-vision",
     "wolf-safari-parks",
   ].sort(),
 );
 
 const resolvedWolf = resolveWorkspaceNavBaseSections({ workspaceSlug: WOLF_CENTRAL_SLUG });
-assert.equal(resolvedWolf.length, 8);
+assert.equal(resolvedWolf.length, 9);
+assert.ok(resolvedWolf.some((section) => section.label === "Tools"));
 assert.ok(resolvedWolf.some((section) => section.label === "Administration"));
 
 const saecNav = resolveWorkspaceNavBaseSections({

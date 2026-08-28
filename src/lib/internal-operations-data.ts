@@ -269,6 +269,7 @@ export type InternalOperationsView =
   | "wolf-environment"
   | "wolf-drone-operations"
   | "wolf-fleet"
+  | "wolf-ai-wildlife-vision"
   | "pailex-dashboard"
   | "pailex-animals-registry"
   | "pailex-animals-monitoring"
@@ -608,6 +609,7 @@ export const internalOperationsViews: InternalOperationsView[] = [
   "wolf-environment",
   "wolf-drone-operations",
   "wolf-fleet",
+  "wolf-ai-wildlife-vision",
   "pailex-dashboard",
   "pailex-animals-registry",
   "pailex-animals-monitoring",
@@ -1535,6 +1537,10 @@ export const internalViewTitles: Record<
   "wolf-environment": { title: "Environment summary", subtitle: "WOLF Central" },
   "wolf-drone-operations": { title: "Drone operations summary", subtitle: "WOLF Central" },
   "wolf-fleet": { title: "Fleet summary", subtitle: "WOLF Central" },
+  "wolf-ai-wildlife-vision": {
+    title: "AI Wildlife Vision (Demo)",
+    subtitle: "WOLF Central · Tools",
+  },
   "pailex-dashboard": { title: "Dashboard", subtitle: "PAILEX · WOLF Wildlife Operations" },
   "pailex-animals-registry": { title: "Animal Registry", subtitle: "PAILEX · Animals" },
   "pailex-animals-monitoring": { title: "Monitoring", subtitle: "PAILEX · Animals" },

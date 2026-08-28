@@ -13,6 +13,7 @@ const WOLF_RUST = "#8b4513";
 const WOLF_DRONE = "#2d4a3e";
 const WOLF_ENV = "#3d5c4a";
 const WOLF_FLEET = "#1e3a2f";
+const WOLF_TOOLS = "#2a3d32";
 const WOLF_ADMIN = "#1a1a1a";
 
 export function buildWolfCentralNavSections(): readonly InternalNavSection[] {
@@ -63,6 +64,19 @@ export function buildWolfCentralNavSections(): readonly InternalNavSection[] {
       icon: "Boxes",
       color: WOLF_FLEET,
       items: [{ label: "Fleet overview", icon: "Package", view: "wolf-fleet" }],
+    },
+    {
+      kind: "workspace",
+      label: "Tools",
+      icon: "FlaskConical",
+      color: WOLF_TOOLS,
+      items: [
+        {
+          label: "AI Wildlife Vision (Demo)",
+          icon: "ScanSearch",
+          view: "wolf-ai-wildlife-vision",
+        },
+      ],
     },
     {
       kind: "workspace",

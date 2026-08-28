@@ -56,6 +56,7 @@ assert.ok(!wolfNav.some((section) => section.label === "Inventory"));
 const wolfModules = wolfCentralEnabledModules();
 assert.ok(wolfModules.includes("wolf-animals"));
 assert.ok(wolfModules.includes("wolf-fleet"));
+assert.ok(wolfModules.includes("wolf-tools"));
 assert.ok(!wolfModules.includes("business-central"));
 
 for (const moduleId of wolfModules) {
