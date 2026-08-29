@@ -10,6 +10,8 @@ import {
   upsertArchitectureDiagram,
 } from "@/lib/architecture-diagram-service";
 import type { ArchitectureCatalogEntry } from "@/lib/architecture-diagram-data";
+import { buildArchitectureTaxonomy } from "@/lib/architecture-taxonomy";
+import { isArchitectureTreeSlug } from "@/lib/architecture-taxonomy-types";
 import { isDemoApiRequest } from "@/lib/demo/demo-request";
 import { getPlatformSession } from "@/lib/platform-session";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
@@ -38,6 +40,18 @@ export async function GET(request: NextRequest) {
   try {
     const sectionSlug = request.nextUrl.searchParams.get("section")?.trim().toLowerCase();
     const includeCatalog = request.nextUrl.searchParams.get("catalog") === "1";
+
+    // Living hierarchy (tree) views are derived server-side from existing sources —
+    // no diagram document, no seeds, no DB read/write.
+    if (sectionSlug && isArchitectureTreeSlug(sectionSlug)) {
+      const workspace = request.nextUrl.searchParams.get("workspace");
+      const taxonomy = buildArchitectureTaxonomy(sectionSlug, { workspace });
+      return NextResponse.json({
+        taxonomy,
+        renderer: "tree",
+        ...(includeCatalog ? { catalog: getArchitectureCatalog() } : {}),
+      });
+    }
 
     // Ensure table + core seeds exist before serving the knowledge centre.
     await ensureCoreArchitectureSeeds();
