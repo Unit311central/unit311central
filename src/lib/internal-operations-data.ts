@@ -1186,8 +1186,8 @@ export const internalViewTitles: Record<
   { title: string; subtitle: string }
 > = {
   home: { title: "Home", subtitle: "Executive Dashboard" },
-  clients: { title: "Client Directory", subtitle: "Clients" },
-  "clients-dashboard": { title: "Dashboard", subtitle: "Clients" },
+  clients: { title: "Client Directory", subtitle: "Client Management" },
+  "clients-dashboard": { title: "Client Dashboard", subtitle: "Client Management" },
   "member-intelligence": { title: "Member Intelligence", subtitle: "ABHI Intelligence" },
   crm: { title: "Pipeline", subtitle: "Customer Management" },
   "crm-meetings": {
@@ -1272,7 +1272,7 @@ export const internalViewTitles: Record<
   "projects-dashboard": { title: "Projects Dashboard", subtitle: "Projects" },
   "projects-internal": { title: "Internal Projects", subtitle: "Projects" },
   "projects-external": { title: "External Projects", subtitle: "Projects" },
-  grants: { title: "Grants", subtitle: "Projects" },
+  grants: { title: "Grant Management", subtitle: "Business Central" },
   "recent-missions": { title: "Recent Missions", subtitle: "Internal Operations" },
   webodm: { title: "WebODM Processing", subtitle: "Internal Operations" },
   messaging: { title: "Messaging", subtitle: "Business Productivity" },
@@ -1713,10 +1713,10 @@ export function resolveInternalViewTitles(activeView: InternalOperationsView): {
         require("@/lib/abhi-surface") as typeof import("@/lib/abhi-surface");
       if (isBrowserAbhiSurface()) {
         if (activeView === "clients") {
-          return { title: "Member Directory", subtitle: "Members" };
+          return { title: "Member Directory", subtitle: "Member Management" };
         }
         if (activeView === "clients-dashboard") {
-          return { title: "Dashboard", subtitle: "Members" };
+          return { title: "Member Dashboard", subtitle: "Member Management" };
         }
         if (activeView === "member-intelligence") {
           return { title: "Member Intelligence", subtitle: "Members" };

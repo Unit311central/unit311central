@@ -59,7 +59,7 @@ function filterNavItems(
     .filter((item): item is InternalNavItem => item != null);
 }
 
-/** Central Business Central — BC dashboard, clients, CRM, management, grants (no nested Projects). */
+/** Central Business Central — dashboard, client management, management, grant management, information repository. */
 export function buildCentralBusinessCentralNavSection(): InternalNavSection {
   return {
     kind: "workspace",
@@ -69,16 +69,15 @@ export function buildCentralBusinessCentralNavSection(): InternalNavSection {
     items: [
       { label: "Dashboard", icon: "LayoutDashboard", view: "business-central-dashboard" },
       {
-        label: "Clients",
+        label: "Client Management",
         icon: "Building2",
         children: [
-          { label: "Dashboard", view: "clients-dashboard" },
+          { label: "Client Dashboard", view: "clients-dashboard" },
           { label: "Client Directory", view: "clients" },
-          { label: "Member Intelligence", view: "member-intelligence" },
         ],
       },
       buildManagementNavItem(),
-      { label: "Grants", icon: "ScrollText", view: "grants" },
+      { label: "Grant Management", icon: "ScrollText", view: "grants" },
       { label: "Information Repository", icon: "FileText", view: "information-repository" },
     ],
   };

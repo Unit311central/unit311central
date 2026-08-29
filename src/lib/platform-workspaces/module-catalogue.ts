@@ -38,7 +38,6 @@ function moduleKeysForView(viewId: string | undefined, moduleId: string): string
   if (
     view === "clients" ||
     view === "clients-dashboard" ||
-    view === "member-intelligence" ||
     view === "business-central-dashboard"
   ) {
     return ["clients"];
