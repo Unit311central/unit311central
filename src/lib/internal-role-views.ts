@@ -1288,7 +1288,6 @@ function insertOnwardAirNavSections(sections: readonly InternalNavSection[]): In
             view: "business-central-dashboard" as const,
           },
           ...stripped.items,
-          { label: "Grants", icon: "ScrollText", view: "grants" as const },
         ],
       });
       out.push(ONWARDAIR_PROJECT_MANAGEMENT_NAV_SECTION);

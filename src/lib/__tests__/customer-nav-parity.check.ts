@@ -110,14 +110,14 @@ assert.deepEqual(bcLabels, [
   "Dashboard",
   "Client Management",
   "Management",
-  "Grant Management",
   "Information Repository",
 ]);
 assert.ok(!bcLabels.includes("Projects"), "Business Central must not include Projects");
 
 const demoBc = navTree(demoNav)["Business Central"];
 const customerBc = navTree(customerNav)["Business Central"];
-assert.ok(JSON.stringify(demoBc).includes("Grant Management"), "Demo BC must include Grant Management");
+assert.ok(JSON.stringify(demoBc).includes("Information Repository"), "Demo BC must include Information Repository");
+assert.ok(!JSON.stringify(demoBc).includes("Grant Management"), "Demo BC must not include Grant Management");
 assert.ok(!JSON.stringify(demoBc).includes("Projects"), "Demo BC must not include Projects");
 assert.ok(!JSON.stringify(customerBc).includes("Projects"), "Customer BC must not include Projects");
 

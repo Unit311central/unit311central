@@ -59,7 +59,7 @@ function filterNavItems(
     .filter((item): item is InternalNavItem => item != null);
 }
 
-/** Central Business Central — dashboard, client management, management, grant management, information repository. */
+/** Central Business Central — dashboard, client management, management, information repository. */
 export function buildCentralBusinessCentralNavSection(): InternalNavSection {
   return {
     kind: "workspace",
@@ -77,7 +77,6 @@ export function buildCentralBusinessCentralNavSection(): InternalNavSection {
         ],
       },
       buildManagementNavItem(),
-      { label: "Grant Management", icon: "ScrollText", view: "grants" },
       { label: "Information Repository", icon: "FileText", view: "information-repository" },
     ],
   };

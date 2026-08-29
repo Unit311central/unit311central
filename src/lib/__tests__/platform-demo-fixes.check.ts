@@ -96,7 +96,7 @@ const demoBcEnablement = resolveWorkspaceNavEnablement({
     subModuleKey("business-central", "business-central-dashboard"),
     subModuleKey("business-central", "clients"),
     subModuleKey("business-central", "management"),
-    subModuleKey("business-central", "grants"),
+    subModuleKey("business-central", "information-repository"),
   ],
 });
 const demoBcNav = buildWorkspaceProductNavSections({
@@ -112,10 +112,9 @@ assert.ok(
   demoBcItems.includes("Information Repository"),
   "Repair must enable Information Repository for Business Central workspaces",
 );
-assert.equal(
-  demoBcItems.indexOf("Information Repository"),
-  demoBcItems.indexOf("Grants") + 1,
-  "Information Repository must follow Grants",
+assert.ok(
+  !demoBcItems.includes("Grant Management"),
+  "Grant Management must not appear in Business Central nav",
 );
 
 console.log("ok  platform-demo-fixes checks passed\n");

@@ -38,7 +38,7 @@ test("SAEC uses full central catalogue minus Grants submodule", () => {
       defaultEnabledSubModules(WORKSPACE_CORE_MODULE_IDS),
     ),
   );
-  assert.equal(fullSubCount, 163);
+  assert.equal(fullSubCount, 162);
   assert.deepEqual([...saecSubs].sort(), [...expectedSaecSubs].sort());
   assert.equal(SAEC_EXCLUDED_SUBMODULE_KEYS.length, 1);
   assert.equal(SAEC_EXCLUDED_SUBMODULE_KEYS[0], "business-central:grants");
