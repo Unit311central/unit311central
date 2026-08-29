@@ -121,7 +121,6 @@ export function injectDemoNavSections(sections: readonly InternalNavSection[]): 
                 ),
               };
             }),
-          { label: "Grant Management", icon: "ScrollText", view: "grants" as const },
         ],
       });
       continue;

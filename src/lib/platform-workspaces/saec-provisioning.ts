@@ -9,9 +9,10 @@ import {
 } from "@/lib/platform-workspaces/module-catalogue";
 import { SAEC_SLUG } from "@/lib/saec-surface";
 
-/** SAEC uses the full central 22-module catalogue; Grant Management is the sole deliberate exclusion. */
+/** SAEC uses the full central 22-module catalogue (same submodule set as other customer workspaces). */
 export const SAEC_ENABLED_MODULES = [...WORKSPACE_CORE_MODULE_IDS] as const;
 
+/** Legacy BC grants keys may exist in historical metadata; stripped by business-central-provisioning. */
 export const SAEC_EXCLUDED_SUBMODULE_KEYS = [
   BUSINESS_CENTRAL_GRANT_MANAGEMENT_SUBMODULE_KEY,
 ] as const;

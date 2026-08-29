@@ -1,7 +1,7 @@
 /**
  * Demo module structure freeze — regression guard.
  *
- * Demo MUST remain on the complete central catalogue (22 modules, 163 submodules).
+ * Demo MUST remain on the complete central catalogue (22 modules, 162 submodules).
  * Fails if demo-provisioning or migration drift from module-catalogue.ts.
  *
  * Run: npm run prove:demo-module-structure
@@ -38,8 +38,8 @@ assert.equal(
 );
 assert.equal(
   DEMO_CATALOGUE_SUBMODULE_COUNT,
-  163,
-  "Central catalogue must expose 163 submodule keys",
+  162,
+  "Central catalogue must expose 162 submodule keys",
 );
 
 assert.deepEqual(
@@ -100,7 +100,7 @@ const demoEnablement = resolveWorkspaceNavEnablement({
 });
 
 assert.equal(demoEnablement.enabledModules.length, 22);
-assert.equal(demoEnablement.enabledSubModules.length, 158);
+assert.equal(demoEnablement.enabledSubModules.length, 157);
 
 const nav = buildWorkspaceProductNavSections({
   workspaceSlug: DEMO_SLUG,
@@ -166,11 +166,11 @@ for (const label of [
   "Dashboard",
   "Client Management",
   "Management",
-  "Grant Management",
   "Information Repository",
 ]) {
   assert.ok(bcLabels.includes(label), `Business Central nav missing ${label}`);
 }
+assert.ok(!bcLabels.includes("Grant Management"), "Business Central nav must not include Grant Management");
 assert.ok(bcLabels.includes("Client Directory"), "BC Client Management must include Client Directory");
 assert.ok(bcLabels.includes("Client Dashboard"), "BC Client Management must include Client Dashboard");
 assert.ok(bcLabels.includes("Management Dashboard"), "BC Management must include Management Dashboard");
@@ -251,7 +251,7 @@ assert.notEqual(
 );
 assert.notEqual(
   staleEnablement.enabledSubModules.length,
-  163,
+  162,
   "Stale 161 submodule list must be detected as incomplete",
 );
 
