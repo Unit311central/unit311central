@@ -4,6 +4,7 @@
  */
 
 import { DEMO_WORKSPACE_SLUG } from "@/lib/app-domains";
+import { filterBusinessCentralProvisioningSubModules } from "@/lib/platform-workspaces/business-central-provisioning";
 import { isSaecSlug } from "@/lib/saec-surface";
 import { augmentSaecOperationsNav } from "@/lib/saec/installations-nav";
 import { CLIENT_PLATFORM_ALWAYS_VIEWS } from "@/lib/unit311-support/data";
@@ -122,7 +123,10 @@ export function resolveWorkspaceNavEnablement(input: {
     const allModules = [...WORKSPACE_MODULE_IDS];
     return {
       enabledModules: allModules,
-      enabledSubModules: defaultEnabledSubModules(allModules),
+      enabledSubModules: filterBusinessCentralProvisioningSubModules(
+        normalizedSlug,
+        defaultEnabledSubModules(allModules),
+      ),
     };
   }
 
@@ -131,7 +135,10 @@ export function resolveWorkspaceNavEnablement(input: {
       subModules.length > 0 ? subModules : defaultEnabledSubModules(modules);
     return {
       enabledModules: modules,
-      enabledSubModules: repairWorkspaceSubmoduleKeys(modules, baseSubs),
+      enabledSubModules: filterBusinessCentralProvisioningSubModules(
+        normalizedSlug,
+        repairWorkspaceSubmoduleKeys(modules, baseSubs),
+      ),
     };
   }
 
@@ -144,7 +151,10 @@ export function resolveWorkspaceNavEnablement(input: {
   );
   return {
     enabledModules: fallbackModules,
-    enabledSubModules: defaultEnabledSubModules(fallbackModules),
+    enabledSubModules: filterBusinessCentralProvisioningSubModules(
+      normalizedSlug,
+      defaultEnabledSubModules(fallbackModules),
+    ),
   };
 }
 

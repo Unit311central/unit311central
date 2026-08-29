@@ -17,7 +17,7 @@ export const MANAGEMENT_SECTION_NAV: ReadonlyArray<{
   id: ManagementSectionId;
   label: string;
 }> = [
-  { id: "dashboard", label: "Dashboard" },
+  { id: "dashboard", label: "Management Dashboard" },
   { id: "meetings", label: "Meetings" },
   { id: "function-packs", label: "Function Packs" },
   { id: "actions-decisions", label: "Actions & Decisions" },
@@ -34,7 +34,7 @@ export function resolveManagementSection(param: string | null | undefined): Mana
 }
 
 export function resolveManagementShellTitle(section: ManagementSectionId): string {
-  return MANAGEMENT_SECTION_NAV.find((row) => row.id === section)?.label ?? "Dashboard";
+  return MANAGEMENT_SECTION_NAV.find((row) => row.id === section)?.label ?? "Management Dashboard";
 }
 
 function managementSectionChild(section: ManagementSectionId, label: string): InternalNavChildItem {

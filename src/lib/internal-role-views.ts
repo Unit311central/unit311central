@@ -767,6 +767,7 @@ export const ABHI_HIDDEN_VIEWS = new Set<InternalOperationsView>([
   "marketing-training",
   "module-go-live",
   "unit311-details",
+  "grants",
   // Technology Management: Settings only (do not hide top-level Settings section).
   "technology-settings",
 ]);
@@ -790,6 +791,8 @@ const ABHI_HIDDEN_ITEM_LABELS = new Set([
   "Testing",
   "Telemetry",
   "Potential Clients",
+  "Grant Management",
+  "Grants",
   "QMS Courses",
   "Internal Training",
   "Module Go-Live",
@@ -797,10 +800,13 @@ const ABHI_HIDDEN_ITEM_LABELS = new Set([
   "ABHI Details",
 ]);
 
-/** ABHI Business Central: Clients → Members; Unit311 Details → ABHI Details. */
+/** ABHI Business Central: Client Management → Member Management; Unit311 Details → ABHI Details. */
 const ABHI_CLIENT_LABEL_RENAMES: Record<string, string> = {
-  Clients: "Members",
+  "Client Management": "Member Management",
+  "Client Dashboard": "Member Dashboard",
   "Client Directory": "Member Directory",
+  Clients: "Member Management",
+  Members: "Member Management",
   "Client Onboarding": "Member Onboarding",
   "Client Explorer": "Member Explorer",
   "Potential Clients": "Potential Members",
@@ -951,6 +957,8 @@ function stripAbhiMemberIntelligenceFromMembers(section: InternalNavSection): In
     ...section,
     items: section.items.map((item) => {
       const isMembersGroup =
+        item.label === "Client Management" ||
+        item.label === "Member Management" ||
         item.label === "Clients" ||
         item.label === "Members" ||
         item.children?.some((child) => child.view === "clients");

@@ -1,7 +1,7 @@
 /**
  * Demo module structure freeze — regression guard.
  *
- * Demo MUST remain on the complete central catalogue (22 modules, 158 submodules).
+ * Demo MUST remain on the complete central catalogue (22 modules, 157 submodules).
  * Fails if demo-provisioning or migration drift from module-catalogue.ts.
  *
  * Run: npm run prove:demo-module-structure
@@ -38,8 +38,8 @@ assert.equal(
 );
 assert.equal(
   DEMO_CATALOGUE_SUBMODULE_COUNT,
-  158,
-  "Central catalogue must expose 158 submodule keys",
+  157,
+  "Central catalogue must expose 157 submodule keys",
 );
 
 assert.deepEqual(
@@ -90,7 +90,7 @@ assert.match(
   /business-central:information-repository/,
   "Migration 168 must include Information Repository",
 );
-assert.match(migration168, /business-central:grants/, "Migration 168 must include Grants");
+assert.match(migration168, /business-central:grants/, "Migration 168 must include Grant Management");
 
 const demoEnablement = resolveWorkspaceNavEnablement({
   workspaceSlug: DEMO_SLUG,
@@ -100,7 +100,7 @@ const demoEnablement = resolveWorkspaceNavEnablement({
 });
 
 assert.equal(demoEnablement.enabledModules.length, 22);
-assert.equal(demoEnablement.enabledSubModules.length, 158);
+assert.equal(demoEnablement.enabledSubModules.length, 157);
 
 const nav = buildWorkspaceProductNavSections({
   workspaceSlug: DEMO_SLUG,
@@ -162,10 +162,18 @@ function navModuleLabels(moduleLabel: string): string[] {
 }
 
 const bcLabels = navModuleLabels("Business Central");
-for (const label of ["Dashboard", "Clients", "Management", "Grants", "Information Repository"]) {
+for (const label of [
+  "Dashboard",
+  "Client Management",
+  "Management",
+  "Grant Management",
+  "Information Repository",
+]) {
   assert.ok(bcLabels.includes(label), `Business Central nav missing ${label}`);
 }
-assert.ok(bcLabels.includes("Client Directory"), "BC Clients must include Client Directory");
+assert.ok(bcLabels.includes("Client Directory"), "BC Client Management must include Client Directory");
+assert.ok(bcLabels.includes("Client Dashboard"), "BC Client Management must include Client Dashboard");
+assert.ok(bcLabels.includes("Management Dashboard"), "BC Management must include Management Dashboard");
 
 const corporateSubs = getWorkspaceModuleEntry("corporate-information")?.subModules ?? [];
 assert.equal(corporateSubs.length, 6, "Corporate Information catalogue must have 6 submodules");
