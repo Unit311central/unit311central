@@ -1,15 +1,22 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Loader2, Network } from "lucide-react";
+import { ListTree, Loader2, Network } from "lucide-react";
 
 import ArchitectureViewer from "@/components/architecture/ArchitectureViewer";
+import ArchitectureHierarchyViewer from "@/components/architecture/ArchitectureHierarchyViewer";
 import {
   ARCHITECTURE_DIAGRAM_CATALOG,
   type ArchitectureCatalogEntry,
   type ArchitectureDiagramDocument,
   type SystemArchitectureDiagram,
 } from "@/lib/architecture-diagram-data";
+import {
+  ARCHITECTURE_TREE_SLUGS,
+  WORKSPACE_ARCHITECTURE_OPTIONS,
+  isArchitectureTreeSlug,
+  type ArchitectureTaxonomyNode,
+} from "@/lib/architecture-taxonomy-types";
 import { cn } from "@/lib/utils";
 
 const CORE_DIAGRAM_SLUGS = [
@@ -24,6 +31,18 @@ const CORE_DIAGRAM_LABELS: Record<(typeof CORE_DIAGRAM_SLUGS)[number], string> =
   "vercel-stack": "Vercel deployment stack",
   "supabase-stack": "Supabase data stack",
   "codebase-stack": "Application codebase stack",
+};
+
+const TREE_DIAGRAM_TABS = [
+  { slug: ARCHITECTURE_TREE_SLUGS.coreProduct, title: "Core Product" },
+  { slug: ARCHITECTURE_TREE_SLUGS.customProduct, title: "Custom Product" },
+  { slug: ARCHITECTURE_TREE_SLUGS.workspaceArchitecture, title: "Workspace Architecture" },
+] as const;
+
+const TREE_TITLE: Record<string, string> = {
+  "core-product": "Core Product",
+  "custom-product": "Custom Product",
+  "workspace-architecture": "Workspace Architecture",
 };
 
 async function readApiJson<T>(response: Response): Promise<T> {
@@ -41,9 +60,13 @@ export default function TechnologyArchitectureWorkspace() {
   >([]);
   const [activeSlug, setActiveSlug] = useState<string>(CORE_DIAGRAM_SLUGS[0]);
   const [diagram, setDiagram] = useState<SystemArchitectureDiagram | null>(null);
+  const [taxonomy, setTaxonomy] = useState<ArchitectureTaxonomyNode | null>(null);
+  const [workspaceFilter, setWorkspaceFilter] = useState<string>("all");
   const [loading, setLoading] = useState(true);
   const [diagramLoading, setDiagramLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const activeIsTree = isArchitectureTreeSlug(activeSlug);
 
   const diagramTabs = useMemo(() => {
     return CORE_DIAGRAM_SLUGS.map((slug) => {
@@ -117,9 +140,37 @@ export default function TechnologyArchitectureWorkspace() {
     })();
   }, [loadDiagramIndex]);
 
+  const loadTaxonomy = useCallback(async (sectionSlug: string, workspace: string) => {
+    setDiagramLoading(true);
+    setError(null);
+    try {
+      const params = new URLSearchParams({ section: sectionSlug });
+      if (sectionSlug === ARCHITECTURE_TREE_SLUGS.workspaceArchitecture) {
+        params.set("workspace", workspace);
+      }
+      const response = await fetch(`/api/architecture-diagrams?${params.toString()}`, {
+        cache: "no-store",
+      });
+      const data = await readApiJson<{ taxonomy?: ArchitectureTaxonomyNode; error?: string }>(
+        response,
+      );
+      if (!response.ok) throw new Error(data.error ?? "Failed to load architecture hierarchy");
+      setTaxonomy(data.taxonomy ?? null);
+    } catch (loadError) {
+      setTaxonomy(null);
+      setError(loadError instanceof Error ? loadError.message : "Failed to load hierarchy");
+    } finally {
+      setDiagramLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
-    void loadDiagram(activeSlug);
-  }, [activeSlug, loadDiagram]);
+    if (isArchitectureTreeSlug(activeSlug)) {
+      void loadTaxonomy(activeSlug, workspaceFilter);
+    } else {
+      void loadDiagram(activeSlug);
+    }
+  }, [activeSlug, workspaceFilter, loadDiagram, loadTaxonomy]);
 
   async function handleDiagramChange(next: ArchitectureDiagramDocument) {
     if (!diagram) return;
@@ -178,6 +229,30 @@ export default function TechnologyArchitectureWorkspace() {
                 </button>
               );
             })}
+
+            <span className="mx-1 hidden self-center text-white/15 sm:inline">|</span>
+
+            {TREE_DIAGRAM_TABS.map((item) => {
+              const isActive = activeSlug === item.slug;
+              return (
+                <button
+                  key={item.slug}
+                  type="button"
+                  onClick={() => setActiveSlug(item.slug)}
+                  className={cn(
+                    "inline-flex shrink-0 items-center gap-2 rounded-xl border px-3 py-2 text-left text-xs font-semibold transition-colors",
+                    isActive
+                      ? "border-emerald-400/40 bg-emerald-500/15 text-emerald-100"
+                      : "border-white/10 bg-white/[0.03] text-white/60 hover:bg-white/[0.06] hover:text-white/80",
+                  )}
+                >
+                  <ListTree
+                    className={cn("h-3.5 w-3.5", isActive ? "text-emerald-200" : "text-white/35")}
+                  />
+                  {item.title}
+                </button>
+              );
+            })}
           </nav>
 
           <div className="flex min-h-[28rem] min-w-0 flex-1 flex-col rounded-2xl border border-white/10 bg-[#0b1524]/50 p-3 sm:p-4">
@@ -190,6 +265,25 @@ export default function TechnologyArchitectureWorkspace() {
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Loading diagram…
               </div>
+            ) : activeIsTree ? (
+              taxonomy ? (
+                <ArchitectureHierarchyViewer
+                  root={taxonomy}
+                  title={TREE_TITLE[activeSlug] ?? "Architecture"}
+                  height="min(72vh, 760px)"
+                  workspaceOptions={
+                    activeSlug === ARCHITECTURE_TREE_SLUGS.workspaceArchitecture
+                      ? WORKSPACE_ARCHITECTURE_OPTIONS
+                      : undefined
+                  }
+                  selectedWorkspace={workspaceFilter}
+                  onSelectWorkspace={setWorkspaceFilter}
+                />
+              ) : (
+                <div className="flex flex-1 items-center justify-center rounded-xl border border-dashed border-white/15 bg-[#0b1524]/40 px-6 text-center text-sm text-white/50">
+                  Hierarchy unavailable.
+                </div>
+              )
             ) : diagram ? (
               <ArchitectureViewer
                 title={CORE_DIAGRAM_LABELS[activeSlug as (typeof CORE_DIAGRAM_SLUGS)[number]] ?? diagram.title}

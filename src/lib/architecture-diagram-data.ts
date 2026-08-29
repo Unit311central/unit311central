@@ -89,6 +89,11 @@ export type ArchitectureCatalogEntry = {
   description?: string;
   /** Lower numbers appear first in the Architecture Diagrams hub sidebar. */
   navOrder?: number;
+  /**
+   * Which renderer presents this entry. Existing React Flow diagrams are "canvas"
+   * (the default when omitted); the living hierarchy views are "tree".
+   */
+  renderer?: "canvas" | "tree";
   /** When true, diagram JSON is regenerated from repo docs on each API load. */
   liveRefresh?: boolean;
   seedTemplate?:
@@ -321,6 +326,28 @@ export const ARCHITECTURE_DIAGRAM_CATALOG: readonly ArchitectureCatalogEntry[] =
     title: "External Integrations",
     description: "Third-party systems",
     seedTemplate: "blank",
+  },
+  // --- Living hierarchy views (tree renderer; no React Flow document / no DB seed) ---
+  {
+    sectionSlug: "core-product",
+    title: "Core Product",
+    description: "Standard Unit311Central Core Modules → Core Features → Core Sub-features",
+    navOrder: 200,
+    renderer: "tree",
+  },
+  {
+    sectionSlug: "custom-product",
+    title: "Custom Product",
+    description: "Genuinely identified Custom Modules / Features / Sub-features",
+    navOrder: 210,
+    renderer: "tree",
+  },
+  {
+    sectionSlug: "workspace-architecture",
+    title: "Workspace Architecture",
+    description: "Per-workspace Core Modules + workspace-specific customisations",
+    navOrder: 220,
+    renderer: "tree",
   },
 ] as const;
 
