@@ -1,7 +1,7 @@
 /**
  * Demo module structure freeze — regression guard.
  *
- * Demo MUST remain on the complete central catalogue (22 modules, 157 submodules).
+ * Demo MUST remain on the complete central catalogue (22 modules, 163 submodules).
  * Fails if demo-provisioning or migration drift from module-catalogue.ts.
  *
  * Run: npm run prove:demo-module-structure
@@ -38,8 +38,8 @@ assert.equal(
 );
 assert.equal(
   DEMO_CATALOGUE_SUBMODULE_COUNT,
-  157,
-  "Central catalogue must expose 157 submodule keys",
+  163,
+  "Central catalogue must expose 163 submodule keys",
 );
 
 assert.deepEqual(
@@ -100,7 +100,7 @@ const demoEnablement = resolveWorkspaceNavEnablement({
 });
 
 assert.equal(demoEnablement.enabledModules.length, 22);
-assert.equal(demoEnablement.enabledSubModules.length, 157);
+assert.equal(demoEnablement.enabledSubModules.length, 158);
 
 const nav = buildWorkspaceProductNavSections({
   workspaceSlug: DEMO_SLUG,
@@ -126,7 +126,7 @@ assert.ok(
 );
 
 const requiredWorkspaceSections = [
-  "Northstar Intelligence",
+  "NORTHSTAR INTELLIGENCE",
   "Business Central",
   "Sales Management",
   "Finances",
@@ -251,7 +251,7 @@ assert.notEqual(
 );
 assert.notEqual(
   staleEnablement.enabledSubModules.length,
-  157,
+  163,
   "Stale 161 submodule list must be detected as incomplete",
 );
 

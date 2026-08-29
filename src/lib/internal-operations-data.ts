@@ -126,6 +126,7 @@ export type InternalOperationsView =
   | "profile"
   | "appearance"
   | "executive-assistant"
+  | "intelligence-dashboard"
   | "demo-company-intelligence"
   | "demo-client-intelligence"
   | "demo-market-intelligence"
@@ -463,6 +464,7 @@ export const internalOperationsViews: InternalOperationsView[] = [
   "profile",
   "appearance",
   "executive-assistant",
+  "intelligence-dashboard",
   "demo-company-intelligence",
   "demo-client-intelligence",
   "demo-market-intelligence",
@@ -1332,9 +1334,10 @@ export const internalViewTitles: Record<
   profile: { title: "Profile", subtitle: "Settings" },
   appearance: { title: "Appearance", subtitle: "Settings" },
   "executive-assistant": { title: "Executive Assistant", subtitle: "Executive" },
-  "demo-company-intelligence": { title: "Company Intelligence", subtitle: "Northstar Intelligence" },
-  "demo-client-intelligence": { title: "Client Intelligence", subtitle: "Northstar Intelligence" },
-  "demo-market-intelligence": { title: "Market Intelligence", subtitle: "Northstar Intelligence" },
+  "intelligence-dashboard": { title: "Dashboard", subtitle: "Intelligence" },
+  "demo-company-intelligence": { title: "Company Intelligence", subtitle: "Intelligence" },
+  "demo-client-intelligence": { title: "Client Intelligence", subtitle: "Intelligence" },
+  "demo-market-intelligence": { title: "Market Intelligence", subtitle: "Intelligence" },
   "platform-analytics": { title: "Platform Analytics", subtitle: "Analytics" },
   "website-analytics": { title: "Website Analytics", subtitle: "Analytics" },
   "system-health": { title: "System Health", subtitle: "Analytics" },

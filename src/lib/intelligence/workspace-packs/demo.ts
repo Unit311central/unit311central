@@ -1,4 +1,5 @@
 import { DEMO_WORKSPACE_SLUG } from "@/lib/app-domains";
+import { INTELLIGENCE_WORKSPACE_NAV_LABELS } from "@/lib/intelligence/intelligence-nav-labels";
 import type {
   IntelligenceDomainProvider,
   IntelligenceRecord,
@@ -69,6 +70,40 @@ function filterRecords(records: readonly IntelligenceRecord[], query?: string) {
       record.tags.some((tag) => tag.label.toLowerCase().includes(q)),
   );
 }
+
+const dashboardProvider: IntelligenceDomainProvider = {
+  domainId: "dashboard",
+  async buildBriefing(ctx) {
+    const company = buildNorthstarCompanyIntelligence();
+    const client = buildNorthstarClientIntelligence();
+    const market = buildNorthstarMarketIntelligence();
+    return briefingFromSections(ctx.workspaceSlug, "dashboard", "Northstar Intelligence overview", [
+      {
+        id: "company",
+        title: "Company Intelligence",
+        bullets: [company.postureReason, ...company.priorityActions.slice(0, 2).map((a) => a.title)],
+      },
+      {
+        id: "client",
+        title: "Client Intelligence",
+        bullets: [
+          client.postureReason,
+          `${client.summary.atRisk} at-risk accounts`,
+          `${client.summary.renewalNext90Days} renewals in 90 days`,
+        ],
+      },
+      {
+        id: "market",
+        title: "Market Intelligence",
+        bullets: [market.postureReason, ...market.priorityActions.slice(0, 2).map((a) => a.title)],
+      },
+    ], {
+      posture: company.posture,
+      postureReason: "Consolidated view across company, client, and market intelligence.",
+      recommendedActions: company.priorityActions.slice(0, 3).map((action) => action.title),
+    });
+  },
+};
 
 const companyProvider: IntelligenceDomainProvider = {
   domainId: "company-intelligence",
@@ -189,9 +224,16 @@ const marketProvider: IntelligenceDomainProvider = {
 export const demoIntelligencePack: IntelligenceWorkspacePackRegistration = {
   id: "demo-intelligence",
   slug: SLUG,
-  label: "Northstar Intelligence",
+  label: INTELLIGENCE_WORKSPACE_NAV_LABELS[SLUG],
   hostSurface: "demo",
   domains: [
+    {
+      id: "dashboard",
+      label: "Dashboard",
+      description: "Overview across Company, Client, and Market Intelligence.",
+      navViews: ["intelligence-dashboard"],
+      providerId: "demo.dashboard",
+    },
     {
       id: "company-intelligence",
       label: "Company Intelligence",
@@ -218,6 +260,7 @@ export const demoIntelligencePack: IntelligenceWorkspacePackRegistration = {
     },
   ],
   uiViews: [
+    { viewId: "intelligence-dashboard", domainId: "dashboard", label: "Dashboard" },
     { viewId: "demo-company-intelligence", domainId: "company-intelligence", label: "Company Intelligence" },
     { viewId: "demo-client-intelligence", domainId: "client-intelligence", label: "Client Intelligence" },
     { viewId: "demo-market-intelligence", domainId: "market-intelligence", label: "Market Intelligence" },
@@ -226,7 +269,7 @@ export const demoIntelligencePack: IntelligenceWorkspacePackRegistration = {
     defaultAllowedHostSurfaces: ["demo", "internal"],
     denyExternal: true,
   },
-  providers: [companyProvider, clientProvider, marketProvider],
+  providers: [dashboardProvider, companyProvider, clientProvider, marketProvider],
   eaBridge: {
     intentResolvers: [
       async ({ message }) => {

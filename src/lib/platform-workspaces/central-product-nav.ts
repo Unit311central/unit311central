@@ -83,7 +83,7 @@ export function buildCentralBusinessCentralNavSection(): InternalNavSection {
   };
 }
 
-/** Central Intelligence — three domain functions (workspace branding varies at runtime). */
+/** Central Intelligence — four Core Features (workspace branding varies at runtime). */
 export function buildCentralIntelligenceNavSection(): InternalNavSection {
   return {
     kind: "workspace",
@@ -91,6 +91,7 @@ export function buildCentralIntelligenceNavSection(): InternalNavSection {
     icon: "Brain",
     color: "#7C3AED",
     items: [
+      { label: "Dashboard", icon: "LayoutDashboard", view: "intelligence-dashboard" },
       { label: "Company Intelligence", icon: "Radar", view: "demo-company-intelligence" },
       { label: "Client Intelligence", icon: "Radar", view: "demo-client-intelligence" },
       { label: "Market Intelligence", icon: "Radar", view: "demo-market-intelligence" },

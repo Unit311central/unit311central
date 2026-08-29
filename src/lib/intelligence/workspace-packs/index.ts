@@ -2,8 +2,11 @@ import { registerIntelligencePack } from "@/lib/intelligence/registry";
 import type { IntelligenceWorkspacePackRegistration } from "@/lib/intelligence/types";
 
 import { abhiIntelligencePack } from "@/lib/intelligence/workspace-packs/abhi";
+import { amanahIntelligencePack } from "@/lib/intelligence/workspace-packs/amanah";
 import { customerIntelligencePack } from "@/lib/intelligence/workspace-packs/customer";
 import { demoIntelligencePack } from "@/lib/intelligence/workspace-packs/demo";
+import { greenDesertIntelligencePack } from "@/lib/intelligence/workspace-packs/greendesert";
+import { interfaceWorxIntelligencePack } from "@/lib/intelligence/workspace-packs/interfaceworx";
 import { onwardAirIntelligencePack } from "@/lib/intelligence/workspace-packs/onwardair";
 import { saecIntelligencePack } from "@/lib/intelligence/workspace-packs/saec";
 import { talantonIntelligencePack } from "@/lib/intelligence/workspace-packs/talanton";
@@ -19,6 +22,9 @@ const INTELLIGENCE_WORKSPACE_PACKS: readonly IntelligenceWorkspacePackRegistrati
   abhiIntelligencePack,
   saecIntelligencePack,
   demoIntelligencePack,
+  interfaceWorxIntelligencePack,
+  amanahIntelligencePack,
+  greenDesertIntelligencePack,
   customerIntelligencePack,
 ];
 
@@ -39,8 +45,11 @@ export function resetIntelligenceWorkspacePackBootstrapForTests(): void {
 
 export {
   abhiIntelligencePack,
+  amanahIntelligencePack,
   customerIntelligencePack,
   demoIntelligencePack,
+  greenDesertIntelligencePack,
+  interfaceWorxIntelligencePack,
   onwardAirIntelligencePack,
   saecIntelligencePack,
   talantonIntelligencePack,

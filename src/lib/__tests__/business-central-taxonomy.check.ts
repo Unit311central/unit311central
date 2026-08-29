@@ -56,7 +56,7 @@ const bcSubs = getWorkspaceModuleEntry("business-central")?.subModules ?? [];
 assert.equal(bcSubs.length, 9);
 assert.ok(!bcSubs.some((sub) => sub.viewId === "member-intelligence"));
 
-assert.equal(defaultEnabledSubModules(WORKSPACE_CORE_MODULE_IDS).length, 157);
+assert.equal(defaultEnabledSubModules(WORKSPACE_CORE_MODULE_IDS).length, 163);
 
 assert.equal(workspaceExcludesBusinessCentralGrantManagement(ABHI_SLUG), true);
 assert.equal(workspaceExcludesBusinessCentralGrantManagement(SAEC_SLUG), true);

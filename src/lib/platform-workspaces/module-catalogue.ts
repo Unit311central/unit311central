@@ -213,8 +213,52 @@ function moduleKeysForView(viewId: string | undefined, moduleId: string): string
   return moduleFallbacks[moduleId] ?? [];
 }
 
+function augmentIntelligenceCatalogueSubModules(
+  entries: WorkspaceModuleCatalogueEntry[],
+): WorkspaceModuleCatalogueEntry[] {
+  return entries.map((entry) => {
+    if (entry.id !== "intelligence") return entry;
+    const supplementary: WorkspaceSubModuleDefinition[] = [
+      {
+        id: "member-intelligence",
+        label: "Member Intelligence",
+        viewId: "member-intelligence",
+        moduleKeys: ["strategy"],
+      },
+      {
+        id: "regulatory-dashboard",
+        label: "Dashboard",
+        viewId: "regulatory-dashboard",
+        moduleKeys: ["strategy"],
+      },
+      {
+        id: "regulatory-updates",
+        label: "Regulatory Updates",
+        viewId: "regulatory-updates",
+        moduleKeys: ["strategy"],
+      },
+      {
+        id: "regulatory-impact",
+        label: "Impact Assessments",
+        viewId: "regulatory-impact",
+        moduleKeys: ["strategy"],
+      },
+      {
+        id: "regulatory-alerts",
+        label: "Member Alerts",
+        viewId: "regulatory-alerts",
+        moduleKeys: ["strategy"],
+      },
+    ];
+    return {
+      ...entry,
+      subModules: [...entry.subModules, ...supplementary],
+    };
+  });
+}
+
 function buildWorkspaceModuleCatalogue(): WorkspaceModuleCatalogueEntry[] {
-  return buildCentralProductNavSections().map((spec) => ({
+  const base = buildCentralProductNavSections().map((spec) => ({
     number: spec.number,
     id: spec.id,
     label: spec.label,
@@ -225,6 +269,7 @@ function buildWorkspaceModuleCatalogue(): WorkspaceModuleCatalogueEntry[] {
       moduleKeys: moduleKeysForView(leaf.viewId, spec.id),
     })),
   }));
+  return augmentIntelligenceCatalogueSubModules(base);
 }
 
 export const WORKSPACE_MODULE_CATALOGUE: readonly WorkspaceModuleCatalogueEntry[] =

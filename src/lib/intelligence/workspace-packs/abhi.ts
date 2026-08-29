@@ -12,12 +12,16 @@ import {
   type AbhiRegulatoryUpdate,
 } from "@/lib/abhi/regulatory-intelligence";
 import { ABHI_SLUG } from "@/lib/abhi-surface";
+import { INTELLIGENCE_WORKSPACE_NAV_LABELS } from "@/lib/intelligence/intelligence-nav-labels";
 import type {
   IntelligenceDomainProvider,
   IntelligenceProviderContext,
-  IntelligenceWorkspacePackRegistration,
 } from "@/lib/intelligence/types";
-import { bandFromPriority, briefingFromSections, paginateRecords } from "@/lib/intelligence/workspace-packs/_helpers";
+import {
+  createEmptyIntelligenceProvider,
+} from "@/lib/intelligence/workspace-packs/_customer-providers";
+import { briefingFromSections, paginateRecords } from "@/lib/intelligence/workspace-packs/_helpers";
+import { buildStandardIntelligencePack } from "@/lib/intelligence/workspace-packs/_standard-pack";
 
 const SLUG = ABHI_SLUG;
 
@@ -150,19 +154,52 @@ const regulatoryProvider: IntelligenceDomainProvider = {
   },
 };
 
-export const abhiIntelligencePack: IntelligenceWorkspacePackRegistration = {
+const dashboardProvider: IntelligenceDomainProvider = {
+  domainId: "dashboard",
+  async buildBriefing(ctx) {
+    const portfolio = buildMemberIntelligencePortfolio(clientsFromContext(ctx));
+    const regulatory = buildAbhiRegulatoryDashboard(clientsFromContext(ctx));
+    return briefingFromSections(ctx.workspaceSlug, "dashboard", "ABHI Intelligence overview", [
+      {
+        id: "company",
+        title: "Company Intelligence",
+        bullets: ["Association operations and membership programme performance."],
+      },
+      {
+        id: "member",
+        title: "Member Intelligence",
+        bullets: [
+          `${portfolio.summary.activeMembers} active members`,
+          `${portfolio.summary.atRiskMembers} at risk`,
+        ],
+      },
+      {
+        id: "market",
+        title: "Market Intelligence",
+        bullets: ["UK health-tech and diagnostics sector monitor."],
+      },
+      {
+        id: "regulatory",
+        title: "Regulatory Intelligence",
+        bullets: [regulatory.todaysBrief.headline],
+      },
+    ]);
+  },
+};
+
+export const abhiIntelligencePack = buildStandardIntelligencePack({
   id: "abhi-intelligence",
   slug: SLUG,
-  label: "ABHI Intelligence",
+  label: INTELLIGENCE_WORKSPACE_NAV_LABELS[SLUG],
   hostSurface: "abhi",
-  domains: [
-    {
-      id: "member",
-      label: "Member Intelligence",
-      description: "Member relationship and renewal intelligence.",
-      navViews: ["member-intelligence"],
-      providerId: "abhi.member",
-    },
+  clientViewId: "member-intelligence",
+  clientDomainId: "member",
+  clientLabel: "Member Intelligence",
+  clientProvider: memberProvider,
+  companyProvider: createEmptyIntelligenceProvider(SLUG, "company-intelligence"),
+  marketProvider: createEmptyIntelligenceProvider(SLUG, "market-intelligence"),
+  dashboardProvider,
+  extraDomains: [
     {
       id: "regulatory",
       label: "Regulatory Intelligence",
@@ -176,18 +213,17 @@ export const abhiIntelligencePack: IntelligenceWorkspacePackRegistration = {
       providerId: "abhi.regulatory",
     },
   ],
-  uiViews: [
-    { viewId: "member-intelligence", domainId: "member" },
-    { viewId: "regulatory-dashboard", domainId: "regulatory" },
-    { viewId: "regulatory-updates", domainId: "regulatory" },
-    { viewId: "regulatory-impact", domainId: "regulatory" },
-    { viewId: "regulatory-alerts", domainId: "regulatory" },
+  extraUiViews: [
+    { viewId: "regulatory-dashboard", domainId: "regulatory", label: "Dashboard" },
+    { viewId: "regulatory-updates", domainId: "regulatory", label: "Regulatory Updates" },
+    { viewId: "regulatory-impact", domainId: "regulatory", label: "Impact Assessments" },
+    { viewId: "regulatory-alerts", domainId: "regulatory", label: "Member Alerts" },
   ],
+  extraProviders: [regulatoryProvider],
   accessPolicy: {
     defaultAllowedHostSurfaces: ["abhi", "internal"],
     denyExternal: true,
   },
-  providers: [memberProvider, regulatoryProvider],
   eaBridge: {
     intentResolvers: [
       async ({ message }) => {
@@ -206,4 +242,4 @@ export const abhiIntelligencePack: IntelligenceWorkspacePackRegistration = {
     { id: "export-regulatory-pdf", label: "Export regulatory brief PDF", domainId: "regulatory" },
     { id: "export-relationship-brief", label: "Export member relationship brief", domainId: "member" },
   ],
-};
+});

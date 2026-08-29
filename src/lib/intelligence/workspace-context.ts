@@ -4,17 +4,30 @@ import {
   parseClientPlatformSubdomainSafe,
 } from "@/lib/app-domains";
 import { demoWorkspaceSlug } from "@/lib/runtime-surface";
+import { canonicalizeSaecWorkspaceSlug } from "@/lib/saec-surface";
 import { INTERNAL_WORKSPACE_SLUG } from "@/lib/workspace-host";
-import { getIntelligencePackBySlug } from "@/lib/intelligence/registry";
+import {
+  getIntelligencePackById,
+  getIntelligencePackBySlug,
+  getRegisteredIntelligencePackBySlug,
+} from "@/lib/intelligence/registry";
 import type { IntelligenceHostSurface } from "@/lib/intelligence/types";
 
 /**
  * Canonical workspace slug for a Unit311 host (matches workspace-context tenancy).
  * Uses central app-domains helpers — not intelligence-specific branches.
  */
+function canonicalizeIntelligenceWorkspaceSlug(
+  slug: string | null | undefined,
+): string | null {
+  const normalized = String(slug ?? "").trim().toLowerCase();
+  if (!normalized) return null;
+  return canonicalizeSaecWorkspaceSlug(normalized) ?? normalized;
+}
+
 export function resolveWorkspaceSlugFromHost(host: string | null | undefined): string | null {
   const customerSlug = parseClientPlatformSubdomainSafe(host);
-  if (customerSlug) return customerSlug;
+  if (customerSlug) return canonicalizeIntelligenceWorkspaceSlug(customerSlug);
   if (isDemoDomainHost(host)) return demoWorkspaceSlug();
   if (isInternalDomainHost(host)) return INTERNAL_WORKSPACE_SLUG;
 
@@ -22,7 +35,7 @@ export function resolveWorkspaceSlugFromHost(host: string | null | undefined): s
     const normalized = host.split(":")[0].trim().toLowerCase();
     if (normalized.endsWith(".localhost")) {
       const sub = normalized.slice(0, -".localhost".length);
-      if (sub && !sub.includes(".")) return sub;
+      if (sub && !sub.includes(".")) return canonicalizeIntelligenceWorkspaceSlug(sub);
     }
   }
 
@@ -36,8 +49,16 @@ export function resolveIntelligencePackSlugForWorkspace(
   const normalized = String(workspaceSlug ?? "")
     .trim()
     .toLowerCase();
-  if (!normalized) return null;
-  return getIntelligencePackBySlug(normalized)?.slug ?? null;
+  if (!normalized || normalized === INTERNAL_WORKSPACE_SLUG) return null;
+
+  const canonicalSlug = canonicalizeIntelligenceWorkspaceSlug(normalized);
+  if (!canonicalSlug) return null;
+
+  const specific = getRegisteredIntelligencePackBySlug(canonicalSlug);
+  if (specific) return specific.slug;
+
+  // Unknown customer workspaces resolve to the generic customer pack at runtime.
+  return getIntelligencePackById("customer-intelligence")?.slug ?? null;
 }
 
 export function resolveIntelligenceWorkspaceSlugFromHost(
