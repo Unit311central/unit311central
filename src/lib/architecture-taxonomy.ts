@@ -139,11 +139,11 @@ function coreModuleNode(
   };
 }
 
-/** VIEW 1 — Core Product. */
+/** VIEW 1 — Core Product. The standard Core Modules only (WOLF specialist extensions excluded). */
 export function buildCoreProductTaxonomy(): ArchitectureTaxonomyNode {
-  const modules = buildCentralProductNavSections().map((spec) =>
-    coreModuleNode(spec.id, getCanonicalModule(spec.id)?.label ?? spec.label),
-  );
+  const modules = buildCentralProductNavSections()
+    .filter((spec) => !spec.id.startsWith("wolf-"))
+    .map((spec) => coreModuleNode(spec.id, getCanonicalModule(spec.id)?.label ?? spec.label));
 
   return {
     id: "core-product",

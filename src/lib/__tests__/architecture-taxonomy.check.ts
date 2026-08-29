@@ -66,10 +66,17 @@ assert.equal(core.level, "root");
 const coreModules = child(core, "CORE MODULES");
 assert.equal(coreModules.level, "group");
 assert.equal(coreModules.kind, "core");
+const expectedCoreCount = buildCentralProductNavSections().filter(
+  (spec) => !spec.id.startsWith("wolf-"),
+).length;
 assert.equal(
   (coreModules.children ?? []).length,
-  buildCentralProductNavSections().length,
-  "Core Product lists every Core Module",
+  expectedCoreCount,
+  "Core Product lists every standard Core Module (WOLF specialist modules excluded)",
+);
+assert.ok(
+  !(coreModules.children ?? []).some((mod) => /^wolf/i.test(mod.label)),
+  "Core Product must not include WOLF specialist modules",
 );
 
 // Audited modules expose Features/Sub-features; unaudited stay at module level.
