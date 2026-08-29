@@ -52,6 +52,7 @@
     "prove:sales-management-nav": "node --require ./scripts/test-server-only-hook.cjs --import tsx src/lib/__tests__/sales-management-nav.check.ts",
     "prove:demo-auth-return-to": "node --import tsx src/lib/__tests__/demo-auth-return-to.check.ts",
     "prove:sales-management-insights": "node --import tsx src/lib/__tests__/sales-management-insights.check.ts",
+    "prove:sales-management-taxonomy": "node --import tsx src/lib/__tests__/sales-management-taxonomy.check.ts",
     "prove:pending-migrations-runner": "node --import tsx src/lib/__tests__/pending-migrations-runner.check.ts && node --import tsx src/lib/__tests__/migration-query-client.check.ts",
     "prove:finances-nav": "node --import tsx src/lib/__tests__/finances-nav.check.ts",
     "prove:finances-acceptance": "node scripts/prove-finances-acceptance.mjs",
