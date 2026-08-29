@@ -5,7 +5,11 @@ import {
 } from "@/lib/app-domains";
 import { demoWorkspaceSlug } from "@/lib/runtime-surface";
 import { INTERNAL_WORKSPACE_SLUG } from "@/lib/workspace-host";
-import { getIntelligencePackBySlug } from "@/lib/intelligence/registry";
+import {
+  getIntelligencePackById,
+  getIntelligencePackBySlug,
+  getRegisteredIntelligencePackBySlug,
+} from "@/lib/intelligence/registry";
 import type { IntelligenceHostSurface } from "@/lib/intelligence/types";
 
 /**
@@ -36,8 +40,13 @@ export function resolveIntelligencePackSlugForWorkspace(
   const normalized = String(workspaceSlug ?? "")
     .trim()
     .toLowerCase();
-  if (!normalized) return null;
-  return getIntelligencePackBySlug(normalized)?.slug ?? null;
+  if (!normalized || normalized === INTERNAL_WORKSPACE_SLUG) return null;
+
+  const specific = getRegisteredIntelligencePackBySlug(normalized);
+  if (specific) return specific.slug;
+
+  // Unknown customer workspaces resolve to the generic customer pack at runtime.
+  return getIntelligencePackById("customer-intelligence")?.slug ?? null;
 }
 
 export function resolveIntelligenceWorkspaceSlugFromHost(

@@ -4,6 +4,8 @@
  */
 
 import { DEMO_WORKSPACE_SLUG } from "@/lib/app-domains";
+import { filterIntelligenceProvisioningSubModules } from "@/lib/intelligence/intelligence-provisioning";
+import { resolveIntelligenceNavLabel } from "@/lib/intelligence/intelligence-nav-labels";
 import { filterBusinessCentralProvisioningSubModules } from "@/lib/platform-workspaces/business-central-provisioning";
 import { isSaecSlug } from "@/lib/saec-surface";
 import { augmentSaecOperationsNav } from "@/lib/saec/installations-nav";
@@ -43,6 +45,16 @@ const SPECIALIST_WORKSPACE_SLUGS = new Set([
   "talanton",
   "talanton-impact",
 ]);
+
+function filterWorkspaceProvisioningSubModules(
+  slug: string,
+  subModules: readonly string[],
+): string[] {
+  return filterIntelligenceProvisioningSubModules(
+    slug,
+    filterBusinessCentralProvisioningSubModules(slug, subModules),
+  );
+}
 
 export function isSpecialistWorkspaceSlug(slug: string | null | undefined): boolean {
   const normalized = String(slug ?? "").trim().toLowerCase();
@@ -123,7 +135,7 @@ export function resolveWorkspaceNavEnablement(input: {
     const allModules = [...WORKSPACE_MODULE_IDS];
     return {
       enabledModules: allModules,
-      enabledSubModules: filterBusinessCentralProvisioningSubModules(
+      enabledSubModules: filterWorkspaceProvisioningSubModules(
         normalizedSlug,
         defaultEnabledSubModules(allModules),
       ),
@@ -135,7 +147,7 @@ export function resolveWorkspaceNavEnablement(input: {
       subModules.length > 0 ? subModules : defaultEnabledSubModules(modules);
     return {
       enabledModules: modules,
-      enabledSubModules: filterBusinessCentralProvisioningSubModules(
+      enabledSubModules: filterWorkspaceProvisioningSubModules(
         normalizedSlug,
         repairWorkspaceSubmoduleKeys(modules, baseSubs),
       ),
@@ -151,20 +163,14 @@ export function resolveWorkspaceNavEnablement(input: {
   );
   return {
     enabledModules: fallbackModules,
-    enabledSubModules: filterBusinessCentralProvisioningSubModules(
+    enabledSubModules: filterWorkspaceProvisioningSubModules(
       normalizedSlug,
       defaultEnabledSubModules(fallbackModules),
     ),
   };
 }
 
-export function resolveIntelligenceNavLabel(workspaceSlug?: string | null): string {
-  const slug = String(workspaceSlug ?? "").trim().toLowerCase();
-  if (slug === DEMO_WORKSPACE_SLUG || slug === "demo") {
-    return "Northstar Intelligence";
-  }
-  return "Intelligence";
-}
+export { resolveIntelligenceNavLabel } from "@/lib/intelligence/intelligence-nav-labels";
 
 function buildViewToSubModuleKeyMap(moduleId: string): Map<string, string> {
   const entry = getWorkspaceModuleEntry(moduleId);

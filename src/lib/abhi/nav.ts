@@ -65,17 +65,32 @@ export const ABHI_REGULATORY_NAV_SECTION: InternalNavSection = {
   items: ABHI_REGULATORY_NAV_ITEMS,
 };
 
-/** ABHI Intelligence — Member + Regulatory (inserted after Executive Assistant on ABHI host). */
+/** ABHI Intelligence — standard Core Features + Regulatory Custom Feature. */
 export const ABHI_INTELLIGENCE_NAV_SECTION: InternalNavSection = {
   kind: "workspace",
-  label: "ABHI Intelligence",
+  label: "ABHI INTELLIGENCE",
   icon: "Sparkles",
   color: "#C2185B",
   items: [
     {
+      label: "Dashboard",
+      icon: "LayoutDashboard",
+      view: "intelligence-dashboard",
+    },
+    {
+      label: "Company Intelligence",
+      icon: "Radar",
+      view: "demo-company-intelligence",
+    },
+    {
       label: "Member Intelligence",
       icon: "Users",
       view: "member-intelligence",
+    },
+    {
+      label: "Market Intelligence",
+      icon: "Radar",
+      view: "demo-market-intelligence",
     },
     {
       label: "Regulatory Intelligence",

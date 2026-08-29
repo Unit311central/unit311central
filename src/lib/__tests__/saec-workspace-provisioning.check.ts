@@ -5,6 +5,10 @@ import {
   WORKSPACE_CORE_MODULE_IDS,
   defaultEnabledSubModules,
 } from "@/lib/platform-workspaces/module-catalogue";
+import { filterIntelligenceProvisioningSubModules } from "@/lib/intelligence/intelligence-provisioning";
+import {
+  filterBusinessCentralProvisioningSubModules,
+} from "@/lib/platform-workspaces/business-central-provisioning";
 import {
   SAEC_ENABLED_MODULES,
   SAEC_EXCLUDED_SUBMODULE_KEYS,
@@ -27,8 +31,15 @@ test("SAEC uses full central catalogue minus Grants submodule", () => {
 
   const fullSubCount = defaultEnabledSubModules(WORKSPACE_CORE_MODULE_IDS).length;
   const saecSubs = saecEnabledSubModules();
-  assert.equal(fullSubCount, 157);
-  assert.equal(saecSubs.length, fullSubCount - SAEC_EXCLUDED_SUBMODULE_KEYS.length);
+  const expectedSaecSubs = filterIntelligenceProvisioningSubModules(
+    SAEC_SLUG,
+    filterBusinessCentralProvisioningSubModules(
+      SAEC_SLUG,
+      defaultEnabledSubModules(WORKSPACE_CORE_MODULE_IDS),
+    ),
+  );
+  assert.equal(fullSubCount, 163);
+  assert.deepEqual([...saecSubs].sort(), [...expectedSaecSubs].sort());
   assert.equal(SAEC_EXCLUDED_SUBMODULE_KEYS.length, 1);
   assert.equal(SAEC_EXCLUDED_SUBMODULE_KEYS[0], "business-central:grants");
   assert.equal(saecSubs.includes("business-central:grants"), false);
@@ -93,4 +104,12 @@ test("SAEC uses full central catalogue minus Grants submodule", () => {
     bc.items.some((item) => item.view === "information-repository"),
     "Information Repository must appear in SAEC Business Central nav",
   );
+
+  const intelligence = nav.find((section) => section.label === "OMNITRANSIT INTELLIGENCE");
+  assert.ok(intelligence && intelligence.kind === "workspace");
+  const intelligenceLabels = intelligence.items.map((item) => item.label);
+  assert.ok(intelligenceLabels.includes("Dashboard"));
+  assert.ok(intelligenceLabels.includes("Company Intelligence"));
+  assert.ok(intelligenceLabels.includes("Client Intelligence"));
+  assert.ok(intelligenceLabels.includes("Market Intelligence"));
 });

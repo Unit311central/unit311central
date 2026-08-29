@@ -43,6 +43,7 @@ import { resolveTutorialTabKey } from "@/lib/guided-tutorials/context";
 import SurveyOperationsShell from "./SurveyOperationsShell";
 import { OperatorEntitlementsProvider, useOperatorEntitlements } from "./OperatorEntitlementsProvider";
 import { isBrowserAbhiSurface } from "@/lib/abhi-surface";
+import { isAbhiRegulatoryView } from "@/lib/abhi/nav";
 import { isBrowserTalantonImpactSurface } from "@/lib/talanton-surface";
 import { isBrowserOnwardAirSurface } from "@/lib/onwardair-surface";
 import { isBrowserSaecSurface } from "@/lib/saec-surface";
@@ -304,6 +305,8 @@ import {
   WolfFleetSummaryWorkspace,
   WolfAiWildlifeVisionDemo,
   PailexViewHost,
+  MemberIntelligenceWorkspace,
+  RegulatoryIntelligenceWorkspace,
 } from "./lazy-workspaces";
 import { type ManagedUser } from "@/lib/user-management-data";
 import { useInfoEmailWhatsAppPoller } from "@/hooks/useInfoEmailWhatsAppPoller";
@@ -339,8 +342,9 @@ import {
   OnwardAirBoardMeetingsWorkspace,
 } from "@/components/onwardair/OnwardAirBoardWorkspaces";
 import { OnwardAirIpPatentsWorkspace } from "@/components/onwardair/OnwardAirIpPatentsWorkspace";
-import { NorthstarIntelligenceRouter } from "@/components/demo/intelligence/NorthstarIntelligenceWorkspaces";
+import { NorthstarIntelligenceRouter, NorthstarIntelligenceDashboard } from "@/components/demo/intelligence/NorthstarIntelligenceWorkspaces";
 import IntelligenceCentralWorkspace from "@/components/intelligence/IntelligenceCentralWorkspace";
+import IntelligenceDashboardWorkspace from "@/components/intelligence/IntelligenceDashboardWorkspace";
 import QaTasksWorkspace from "@/components/qa-workspace/QaTasksWorkspace";
 import { isTestWorkspaceSlug } from "@/lib/qa-workspace/surface";
 import { isIntelligenceOperationsView } from "@/lib/intelligence/views";
@@ -917,7 +921,17 @@ export default function InternalOperationsDashboard({
 
           {isIntelligenceOperationsView(activeView) ? (
             <WorkspaceErrorBoundary title="Intelligence">
-              {isDemoSurface ? (
+              {activeView === "intelligence-dashboard" ? (
+                isDemoSurface ? (
+                  <NorthstarIntelligenceDashboard />
+                ) : (
+                  <IntelligenceDashboardWorkspace />
+                )
+              ) : isBrowserAbhiSurface() && activeView === "member-intelligence" ? (
+                <MemberIntelligenceWorkspace clients={clients} />
+              ) : isBrowserAbhiSurface() && isAbhiRegulatoryView(activeView) ? (
+                <RegulatoryIntelligenceWorkspace clients={clients} view={activeView} />
+              ) : isDemoSurface ? (
                 <NorthstarIntelligenceRouter activeView={activeView} clients={clients} />
               ) : (
                 <IntelligenceCentralWorkspace activeView={activeView} clients={clients} />

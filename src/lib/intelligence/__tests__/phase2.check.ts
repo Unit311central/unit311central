@@ -24,7 +24,7 @@ async function runPhase2Checks() {
   clearIntelligenceRegistryForTests();
   bootstrapIntelligenceWorkspacePacks();
 
-  assert.equal(listIntelligencePacks().length, 4);
+  assert.equal(listIntelligencePacks().length, 9);
 
   const onward = getIntelligencePackBySlug("onwardair");
   const talanton = getIntelligencePackBySlug("talanton");
@@ -35,7 +35,7 @@ async function runPhase2Checks() {
   assert.ok(talanton);
   assert.ok(abhi);
   assert.ok(demo);
-  assert.equal(listIntelligenceDomainsForWorkspace("demo").length, 3);
+  assert.equal(listIntelligenceDomainsForWorkspace("demo").length, 4);
   assert.equal(getIntelligencePackBySlug("onward")?.id, "onwardair-intelligence");
   assert.equal(talanton?.slug, "talantonimpact");
 

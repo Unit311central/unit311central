@@ -1,3 +1,4 @@
+import { filterIntelligenceProvisioningSubModules } from "@/lib/intelligence/intelligence-provisioning";
 import {
   BUSINESS_CENTRAL_GRANT_MANAGEMENT_SUBMODULE_KEY,
   filterBusinessCentralProvisioningSubModules,
@@ -16,8 +17,11 @@ export const SAEC_EXCLUDED_SUBMODULE_KEYS = [
 ] as const;
 
 export function saecEnabledSubModules(): string[] {
-  return filterBusinessCentralProvisioningSubModules(
+  return filterIntelligenceProvisioningSubModules(
     SAEC_SLUG,
-    defaultEnabledSubModules([...SAEC_ENABLED_MODULES]),
+    filterBusinessCentralProvisioningSubModules(
+      SAEC_SLUG,
+      defaultEnabledSubModules([...SAEC_ENABLED_MODULES]),
+    ),
   );
 }

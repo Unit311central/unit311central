@@ -76,7 +76,9 @@ function buildNavForSlug(slug: string, workspaceType: string, enablement?: Retur
 }
 
 function normalizeModuleLabels(labels: string[]): string[] {
-  return labels.map((label) => (label === "Northstar Intelligence" ? "Intelligence" : label));
+  return labels.map((label) =>
+    label === "INTELLIGENCE" || label.endsWith(" INTELLIGENCE") ? "Intelligence" : label,
+  );
 }
 
 const fullEnablement = fullCatalogueEnablement();
@@ -142,8 +144,8 @@ assert.ok(JSON.stringify(demoTree["Marketing & Events"]).includes("Social"), "So
 assert.ok(!JSON.stringify(demoTree["Business Productivity"]).includes("Social"), "Social not under Business Productivity");
 
 // Intelligence
-assert.ok(demoLabels.includes("Northstar Intelligence"), "Demo intelligence branding");
-assert.ok(customerLabels.includes("Intelligence"), "Customer intelligence label");
+assert.ok(demoLabels.includes("NORTHSTAR INTELLIGENCE"), "Demo intelligence branding");
+assert.ok(customerLabels.includes("INTERFACEWORX INTELLIGENCE"), "Customer intelligence label");
 bootstrapIntelligenceWorkspacePacks();
 assert.ok(getIntelligencePackBySlug("interfaceworx"), "Generic customer intelligence pack resolves");
 assert.ok(getIntelligencePackBySlug(DEMO_WORKSPACE_SLUG), "Demo intelligence pack resolves");

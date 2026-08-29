@@ -1459,7 +1459,7 @@ function insertAbhiMarketingSection(sections: readonly InternalNavSection[]): In
     let insertedBoard = false;
     let insertedProjectManagement = false;
     for (const section of sections) {
-      if (section.label === "Regulatory Intelligence" || section.label === "ABHI Intelligence") {
+      if (section.label === "Regulatory Intelligence" || section.label === "ABHI INTELLIGENCE" || section.label === "ABHI Intelligence") {
         continue;
       }
       const next = reshapeAbhiNavSection(section);

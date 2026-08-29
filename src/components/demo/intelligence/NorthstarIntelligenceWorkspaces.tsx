@@ -417,6 +417,62 @@ export function NorthstarMarketIntelligenceWorkspace() {
   );
 }
 
+export function NorthstarIntelligenceDashboard() {
+  const company = buildNorthstarCompanyIntelligence();
+  const client = buildNorthstarClientIntelligence();
+  const market = buildNorthstarMarketIntelligence();
+
+  const areas = [
+    {
+      label: "Company Intelligence",
+      view: "demo-company-intelligence",
+      summary: company.postureReason,
+      action: company.priorityActions[0]?.title,
+    },
+    {
+      label: "Client Intelligence",
+      view: "demo-client-intelligence",
+      summary: client.postureReason,
+      action: client.priorityActions[0]?.title,
+    },
+    {
+      label: "Market Intelligence",
+      view: "demo-market-intelligence",
+      summary: market.postureReason,
+      action: market.priorityActions[0]?.title,
+    },
+  ];
+
+  return (
+    <div className="space-y-5 p-1">
+      <IntelHeader
+        moduleLabel="Northstar"
+        title="Dashboard"
+        description="Overview across Company, Client, and Market Intelligence for Northstar Industrial IoT."
+        posture={company.posture}
+        postureReason="Consolidated intelligence posture across company performance, client portfolio, and market signals."
+        asAt={company.asAt}
+      />
+
+      <div className="grid gap-4 lg:grid-cols-3">
+        {areas.map((area) => (
+          <a
+            key={area.view}
+            href={`?view=${area.view}`}
+            className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 transition hover:border-violet-400/30 hover:bg-violet-500/5"
+          >
+            <p className="text-sm font-semibold text-white">{area.label}</p>
+            <p className="mt-2 text-[12px] leading-relaxed text-white/55">{area.summary}</p>
+            {area.action ? (
+              <p className="mt-2 text-[11px] text-violet-200/80">Next: {area.action}</p>
+            ) : null}
+          </a>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function NorthstarIntelligenceRouter({
   activeView,
   clients,
@@ -424,6 +480,9 @@ export function NorthstarIntelligenceRouter({
   activeView: string;
   clients?: ManagedClient[];
 }) {
+  if (activeView === "intelligence-dashboard") {
+    return <NorthstarIntelligenceDashboard />;
+  }
   if (activeView === "demo-company-intelligence") {
     return <NorthstarCompanyIntelligenceWorkspace />;
   }

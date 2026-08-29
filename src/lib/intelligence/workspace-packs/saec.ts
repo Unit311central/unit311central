@@ -1,10 +1,8 @@
 import { SAEC_SLUG } from "@/lib/saec-surface";
-import type {
-  IntelligenceDomainProvider,
-  IntelligenceRecord,
-  IntelligenceWorkspacePackRegistration,
-} from "@/lib/intelligence/types";
+import { INTELLIGENCE_WORKSPACE_NAV_LABELS } from "@/lib/intelligence/intelligence-nav-labels";
+import type { IntelligenceDomainProvider, IntelligenceRecord } from "@/lib/intelligence/types";
 import { briefingFromSections } from "@/lib/intelligence/workspace-packs/_helpers";
+import { buildStandardIntelligencePack } from "@/lib/intelligence/workspace-packs/_standard-pack";
 import {
   saecClientIntelligenceRecords,
   saecCompanyIntelligenceRecords,
@@ -142,48 +140,36 @@ function marketProvider(): IntelligenceDomainProvider {
   };
 }
 
-export const saecIntelligencePack: IntelligenceWorkspacePackRegistration = {
+const dashboardProvider: IntelligenceDomainProvider = {
+  domainId: "dashboard",
+  async buildBriefing(ctx) {
+    return briefingFromSections(ctx.workspaceSlug, "dashboard", "OmniTransit Intelligence overview", [
+      {
+        id: "company",
+        title: "Company Intelligence",
+        bullets: saecCompanyIntelligenceRecords().slice(0, 2).map((row) => row.summary),
+      },
+      {
+        id: "client",
+        title: "Client Intelligence",
+        bullets: saecClientIntelligenceRecords().slice(0, 2).map((row) => `${row.title} — ${row.summary}`),
+      },
+      {
+        id: "market",
+        title: "Market Intelligence",
+        bullets: saecMarketIntelligenceRecords().slice(0, 2).map((row) => row.summary),
+      },
+    ]);
+  },
+};
+
+export const saecIntelligencePack = buildStandardIntelligencePack({
   id: "saec-intelligence",
   slug: SLUG,
-  label: "OmniTransit Intelligence",
+  label: INTELLIGENCE_WORKSPACE_NAV_LABELS[SLUG],
   hostSurface: "customer",
-  domains: [
-    {
-      id: "company-intelligence",
-      label: "Company Intelligence",
-      description: "OmniTransit operational and performance intelligence.",
-      navViews: ["demo-company-intelligence"],
-      providerId: "saec.company-intelligence",
-    },
-    {
-      id: "client-intelligence",
-      label: "Client Intelligence",
-      description: "Client health across property and healthcare portfolios.",
-      navViews: ["demo-client-intelligence"],
-      providerId: "saec.client-intelligence",
-    },
-    {
-      id: "market-intelligence",
-      label: "Market Intelligence",
-      description: "South African elevator and escalator market monitor.",
-      navViews: ["demo-market-intelligence"],
-      providerId: "saec.market-intelligence",
-    },
-  ],
-  uiViews: [
-    { viewId: "demo-company-intelligence", domainId: "company-intelligence", label: "Company Intelligence" },
-    { viewId: "demo-client-intelligence", domainId: "client-intelligence", label: "Client Intelligence" },
-    { viewId: "demo-market-intelligence", domainId: "market-intelligence", label: "Market Intelligence" },
-  ],
-  accessPolicy: {
-    defaultAllowedHostSurfaces: ["customer", "demo", "internal"],
-    denyExternal: false,
-  },
-  providers: [companyProvider(), clientProvider(), marketProvider()],
-  eaToolNames: [
-    "intelligence.getBriefing",
-    "intelligence.searchRecords",
-    "getSmartInsights",
-    "getDailyBrief",
-  ],
-};
+  companyProvider: companyProvider(),
+  clientProvider: clientProvider(),
+  marketProvider: marketProvider(),
+  dashboardProvider,
+});

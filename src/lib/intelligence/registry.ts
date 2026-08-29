@@ -110,6 +110,16 @@ export function listIntelligencePacks(): readonly RegisteredIntelligenceWorkspac
   return result;
 }
 
+/** Slug-specific pack registration only — no generic customer fallback. */
+export function getRegisteredIntelligencePackBySlug(
+  workspaceSlug: string | null | undefined,
+): RegisteredIntelligenceWorkspacePack | null {
+  ensureIntelligencePacksBootstrapped();
+  const normalized = normalizeSlug(workspaceSlug);
+  if (!normalized) return null;
+  return packsBySlug.get(normalized) ?? null;
+}
+
 export function getIntelligencePackBySlug(
   workspaceSlug: string | null | undefined,
 ): RegisteredIntelligenceWorkspacePack | null {
