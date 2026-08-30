@@ -27,8 +27,13 @@ import {
 
 import SaecDiscoveryLogo from "@/components/saec-discovery/SaecDiscoveryLogo";
 import {
-  SAEC_DISCOVERY_COMMENTS_KEY,
-  SAEC_DISCOVERY_OPTIONAL_PLACEHOLDER,
+  DISCOVERY_QUESTION_LABEL_CLASS,
+  DiscoveryOptionalTextarea,
+  DiscoverySectionHeader,
+  DiscoverySoftwareFunctionPanel,
+  DiscoveryVerticalQuestionsPanel,
+} from "@/components/saec-discovery/SaecDiscoverySectionUi";
+import {
   SAEC_DISCOVERY_SECTIONS,
   buildDiscoverySubmissionSnapshot,
   clearStoredDiscoveryDraft,
@@ -137,16 +142,12 @@ function OptionalTextarea({
   className?: string;
 }) {
   return (
-    <textarea
+    <DiscoveryOptionalTextarea
       id={id}
       value={value}
+      onChange={onChange}
       rows={rows}
-      placeholder={SAEC_DISCOVERY_OPTIONAL_PLACEHOLDER}
-      onChange={(event) => onChange(event.target.value)}
-      className={cn(
-        "w-full resize-none rounded-lg border border-white/10 bg-[#070f1a] px-3 py-2 text-sm text-white outline-none transition-colors placeholder:text-white/30 focus:border-sky-400/50",
-        className,
-      )}
+      className={className}
     />
   );
 }
@@ -182,7 +183,7 @@ function QuestionBlock({
 
   const labelBlock = (
     <div className="min-w-0 space-y-1.5">
-      <label htmlFor={inputId} className="block text-[13px] leading-snug text-white/85">
+      <label htmlFor={inputId} className={DISCOVERY_QUESTION_LABEL_CLASS}>
         {question.label}
       </label>
       {question.note && !question.examples?.length ? (
@@ -253,54 +254,45 @@ function SectionHeader({
   onSave: () => void;
 }) {
   const Icon = section.iconComponent;
+  return <DiscoverySectionHeader title={section.title} icon={Icon} onSave={onSave} />;
+}
+
+function ReportingSectionPanel({
+  section,
+  draft,
+  updateDraft,
+}: {
+  section: SectionDef;
+  draft: Record<string, string>;
+  updateDraft: (key: string, value: string) => void;
+}) {
   return (
-    <div className="mb-3 flex shrink-0 items-center justify-between gap-3 border-b border-white/10 pb-3">
-      <div className="flex min-w-0 items-center gap-2">
-        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-sky-400/25 bg-sky-500/10 text-sky-200">
-          <Icon className="h-3.5 w-3.5" strokeWidth={1.75} />
-        </span>
-        <h2 className="text-sm font-semibold uppercase tracking-[0.08em] text-white sm:text-base">
-          {section.title}
-        </h2>
-      </div>
-      <button
-        type="button"
-        onClick={onSave}
-        className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-white/15 bg-white/[0.04] px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-white/85 transition-colors hover:bg-white/[0.08]"
-      >
-        <Save className="h-3 w-3" strokeWidth={2} />
-        Save
-      </button>
-    </div>
+    <DiscoveryVerticalQuestionsPanel
+      sectionId={section.id}
+      questions={section.questions ?? []}
+      draft={draft}
+      updateDraft={updateDraft}
+      answerRows={2}
+    />
   );
 }
 
-function CommentsBlock({
-  sectionId,
-  value,
-  onChange,
-  rows = 3,
+function SoftwareSectionPanel({
+  section,
+  draft,
+  updateDraft,
 }: {
-  sectionId: string;
-  value: string;
-  onChange: (value: string) => void;
-  rows?: number;
+  section: SectionDef;
+  draft: Record<string, string>;
+  updateDraft: (key: string, value: string) => void;
 }) {
   return (
-    <div className="shrink-0 border-t border-white/[0.06] pt-2">
-      <label
-        htmlFor={`${sectionId}-comments`}
-        className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.12em] text-white/70"
-      >
-        Any other comments
-      </label>
-      <OptionalTextarea
-        id={`${sectionId}-comments`}
-        value={value}
-        onChange={onChange}
-        rows={rows}
-      />
-    </div>
+    <DiscoverySoftwareFunctionPanel
+      sectionId={section.id}
+      functions={section.functions ?? []}
+      draft={draft}
+      updateDraft={updateDraft}
+    />
   );
 }
 
@@ -349,108 +341,6 @@ function GeneralSectionPanel({
           </div>
         ) : null}
       </div>
-    </div>
-  );
-}
-
-function ReportingSectionPanel({
-  section,
-  draft,
-  updateDraft,
-}: {
-  section: SectionDef;
-  draft: Record<string, string>;
-  updateDraft: (key: string, value: string) => void;
-}) {
-  const questions = section.questions ?? [];
-
-  return (
-    <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden">
-      {questions.map((question, index) => (
-        <QuestionBlock
-          key={question.id}
-          sectionId={section.id}
-          question={question}
-          index={index + 1}
-          layout="stacked"
-          answerRows={2}
-          value={draft[question.id] ?? ""}
-          onChange={(value) => updateDraft(question.id, value)}
-        />
-      ))}
-      <CommentsBlock
-        sectionId={section.id}
-        value={draft[SAEC_DISCOVERY_COMMENTS_KEY] ?? ""}
-        onChange={(value) => updateDraft(SAEC_DISCOVERY_COMMENTS_KEY, value)}
-        rows={3}
-      />
-    </div>
-  );
-}
-
-function SoftwareSectionPanel({
-  section,
-  draft,
-  updateDraft,
-}: {
-  section: SectionDef;
-  draft: Record<string, string>;
-  updateDraft: (key: string, value: string) => void;
-}) {
-  const functions = section.functions ?? [];
-  const compact = functions.length >= 5;
-  const longLabels = functions.some((entry) => entry.label.length > 28);
-
-  return (
-    <div className="flex min-h-0 flex-1 flex-col gap-1.5 overflow-hidden">
-      <div
-        className={cn(
-          "grid shrink-0 gap-2 border-b border-white/10 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/35 md:gap-4",
-          longLabels
-            ? "md:grid-cols-[minmax(0,1fr)_minmax(0,220px)]"
-            : "md:grid-cols-[minmax(0,220px)_minmax(0,1fr)]",
-        )}
-      >
-        <span>Function</span>
-        <span>Software / System</span>
-      </div>
-      <div className={cn("min-h-0 shrink-0", compact ? "space-y-0.5" : "space-y-1")}>
-        {functions.map((entry) => (
-          <div
-            key={entry.id}
-            className={cn(
-              "grid gap-1 md:gap-4",
-              longLabels
-                ? "md:grid-cols-[minmax(0,1fr)_minmax(0,220px)] md:items-start"
-                : "md:grid-cols-[minmax(0,220px)_minmax(0,1fr)] md:items-center",
-            )}
-          >
-            <label
-              htmlFor={`${section.id}-${entry.id}`}
-              className={cn("text-[13px] leading-snug text-white/80", longLabels && "py-0.5")}
-            >
-              {entry.label}
-            </label>
-            <input
-              id={`${section.id}-${entry.id}`}
-              type="text"
-              value={draft[entry.id] ?? ""}
-              placeholder={SAEC_DISCOVERY_OPTIONAL_PLACEHOLDER}
-              onChange={(event) => updateDraft(entry.id, event.target.value)}
-              className={cn(
-                "w-full rounded-md border border-white/10 bg-[#070f1a] px-2.5 text-sm text-white outline-none transition-colors placeholder:text-white/30 focus:border-sky-400/50",
-                compact ? "py-1" : "py-1.5",
-              )}
-            />
-          </div>
-        ))}
-      </div>
-      <CommentsBlock
-        sectionId={section.id}
-        value={draft[SAEC_DISCOVERY_COMMENTS_KEY] ?? ""}
-        onChange={(value) => updateDraft(SAEC_DISCOVERY_COMMENTS_KEY, value)}
-        rows={compact ? 2 : 3}
-      />
     </div>
   );
 }
@@ -678,8 +568,8 @@ export default function SaecDiscoveryApp({
 
       <div className="relative flex min-h-0 flex-1 gap-3 px-4 py-2 sm:px-5 lg:gap-4 lg:px-6">
         {/* Left column: logo, navigation, secure panel */}
-        <aside className="flex w-[210px] shrink-0 flex-col lg:w-[228px]">
-          <div className="mb-2 flex h-10 shrink-0 items-center">
+        <aside className="flex w-[210px] shrink-0 flex-col pt-2 lg:w-[228px]">
+          <div className="mb-2 grid h-10 shrink-0 place-items-center justify-items-start">
             <SaecDiscoveryLogo height={28} maxWidth={100} priority />
           </div>
 

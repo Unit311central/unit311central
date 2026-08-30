@@ -29,10 +29,8 @@ export default function SaecDiscoveryLogo({
 
   return (
     <span
-      className={cn(
-        "inline-flex shrink-0 items-center justify-center overflow-visible bg-transparent p-0",
-        className,
-      )}
+      className={cn("inline-flex shrink-0 items-center justify-center overflow-visible bg-transparent p-0", className)}
+      style={{ height: displayHeight, width }}
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
@@ -42,7 +40,7 @@ export default function SaecDiscoveryLogo({
         height={displayHeight}
         decoding="async"
         fetchPriority={priority ? "high" : "auto"}
-        className="block bg-transparent object-contain object-left"
+        className="block bg-transparent object-contain object-center"
         style={{
           height: displayHeight,
           width,
