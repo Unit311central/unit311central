@@ -23,6 +23,7 @@
 
 import { ABHI_INTELLIGENCE_NAV_SECTION, ABHI_REGULATORY_NAV_SECTION } from "@/lib/abhi/nav";
 import { getCanonicalModule } from "@/lib/central-application-model/canonical-modules";
+import { CORPORATE_INFORMATION_CORE_FEATURES } from "@/lib/corporate-information/corporate-information-taxonomy";
 import type {
   InternalNavChildItem,
   InternalNavItem,
@@ -39,14 +40,21 @@ import type { ArchitectureTaxonomyNode } from "@/lib/architecture-taxonomy-types
 
 /**
  * Core Modules whose Core Feature / Core Sub-feature taxonomy is formally audited.
- * Only these expose deeper structure. Extend this set as modules 5–22 are audited
- * and the tree updates automatically. Corporate Information is intentionally absent
- * (audit in progress).
+ * Only these expose deeper structure; every other Core Module renders at module level.
+ *
+ * LIVING-ARCHITECTURE RULE (part of the taxonomy workflow):
+ * When a module's taxonomy audit is formally completed, it MUST be added here AND given
+ * a source in `auditedFeaturesForModule()` below, as part of that same taxonomy work.
+ * A completed taxonomy must never remain UNAUDITED. Conversely, do not add a module here
+ * until its taxonomy has been formally audited (nav is not automatically taxonomy).
+ *
+ * Fundraising is intentionally absent — its taxonomy audit is in progress.
  */
 export const AUDITED_CORE_MODULE_IDS: ReadonlySet<string> = new Set([
   "business-central",
   "sales-management",
   "intelligence",
+  "corporate-information",
 ]);
 
 /** Explicit audited Intelligence taxonomy (nav omits the Dashboard, so it is not derived from nav). */
@@ -117,6 +125,28 @@ function auditedFeaturesForModule(moduleId: string): ArchitectureTaxonomyNode[] 
       level: "feature" as const,
       kind: "core" as const,
     }));
+  }
+  if (moduleId === "corporate-information") {
+    // Audited taxonomy source: corporate-information-taxonomy.ts (6 Core Features, 5 Sub-features).
+    return CORPORATE_INFORMATION_CORE_FEATURES.map((feature) => {
+      const featureId = `corporate-information::${slug(feature.label)}`;
+      return {
+        id: featureId,
+        label: feature.label,
+        level: "feature" as const,
+        kind: "core" as const,
+        children: feature.subFeature
+          ? [
+              {
+                id: `${featureId}::${slug(feature.subFeature.label)}`,
+                label: feature.subFeature.label,
+                level: "sub-feature" as const,
+                kind: "core" as const,
+              },
+            ]
+          : undefined,
+      };
+    });
   }
   return null;
 }

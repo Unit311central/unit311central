@@ -21,6 +21,7 @@ import {
   type ArchitectureTaxonomyNode,
 } from "@/lib/architecture-taxonomy-types";
 import { ARCHITECTURE_DIAGRAM_CATALOG } from "@/lib/architecture-diagram-data";
+import { CORPORATE_INFORMATION_CORE_FEATURES } from "@/lib/corporate-information/corporate-information-taxonomy";
 import { buildCentralProductNavSections } from "@/lib/platform-workspaces/central-product-nav";
 
 function child(node: ArchitectureTaxonomyNode, label: string): ArchitectureTaxonomyNode {
@@ -126,11 +127,28 @@ assert.deepEqual(labels(intel), [
   "Market Intelligence",
 ]);
 
-// Corporate Information is being audited → must remain at module level (no invented taxonomy).
+// Corporate Information is now formally audited → Core Features + Core Sub-features.
 const corp = child(coreModules, "Corporate Information");
-assert.equal(corp.audited, false);
-assert.equal((corp.children ?? []).length, 0, "unaudited module has no features");
-assert.ok(!AUDITED_CORE_MODULE_IDS.has("corporate-information"));
+assert.equal(corp.audited, true);
+assert.ok(AUDITED_CORE_MODULE_IDS.has("corporate-information"));
+assert.deepEqual(
+  labels(corp),
+  CORPORATE_INFORMATION_CORE_FEATURES.map((feature) => feature.label),
+);
+for (const feature of CORPORATE_INFORMATION_CORE_FEATURES) {
+  const node = child(corp, feature.label);
+  if (feature.subFeature) {
+    assert.deepEqual(labels(node), [feature.subFeature.label], `${feature.label} Core Sub-feature`);
+  } else {
+    assert.equal((node.children ?? []).length, 0, `${feature.label} has no Core Sub-feature`);
+  }
+}
+
+// Fundraising audit is in progress → must remain UNAUDITED (module level only).
+const fundraising = child(coreModules, "Fundraising");
+assert.equal(fundraising.audited, false);
+assert.equal((fundraising.children ?? []).length, 0, "unaudited module has no features");
+assert.ok(!AUDITED_CORE_MODULE_IDS.has("fundraising"));
 
 // Every unaudited module must have zero children (only audited taxonomy is classified).
 for (const mod of coreModules.children ?? []) {
