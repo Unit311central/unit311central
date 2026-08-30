@@ -18,6 +18,8 @@
  *   (matches sales-management-taxonomy.check.ts)
  * - Intelligence: explicit audited annotation (Dashboard + three domains)
  * - Home: home-taxonomy.ts (module-level only — 0 features)
+ * - Fundraising features/sub-features: fundraising-taxonomy.ts
+ *   (matches fundraising-taxonomy.check.ts)
  * - Custom (ABHI Regulatory Intelligence): src/lib/abhi/nav.ts
  * - Workspace enablement: demo/saec provisioning constants + core catalogue (read-only)
  */
@@ -37,6 +39,7 @@ import {
   buildCentralBusinessCentralNavSection,
   buildCentralProductNavSections,
 } from "@/lib/platform-workspaces/central-product-nav";
+import { FUNDRAISING_CORE_FEATURES } from "@/lib/fundraising/fundraising-taxonomy";
 import { buildSalesManagementNavSection } from "@/lib/sales-management-nav";
 import type { ArchitectureTaxonomyNode } from "@/lib/architecture-taxonomy-types";
 
@@ -49,8 +52,6 @@ import type { ArchitectureTaxonomyNode } from "@/lib/architecture-taxonomy-types
  * a source in `auditedFeaturesForModule()` below, as part of that same taxonomy work.
  * A completed taxonomy must never remain UNAUDITED. Conversely, do not add a module here
  * until its taxonomy has been formally audited (nav is not automatically taxonomy).
- *
- * Fundraising is intentionally absent — its taxonomy audit is in progress.
  */
 export const AUDITED_CORE_MODULE_IDS: ReadonlySet<string> = new Set([
   "home",
@@ -58,6 +59,7 @@ export const AUDITED_CORE_MODULE_IDS: ReadonlySet<string> = new Set([
   "sales-management",
   "intelligence",
   "corporate-information",
+  "fundraising",
 ]);
 
 /** Explicit audited Intelligence taxonomy (nav omits the Dashboard, so it is not derived from nav). */
@@ -154,6 +156,24 @@ function auditedFeaturesForModule(moduleId: string): ArchitectureTaxonomyNode[] 
   if (moduleId === HOME_MODULE_ID) {
     // Audited taxonomy source: home-taxonomy.ts — module-level only (0 features).
     return [];
+  }
+  if (moduleId === "fundraising") {
+    // Audited taxonomy source: fundraising-taxonomy.ts (8 Core Features, 9 Sub-features).
+    return FUNDRAISING_CORE_FEATURES.map((feature) => {
+      const featureId = `fundraising::${slug(feature.label)}`;
+      return {
+        id: featureId,
+        label: feature.label,
+        level: "feature" as const,
+        kind: "core" as const,
+        children: feature.subFeatures?.map((sub) => ({
+          id: `${featureId}::${slug(sub.label)}`,
+          label: sub.label,
+          level: "sub-feature" as const,
+          kind: "core" as const,
+        })),
+      };
+    });
   }
   return null;
 }

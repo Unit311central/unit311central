@@ -151,11 +151,49 @@ for (const feature of CORPORATE_INFORMATION_CORE_FEATURES) {
   }
 }
 
-// Fundraising audit is in progress → must remain UNAUDITED (module level only).
+// Fundraising is formally audited → Core Features + Core Sub-features.
 const fundraising = child(coreModules, "Fundraising");
-assert.equal(fundraising.audited, false);
-assert.equal((fundraising.children ?? []).length, 0, "unaudited module has no features");
-assert.ok(!AUDITED_CORE_MODULE_IDS.has("fundraising"));
+assert.equal(fundraising.audited, true);
+assert.ok(AUDITED_CORE_MODULE_IDS.has("fundraising"));
+assert.deepEqual(labels(fundraising), [
+  "Dashboard",
+  "Investors",
+  "Cap Table Management",
+  "Pipeline",
+  "Meetings",
+  "Pitch Decks",
+  "Data Rooms",
+  "Grant Management",
+]);
+const grantMgmt = child(fundraising, "Grant Management");
+assert.deepEqual(labels(grantMgmt), [
+  "KPI Summary",
+  "Pipeline by Status",
+  "Funding by Programme",
+  "Submissions vs Approvals",
+  "Grant Applications",
+]);
+const capTableMgmt = child(fundraising, "Cap Table Management");
+assert.deepEqual(labels(capTableMgmt), [
+  "Overview",
+  "Shareholders",
+  "Option Pool",
+  "Share Capital",
+]);
+for (const featureLabel of [
+  "Dashboard",
+  "Investors",
+  "Pipeline",
+  "Meetings",
+  "Pitch Decks",
+  "Data Rooms",
+]) {
+  assert.equal(
+    (child(fundraising, featureLabel).children ?? []).length,
+    0,
+    `${featureLabel} must not expose sub-features`,
+  );
+}
 
 // Every unaudited module must have zero children (only audited taxonomy is classified).
 for (const mod of coreModules.children ?? []) {
