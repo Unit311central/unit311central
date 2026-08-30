@@ -60,9 +60,18 @@ begin
   end if;
 
   insert into public.workspace_users (workspace_id, user_id, role, is_owner, created_at, updated_at)
-  values (v_saec_id, v_user_id, 'admin', false, v_now, v_now)
-  on conflict (workspace_id, user_id) do update
-    set role = 'admin', is_owner = false, updated_at = v_now;
+  select v_saec_id, v_user_id, 'admin', false, v_now, v_now
+  where not exists (
+    select 1
+    from public.workspace_users wu
+    where wu.workspace_id = v_saec_id
+      and wu.user_id = v_user_id
+  );
+
+  update public.workspace_users
+  set role = 'admin', is_owner = false, updated_at = v_now
+  where workspace_id = v_saec_id
+    and user_id = v_user_id;
 
   insert into public.internal_operators (
     id, operator_label, full_name, username, email, phone, role, roles, department, departments,
