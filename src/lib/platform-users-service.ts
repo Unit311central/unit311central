@@ -39,6 +39,13 @@ function isActiveAccountStatus(value: unknown) {
   );
 }
 
+function isPlatformUserUuid(value: string | null | undefined): value is string {
+  if (!value) return false;
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+    value.trim(),
+  );
+}
+
 type SubscriptionGateClient = {
   id: string;
   subscription_status: string | null;
@@ -207,6 +214,10 @@ export async function resolveSubscriptionRedirectForUser(
 }
 
 export async function findPlatformUserById(id: string) {
+  if (!isPlatformUserUuid(id)) {
+    return null;
+  }
+
   const supabase = requirePlatformUsersSupabase();
 
   const { data, error } = await supabase
@@ -319,14 +330,24 @@ export async function authenticatePlatformUser(
   );
 
   // Tools → Users may update internal_operators before platform_users; resolve via operator row.
+  // internal_operators.id is text (e.g. user-baafc4df) — never query platform_users.id with it.
   if (passwordMatches.length === 0) {
     const { data: operatorRow } = await requirePlatformUsersSupabase()
       .from("internal_operators")
-      .select("id")
+      .select("username, email")
       .or(`email.eq.${normalized},username.eq.${normalized}`)
       .maybeSingle();
-    if (operatorRow?.id) {
-      const operatorUser = await findPlatformUserById(String(operatorRow.id));
+    if (operatorRow) {
+      const operatorUsername = String(operatorRow.username ?? "").trim();
+      const operatorEmail = String(operatorRow.email ?? "").trim();
+      let operatorUser: PlatformUserRecord | null = null;
+      if (operatorUsername) {
+        operatorUser = await findPlatformUserByUsername(operatorUsername);
+      }
+      if (!operatorUser && operatorEmail) {
+        const emailMatches = await findPlatformUsersByEmail(operatorEmail);
+        operatorUser = emailMatches[0] ?? null;
+      }
       if (operatorUser && verifyPlatformPassword(password, operatorUser.password_hash)) {
         passwordMatches = [operatorUser];
       }
