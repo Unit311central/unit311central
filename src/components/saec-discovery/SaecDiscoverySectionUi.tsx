@@ -10,9 +10,9 @@ import {
 } from "@/lib/saec-discovery/config";
 import { cn } from "@/lib/utils";
 
-/** Function/question left, answer right — balanced two-column layout. */
+/** Function/question left, answer right — ~58% / 42% (software sections). */
 export const DISCOVERY_TWO_COLUMN_GRID_CLASS =
-  "grid gap-x-6 md:grid-cols-[minmax(0,52%)_minmax(0,48%)]";
+  "grid gap-x-5 md:grid-cols-[minmax(0,58%)_minmax(0,42%)]";
 
 /** General numbered questions — comfortable label line-height. */
 export const DISCOVERY_GENERAL_QUESTION_LABEL_CLASS =

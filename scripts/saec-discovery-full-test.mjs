@@ -88,6 +88,20 @@ async function assertGeneralQ6ExamplesReadable(page) {
   );
 }
 
+async function assertLogoPosition(page) {
+  const metrics = await page.evaluate(() => {
+    const aside = document.querySelector("aside");
+    const logoBand = aside?.querySelector(".grid.h-10");
+    const img = aside?.querySelector('img[alt="SAEC"]');
+    return {
+      logoInAside: Boolean(aside && img && aside.contains(img)),
+      hasPreviousLogoBand: Boolean(logoBand),
+    };
+  });
+  assert.equal(metrics.logoInAside, true, "SAEC logo must remain in the aside");
+  assert.equal(metrics.hasPreviousLogoBand, true, "SAEC logo must use the previous h-10 grid band");
+}
+
 async function assertPlaceholderAndComments(page) {
   const field = page.locator("#general-top-annoyances");
   assert.equal(await field.getAttribute("placeholder"), SAEC_DISCOVERY_OPTIONAL_PLACEHOLDER);
@@ -179,6 +193,7 @@ try {
     assert.equal(await page.locator('img[alt="SAEC"]').count(), 1, "SAEC logo present");
 
     await assertPlaceholderAndComments(page);
+    await assertLogoPosition(page);
     await assertGeneralQ6ExamplesReadable(page);
 
     await page.screenshot({

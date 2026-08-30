@@ -29,7 +29,6 @@ import SaecDiscoveryLogo from "@/components/saec-discovery/SaecDiscoveryLogo";
 import {
   DISCOVERY_GENERAL_QUESTION_LABEL_CLASS,
   DISCOVERY_QUESTION_LABEL_CLASS,
-  DISCOVERY_TWO_COLUMN_GRID_CLASS,
   DiscoveryOptionalTextarea,
   DiscoverySectionHeader,
   DiscoverySoftwareFunctionPanel,
@@ -80,6 +79,10 @@ const DISCOVERY_SECTIONS: SectionDef[] = SAEC_DISCOVERY_SECTIONS.map((section) =
   ...section,
   iconComponent: ICONS[section.icon],
 }));
+
+/** General numbered questions only — ~60% question / ~40% answer. */
+const GENERAL_QUESTION_GRID_CLASS =
+  "grid items-start gap-x-6 gap-y-3 md:grid-cols-[minmax(0,60%)_minmax(0,40%)]";
 
 function loadState(draftOwnerId: string | null | undefined) {
   return readStoredDiscoveryDraft(draftOwnerId);
@@ -214,13 +217,7 @@ function QuestionBlock({
 
   if (layout === "row" || layout === "row-emphasis") {
     return (
-      <div
-        className={cn(
-          DISCOVERY_TWO_COLUMN_GRID_CLASS,
-          "items-start",
-          emphasize ? "" : "",
-        )}
-      >
+      <div className={cn(GENERAL_QUESTION_GRID_CLASS, emphasize ? "" : "")}>
         <div className="flex min-w-0 items-start gap-3">
           {questionNumber > 0 ? (
             <QuestionNumber n={questionNumber} />
@@ -231,10 +228,10 @@ function QuestionBlock({
           id={inputId}
           value={value}
           onChange={onChange}
-          rows={emphasize ? 4 : answerRows}
+          rows={emphasize ? 5 : answerRows}
           className={cn(
             "self-start",
-            emphasize ? "min-h-[5rem]" : "min-h-[2.375rem]",
+            emphasize ? "min-h-[5.5rem]" : "min-h-[3rem]",
           )}
         />
       </div>
@@ -321,9 +318,9 @@ function GeneralSectionPanel({
   return (
     <div className="min-h-0 flex-1 overflow-y-auto pr-0.5">
       {section.intro ? (
-        <p className="mb-5 shrink-0 text-[12px] leading-relaxed text-white/55">{section.intro}</p>
+        <p className="mb-6 shrink-0 text-[13px] leading-relaxed text-white/55">{section.intro}</p>
       ) : null}
-      <div className="space-y-8 pb-3">
+      <div className="space-y-10 pb-8">
         {regular.map((question, index) => (
           <div key={question.id}>
             <QuestionBlock
@@ -338,7 +335,7 @@ function GeneralSectionPanel({
           </div>
         ))}
         {emphasized ? (
-          <div className="pt-1">
+          <div className="pt-3">
             <QuestionBlock
               sectionId={section.id}
               question={emphasized}
@@ -578,7 +575,7 @@ export default function SaecDiscoveryApp({
       <div className="relative flex min-h-0 flex-1 gap-3 px-4 py-2 sm:px-5 lg:gap-4 lg:px-6">
         {/* Left column: logo, navigation, secure panel */}
         <aside className="flex w-[210px] shrink-0 flex-col pt-2 lg:w-[228px]">
-          <div className="mb-2 flex h-10 shrink-0 items-center pt-1">
+          <div className="mb-2 grid h-10 shrink-0 place-items-center justify-items-start">
             <SaecDiscoveryLogo height={28} maxWidth={100} priority />
           </div>
 
