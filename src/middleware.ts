@@ -225,6 +225,13 @@ export async function middleware(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
   const normalizedHost = normalizeHost(host);
 
+  // SAEC Discovery — standalone app chrome on every host (incl. Vercel preview).
+  if (pathname === "/saec-discovery" || pathname.startsWith("/saec-discovery/")) {
+    const headers = new Headers(request.headers);
+    headers.set("x-unit311-bare-chrome", "1");
+    return NextResponse.next({ request: { headers } });
+  }
+
   // Northstar demo EA test suite — public (no login), must run before any auth gate.
   if (
     isDemoHostForEaTesting(host, normalizedHost) &&

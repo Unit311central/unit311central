@@ -236,18 +236,18 @@ export default function SaecDiscoveryApp() {
         aria-hidden
       />
 
-      <div className="relative flex min-h-screen flex-col px-4 py-6 sm:px-6 sm:py-8 lg:px-10">
-        <header className="mb-6 shrink-0 lg:mb-8">
+      <div className="relative flex min-h-screen flex-col px-4 py-3 sm:px-6 sm:py-4 lg:px-10">
+        <header className="mb-4 shrink-0 sm:mb-5">
           <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-sky-300/80">
             SAEC Discovery
           </p>
-          <h1 className="mt-2 text-2xl font-semibold tracking-tight text-white sm:text-3xl">
+          <h1 className="mt-1.5 text-2xl font-semibold tracking-tight text-white sm:text-3xl">
             Current Systems
           </h1>
-          <p className="mt-2 text-sm text-white/55">What software do you currently use?</p>
+          <p className="mt-1.5 text-sm text-white/55">What software do you currently use?</p>
         </header>
 
-        <div className="flex min-h-0 flex-1 flex-col gap-4 lg:flex-row lg:gap-6">
+        <div className="flex min-h-0 flex-1 flex-col gap-3 lg:flex-row lg:gap-5">
           {/* Left navigation */}
           <nav
             className="shrink-0 rounded-xl border border-white/10 bg-[#0b1524]/60 lg:w-[280px] xl:w-[300px]"
