@@ -11,21 +11,27 @@ const REQUIRE_AUTH = process.env.NEXT_PUBLIC_SAEC_DISCOVERY_REQUIRE_AUTH === "tr
 
 export default function SaecDiscoveryShell() {
   const [authState, setAuthState] = useState<AuthState>(REQUIRE_AUTH ? "loading" : "open");
+  const [draftOwnerId, setDraftOwnerId] = useState<string | null>(null);
 
   const refreshAuth = useCallback(async () => {
     if (!REQUIRE_AUTH) {
+      setDraftOwnerId(null);
       setAuthState("open");
       return;
     }
     try {
       const response = await fetch("/api/auth/whoami", { cache: "no-store" });
       if (!response.ok) {
+        setDraftOwnerId(null);
         setAuthState("guest");
         return;
       }
-      const payload = (await response.json()) as { user?: { id?: string } | null };
-      setAuthState(payload.user?.id ? "authed" : "guest");
+      const payload = (await response.json()) as { userId?: string | null };
+      const userId = payload.userId?.trim() || null;
+      setDraftOwnerId(userId);
+      setAuthState(userId ? "authed" : "guest");
     } catch {
+      setDraftOwnerId(null);
       setAuthState("guest");
     }
   }, []);
@@ -43,8 +49,8 @@ export default function SaecDiscoveryShell() {
   }
 
   if (authState === "guest") {
-    return <SaecDiscoveryLogin onAuthenticated={() => setAuthState("authed")} />;
+    return <SaecDiscoveryLogin onAuthenticated={() => void refreshAuth()} />;
   }
 
-  return <SaecDiscoveryApp />;
+  return <SaecDiscoveryApp draftOwnerId={draftOwnerId} />;
 }

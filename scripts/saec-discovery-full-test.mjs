@@ -7,6 +7,7 @@ import { chromium } from "playwright";
 import {
   SAEC_DISCOVERY_COMMENTS_KEY,
   SAEC_DISCOVERY_SECTIONS,
+  SAEC_DISCOVERY_STORAGE_KEY,
   responseKeysForSection,
 } from "../src/lib/saec-discovery/config.ts";
 
@@ -48,6 +49,32 @@ async function assertNoScroll(page) {
   assert.equal(scroll.bodyX, false, "body horizontal scroll");
   assert.equal(scroll.mainY, false, "main panel vertical scroll");
   assert.equal(scroll.mainX, false, "main panel horizontal scroll");
+}
+
+async function assertGeneralQ6ExamplesVisible(page) {
+  await page.getByRole("button", { name: "General", exact: true }).click();
+  await page.waitForSelector("#general-desired-capabilities");
+  const result = await page.evaluate(() => {
+    const label = document.querySelector("label[for='general-desired-capabilities']");
+    const exampleRoot = label?.parentElement?.querySelector("ul");
+    const examples = exampleRoot ? Array.from(exampleRoot.querySelectorAll("li")) : [];
+    const panel = document.querySelector("main > div");
+    const panelRect = panel?.getBoundingClientRect();
+    const clipped = examples.some((node) => {
+      const rect = node.getBoundingClientRect();
+      if (rect.height <= 0 || rect.width <= 0) return true;
+      if (!panelRect) return false;
+      return rect.bottom > panelRect.bottom + 1;
+    });
+    return {
+      clipped,
+      exampleCount: examples.length,
+      lastVisible: examples.at(-1)?.checkVisibility?.() ?? false,
+    };
+  });
+  assert.equal(result.exampleCount, 7, "General Q6 must list all seven examples");
+  assert.equal(result.clipped, false, "General Q6 examples must not be clipped");
+  assert.equal(result.lastVisible, true, "General Q6 last example must be visible");
 }
 
 async function typeInField(page, selector, value) {
@@ -101,11 +128,16 @@ try {
           const raw = window.localStorage.getItem(args.storageKey);
           if (!raw) return false;
           const parsed = JSON.parse(raw);
-          const responses = parsed[args.sectionId]?.responses ?? {};
+          const state = parsed?.state ?? parsed;
+          const responses = state[args.sectionId]?.responses ?? {};
           return Object.values(responses).some((value) => typeof value === "string" && value.includes("test"));
         },
         { storageKey: STORAGE_KEY, sectionId: section.id },
       );
+
+      if (section.id === "general") {
+        await assertGeneralQ6ExamplesVisible(page);
+      }
 
       await assertNoScroll(page);
     }

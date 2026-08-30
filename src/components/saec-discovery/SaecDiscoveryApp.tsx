@@ -30,11 +30,13 @@ import {
   SAEC_DISCOVERY_COMMENTS_KEY,
   SAEC_DISCOVERY_OPTIONAL_PLACEHOLDER,
   SAEC_DISCOVERY_SECTIONS,
-  SAEC_DISCOVERY_STORAGE_KEY,
   buildDiscoverySubmissionSnapshot,
+  clearStoredDiscoveryDraft,
   emptySectionResponses,
   normalizeDiscoveryResponses,
+  readStoredDiscoveryDraft,
   responseKeysForSection,
+  writeStoredDiscoveryDraft,
   type SaecDiscoveryIconKey,
   type SaecDiscoveryQuestionConfig,
   type SaecDiscoverySectionConfig,
@@ -72,20 +74,16 @@ const DISCOVERY_SECTIONS: SectionDef[] = SAEC_DISCOVERY_SECTIONS.map((section) =
   iconComponent: ICONS[section.icon],
 }));
 
-function loadState(): SaecDiscoveryState {
-  if (typeof window === "undefined") return {};
-  try {
-    const raw = window.localStorage.getItem(SAEC_DISCOVERY_STORAGE_KEY);
-    if (!raw) return {};
-    const parsed = JSON.parse(raw) as SaecDiscoveryState;
-    return parsed && typeof parsed === "object" ? parsed : {};
-  } catch {
-    return {};
-  }
+function loadState(draftOwnerId: string | null | undefined) {
+  return readStoredDiscoveryDraft(draftOwnerId);
 }
 
-function persistState(state: SaecDiscoveryState) {
-  window.localStorage.setItem(SAEC_DISCOVERY_STORAGE_KEY, JSON.stringify(state));
+function persistState(
+  state: SaecDiscoveryState,
+  draftOwnerId: string | null | undefined,
+  savedAt?: number | null,
+) {
+  writeStoredDiscoveryDraft(draftOwnerId, state, savedAt);
 }
 
 function draftFromSection(
@@ -195,7 +193,7 @@ function QuestionBlock({
           {question.note ? (
             <p className="text-[12px] leading-snug text-white/55">{question.note}</p>
           ) : null}
-          <ul className="grid list-none gap-x-4 gap-y-1.5 text-[12px] leading-relaxed text-white/55 sm:grid-cols-2">
+          <ul className="grid list-none gap-x-3 gap-y-1 text-[12px] leading-snug text-white/55 sm:grid-cols-2">
             {question.examples.map((example) => (
               <li key={example} className="flex gap-1.5">
                 <span className="text-sky-400/70">•</span>
@@ -212,8 +210,8 @@ function QuestionBlock({
     return (
       <div
         className={cn(
-          "grid min-h-0 gap-x-4 gap-y-2 lg:grid-cols-[minmax(0,44%)_minmax(0,1fr)] lg:items-start",
-          emphasize ? "min-h-0 flex-1" : "",
+          "grid gap-x-4 gap-y-2 lg:grid-cols-[minmax(0,44%)_minmax(0,1fr)] lg:items-start",
+          emphasize ? "shrink-0" : "",
         )}
       >
         <div className="flex min-w-0 items-start gap-2.5">
@@ -226,10 +224,8 @@ function QuestionBlock({
           id={inputId}
           value={value}
           onChange={onChange}
-          rows={emphasize ? 7 : answerRows}
-          className={cn(
-            emphasize ? "min-h-[8rem] lg:min-h-0 lg:flex-1" : undefined,
-          )}
+          rows={emphasize ? 4 : answerRows}
+          className={emphasize ? "min-h-[4.5rem] self-start" : "self-start"}
         />
       </div>
     );
@@ -322,25 +318,26 @@ function GeneralSectionPanel({
   const emphasized = questions.find((q) => q.emphasizeAnswer);
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+    <div className="flex min-h-0 flex-1 flex-col">
       {section.intro ? (
-        <p className="mb-6 shrink-0 text-[12px] leading-relaxed text-white/55">{section.intro}</p>
+        <p className="mb-2 shrink-0 text-[12px] leading-snug text-white/55">{section.intro}</p>
       ) : null}
-      <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden">
+      <div className="flex min-h-0 flex-1 flex-col gap-1.5">
         {regular.map((question, index) => (
-          <QuestionBlock
-            key={question.id}
-            sectionId={section.id}
-            question={question}
-            index={index + 1}
-            layout="row"
-            answerRows={2}
-            value={draft[question.id] ?? ""}
-            onChange={(value) => updateDraft(question.id, value)}
-          />
+          <div key={question.id} className="shrink-0">
+            <QuestionBlock
+              sectionId={section.id}
+              question={question}
+              index={index + 1}
+              layout="row"
+              answerRows={1}
+              value={draft[question.id] ?? ""}
+              onChange={(value) => updateDraft(question.id, value)}
+            />
+          </div>
         ))}
         {emphasized ? (
-          <div className="min-h-0 flex-1 pt-1">
+          <div className="shrink-0 overflow-visible">
             <QuestionBlock
               sectionId={section.id}
               question={emphasized}
@@ -458,7 +455,11 @@ function SoftwareSectionPanel({
   );
 }
 
-export default function SaecDiscoveryApp() {
+export default function SaecDiscoveryApp({
+  draftOwnerId = null,
+}: {
+  draftOwnerId?: string | null;
+}) {
   const [stored, setStored] = useState<SaecDiscoveryState>({});
   const [hydrated, setHydrated] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -483,15 +484,19 @@ export default function SaecDiscoveryApp() {
   }, []);
 
   useEffect(() => {
-    const loaded = loadState();
+    const { state: loaded, savedAt } = loadState(draftOwnerId);
     setStored(loaded);
+    if (savedAt) {
+      setDraftSavedAt(savedAt);
+      setDraftSavedLabel(formatDraftSavedAgo(savedAt));
+    }
     const first = DISCOVERY_SECTIONS[0];
     if (first) {
       setSelectedId(first.id);
       setDraft(draftFromSection(first, loaded[first.id]));
     }
     setHydrated(true);
-  }, []);
+  }, [draftOwnerId]);
 
   useEffect(() => {
     if (!hydrated) return;
@@ -542,11 +547,11 @@ export default function SaecDiscoveryApp() {
       const saved = { completed: markComplete || Boolean(stored[section.id]?.completed), responses };
       const next: SaecDiscoveryState = { ...stored, [section.id]: saved };
       setStored(next);
-      persistState(next);
+      persistState(next, draftOwnerId, draftSavedAt);
       setDraft(draftFromSection(section, saved));
       return next;
     },
-    [draft, stored],
+    [draft, draftOwnerId, draftSavedAt, stored],
   );
 
   const selectSection = useCallback(
@@ -576,10 +581,12 @@ export default function SaecDiscoveryApp() {
     if (selectedSection) {
       next = flushDraftToStored(selectedSection, stored[selectedSection.id]?.completed ?? false);
     }
-    persistState(next);
-    markDraftSaved();
+    const now = Date.now();
+    setDraftSavedAt(now);
+    setDraftSavedLabel(formatDraftSavedAgo(now));
+    persistState(next, draftOwnerId, now);
     showNotice("Draft saved");
-  }, [flushDraftToStored, markDraftSaved, selectedSection, showNotice, stored]);
+  }, [draftOwnerId, flushDraftToStored, selectedSection, showNotice, stored]);
 
   const resetDraft = useCallback(() => {
     if (
@@ -592,14 +599,15 @@ export default function SaecDiscoveryApp() {
 
     const empty = normalizeDiscoveryResponses({});
     setStored(empty);
-    persistState(empty);
+    clearStoredDiscoveryDraft(draftOwnerId);
+    writeStoredDiscoveryDraft(draftOwnerId, empty);
     setDraftSavedAt(null);
     setDraftSavedLabel(null);
     if (selectedSection) {
       setDraft(draftFromSection(selectedSection, empty[selectedSection.id]));
     }
     showNotice("Draft cleared");
-  }, [selectedSection, showNotice]);
+  }, [draftOwnerId, selectedSection, showNotice]);
 
   const submitDiscovery = useCallback(async () => {
     if (submitting) return;
@@ -641,7 +649,7 @@ export default function SaecDiscoveryApp() {
 
       const when = payload.submission?.submittedAt ?? payload.submission?.updatedAt ?? null;
       setSubmittedAt(when);
-      persistState(snapshot);
+      persistState(snapshot, draftOwnerId, draftSavedAt);
       setStored(snapshot);
       setSubmitSuccessMessage(
         alreadySubmitted ? "Questionnaire updated successfully." : "Questionnaire submitted successfully.",
@@ -651,7 +659,7 @@ export default function SaecDiscoveryApp() {
     } finally {
       setSubmitting(false);
     }
-  }, [flushDraftToStored, selectedSection, stored, submittedAt, submitting]);
+  }, [draftOwnerId, draftSavedAt, flushDraftToStored, selectedSection, stored, submittedAt, submitting]);
 
   if (!hydrated) {
     return (
@@ -671,7 +679,7 @@ export default function SaecDiscoveryApp() {
       <div className="relative flex min-h-0 flex-1 gap-3 px-4 py-2 sm:px-5 lg:gap-4 lg:px-6">
         {/* Left column: logo, navigation, secure panel */}
         <aside className="flex w-[210px] shrink-0 flex-col lg:w-[228px]">
-          <div className="mb-2 flex h-10 shrink-0 items-center pt-1">
+          <div className="mb-2 flex h-10 shrink-0 items-center">
             <SaecDiscoveryLogo height={28} maxWidth={100} priority />
           </div>
 
@@ -824,7 +832,12 @@ export default function SaecDiscoveryApp() {
               {selectedSection ? (
                 <>
                   <SectionHeader section={selectedSection} onSave={saveSection} />
-                  <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+                  <div
+                    className={cn(
+                      "flex min-h-0 flex-1 flex-col",
+                      selectedSection.kind === "general" ? "overflow-visible" : "overflow-hidden",
+                    )}
+                  >
                     {selectedSection.kind === "general" ? (
                       <GeneralSectionPanel
                         section={selectedSection}

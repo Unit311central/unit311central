@@ -2,6 +2,90 @@ import type { SaecDiscoveryState } from "@/lib/saec-discovery/types";
 
 export const SAEC_DISCOVERY_STORAGE_KEY = "saec-discovery-v3";
 
+export type SaecDiscoveryDraftEnvelope = {
+  ownerId: string;
+  savedAt?: number;
+  state: SaecDiscoveryState;
+};
+
+/** Browser draft key — scoped per authenticated user when ownerId is provided. */
+export function saecDiscoveryDraftStorageKey(ownerId: string | null | undefined): string {
+  const trimmed = ownerId?.trim();
+  if (!trimmed) return SAEC_DISCOVERY_STORAGE_KEY;
+  return `${SAEC_DISCOVERY_STORAGE_KEY}:${trimmed}`;
+}
+
+export function parseStoredDiscoveryDraftRaw(
+  raw: string | null,
+  ownerId: string | null | undefined,
+): { state: SaecDiscoveryState; savedAt: number | null } {
+  if (!raw) {
+    return { state: {}, savedAt: null };
+  }
+
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    if (!parsed || typeof parsed !== "object") {
+      return { state: {}, savedAt: null };
+    }
+
+    const record = parsed as Record<string, unknown>;
+    if (record.state && typeof record.state === "object" && typeof record.ownerId === "string") {
+      if (ownerId && record.ownerId !== ownerId) {
+        return { state: {}, savedAt: null };
+      }
+      return {
+        state: normalizeDiscoveryResponses(record.state),
+        savedAt: typeof record.savedAt === "number" ? record.savedAt : null,
+      };
+    }
+
+    if (ownerId) {
+      return { state: {}, savedAt: null };
+    }
+
+    return {
+      state: normalizeDiscoveryResponses(parsed),
+      savedAt: null,
+    };
+  } catch {
+    return { state: {}, savedAt: null };
+  }
+}
+
+export function readStoredDiscoveryDraft(
+  ownerId: string | null | undefined,
+): { state: SaecDiscoveryState; savedAt: number | null } {
+  if (typeof window === "undefined") {
+    return { state: {}, savedAt: null };
+  }
+
+  const raw = window.localStorage.getItem(saecDiscoveryDraftStorageKey(ownerId));
+  return parseStoredDiscoveryDraftRaw(raw, ownerId);
+}
+
+export function writeStoredDiscoveryDraft(
+  ownerId: string | null | undefined,
+  state: SaecDiscoveryState,
+  savedAt?: number | null,
+): void {
+  const storageKey = saecDiscoveryDraftStorageKey(ownerId);
+  if (ownerId) {
+    const envelope: SaecDiscoveryDraftEnvelope = {
+      ownerId,
+      state,
+      ...(typeof savedAt === "number" ? { savedAt } : {}),
+    };
+    window.localStorage.setItem(storageKey, JSON.stringify(envelope));
+    return;
+  }
+  window.localStorage.setItem(storageKey, JSON.stringify(state));
+}
+
+export function clearStoredDiscoveryDraft(ownerId: string | null | undefined): void {
+  window.localStorage.removeItem(saecDiscoveryDraftStorageKey(ownerId));
+}
+
 export const SAEC_DISCOVERY_OPTIONAL_PLACEHOLDER = "Your answer (optional)";
 
 export const SAEC_DISCOVERY_COMMENTS_KEY = "Any other comments";

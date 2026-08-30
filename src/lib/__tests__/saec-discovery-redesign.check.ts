@@ -7,12 +7,15 @@ import assert from "node:assert/strict";
 import {
   SAEC_DISCOVERY_COMMENTS_KEY,
   SAEC_DISCOVERY_SECTIONS,
+  SAEC_DISCOVERY_STORAGE_KEY,
   buildDiscoverySubmissionSnapshot,
   discoveryResponsesAreBlank,
   emptySectionResponses,
   normalizeDiscoveryResponses,
   readSectionAnswer,
   responseKeysForSection,
+  parseStoredDiscoveryDraftRaw,
+  saecDiscoveryDraftStorageKey,
 } from "@/lib/saec-discovery/config";
 
 assert.equal(SAEC_DISCOVERY_SECTIONS[0]?.id, "general");
@@ -70,6 +73,38 @@ assert.equal(readSectionAnswer(legacyTraining, "training", "Training Records"), 
 assert.equal(readSectionAnswer(legacyTraining, "training", "Competency Tracking"), "Spreadsheet");
 assert.equal(readSectionAnswer(legacyTraining, "training", "Training Delivery"), "Teams");
 assert.equal(readSectionAnswer(legacyTraining, "training", "Training Requirements"), "SharePoint");
+
+const legacyUnscoped = {
+  general: {
+    completed: false,
+    responses: { "top-annoyances": "stale browser test answer" },
+  },
+};
+assert.equal(
+  parseStoredDiscoveryDraftRaw(JSON.stringify(legacyUnscoped), "user-123").state.general?.responses?.[
+    "top-annoyances"
+  ] ?? "",
+  "",
+  "authed users must not inherit legacy unscoped draft data",
+);
+const scopedEnvelope = JSON.stringify({
+  ownerId: "user-123",
+  state: normalizeDiscoveryResponses(legacyUnscoped),
+});
+assert.equal(
+  parseStoredDiscoveryDraftRaw(scopedEnvelope, "user-123").state.general?.responses?.["top-annoyances"],
+  "stale browser test answer",
+  "user-scoped drafts restore for the matching owner",
+);
+assert.equal(
+  parseStoredDiscoveryDraftRaw(scopedEnvelope, "user-456").state.general?.responses?.["top-annoyances"] ?? "",
+  "",
+  "other users must not read another user's scoped draft",
+);
+assert.equal(
+  saecDiscoveryDraftStorageKey("user-123"),
+  `${SAEC_DISCOVERY_STORAGE_KEY}:user-123`,
+);
 
 const generalQuestions = SAEC_DISCOVERY_SECTIONS.find((s) => s.id === "general")?.questions ?? [];
 assert.equal(generalQuestions.length, 6);
