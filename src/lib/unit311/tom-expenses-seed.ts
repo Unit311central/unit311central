@@ -4,6 +4,7 @@ import {
   approveExpense,
   submitExpenseForApproval,
 } from "@/lib/expense-management/approvals-service";
+import { createHrEmployee } from "@/lib/hr-employees-service";
 import {
   createExpenseCategory,
   ensureExpenseConfigSeeded,
@@ -192,41 +193,161 @@ async function resolveUnit311WorkspaceId() {
   return { workspaceId: String(data.id), workspaceSlug: INTERNAL_WORKSPACE_SLUG };
 }
 
+function isTomIdentity(input: {
+  fullName?: string | null;
+  preferredName?: string | null;
+  email?: string | null;
+}) {
+  const full = String(input.fullName ?? "").trim();
+  const preferred = String(input.preferredName ?? "").trim();
+  const email = String(input.email ?? "").trim().toLowerCase();
+  if (/^(tom|tomás|thomas)\b/i.test(full)) return true;
+  if (/^(tom|tomás|thomas)\b/i.test(preferred)) return true;
+  if (/\btom\b/i.test(full) || /\btomás\b/i.test(full) || /\bthomas\b/i.test(full)) return true;
+  if (email.startsWith("tom@") || email.includes(".tom@") || email.startsWith("tom.")) return true;
+  return false;
+}
+
+function rankTomMatch(input: { fullName?: string | null; preferredName?: string | null }) {
+  const full = String(input.fullName ?? "").trim().toLowerCase();
+  const preferred = String(input.preferredName ?? "").trim().toLowerCase();
+  if (full === "tom") return 0;
+  if (preferred === "tom") return 1;
+  if (/^tom\b/.test(full)) return 2;
+  if (/^tomás\b/.test(full)) return 3;
+  if (/^thomas\b/.test(full)) return 4;
+  return 10;
+}
+
 async function resolveTomEmployee(workspaceId: string): Promise<TomEmployee> {
+  const overrideId = process.env.TOM_EMPLOYEE_ID?.trim();
   const supabase = createTenancyServerClient();
+
+  if (overrideId) {
+    const { data, error } = await supabase
+      .from("hr_employees")
+      .select("id, full_name, preferred_name, platform_user_id, operator_id")
+      .eq("workspace_id", workspaceId)
+      .eq("id", overrideId)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!data?.id) {
+      throw new Error(`TOM_EMPLOYEE_ID=${overrideId} was not found in workspace ${INTERNAL_WORKSPACE_SLUG}.`);
+    }
+    return {
+      id: String(data.id),
+      fullName: String(data.full_name),
+      platformUserId: data.platform_user_id ? String(data.platform_user_id) : null,
+      operatorId: data.operator_id ? String(data.operator_id) : null,
+    };
+  }
+
   const { data, error } = await supabase
     .from("hr_employees")
-    .select("id, full_name, preferred_name, platform_user_id, operator_id")
+    .select("id, full_name, preferred_name, platform_user_id, operator_id, email")
     .eq("workspace_id", workspaceId)
     .order("full_name", { ascending: true });
 
   if (error) throw new Error(error.message);
 
   const rows = data ?? [];
-  const tomMatches = rows.filter((row) => {
-    const full = String(row.full_name ?? "").trim();
-    const preferred = String(row.preferred_name ?? "").trim();
-    return /^tom\b/i.test(full) || /^tomás\b/i.test(full) || /^tom\b/i.test(preferred);
-  });
-
-  if (tomMatches.length === 0) {
-    throw new Error(
-      `No Tom employee found in workspace ${INTERNAL_WORKSPACE_SLUG}. Create or link Tom in HR first.`,
+  const tomMatches = rows
+    .filter((row) =>
+      isTomIdentity({
+        fullName: String(row.full_name ?? ""),
+        preferredName: String(row.preferred_name ?? ""),
+        email: String(row.email ?? ""),
+      }),
+    )
+    .sort(
+      (a, b) =>
+        rankTomMatch({ fullName: String(a.full_name ?? ""), preferredName: String(a.preferred_name ?? "") }) -
+        rankTomMatch({ fullName: String(b.full_name ?? ""), preferredName: String(b.preferred_name ?? "") }),
     );
+
+  if (tomMatches.length === 1) {
+    const row = tomMatches[0]!;
+    return {
+      id: String(row.id),
+      fullName: String(row.full_name),
+      platformUserId: row.platform_user_id ? String(row.platform_user_id) : null,
+      operatorId: row.operator_id ? String(row.operator_id) : null,
+    };
   }
 
   if (tomMatches.length > 1) {
     const names = tomMatches.map((row) => row.full_name).join(", ");
-    throw new Error(`Multiple Tom employees found (${names}). Resolve ambiguity before seeding.`);
+    throw new Error(`Multiple Tom employees found (${names}). Set TOM_EMPLOYEE_ID to disambiguate.`);
   }
 
-  const row = tomMatches[0]!;
-  return {
-    id: String(row.id),
-    fullName: String(row.full_name),
-    platformUserId: row.platform_user_id ? String(row.platform_user_id) : null,
-    operatorId: row.operator_id ? String(row.operator_id) : null,
-  };
+  const { data: operators, error: operatorError } = await supabase
+    .from("internal_operators")
+    .select("id, full_name, operator_label, email, username")
+    .order("full_name", { ascending: true });
+  if (operatorError) throw new Error(operatorError.message);
+
+  const tomOperators = (operators ?? []).filter((row) =>
+    isTomIdentity({
+      fullName: String(row.full_name ?? row.operator_label ?? ""),
+      email: String(row.email ?? row.username ?? ""),
+    }),
+  );
+
+  if (tomOperators.length === 1) {
+    const operator = tomOperators[0]!;
+    const operatorId = String(operator.id);
+    const { data: linkedHr, error: linkedError } = await supabase
+      .from("hr_employees")
+      .select("id, full_name, platform_user_id, operator_id")
+      .eq("workspace_id", workspaceId)
+      .or(`platform_user_id.eq.${operatorId},operator_id.eq.${operatorId}`)
+      .maybeSingle();
+    if (linkedError) throw new Error(linkedError.message);
+    if (linkedHr?.id) {
+      return {
+        id: String(linkedHr.id),
+        fullName: String(linkedHr.full_name),
+        platformUserId: linkedHr.platform_user_id ? String(linkedHr.platform_user_id) : null,
+        operatorId: linkedHr.operator_id ? String(linkedHr.operator_id) : null,
+      };
+    }
+
+    const created = await createHrEmployee(
+      {
+        fullName: String(operator.full_name ?? operator.operator_label ?? "Tom"),
+        preferredName: "Tom",
+        email: String(operator.email ?? operator.username ?? "tom@unit311central.com"),
+        currency: "GBP",
+        department: "Engineering",
+        role: "Prototyping",
+      },
+      { workspaceId },
+    );
+
+    await supabase
+      .from("hr_employees")
+      .update({
+        platform_user_id: operatorId,
+        operator_id: operatorId,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", created.id)
+      .eq("workspace_id", workspaceId);
+
+    return {
+      id: created.id,
+      fullName: created.fullName,
+      platformUserId: operatorId,
+      operatorId,
+    };
+  }
+
+  const available = rows.map((row) => row.full_name).slice(0, 12).join(", ");
+  throw new Error(
+    `No Tom employee found in workspace ${INTERNAL_WORKSPACE_SLUG}.` +
+      (available ? ` Available HR employees: ${available}.` : "") +
+      " Link Tom in HR or set TOM_EMPLOYEE_ID.",
+  );
 }
 
 async function ensureCategoryMap(workspaceId: string): Promise<CategoryMap> {
