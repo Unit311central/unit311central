@@ -45,7 +45,10 @@ const bcNav = buildCentralBusinessCentralNavSection();
 const bcLabels = bcNav.items.map((item) => item.label);
 
 assert.deepEqual(bcLabels, [...TARGET_BC_FEATURES]);
-assert.ok(!bcLabels.includes("Grant Management"), "Grant Management is not a Business Central Core Feature");
+assert.ok(
+  !(bcLabels as readonly string[]).includes("Grant Management"),
+  "Grant Management is not a Business Central Core Feature",
+);
 assert.ok(!bcNav.items.some((item) => item.view === "grants"), "grants view must not appear in central BC nav");
 
 const clientMgmt = bcNav.items.find((item) => item.label === "Client Management");

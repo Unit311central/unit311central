@@ -35,6 +35,7 @@ import {
   getInternalNavHref,
   internalSurveyNavSections,
   legacyCorporateViewToTab,
+  type InternalNavItem,
   type InternalNavSection,
 } from "@/lib/internal-operations-data";
 import { buildCentralCorporateInformationNavSection } from "@/lib/platform-workspaces/central-product-nav";
@@ -171,7 +172,7 @@ function assertCorporateTaxonomyNav(
 
   for (let index = 0; index < CORPORATE_INFORMATION_CORE_FEATURES.length; index++) {
     const feature = CORPORATE_INFORMATION_CORE_FEATURES[index]!;
-    const item = section!.items[index]!;
+    const item: InternalNavItem = section!.items[index]!;
     const expectedLabel =
       options?.allowAbhiCompanyLabel && feature.abhiNavLabel ? feature.abhiNavLabel : feature.label;
     assert.equal(item.label, expectedLabel, `${workspaceName}: ${feature.label} nav label`);

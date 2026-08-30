@@ -25,8 +25,8 @@ import {
   homeCoreFeatureCount,
   homeCoreSubFeatureCount,
 } from "@/lib/home/home-taxonomy";
-import { AUDITED_CORE_MODULE_IDS } from "@/lib/architecture-taxonomy";
-import { buildCoreProductTaxonomy } from "@/lib/architecture-taxonomy";
+import { AUDITED_CORE_MODULE_IDS, buildCoreProductTaxonomy } from "@/lib/architecture-taxonomy";
+import type { ArchitectureTaxonomyNode } from "@/lib/architecture-taxonomy-types";
 import {
   getInternalNavHref,
   internalSurveyNavSections,
@@ -106,7 +106,7 @@ assert.ok(
 // ---------------------------------------------------------------------------
 assert.ok(AUDITED_CORE_MODULE_IDS.has(HOME_MODULE_ID), "Home must be marked AUDITED");
 
-function child(node: { label: string; children?: { label: string; children?: unknown[] }[] }, label: string) {
+function child(node: ArchitectureTaxonomyNode, label: string): ArchitectureTaxonomyNode {
   const found = (node.children ?? []).find((entry) => entry.label === label);
   assert.ok(found, `expected child "${label}" under "${node.label}"`);
   return found!;
@@ -115,7 +115,7 @@ function child(node: { label: string; children?: { label: string; children?: unk
 const core = buildCoreProductTaxonomy();
 const coreModules = child(core, "CORE MODULES");
 const homeNode = child(coreModules, HOME_MODULE_LABEL);
-assert.equal((homeNode as { audited?: boolean }).audited, true);
+assert.equal(homeNode.audited, true);
 assert.equal((homeNode.children ?? []).length, 0, "Home remains a module-level leaf");
 
 // ---------------------------------------------------------------------------
