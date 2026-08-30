@@ -17,6 +17,7 @@
  * - Sales Management features/sub-features: buildSalesManagementNavSection()
  *   (matches sales-management-taxonomy.check.ts)
  * - Intelligence: explicit audited annotation (Dashboard + three domains)
+ * - Home: home-taxonomy.ts (module-level only — 0 features)
  * - Custom (ABHI Regulatory Intelligence): src/lib/abhi/nav.ts
  * - Workspace enablement: demo/saec provisioning constants + core catalogue (read-only)
  */
@@ -24,6 +25,7 @@
 import { ABHI_INTELLIGENCE_NAV_SECTION, ABHI_REGULATORY_NAV_SECTION } from "@/lib/abhi/nav";
 import { getCanonicalModule } from "@/lib/central-application-model/canonical-modules";
 import { CORPORATE_INFORMATION_CORE_FEATURES } from "@/lib/corporate-information/corporate-information-taxonomy";
+import { HOME_MODULE_ID } from "@/lib/home/home-taxonomy";
 import type {
   InternalNavChildItem,
   InternalNavItem,
@@ -51,6 +53,7 @@ import type { ArchitectureTaxonomyNode } from "@/lib/architecture-taxonomy-types
  * Fundraising is intentionally absent — its taxonomy audit is in progress.
  */
 export const AUDITED_CORE_MODULE_IDS: ReadonlySet<string> = new Set([
+  "home",
   "business-central",
   "sales-management",
   "intelligence",
@@ -147,6 +150,10 @@ function auditedFeaturesForModule(moduleId: string): ArchitectureTaxonomyNode[] 
           : undefined,
       };
     });
+  }
+  if (moduleId === HOME_MODULE_ID) {
+    // Audited taxonomy source: home-taxonomy.ts — module-level only (0 features).
+    return [];
   }
   return null;
 }
