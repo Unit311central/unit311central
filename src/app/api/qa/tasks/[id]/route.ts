@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { qaApiErrorResponse } from "@/lib/qa-workspace/api-error";
-import { requireTestWorkspaceAccess } from "@/lib/qa-workspace/auth";
+import { requireQaWorkspaceAccess } from "@/lib/qa-workspace/auth";
 import {
   deleteQaWorkspaceTask,
   getQaWorkspaceTask,
@@ -15,7 +15,7 @@ type RouteContext = { params: Promise<{ id: string }> };
 
 export async function GET(_request: NextRequest, context: RouteContext) {
   try {
-    const auth = await requireTestWorkspaceAccess();
+    const auth = await requireQaWorkspaceAccess();
     if ("error" in auth) return auth.error;
 
     const { id } = await context.params;
@@ -29,7 +29,7 @@ export async function GET(_request: NextRequest, context: RouteContext) {
 
 export async function PATCH(request: NextRequest, context: RouteContext) {
   try {
-    const auth = await requireTestWorkspaceAccess();
+    const auth = await requireQaWorkspaceAccess();
     if ("error" in auth) return auth.error;
 
     const { id } = await context.params;
@@ -53,7 +53,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
 
 export async function DELETE(_request: NextRequest, context: RouteContext) {
   try {
-    const auth = await requireTestWorkspaceAccess();
+    const auth = await requireQaWorkspaceAccess();
     if ("error" in auth) return auth.error;
 
     const { id } = await context.params;

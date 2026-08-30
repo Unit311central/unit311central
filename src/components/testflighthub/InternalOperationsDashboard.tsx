@@ -346,7 +346,7 @@ import { NorthstarIntelligenceRouter, NorthstarIntelligenceDashboard } from "@/c
 import IntelligenceCentralWorkspace from "@/components/intelligence/IntelligenceCentralWorkspace";
 import IntelligenceDashboardWorkspace from "@/components/intelligence/IntelligenceDashboardWorkspace";
 import QaTasksWorkspace from "@/components/qa-workspace/QaTasksWorkspace";
-import { isTestWorkspaceSlug } from "@/lib/qa-workspace/surface";
+import { isQaEnabledWorkspaceSlug } from "@/lib/qa-workspace/surface";
 import { isIntelligenceOperationsView } from "@/lib/intelligence/views";
 import NorthstarBusinessCentralDashboard from "@/components/demo/NorthstarBusinessCentralDashboard";
 import {
@@ -1732,7 +1732,7 @@ function AccessViewGuard({
       onRedirect("home");
       return;
     }
-    if (activeView === "qa-tasks" && isTestWorkspaceSlug(workspaceSlug)) {
+    if (activeView === "qa-tasks" && isQaEnabledWorkspaceSlug(workspaceSlug)) {
       return;
     }
     if (

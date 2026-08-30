@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { qaApiErrorResponse } from "@/lib/qa-workspace/api-error";
-import { requireTestWorkspaceAccess } from "@/lib/qa-workspace/auth";
+import { requireQaWorkspaceAccess } from "@/lib/qa-workspace/auth";
 import type { QaTaskScope, QaTaskStatus } from "@/lib/qa-workspace/constants";
 import { isQaTaskScope, validateQaWorkspaceTaskInput } from "@/lib/qa-workspace/scope";
 import { createQaWorkspaceTask, listQaWorkspaceTasks } from "@/lib/qa-workspace/service";
@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
   try {
-    const auth = await requireTestWorkspaceAccess();
+    const auth = await requireQaWorkspaceAccess();
     if ("error" in auth) return auth.error;
 
     const params = request.nextUrl.searchParams;
@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const auth = await requireTestWorkspaceAccess();
+    const auth = await requireQaWorkspaceAccess();
     if ("error" in auth) return auth.error;
 
     let body: QaWorkspaceTaskInput;
