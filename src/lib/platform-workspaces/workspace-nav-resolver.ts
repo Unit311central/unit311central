@@ -10,6 +10,10 @@ import {
   resolveWorkspaceNavEnablement,
   type WorkspaceNavEnablement,
 } from "@/lib/platform-workspaces/workspace-product-nav";
+import {
+  filterLegacyBcnToolsNavItems,
+  shouldFilterLegacyBcnToolsNav,
+} from "@/lib/legacy-bcn-nav";
 import { INTERNAL_WORKSPACE_SLUG } from "@/lib/workspace-host";
 import { buildPailexNavSections } from "@/lib/pailex/pailex-nav";
 import { isPailexSlug } from "@/lib/pailex/pailex-surface";
@@ -25,6 +29,19 @@ export type WorkspaceNavContext = {
 
 function usesLegacySpecialistNav(slug: string | null | undefined): boolean {
   return isSpecialistWorkspaceSlug(slug);
+}
+
+function applyLegacyBcnToolsExclusions(
+  sections: readonly InternalNavSection[],
+  workspaceSlug?: string | null,
+): InternalNavSection[] {
+  if (!shouldFilterLegacyBcnToolsNav(workspaceSlug)) {
+    return [...sections];
+  }
+  return sections.map((section) => {
+    if (section.kind !== "workspace" || section.label !== "Tools") return section;
+    return { ...section, items: filterLegacyBcnToolsNavItems(section.items) };
+  });
 }
 
 /** Internal Central uses the full platform nav and ignores wizard enablement metadata. */
@@ -56,7 +73,7 @@ export function resolveWorkspaceNavBaseSections(ctx: WorkspaceNavContext): reado
   }
 
   if (usesInternalPlatformNav(ctx.workspaceSlug, ctx.workspaceType)) {
-    return internalSurveyNavSections;
+    return applyLegacyBcnToolsExclusions(internalSurveyNavSections, ctx.workspaceSlug);
   }
 
   const enablement =
