@@ -74,7 +74,7 @@ import {
   type InternalOperationsView,
 } from "@/lib/internal-operations-data";
 import { filterInternalNavSectionsByGrants, filterInternalNavSectionsForDemoSurface } from "@/lib/internal-role-views";
-import { injectTestWorkspaceQaNav } from "@/lib/qa-workspace/nav";
+import { injectQaWorkspaceNav } from "@/lib/qa-workspace/nav";
 import { resolveWorkspaceNavBaseSections } from "@/lib/platform-workspaces/workspace-nav-resolver";
 import { resolveWorkspaceNavEnablement } from "@/lib/platform-workspaces/workspace-product-nav";
 import { parseClientPlatformSubdomainSafe, isInternalDomainHost } from "@/lib/app-domains";
@@ -897,7 +897,7 @@ export default function EnterprisePlatformSidebar({
       // Host overlays: available on first client paint for customer hosts.
       { allowHostSurfaces: hydrated || customerHostNav },
     );
-    const withQaNav = injectTestWorkspaceQaNav(filtered, workspaceSlug);
+    const withQaNav = injectQaWorkspaceNav(filtered, workspaceSlug);
     if (
       typeof window !== "undefined" &&
       (hydrated || customerHostNav) &&

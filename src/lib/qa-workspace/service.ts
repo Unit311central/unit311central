@@ -1,11 +1,22 @@
 import { createTenancyServerClient } from "@/lib/supabase/tenancy-server";
 import type { QaTaskScope, QaTaskStatus } from "@/lib/qa-workspace/constants";
+import { QA_TASK_STATUSES } from "@/lib/qa-workspace/constants";
 import { inferScopeFromLegacyTask } from "@/lib/qa-workspace/scope";
 import type {
   QaWorkspaceTask,
   QaWorkspaceTaskFilters,
   QaWorkspaceTaskInput,
 } from "@/lib/qa-workspace/types";
+
+function isQaTaskStatus(value: string | null | undefined): value is QaTaskStatus {
+  return QA_TASK_STATUSES.includes(value as QaTaskStatus);
+}
+
+function normalizeStoredStatus(raw: string | null | undefined): QaTaskStatus {
+  if (raw === "completed") return "done";
+  if (isQaTaskStatus(raw)) return raw;
+  return "open";
+}
 
 type QaTaskRow = {
   id: string;
@@ -39,8 +50,8 @@ function mapRow(row: QaTaskRow): QaWorkspaceTask {
     id: row.id,
     workspaceId: row.workspace_id,
     scope,
-    status: row.status === "completed" ? "completed" : "open",
-    completed: Boolean(row.completed),
+    status: normalizeStoredStatus(row.status),
+    completed: row.status === "completed" || row.status === "done" || Boolean(row.completed),
     moduleLabel: row.module_label,
     moduleId: row.module_id,
     pageLabel: row.page_label,
@@ -57,12 +68,21 @@ function mapRow(row: QaTaskRow): QaWorkspaceTask {
   };
 }
 
-function normalizeStatus(input: { completed?: boolean; status?: QaTaskStatus }): {
+function normalizeStatus(input: { completed?: boolean; status?: QaTaskStatus | "completed" }): {
   completed: boolean;
   status: QaTaskStatus;
 } {
-  if (input.status === "completed" || input.completed === true) {
-    return { completed: true, status: "completed" };
+  if (input.status === "completed") {
+    return { completed: true, status: "done" };
+  }
+  if (input.status === "done" || input.completed === true) {
+    return { completed: true, status: "done" };
+  }
+  if (input.status === "wont_fix") {
+    return { completed: false, status: "wont_fix" };
+  }
+  if (input.status === "in_progress") {
+    return { completed: false, status: "in_progress" };
   }
   if (input.status === "open" || input.completed === false) {
     return { completed: false, status: "open" };

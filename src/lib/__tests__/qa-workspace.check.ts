@@ -8,11 +8,13 @@ import { join } from "node:path";
 
 import { internalSurveyNavSections } from "@/lib/internal-operations-data";
 import { allCatalogueModuleSelections } from "@/lib/platform-workspaces/module-catalogue";
-import { injectTestWorkspaceQaNav } from "@/lib/qa-workspace/nav";
+import { injectQaWorkspaceNav } from "@/lib/qa-workspace/nav";
+import { buildBetaReportTaskInput } from "@/lib/qa-workspace/beta-report";
 import { resolveQaPageContext } from "@/lib/qa-workspace/page-context";
 import { qaTasksToCsv } from "@/lib/qa-workspace/csv";
 import { assertTestWorkspaceSlug } from "@/lib/qa-workspace/auth";
 import {
+  INTERFACE_WORX_QA_SLUG,
   TEST_WORKSPACE_SLUG,
   QA_PAGE_LEVEL_ELEMENT,
   QA_MODULE_LEVEL_ELEMENT,
@@ -29,7 +31,11 @@ import {
   validateQaWorkspaceTaskInput,
 } from "@/lib/qa-workspace/scope";
 import {
+  isBrowserInterfaceWorxQaSurface,
   isBrowserTestWorkspaceSurface,
+  isInterfaceWorxQaSlug,
+  isQaBetaWorkspaceSlug,
+  isQaEnabledWorkspaceSlug,
   isTestWorkspaceSlug,
 } from "@/lib/qa-workspace/surface";
 import type { QaWorkspaceTask } from "@/lib/qa-workspace/types";
@@ -48,6 +54,13 @@ assert.equal(isTestWorkspaceSlug("TEST"), true);
 assert.equal(isTestWorkspaceSlug("demo"), false);
 assert.equal(isTestWorkspaceSlug("unit311"), false);
 assert.equal(isTestWorkspaceSlug("interfaceworx"), false);
+assert.equal(isInterfaceWorxQaSlug("interfaceworx"), true);
+assert.equal(isQaEnabledWorkspaceSlug("test"), true);
+assert.equal(isQaEnabledWorkspaceSlug("interfaceworx"), true);
+assert.equal(isQaEnabledWorkspaceSlug("demo"), false);
+assert.equal(isQaBetaWorkspaceSlug("interfaceworx"), true);
+assert.equal(isQaBetaWorkspaceSlug("test"), false);
+assert.equal(INTERFACE_WORX_QA_SLUG, "interfaceworx");
 assert.equal(isTestWorkspaceSlug("onwardair"), false);
 assert.equal(isTestWorkspaceSlug("abhi"), false);
 assert.equal(isTestWorkspaceSlug("talantonimpact"), false);
@@ -63,12 +76,12 @@ assert.ok(toolsSection);
 const defaultToolsViews = toolsSection!.items.map((item) => item.view);
 assert.ok(!defaultToolsViews.includes("qa-tasks"), "qa-tasks must not be in canonical Tools nav");
 
-const demoNav = injectTestWorkspaceQaNav(internalSurveyNavSections, "demo");
+const demoNav = injectQaWorkspaceNav(internalSurveyNavSections, "demo");
 const demoTools = demoNav.find((section) => section.kind === "workspace" && section.label === "Tools");
 assert.ok(demoTools);
 assert.ok(!demoTools!.items.some((item) => item.view === "qa-tasks"), "Demo must not get QA Tasks nav");
 
-const internalNav = injectTestWorkspaceQaNav(internalSurveyNavSections, "unit311");
+const internalNav = injectQaWorkspaceNav(internalSurveyNavSections, "unit311");
 const internalTools = internalNav.find(
   (section) => section.kind === "workspace" && section.label === "Tools",
 );
@@ -78,12 +91,19 @@ assert.ok(
   "Internal must not get QA Tasks nav",
 );
 
-const testNav = injectTestWorkspaceQaNav(internalSurveyNavSections, "test");
+const testNav = injectQaWorkspaceNav(internalSurveyNavSections, "test");
 const testTools = testNav.find((section) => section.kind === "workspace" && section.label === "Tools");
 assert.ok(testTools);
 const qaItem = testTools!.items.find((item) => item.view === "qa-tasks");
 assert.ok(qaItem, "Test workspace must get QA Tasks under Tools");
 assert.equal(qaItem!.label, "QA Tasks");
+
+const iwNav = injectQaWorkspaceNav(internalSurveyNavSections, "interfaceworx");
+const iwTools = iwNav.find((section) => section.kind === "workspace" && section.label === "Tools");
+assert.ok(iwTools);
+const iwQaItem = iwTools!.items.find((item) => item.view === "qa-tasks");
+assert.ok(iwQaItem, "InterfaceWorx must get QA Tasks under Tools");
+assert.equal(iwQaItem!.label, "QA Tasks");
 
 // --- Page / module context ---
 const pageContext = resolveQaPageContext({
@@ -153,6 +173,17 @@ assert.equal(inferScopeFromLegacyTask({ elementLabel: QA_MODULE_LEVEL_ELEMENT })
 assert.equal(inferScopeFromLegacyTask({ elementLabel: QA_WORKSPACE_LEVEL_ELEMENT }), "workspace");
 assert.equal(formatQaTaskScopeLabel("page"), "Page");
 
+const betaInput = buildBetaReportTaskInput({
+  pageContext,
+  reportTypeId: "broken",
+  description: "Submit button does nothing",
+});
+assert.equal(betaInput.scope, "page");
+assert.equal(betaInput.moduleLabel, "Finances");
+assert.equal(betaInput.pageLabel, "Invoices");
+assert.equal(betaInput.elementType, "beta:broken");
+assert.equal(validateQaWorkspaceTaskInput(betaInput), null);
+
 // --- CSV export ---
 const sampleTask: QaWorkspaceTask = {
   id: "task-1",
@@ -183,10 +214,13 @@ assert.match(csv, /,test,/);
 // --- Migration registered ---
 const migration153 = "supabase/migrations/153_qa_workspace_tasks.sql";
 const migration154 = "supabase/migrations/154_qa_workspace_tasks_scope.sql";
+const migration185 = "supabase/migrations/186_qa_workspace_task_beta_statuses.sql";
 assert.ok(UNIT311_PENDING_MIGRATIONS.includes(migration153 as never));
 assert.ok(UNIT311_PENDING_MIGRATIONS.includes(migration154 as never));
+assert.ok(UNIT311_PENDING_MIGRATIONS.includes(migration185 as never));
 assert.ok(MIGRATION_SATISFACTION_PROBES[migration153]);
 assert.ok(MIGRATION_SATISFACTION_PROBES[migration154]);
+assert.ok(MIGRATION_SATISFACTION_PROBES[migration185]);
 
 const migrationSql = readRepoFile(migration153);
 assert.match(migrationSql, /create table if not exists public\.qa_workspace_tasks/);
@@ -220,9 +254,9 @@ assert.ok(!/qa-tasks/i.test(productNavSource), "Product nav must not include QA 
 const wizardSource = readRepoFile("src/components/platform-workspaces/NewWorkspaceWizard.tsx");
 assert.ok(!/qa-tasks/i.test(wizardSource), "New Workspace wizard must not include QA");
 
-// --- API routes enforce test workspace ---
+// --- API routes enforce QA-enabled workspaces ---
 const qaApiRoute = readRepoFile("src/app/api/qa/tasks/route.ts");
-assert.match(qaApiRoute, /requireTestWorkspaceAccess/);
+assert.match(qaApiRoute, /requireQaWorkspaceAccess/);
 assert.match(qaApiRoute, /validateQaWorkspaceTaskInput/);
 assert.match(qaApiRoute, /scope/);
 
@@ -233,5 +267,9 @@ assert.match(qaOverlay, /onPageLevelTask/);
 
 // --- Browser surface helper returns false without window (SSR) ---
 assert.equal(isBrowserTestWorkspaceSurface(), false);
+assert.equal(isBrowserInterfaceWorxQaSurface(), false);
+
+const dashboardSource = readRepoFile("src/components/testflighthub/InternalOperationsDashboard.tsx");
+assert.match(dashboardSource, /isQaEnabledWorkspaceSlug/);
 
 console.log("ok  qa-workspace checks passed\n");
