@@ -79,6 +79,11 @@ try {
       0,
       "footer message removed",
     );
+    assert.equal(
+      await page.locator('text=Previously submitted on').count(),
+      0,
+      "submitted timestamp hidden from client",
+    );
 
     for (const section of SAEC_DISCOVERY_SECTIONS) {
       await page.getByRole("button", { name: section.title, exact: true }).click();
@@ -108,10 +113,21 @@ try {
     await page.locator('button:has-text("Save Draft")').click();
     await page.waitForSelector('[role="status"]:has-text("Draft saved")');
 
+    page.once("dialog", (dialog) => dialog.accept());
+    await page.locator('button:has-text("Reset Draft")').click();
+    await page.waitForSelector('[role="status"]:has-text("Draft cleared")');
+    await page.reload({ waitUntil: "networkidle" });
+    await page.getByRole("button", { name: "General", exact: true }).click();
+    assert.equal(await page.locator("#general-top-annoyances").inputValue(), "", "reset clears draft");
+
+    await page.locator("#general-top-annoyances").fill("post-reset draft");
+    await page.locator('button:has-text("Save Draft")').click();
+    await page.waitForSelector('[role="status"]:has-text("Draft saved")');
+
     await page.reload({ waitUntil: "networkidle" });
     await page.getByRole("button", { name: "General", exact: true }).click();
     const q1 = page.locator("#general-top-annoyances");
-    assert.ok((await q1.inputValue()).includes("test"), "reload restores draft");
+    assert.equal(await q1.inputValue(), "post-reset draft", "reload restores draft after reset cycle");
 
     if (viewport.name === "1440x900") {
       await page.screenshot({

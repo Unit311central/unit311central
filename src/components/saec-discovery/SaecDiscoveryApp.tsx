@@ -33,6 +33,7 @@ import {
   SAEC_DISCOVERY_STORAGE_KEY,
   buildDiscoverySubmissionSnapshot,
   emptySectionResponses,
+  normalizeDiscoveryResponses,
   responseKeysForSection,
   type SaecDiscoveryIconKey,
   type SaecDiscoveryQuestionConfig,
@@ -97,18 +98,6 @@ function draftFromSection(
     base[key] = saved.responses[key] ?? "";
   }
   return base;
-}
-
-function formatSubmittedAt(value: string | null | undefined) {
-  if (!value) return "";
-  try {
-    return new Date(value).toLocaleString("en-GB", {
-      dateStyle: "medium",
-      timeStyle: "short",
-    });
-  } catch {
-    return value;
-  }
 }
 
 function formatDraftSavedAgo(savedAt: number | null) {
@@ -199,14 +188,14 @@ function QuestionBlock({
         {question.label}
       </label>
       {question.note && !question.examples?.length ? (
-        <p className="mt-3 text-[10px] leading-relaxed text-white/40">{question.note}</p>
+        <p className="mt-3 text-[11px] leading-relaxed text-white/45">{question.note}</p>
       ) : null}
       {question.examples?.length ? (
         <div className="space-y-1.5 pt-1">
           {question.note ? (
-            <p className="text-[9px] leading-relaxed text-white/35">{question.note}</p>
+            <p className="text-[11px] leading-snug text-white/50">{question.note}</p>
           ) : null}
-          <ul className="grid list-none gap-x-4 gap-y-1 text-[9px] leading-relaxed text-white/35 sm:grid-cols-2">
+          <ul className="grid list-none gap-x-4 gap-y-1 text-[11px] leading-snug text-white/50 sm:grid-cols-2">
             {question.examples.map((example) => (
               <li key={example} className="flex gap-1.5">
                 <span className="text-sky-400/70">•</span>
@@ -225,11 +214,11 @@ function QuestionBlock({
         className={cn(
           "grid min-h-0 gap-x-4 gap-y-2",
           emphasize
-            ? "min-h-0 flex-1 grid-cols-1 lg:grid-cols-[minmax(0,44%)_minmax(0,1fr)] lg:items-stretch"
-            : "grid-cols-1 lg:grid-cols-[minmax(0,44%)_minmax(0,1fr)] lg:items-start",
+            ? "min-h-0 flex-1 grid-cols-1 lg:grid-cols-[minmax(0,44%)_minmax(0,1fr)] lg:items-start"
+            : "grid-cols-1 lg:grid-cols-[minmax(0,44%)_minmax(0,1fr)] lg:items-center",
         )}
       >
-        <div className="flex min-w-0 gap-2.5">
+        <div className="flex min-w-0 items-start gap-2.5 lg:items-center">
           {questionNumber > 0 ? <QuestionNumber n={questionNumber} /> : null}
           {labelBlock}
         </div>
@@ -300,10 +289,10 @@ function CommentsBlock({
   rows?: number;
 }) {
   return (
-    <div className="shrink-0 pt-2">
+    <div className="shrink-0 border-t border-white/[0.06] pt-2">
       <label
         htmlFor={`${sectionId}-comments`}
-        className="mb-1.5 block text-[13px] font-medium text-white/85"
+        className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.12em] text-white/70"
       >
         Any other comments
       </label>
@@ -335,7 +324,7 @@ function GeneralSectionPanel({
       {section.intro ? (
         <p className="mb-6 shrink-0 text-[12px] leading-relaxed text-white/55">{section.intro}</p>
       ) : null}
-      <div className="flex min-h-0 flex-1 flex-col gap-3.5 overflow-hidden">
+      <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden">
         {regular.map((question, index) => (
           <QuestionBlock
             key={question.id}
@@ -378,7 +367,7 @@ function ReportingSectionPanel({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-hidden">
-      <div className="grid min-h-0 flex-1 grid-cols-1 gap-2 lg:grid-cols-2 lg:grid-rows-3 lg:gap-x-4 lg:gap-y-2">
+      <div className="grid min-h-0 flex-1 grid-cols-1 gap-2.5 lg:grid-cols-2 lg:grid-rows-3 lg:gap-x-4 lg:gap-y-2">
         {questions.map((question, index) => (
           <QuestionBlock
             key={question.id}
@@ -415,12 +404,12 @@ function SoftwareSectionPanel({
   const compact = functions.length >= 5;
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-hidden">
-      <div className="grid shrink-0 gap-3 border-b border-white/10 pb-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/35 md:grid-cols-[minmax(0,220px)_minmax(0,1fr)]">
+    <div className="flex min-h-0 flex-1 flex-col gap-1.5 overflow-hidden">
+      <div className="grid shrink-0 gap-2 border-b border-white/10 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/35 md:grid-cols-[minmax(0,220px)_minmax(0,1fr)]">
         <span>Function</span>
         <span>Software</span>
       </div>
-      <div className={cn("min-h-0 flex-1", compact ? "space-y-1" : "space-y-1.5")}>
+      <div className={cn("min-h-0 shrink-0", compact ? "space-y-0.5" : "space-y-1")}>
         {functions.map((functionName) => (
           <div
             key={functionName}
@@ -579,6 +568,26 @@ export default function SaecDiscoveryApp() {
     showNotice("Draft saved");
   }, [flushDraftToStored, markDraftSaved, selectedSection, showNotice, stored]);
 
+  const resetDraft = useCallback(() => {
+    if (
+      !window.confirm(
+        "This will clear your saved draft on this device. Previously submitted information will not be affected. Continue?",
+      )
+    ) {
+      return;
+    }
+
+    const empty = normalizeDiscoveryResponses({});
+    setStored(empty);
+    persistState(empty);
+    setDraftSavedAt(null);
+    setDraftSavedLabel(null);
+    if (selectedSection) {
+      setDraft(draftFromSection(selectedSection, empty[selectedSection.id]));
+    }
+    showNotice("Draft cleared");
+  }, [selectedSection, showNotice]);
+
   const submitDiscovery = useCallback(async () => {
     if (submitting) return;
 
@@ -649,7 +658,7 @@ export default function SaecDiscoveryApp() {
       <div className="relative flex min-h-0 flex-1 gap-3 px-4 py-2 sm:px-5 lg:gap-4 lg:px-6">
         {/* Left column: logo, navigation, secure panel */}
         <aside className="flex w-[210px] shrink-0 flex-col lg:w-[228px]">
-          <div className="mb-2 shrink-0 pt-2">
+          <div className="mb-2 flex h-10 shrink-0 items-center pt-1">
             <SaecDiscoveryLogo height={28} maxWidth={100} priority />
           </div>
 
@@ -741,13 +750,8 @@ export default function SaecDiscoveryApp() {
                   Help understand SAECs systems. All questions are{" "}
                   <span className="font-semibold text-sky-300">OPTIONAL</span>.
                 </p>
-                {(submittedAt || submitSuccessMessage || submitError) && (
+                {(submitSuccessMessage || submitError) && (
                   <div className="mt-2 space-y-1">
-                    {submittedAt ? (
-                      <p className="text-[11px] text-sky-200/75">
-                        Previously submitted on {formatSubmittedAt(submittedAt)}.
-                      </p>
-                    ) : null}
                     {submitSuccessMessage ? (
                       <p className="text-[12px] text-emerald-200/90">{submitSuccessMessage}</p>
                     ) : null}
@@ -759,7 +763,14 @@ export default function SaecDiscoveryApp() {
               </div>
 
               <div className="flex shrink-0 flex-col items-end gap-1.5">
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={resetDraft}
+                    className="rounded-md px-2 py-1 text-[10px] font-medium text-white/40 transition-colors hover:text-white/65"
+                  >
+                    Reset Draft
+                  </button>
                   <button
                     type="button"
                     onClick={saveDraft}
