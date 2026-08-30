@@ -1,6 +1,6 @@
 import type { SaecDiscoveryState } from "@/lib/saec-discovery/types";
 
-export const SAEC_DISCOVERY_STORAGE_KEY = "saec-discovery-v2";
+export const SAEC_DISCOVERY_STORAGE_KEY = "saec-discovery-v3";
 
 export type SaecDiscoveryIconKey =
   | "Users"

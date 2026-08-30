@@ -1,7 +1,6 @@
 import "server-only";
 
 import {
-  buildDiscoverySubmissionSnapshot,
   normalizeDiscoveryResponses,
 } from "@/lib/saec-discovery/config";
 import type {
