@@ -49,17 +49,7 @@ const DISCOVERY_MODULES: ModuleDef[] = [
     id: "sales-management",
     title: "Sales Management",
     icon: ShoppingCart,
-    functions: [
-      "Prospects",
-      "Opportunities",
-      "Pipeline",
-      "Sales Quotes",
-      "Activities",
-      "Targets & Forecast",
-      "Performance",
-      "Commissions",
-      "Reports",
-    ],
+    functions: ["Pipeline", "Sales Quotes", "Targets & Forecast", "Performance"],
   },
   {
     id: "finances",
@@ -72,8 +62,6 @@ const DISCOVERY_MODULES: ModuleDef[] = [
       "Accounts Receivable",
       "Expenses",
       "Payroll",
-      "Banking",
-      "Financial Reports",
     ],
   },
   {
@@ -236,7 +224,7 @@ export default function SaecDiscoveryApp() {
         aria-hidden
       />
 
-      <div className="relative flex min-h-screen flex-col px-4 py-3 sm:px-6 sm:py-4 lg:px-10">
+      <div className="relative flex min-h-screen w-full flex-col px-4 py-3 sm:px-6 sm:py-4 lg:px-8 xl:px-10">
         <header className="mb-4 shrink-0 sm:mb-5">
           <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-sky-300/80">
             SAEC Discovery
@@ -250,7 +238,7 @@ export default function SaecDiscoveryApp() {
         <div className="flex min-h-0 flex-1 flex-col gap-3 lg:flex-row lg:gap-5">
           {/* Left navigation */}
           <nav
-            className="shrink-0 rounded-xl border border-white/10 bg-[#0b1524]/60 lg:w-[280px] xl:w-[300px]"
+            className="shrink-0 rounded-xl border border-white/10 bg-[#0b1524]/60 lg:w-[260px] xl:w-[280px]"
             aria-label="Discovery areas"
           >
             <ul className="divide-y divide-white/[0.06]">
@@ -320,7 +308,7 @@ export default function SaecDiscoveryApp() {
                   {selectedModule.title}
                 </h2>
 
-                <div className="mt-6 mb-4 hidden gap-6 border-b border-white/10 pb-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/35 md:grid md:grid-cols-[minmax(0,1fr)_minmax(220px,320px)]">
+                <div className="mt-6 mb-4 hidden gap-6 border-b border-white/10 pb-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/35 md:grid md:grid-cols-[minmax(0,280px)_minmax(0,1fr)]">
                   <span>Function</span>
                   <span>Software</span>
                 </div>
@@ -329,7 +317,7 @@ export default function SaecDiscoveryApp() {
                   {selectedModule.functions.map((functionName) => (
                     <div
                       key={functionName}
-                      className="grid gap-2 md:grid-cols-[minmax(0,1fr)_minmax(220px,320px)] md:items-center md:gap-6"
+                      className="grid gap-2 md:grid-cols-[minmax(0,280px)_minmax(0,1fr)] md:items-center md:gap-6"
                     >
                       <label
                         htmlFor={`${selectedModule.id}-${functionName}`}
@@ -342,8 +330,7 @@ export default function SaecDiscoveryApp() {
                         type="text"
                         value={draft[functionName] ?? ""}
                         onChange={(event) => updateDraft(functionName, event.target.value)}
-                        placeholder="SAP, Excel, None…"
-                        className="w-full rounded-lg border border-white/10 bg-[#070f1a] px-3 py-2 text-sm text-white outline-none transition-colors placeholder:text-white/25 focus:border-sky-400/50"
+                        className="w-full rounded-lg border border-white/10 bg-[#070f1a] px-3 py-2 text-sm text-white outline-none transition-colors focus:border-sky-400/50"
                       />
                     </div>
                   ))}
