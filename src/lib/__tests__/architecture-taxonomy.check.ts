@@ -22,6 +22,7 @@ import {
 } from "@/lib/architecture-taxonomy-types";
 import { ARCHITECTURE_DIAGRAM_CATALOG } from "@/lib/architecture-diagram-data";
 import { BOARD_CORE_FEATURES } from "@/lib/board/board-taxonomy";
+import { BUSINESS_PRODUCTIVITY_CORE_FEATURES } from "@/lib/business-productivity/business-productivity-taxonomy";
 import { CORPORATE_INFORMATION_CORE_FEATURES } from "@/lib/corporate-information/corporate-information-taxonomy";
 import { HOME_MODULE_LABEL } from "@/lib/home/home-taxonomy";
 import { MARKETING_EVENTS_CORE_FEATURES, ABHI_MARKETING_CUSTOM_FEATURES, MARKETING_EVENTS_MODULE_LABEL } from "@/lib/marketing-events/marketing-events-taxonomy";
@@ -259,6 +260,33 @@ for (const custom of ABHI_MARKETING_CUSTOM_FEATURES) {
     `Core Product must not include ABHI custom ${custom.label}`,
   );
 }
+
+// Business Productivity is formally audited → nine Core Features, three Core Sub-features.
+const productivity = child(coreModules, "Business Productivity");
+assert.equal(productivity.audited, true);
+assert.ok(AUDITED_CORE_MODULE_IDS.has("business-productivity"));
+assert.deepEqual(
+  labels(productivity),
+  BUSINESS_PRODUCTIVITY_CORE_FEATURES.map((feature) => feature.label),
+);
+const bpFileExplorer = child(productivity, "File Explorer");
+assert.deepEqual(labels(bpFileExplorer), [
+  "Internal Files",
+  "External Files",
+  "Client Explorer",
+]);
+for (const feature of BUSINESS_PRODUCTIVITY_CORE_FEATURES) {
+  if (feature.subFeatures?.length) continue;
+  assert.equal(
+    (child(productivity, feature.label).children ?? []).length,
+    0,
+    `${feature.label} must not expose Core Sub-features`,
+  );
+}
+assert.ok(
+  !labels(productivity).includes("Social"),
+  "Core Product Business Productivity must not include Social",
+);
 
 // Every unaudited module must have zero children (only audited taxonomy is classified).
 for (const mod of coreModules.children ?? []) {

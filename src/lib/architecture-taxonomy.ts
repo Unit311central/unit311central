@@ -23,6 +23,8 @@
  * - Operations features: operations-taxonomy.ts (matches operations-taxonomy.check.ts)
  * - Marketing & Events features: marketing-events-taxonomy.ts
  *   (matches marketing-events-taxonomy.check.ts)
+ * - Business Productivity features/sub-features: business-productivity-taxonomy.ts
+ *   (matches business-productivity-taxonomy.check.ts)
  * - Custom (ABHI Regulatory Intelligence): src/lib/abhi/nav.ts
  * - Custom (ABHI Marketing & Events): marketing-events-taxonomy.ts + abhi/nav.ts
  * - Custom (OmniTransit Installations): operations-taxonomy.ts + saec/installations-nav.ts
@@ -36,6 +38,10 @@ import {
 } from "@/lib/abhi/nav";
 import { getCanonicalModule } from "@/lib/central-application-model/canonical-modules";
 import { BOARD_CORE_FEATURES } from "@/lib/board/board-taxonomy";
+import {
+  BUSINESS_PRODUCTIVITY_CORE_FEATURES,
+  BUSINESS_PRODUCTIVITY_MODULE_ID,
+} from "@/lib/business-productivity/business-productivity-taxonomy";
 import { CORPORATE_INFORMATION_CORE_FEATURES } from "@/lib/corporate-information/corporate-information-taxonomy";
 import { HOME_MODULE_ID } from "@/lib/home/home-taxonomy";
 import type {
@@ -85,6 +91,7 @@ export const AUDITED_CORE_MODULE_IDS: ReadonlySet<string> = new Set([
   "operations",
   "board",
   "marketing-events",
+  "business-productivity",
 ]);
 
 /** Explicit audited Intelligence taxonomy (nav omits the Dashboard, so it is not derived from nav). */
@@ -226,6 +233,24 @@ function auditedFeaturesForModule(moduleId: string): ArchitectureTaxonomyNode[] 
       level: "feature" as const,
       kind: "core" as const,
     }));
+  }
+  if (moduleId === BUSINESS_PRODUCTIVITY_MODULE_ID) {
+    // Audited taxonomy source: business-productivity-taxonomy.ts (9 Core Features, 3 Sub-features).
+    return BUSINESS_PRODUCTIVITY_CORE_FEATURES.map((feature) => {
+      const featureId = `${BUSINESS_PRODUCTIVITY_MODULE_ID}::${slug(feature.label)}`;
+      return {
+        id: featureId,
+        label: feature.label,
+        level: "feature" as const,
+        kind: "core" as const,
+        children: feature.subFeatures?.map((sub) => ({
+          id: `${featureId}::${slug(sub.label)}`,
+          label: sub.label,
+          level: "sub-feature" as const,
+          kind: "core" as const,
+        })),
+      };
+    });
   }
   return null;
 }
