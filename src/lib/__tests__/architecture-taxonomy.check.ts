@@ -21,6 +21,7 @@ import {
   type ArchitectureTaxonomyNode,
 } from "@/lib/architecture-taxonomy-types";
 import { ARCHITECTURE_DIAGRAM_CATALOG } from "@/lib/architecture-diagram-data";
+import { BOARD_CORE_FEATURES } from "@/lib/board/board-taxonomy";
 import { CORPORATE_INFORMATION_CORE_FEATURES } from "@/lib/corporate-information/corporate-information-taxonomy";
 import { HOME_MODULE_LABEL } from "@/lib/home/home-taxonomy";
 import {
@@ -219,6 +220,22 @@ assert.ok(
   !labels(operations).includes(SAEC_INSTALLATIONS_CUSTOM_FEATURE_LABEL),
   "Core Product Operations must not include SAEC Installations",
 );
+
+// Board is formally audited → six Core Features, no Core Sub-features.
+const board = child(coreModules, "Board");
+assert.equal(board.audited, true);
+assert.ok(AUDITED_CORE_MODULE_IDS.has("board"));
+assert.deepEqual(
+  labels(board),
+  BOARD_CORE_FEATURES.map((feature) => feature.label),
+);
+for (const feature of BOARD_CORE_FEATURES) {
+  assert.equal(
+    (child(board, feature.label).children ?? []).length,
+    0,
+    `${feature.label} must not expose Core Sub-features`,
+  );
+}
 
 // Every unaudited module must have zero children (only audited taxonomy is classified).
 for (const mod of coreModules.children ?? []) {
