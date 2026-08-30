@@ -191,11 +191,11 @@ function QuestionBlock({
         <p className="mt-3 text-[11px] leading-relaxed text-white/45">{question.note}</p>
       ) : null}
       {question.examples?.length ? (
-        <div className="space-y-1.5 pt-1">
+        <div className="space-y-1.5 pt-1.5">
           {question.note ? (
-            <p className="text-[11px] leading-snug text-white/50">{question.note}</p>
+            <p className="text-[12px] leading-snug text-white/55">{question.note}</p>
           ) : null}
-          <ul className="grid list-none gap-x-4 gap-y-1 text-[11px] leading-snug text-white/50 sm:grid-cols-2">
+          <ul className="grid list-none gap-x-4 gap-y-1.5 text-[12px] leading-relaxed text-white/55 sm:grid-cols-2">
             {question.examples.map((example) => (
               <li key={example} className="flex gap-1.5">
                 <span className="text-sky-400/70">•</span>
@@ -212,14 +212,14 @@ function QuestionBlock({
     return (
       <div
         className={cn(
-          "grid min-h-0 gap-x-4 gap-y-2",
-          emphasize
-            ? "min-h-0 flex-1 grid-cols-1 lg:grid-cols-[minmax(0,44%)_minmax(0,1fr)] lg:items-start"
-            : "grid-cols-1 lg:grid-cols-[minmax(0,44%)_minmax(0,1fr)] lg:items-center",
+          "grid min-h-0 gap-x-4 gap-y-2 lg:grid-cols-[minmax(0,44%)_minmax(0,1fr)] lg:items-start",
+          emphasize ? "min-h-0 flex-1" : "",
         )}
       >
-        <div className="flex min-w-0 items-start gap-2.5 lg:items-center">
-          {questionNumber > 0 ? <QuestionNumber n={questionNumber} /> : null}
+        <div className="flex min-w-0 items-start gap-2.5">
+          {questionNumber > 0 ? (
+            <QuestionNumber n={questionNumber} />
+          ) : null}
           {labelBlock}
         </div>
         <OptionalTextarea
@@ -227,7 +227,9 @@ function QuestionBlock({
           value={value}
           onChange={onChange}
           rows={emphasize ? 7 : answerRows}
-          className={emphasize ? "min-h-[8rem] lg:min-h-0 lg:flex-1" : undefined}
+          className={cn(
+            emphasize ? "min-h-[8rem] lg:min-h-0 lg:flex-1" : undefined,
+          )}
         />
       </div>
     );
@@ -366,26 +368,24 @@ function ReportingSectionPanel({
   const questions = section.questions ?? [];
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-hidden">
-      <div className="grid min-h-0 flex-1 grid-cols-1 gap-2.5 lg:grid-cols-2 lg:grid-rows-3 lg:gap-x-4 lg:gap-y-2">
-        {questions.map((question, index) => (
-          <QuestionBlock
-            key={question.id}
-            sectionId={section.id}
-            question={question}
-            index={index + 1}
-            layout="stacked"
-            answerRows={2}
-            value={draft[question.id] ?? ""}
-            onChange={(value) => updateDraft(question.id, value)}
-          />
-        ))}
-      </div>
+    <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden">
+      {questions.map((question, index) => (
+        <QuestionBlock
+          key={question.id}
+          sectionId={section.id}
+          question={question}
+          index={index + 1}
+          layout="stacked"
+          answerRows={2}
+          value={draft[question.id] ?? ""}
+          onChange={(value) => updateDraft(question.id, value)}
+        />
+      ))}
       <CommentsBlock
         sectionId={section.id}
         value={draft[SAEC_DISCOVERY_COMMENTS_KEY] ?? ""}
         onChange={(value) => updateDraft(SAEC_DISCOVERY_COMMENTS_KEY, value)}
-        rows={2}
+        rows={3}
       />
     </div>
   );
@@ -402,31 +402,44 @@ function SoftwareSectionPanel({
 }) {
   const functions = section.functions ?? [];
   const compact = functions.length >= 5;
+  const longLabels = functions.some((entry) => entry.label.length > 28);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-1.5 overflow-hidden">
-      <div className="grid shrink-0 gap-2 border-b border-white/10 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/35 md:grid-cols-[minmax(0,220px)_minmax(0,1fr)]">
+      <div
+        className={cn(
+          "grid shrink-0 gap-2 border-b border-white/10 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/35 md:gap-4",
+          longLabels
+            ? "md:grid-cols-[minmax(0,1fr)_minmax(0,220px)]"
+            : "md:grid-cols-[minmax(0,220px)_minmax(0,1fr)]",
+        )}
+      >
         <span>Function</span>
-        <span>Software</span>
+        <span>Software / System</span>
       </div>
       <div className={cn("min-h-0 shrink-0", compact ? "space-y-0.5" : "space-y-1")}>
-        {functions.map((functionName) => (
+        {functions.map((entry) => (
           <div
-            key={functionName}
-            className="grid gap-1 md:grid-cols-[minmax(0,220px)_minmax(0,1fr)] md:items-center md:gap-4"
+            key={entry.id}
+            className={cn(
+              "grid gap-1 md:gap-4",
+              longLabels
+                ? "md:grid-cols-[minmax(0,1fr)_minmax(0,220px)] md:items-start"
+                : "md:grid-cols-[minmax(0,220px)_minmax(0,1fr)] md:items-center",
+            )}
           >
             <label
-              htmlFor={`${section.id}-${functionName}`}
-              className="text-[13px] text-white/80"
+              htmlFor={`${section.id}-${entry.id}`}
+              className={cn("text-[13px] leading-snug text-white/80", longLabels && "py-0.5")}
             >
-              {functionName}
+              {entry.label}
             </label>
             <input
-              id={`${section.id}-${functionName}`}
+              id={`${section.id}-${entry.id}`}
               type="text"
-              value={draft[functionName] ?? ""}
+              value={draft[entry.id] ?? ""}
               placeholder={SAEC_DISCOVERY_OPTIONAL_PLACEHOLDER}
-              onChange={(event) => updateDraft(functionName, event.target.value)}
+              onChange={(event) => updateDraft(entry.id, event.target.value)}
               className={cn(
                 "w-full rounded-md border border-white/10 bg-[#070f1a] px-2.5 text-sm text-white outline-none transition-colors placeholder:text-white/30 focus:border-sky-400/50",
                 compact ? "py-1" : "py-1.5",
@@ -767,9 +780,9 @@ export default function SaecDiscoveryApp() {
                   <button
                     type="button"
                     onClick={resetDraft}
-                    className="rounded-md px-2 py-1 text-[10px] font-medium text-white/40 transition-colors hover:text-white/65"
+                    className="inline-flex items-center gap-2 rounded-lg border border-white/15 bg-white/[0.04] px-4 py-2 text-xs font-semibold uppercase tracking-[0.08em] text-white/75 transition-colors hover:bg-white/[0.08]"
                   >
-                    Reset Draft
+                    Reset
                   </button>
                   <button
                     type="button"

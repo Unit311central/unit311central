@@ -27,21 +27,49 @@ for (const section of softwareSections) {
 assert.equal(SAEC_DISCOVERY_SECTIONS.find((s) => s.id === "general")?.includeComments, false);
 
 const marketing = SAEC_DISCOVERY_SECTIONS.find((s) => s.id === "marketing-events");
-assert.ok(marketing?.functions?.includes("Events"));
+assert.ok(marketing?.functions?.some((entry) => entry.id === "Events"));
 assert.equal(
-  marketing?.functions?.includes("Campaigns"),
+  marketing?.functions?.some((entry) => entry.id === "Campaigns"),
   false,
   "Campaigns must not appear in Marketing & Events",
 );
 
 const tech = SAEC_DISCOVERY_SECTIONS.find((s) => s.id === "tech-management");
-assert.deepEqual(tech?.functions, ["IT Assets", "Software & Licenses", "Telecoms"]);
+assert.deepEqual(
+  tech?.functions?.map((entry) => entry.id),
+  ["IT Assets", "Software & Licenses", "Telecoms"],
+);
 
 const hr = SAEC_DISCOVERY_SECTIONS.find((s) => s.id === "human-resources");
-assert.ok(hr?.functions?.includes("Performance"));
+assert.ok(hr?.functions?.some((entry) => entry.id === "Performance"));
 
 const productivity = SAEC_DISCOVERY_SECTIONS.find((s) => s.id === "business-productivity");
-assert.ok(productivity?.functions?.includes("Content Studio"));
+assert.ok(productivity?.functions?.some((entry) => entry.id === "Content Studio"));
+
+const training = SAEC_DISCOVERY_SECTIONS.find((s) => s.id === "training");
+assert.ok(training?.functions?.some((entry) => entry.id === "Training Records"));
+assert.ok(training?.functions?.some((entry) => entry.id === "Competency Tracking"));
+
+const qms = SAEC_DISCOVERY_SECTIONS.find((s) => s.id === "qms");
+assert.ok(qms?.functions?.some((entry) => entry.id === "Quality Records"));
+assert.ok(qms?.functions?.some((entry) => entry.id === "Quality Procedures"));
+
+const legacyTraining = normalizeDiscoveryResponses({
+  training: {
+    completed: false,
+    responses: {
+      Courses: "LMS A",
+      Certifications: "Spreadsheet",
+      "Staff Training": "Teams",
+      "Compliance Training": "SharePoint",
+      [SAEC_DISCOVERY_COMMENTS_KEY]: "",
+    },
+  },
+});
+assert.equal(readSectionAnswer(legacyTraining, "training", "Training Records"), "LMS A");
+assert.equal(readSectionAnswer(legacyTraining, "training", "Competency Tracking"), "Spreadsheet");
+assert.equal(readSectionAnswer(legacyTraining, "training", "Training Delivery"), "Teams");
+assert.equal(readSectionAnswer(legacyTraining, "training", "Training Requirements"), "SharePoint");
 
 const generalQuestions = SAEC_DISCOVERY_SECTIONS.find((s) => s.id === "general")?.questions ?? [];
 assert.equal(generalQuestions.length, 6);

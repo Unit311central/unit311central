@@ -151,17 +151,17 @@ export default function SaecFeedbackWorkspace() {
                     <span>Software</span>
                   </div>
                   <div className="mt-3 divide-y divide-white/[0.06]">
-                    {(section.functions ?? []).map((functionName) => (
+                    {(section.functions ?? []).map((entry) => (
                       <div
-                        key={functionName}
+                        key={entry.id}
                         className="grid gap-2 py-3 md:grid-cols-[minmax(0,280px)_minmax(0,1fr)] md:items-start md:gap-6"
                       >
-                        <p className="text-sm text-white/80">{functionName}</p>
+                        <p className="text-sm text-white/80">{entry.label}</p>
                         <AnswerText
                           value={readSectionAnswer(
                             submission.responses,
                             section.id,
-                            functionName,
+                            entry.id,
                           )}
                         />
                       </div>

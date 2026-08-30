@@ -19,7 +19,7 @@ function formatSubmissionSummary(submission: SaecDiscoverySubmissionRecord): str
   for (const section of SAEC_DISCOVERY_SECTIONS) {
     const answered = section.kind === "software"
       ? (section.functions ?? []).filter((fn) =>
-          readSectionAnswer(submission.responses, section.id, fn),
+          readSectionAnswer(submission.responses, section.id, fn.id),
         ).length
       : (section.questions ?? []).filter((question) =>
           readSectionAnswer(submission.responses, section.id, question.id),

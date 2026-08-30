@@ -34,6 +34,15 @@ export type SaecDiscoveryQuestionConfig = {
 
 export type SaecDiscoverySectionKind = "general" | "software" | "reporting";
 
+export type SaecDiscoverySoftwareFunction = {
+  /** Stable storage key for responses (local draft + Supabase). */
+  id: string;
+  /** Client-facing label or discovery question. */
+  label: string;
+  /** Prior keys — values are migrated on read only. */
+  legacyKeys?: readonly string[];
+};
+
 export type SaecDiscoverySectionConfig = {
   id: string;
   title: string;
@@ -42,9 +51,21 @@ export type SaecDiscoverySectionConfig = {
   intro?: string;
   footer?: string;
   questions?: readonly SaecDiscoveryQuestionConfig[];
-  functions?: readonly string[];
+  functions?: readonly SaecDiscoverySoftwareFunction[];
   includeComments?: boolean;
 };
+
+function fn(
+  id: string,
+  label: string,
+  legacyKeys?: readonly string[],
+): SaecDiscoverySoftwareFunction {
+  return legacyKeys ? { id, label, legacyKeys } : { id, label };
+}
+
+function softwareQuestion(subject: string): string {
+  return `What software or system is currently used for ${subject}?`;
+}
 
 /** Single source of truth for SAEC Discovery sections and fields. */
 export const SAEC_DISCOVERY_SECTIONS: readonly SaecDiscoverySectionConfig[] = [
@@ -103,14 +124,24 @@ export const SAEC_DISCOVERY_SECTIONS: readonly SaecDiscoverySectionConfig[] = [
     title: "Client Management",
     icon: "Users",
     kind: "software",
-    functions: ["Client Directory", "Contacts", "Onboarding", "Account Management"],
+    functions: [
+      fn("Client Directory", "Client Directory"),
+      fn("Contacts", "Contacts"),
+      fn("Onboarding", "Onboarding"),
+      fn("Account Management", "Account Management"),
+    ],
   },
   {
     id: "sales-management",
     title: "Sales Management",
     icon: "ShoppingCart",
     kind: "software",
-    functions: ["Pipeline", "Sales Quotes", "Sales Targets & Forecast", "Sales Team Performance"],
+    functions: [
+      fn("Pipeline", "Pipeline"),
+      fn("Sales Quotes", "Sales Quotes"),
+      fn("Sales Targets & Forecast", "Sales Targets & Forecast"),
+      fn("Sales Team Performance", "Sales Team Performance"),
+    ],
   },
   {
     id: "finances",
@@ -118,12 +149,12 @@ export const SAEC_DISCOVERY_SECTIONS: readonly SaecDiscoverySectionConfig[] = [
     icon: "Calculator",
     kind: "software",
     functions: [
-      "General Ledger",
-      "Invoicing",
-      "Accounts Payable",
-      "Accounts Receivable",
-      "Expenses",
-      "Payroll",
+      fn("General Ledger", "General Ledger"),
+      fn("Invoicing", "Invoicing"),
+      fn("Accounts Payable", "Accounts Payable"),
+      fn("Accounts Receivable", "Accounts Receivable"),
+      fn("Expenses", "Expenses"),
+      fn("Payroll", "Payroll"),
     ],
   },
   {
@@ -131,21 +162,36 @@ export const SAEC_DISCOVERY_SECTIONS: readonly SaecDiscoverySectionConfig[] = [
     title: "Operations",
     icon: "Layers",
     kind: "software",
-    functions: ["Asset Management", "Inventory", "Stock Control", "Logistics", "Procurement"],
+    functions: [
+      fn("Asset Management", "Asset Management"),
+      fn("Inventory", "Inventory"),
+      fn("Stock Control", "Stock Control"),
+      fn("Logistics", "Logistics"),
+      fn("Procurement", "Procurement"),
+    ],
   },
   {
     id: "marketing-events",
     title: "Marketing & Events",
     icon: "Megaphone",
     kind: "software",
-    functions: ["Events", "Email Marketing", "Social Media", "Mailing Lists"],
+    functions: [
+      fn("Events", "Events"),
+      fn("Email Marketing", "Email Marketing"),
+      fn("Social Media", "Social Media"),
+      fn("Mailing Lists", "Mailing Lists"),
+    ],
   },
   {
     id: "tech-management",
     title: "Tech Management",
     icon: "Settings2",
     kind: "software",
-    functions: ["IT Assets", "Software & Licenses", "Telecoms"],
+    functions: [
+      fn("IT Assets", "IT Assets"),
+      fn("Software & Licenses", "Software & Licenses"),
+      fn("Telecoms", "Telecoms"),
+    ],
   },
   {
     id: "human-resources",
@@ -153,12 +199,12 @@ export const SAEC_DISCOVERY_SECTIONS: readonly SaecDiscoverySectionConfig[] = [
     icon: "Briefcase",
     kind: "software",
     functions: [
-      "Employee Records",
-      "Recruitment",
-      "Time & Attendance",
-      "Payroll",
-      "Leave Management",
-      "Performance",
+      fn("Employee Records", "Employee Records"),
+      fn("Recruitment", "Recruitment"),
+      fn("Time & Attendance", "Time & Attendance"),
+      fn("Payroll", "Payroll"),
+      fn("Leave Management", "Leave Management"),
+      fn("Performance", "Performance"),
     ],
   },
   {
@@ -167,12 +213,12 @@ export const SAEC_DISCOVERY_SECTIONS: readonly SaecDiscoverySectionConfig[] = [
     icon: "MessageSquare",
     kind: "software",
     functions: [
-      "Email",
-      "Calendar",
-      "File Storage",
-      "Messaging",
-      "Video Meetings",
-      "Content Studio",
+      fn("Email", "Email"),
+      fn("Calendar", "Calendar"),
+      fn("File Storage", "File Storage"),
+      fn("Messaging", "Messaging"),
+      fn("Video Meetings", "Video Meetings"),
+      fn("Content Studio", "Content Studio"),
     ],
   },
   {
@@ -180,35 +226,64 @@ export const SAEC_DISCOVERY_SECTIONS: readonly SaecDiscoverySectionConfig[] = [
     title: "Support",
     icon: "Headphones",
     kind: "software",
-    functions: ["Ticket Tracking", "Service Requests", "Helpdesk", "Customer Communication"],
+    functions: [
+      fn("Ticket Tracking", "Ticket Tracking"),
+      fn("Service Requests", "Service Requests"),
+      fn("Helpdesk", "Helpdesk"),
+      fn("Customer Communication", "Customer Communication"),
+    ],
   },
   {
     id: "project-management",
     title: "Project Management",
     icon: "FolderKanban",
     kind: "software",
-    functions: ["Projects", "Tasks", "Timelines", "Resource Planning", "Milestones"],
+    functions: [
+      fn("Projects", softwareQuestion("managing projects")),
+      fn("Tasks", softwareQuestion("managing tasks")),
+      fn("Timelines", softwareQuestion("project schedules and timelines")),
+      fn("Resource Planning", softwareQuestion("resource planning and capacity")),
+      fn("Milestones", softwareQuestion("milestones and delivery tracking")),
+    ],
   },
   {
     id: "engineering",
     title: "Engineering",
     icon: "HardHat",
     kind: "software",
-    functions: ["Technical Files", "Programs", "Design Documentation", "Change Control"],
+    functions: [
+      fn("Technical Files", softwareQuestion("technical files and technical records")),
+      fn("Programs", softwareQuestion("engineering programmes and engineering work")),
+      fn("Design Documentation", softwareQuestion("design documentation")),
+      fn("Change Control", softwareQuestion("engineering change control and revisions")),
+    ],
   },
   {
     id: "training",
     title: "Training",
     icon: "GraduationCap",
     kind: "software",
-    functions: ["Courses", "Certifications", "Staff Training", "Compliance Training"],
+    functions: [
+      fn("Training Records", softwareQuestion("training records"), ["Courses"]),
+      fn("Training Requirements", softwareQuestion("training requirements"), ["Compliance Training"]),
+      fn("Training Planning", softwareQuestion("training planning")),
+      fn("Training Delivery", softwareQuestion("training delivery"), ["Staff Training"]),
+      fn("Competency Tracking", softwareQuestion("competency tracking"), ["Certifications"]),
+    ],
   },
   {
     id: "qms",
     title: "QMS",
     icon: "ShieldCheck",
     kind: "software",
-    functions: ["Document Control", "Quality Audits", "CAPA", "Compliance Reporting"],
+    functions: [
+      fn("Quality Records", softwareQuestion("quality records")),
+      fn("Document Control", softwareQuestion("document control")),
+      fn("Non-Conformance", softwareQuestion("non-conformances")),
+      fn("CAPA", softwareQuestion("corrective and preventive actions")),
+      fn("Quality Audits", softwareQuestion("quality audits")),
+      fn("Quality Procedures", softwareQuestion("quality procedures"), ["Compliance Reporting"]),
+    ],
   },
   {
     id: "reporting",
@@ -264,9 +339,26 @@ export function responseKeysForSection(section: SaecDiscoverySectionConfig): str
     if (sectionIncludesComments(section)) keys.push(SAEC_DISCOVERY_COMMENTS_KEY);
     return keys;
   }
-  const keys = [...(section.functions ?? [])];
+  const keys = [...(section.functions ?? []).map((entry) => entry.id)];
   if (sectionIncludesComments(section)) keys.push(SAEC_DISCOVERY_COMMENTS_KEY);
   return keys;
+}
+
+function migrateLegacySoftwareResponses(
+  section: SaecDiscoverySectionConfig,
+  responsesRaw: Record<string, unknown>,
+  responses: Record<string, string>,
+): void {
+  for (const entry of section.functions ?? []) {
+    if (responses[entry.id]?.trim()) continue;
+    for (const legacyKey of entry.legacyKeys ?? []) {
+      const legacyValue = responsesRaw[legacyKey];
+      if (typeof legacyValue === "string" && legacyValue.trim()) {
+        responses[entry.id] = legacyValue;
+        break;
+      }
+    }
+  }
 }
 
 export function emptySectionResponses(section: SaecDiscoverySectionConfig): Record<string, string> {
@@ -292,6 +384,9 @@ export function normalizeDiscoveryResponses(raw: unknown): SaecDiscoveryState {
       for (const key of keys) {
         const value = responsesRaw[key];
         responses[key] = typeof value === "string" ? value : "";
+      }
+      if (section.kind === "software") {
+        migrateLegacySoftwareResponses(section, responsesRaw, responses);
       }
       normalized[section.id] = {
         completed: Boolean(sectionState.completed),

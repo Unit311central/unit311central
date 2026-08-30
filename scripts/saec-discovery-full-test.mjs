@@ -114,7 +114,7 @@ try {
     await page.waitForSelector('[role="status"]:has-text("Draft saved")');
 
     page.once("dialog", (dialog) => dialog.accept());
-    await page.locator('button:has-text("Reset Draft")').click();
+    await page.locator('button:has-text("RESET")').click();
     await page.waitForSelector('[role="status"]:has-text("Draft cleared")');
     await page.reload({ waitUntil: "networkidle" });
     await page.getByRole("button", { name: "General", exact: true }).click();
