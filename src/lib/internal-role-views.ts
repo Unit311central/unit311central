@@ -1594,6 +1594,11 @@ function injectInternalPlatformAnalytics(
         icon: "Activity",
         view: "system-health",
       },
+      {
+        label: "SAEC Feedback",
+        icon: "MessageSquare",
+        view: "saec-feedback",
+      },
     ],
   };
 

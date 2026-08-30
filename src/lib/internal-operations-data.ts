@@ -133,6 +133,7 @@ export type InternalOperationsView =
   | "platform-analytics"
   | "website-analytics"
   | "system-health"
+  | "saec-feedback"
   | "workspaces-overview"
   | "workspaces-new"
   | "website-management"
@@ -471,6 +472,7 @@ export const internalOperationsViews: InternalOperationsView[] = [
   "platform-analytics",
   "website-analytics",
   "system-health",
+  "saec-feedback",
   "workspaces-overview",
   "workspaces-new",
   "website-management",
@@ -1341,6 +1343,7 @@ export const internalViewTitles: Record<
   "platform-analytics": { title: "Platform Analytics", subtitle: "Analytics" },
   "website-analytics": { title: "Website Analytics", subtitle: "Analytics" },
   "system-health": { title: "System Health", subtitle: "Analytics" },
+  "saec-feedback": { title: "SAEC Feedback", subtitle: "Analytics" },
   "workspaces-overview": { title: "Workspace Overview", subtitle: "Workspaces" },
   "workspaces-new": { title: "New Workspace", subtitle: "Workspaces" },
   "website-management": { title: "Website Management", subtitle: "Tools" },

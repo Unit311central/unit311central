@@ -23,6 +23,7 @@ export const ALWAYS_ALLOWED_VIEWS: readonly InternalOperationsView[] = [
   "platform-analytics",
   "website-analytics",
   "system-health",
+  "saec-feedback",
   "workspaces-overview",
   "workspaces-new",
 ];
@@ -46,7 +47,7 @@ export const MODULE_GRANT_GROUPS: ModuleGrantGroup[] = [
     id: "analytics",
     label: "Analytics",
     section: "Analytics",
-    views: ["platform-analytics", "website-analytics"],
+    views: ["platform-analytics", "website-analytics", "saec-feedback"],
   },
   {
     id: "clients",

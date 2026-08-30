@@ -146,6 +146,7 @@ export const Unit311PlatformSupportWorkspace = lazyWorkspace(
 export const PlatformAnalyticsWorkspace = lazyWorkspace(() => import("./PlatformAnalyticsWorkspace"));
 export const WebsiteAnalyticsWorkspace = lazyWorkspace(() => import("./WebsiteAnalyticsWorkspace"));
 export const SystemHealthWorkspace = lazyWorkspace(() => import("./SystemHealthWorkspace"));
+export const SaecFeedbackWorkspace = lazyWorkspace(() => import("./SaecFeedbackWorkspace"));
 export const WebODMWorkspace = lazyWorkspace(() => import("./WebODMWorkspace"));
 export const ManagementWorkspace = lazyWorkspace(
   () => import("@/components/central-capabilities/ManagementWorkspace"),

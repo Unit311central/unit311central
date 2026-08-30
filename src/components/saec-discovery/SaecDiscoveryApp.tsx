@@ -11,6 +11,7 @@ import {
   Headphones,
   HardHat,
   Layers,
+  Loader2,
   Megaphone,
   MessageSquare,
   Settings2,
@@ -19,147 +20,65 @@ import {
   Users,
 } from "lucide-react";
 
+import {
+  SAEC_DISCOVERY_MODULES,
+  SAEC_DISCOVERY_STORAGE_KEY,
+  buildDiscoverySubmissionSnapshot,
+  emptyModuleResponses,
+  type SaecDiscoveryIconKey,
+} from "@/lib/saec-discovery/config";
+import type { SaecDiscoveryState } from "@/lib/saec-discovery/types";
 import { cn } from "@/lib/utils";
 
-const STORAGE_KEY = "saec-discovery-v2";
-
-type ModuleState = {
-  completed: boolean;
-  responses: Record<string, string>;
+const ICONS: Record<
+  SaecDiscoveryIconKey,
+  React.ComponentType<{ className?: string; strokeWidth?: number }>
+> = {
+  Users,
+  ShoppingCart,
+  Calculator,
+  Layers,
+  Megaphone,
+  Settings2,
+  Briefcase,
+  MessageSquare,
+  Headphones,
+  FolderKanban,
+  HardHat,
+  GraduationCap,
+  ShieldCheck,
 };
-
-type DiscoveryState = Record<string, ModuleState>;
 
 type ModuleDef = {
   id: string;
   title: string;
   icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
-  functions: string[];
+  functions: readonly string[];
 };
 
-/** SAEC discovery configuration — reusable module → function → software shape. */
-const DISCOVERY_MODULES: ModuleDef[] = [
-  {
-    id: "client-management",
-    title: "Client Management",
-    icon: Users,
-    functions: ["Client Directory", "Contacts", "Onboarding", "Account Management"],
-  },
-  {
-    id: "sales-management",
-    title: "Sales Management",
-    icon: ShoppingCart,
-    functions: [
-      "Pipeline",
-      "Sales Quotes",
-      "Sales Targets & Forecast",
-      "Sales Team Performance",
-    ],
-  },
-  {
-    id: "finances",
-    title: "Finances",
-    icon: Calculator,
-    functions: [
-      "General Ledger",
-      "Invoicing",
-      "Accounts Payable",
-      "Accounts Receivable",
-      "Expenses",
-      "Payroll",
-    ],
-  },
-  {
-    id: "operations",
-    title: "Operations",
-    icon: Layers,
-    functions: ["Asset Management", "Inventory", "Stock Control", "Logistics", "Procurement"],
-  },
-  {
-    id: "marketing-events",
-    title: "Marketing & Events",
-    icon: Megaphone,
-    functions: ["Events", "Email Marketing", "Social Media", "Mailing Lists"],
-  },
-  {
-    id: "tech-management",
-    title: "Tech Management",
-    icon: Settings2,
-    functions: ["IT Assets", "Software & Licenses", "Telecoms"],
-  },
-  {
-    id: "human-resources",
-    title: "Human Resources",
-    icon: Briefcase,
-    functions: [
-      "Employee Records",
-      "Recruitment",
-      "Time & Attendance",
-      "Payroll",
-      "Leave Management",
-      "Performance",
-    ],
-  },
-  {
-    id: "business-productivity",
-    title: "Business Productivity",
-    icon: MessageSquare,
-    functions: ["Email", "Calendar", "File Storage", "Messaging", "Video Meetings", "Content Studio"],
-  },
-  {
-    id: "support",
-    title: "Support",
-    icon: Headphones,
-    functions: ["Ticket Tracking", "Service Requests", "Helpdesk", "Customer Communication"],
-  },
-  {
-    id: "project-management",
-    title: "Project Management",
-    icon: FolderKanban,
-    functions: ["Projects", "Tasks", "Timelines", "Resource Planning", "Milestones"],
-  },
-  {
-    id: "engineering",
-    title: "Engineering",
-    icon: HardHat,
-    functions: ["Technical Files", "Programs", "Design Documentation", "Change Control"],
-  },
-  {
-    id: "training",
-    title: "Training",
-    icon: GraduationCap,
-    functions: ["Courses", "Certifications", "Staff Training", "Compliance Training"],
-  },
-  {
-    id: "qms",
-    title: "QMS",
-    icon: ShieldCheck,
-    functions: ["Document Control", "Quality Audits", "CAPA", "Compliance Reporting"],
-  },
-];
+const DISCOVERY_MODULES: ModuleDef[] = SAEC_DISCOVERY_MODULES.map((module) => ({
+  ...module,
+  icon: ICONS[module.icon],
+}));
 
-function emptyResponses(functions: string[]): Record<string, string> {
-  return Object.fromEntries(functions.map((fn) => [fn, ""]));
-}
-
-function loadState(): DiscoveryState {
+function loadState(): SaecDiscoveryState {
   if (typeof window === "undefined") return {};
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
+    const raw = window.localStorage.getItem(SAEC_DISCOVERY_STORAGE_KEY);
     if (!raw) return {};
-    const parsed = JSON.parse(raw) as DiscoveryState;
+    const parsed = JSON.parse(raw) as SaecDiscoveryState;
     return parsed && typeof parsed === "object" ? parsed : {};
   } catch {
     return {};
   }
 }
 
-function persistState(state: DiscoveryState) {
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+function persistState(state: SaecDiscoveryState) {
+  window.localStorage.setItem(SAEC_DISCOVERY_STORAGE_KEY, JSON.stringify(state));
 }
 
-function draftFromModule(module: ModuleDef, saved?: ModuleState): Record<string, string> {
-  const base = emptyResponses(module.functions);
+function draftFromModule(module: ModuleDef, saved?: SaecDiscoveryState[string]): Record<string, string> {
+  const base = emptyModuleResponses(module.functions);
   if (!saved?.responses) return base;
   for (const fn of module.functions) {
     base[fn] = saved.responses[fn] ?? "";
@@ -167,11 +86,27 @@ function draftFromModule(module: ModuleDef, saved?: ModuleState): Record<string,
   return base;
 }
 
+function formatSubmittedAt(value: string | null | undefined) {
+  if (!value) return "";
+  try {
+    return new Date(value).toLocaleString("en-GB", {
+      dateStyle: "medium",
+      timeStyle: "short",
+    });
+  } catch {
+    return value;
+  }
+}
+
 export default function SaecDiscoveryApp() {
-  const [stored, setStored] = useState<DiscoveryState>({});
+  const [stored, setStored] = useState<SaecDiscoveryState>({});
   const [hydrated, setHydrated] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [draft, setDraft] = useState<Record<string, string>>({});
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [submittedAt, setSubmittedAt] = useState<string | null>(null);
+  const [submitSuccessMessage, setSubmitSuccessMessage] = useState<string | null>(null);
 
   useEffect(() => {
     const loaded = loadState();
@@ -183,6 +118,34 @@ export default function SaecDiscoveryApp() {
     }
     setHydrated(true);
   }, []);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    let cancelled = false;
+
+    void (async () => {
+      try {
+        const response = await fetch("/api/saec-discovery/submit", {
+          cache: "no-store",
+        });
+        if (!response.ok) return;
+        const payload = (await response.json()) as {
+          submitted?: boolean;
+          submittedAt?: string | null;
+        };
+        if (cancelled) return;
+        if (payload.submitted && payload.submittedAt) {
+          setSubmittedAt(payload.submittedAt);
+        }
+      } catch {
+        // Status lookup is best-effort; local draft remains available offline.
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [hydrated]);
 
   const selectModule = useCallback(
     (module: ModuleDef) => {
@@ -201,8 +164,8 @@ export default function SaecDiscoveryApp() {
       const responses = Object.fromEntries(
         module.functions.map((fn) => [fn, (draft[fn] ?? "").trim()]),
       );
-      const saved: ModuleState = { completed: true, responses };
-      const next: DiscoveryState = {
+      const saved = { completed: true, responses };
+      const next: SaecDiscoveryState = {
         ...stored,
         [module.id]: saved,
       };
@@ -212,6 +175,54 @@ export default function SaecDiscoveryApp() {
     },
     [draft, stored],
   );
+
+  const submitDiscovery = useCallback(async () => {
+    if (submitting) return;
+
+    const alreadySubmitted = Boolean(submittedAt);
+    if (
+      alreadySubmitted &&
+      !window.confirm(
+        "SAEC Discovery has already been submitted. Submit again to update the stored response?",
+      )
+    ) {
+      return;
+    }
+
+    setSubmitting(true);
+    setSubmitError(null);
+    setSubmitSuccessMessage(null);
+
+    try {
+      const snapshot = buildDiscoverySubmissionSnapshot(stored, selectedId, draft);
+      const response = await fetch("/api/saec-discovery/submit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ responses: snapshot }),
+      });
+      const payload = (await response.json()) as {
+        ok?: boolean;
+        error?: string;
+        submission?: { submittedAt?: string; updatedAt?: string };
+      };
+
+      if (!response.ok || !payload.ok) {
+        throw new Error(payload.error ?? "Unable to submit SAEC Discovery.");
+      }
+
+      const when = payload.submission?.submittedAt ?? payload.submission?.updatedAt ?? null;
+      setSubmittedAt(when);
+      setSubmitSuccessMessage(
+        alreadySubmitted
+          ? "SAEC Discovery updated successfully."
+          : "SAEC Discovery submitted successfully.",
+      );
+    } catch (error) {
+      setSubmitError(error instanceof Error ? error.message : "Unable to submit SAEC Discovery.");
+    } finally {
+      setSubmitting(false);
+    }
+  }, [draft, selectedId, stored, submittedAt, submitting]);
 
   const selectedModule = DISCOVERY_MODULES.find((module) => module.id === selectedId) ?? null;
 
@@ -357,6 +368,43 @@ export default function SaecDiscoveryApp() {
             )}
           </main>
         </div>
+
+        <section className="mt-5 shrink-0 rounded-xl border border-white/10 bg-[#0b1524]/70 p-5 sm:p-6">
+          {submittedAt ? (
+            <p className="mb-4 text-sm text-sky-200/85">
+              Previously submitted on {formatSubmittedAt(submittedAt)}.
+            </p>
+          ) : null}
+          {submitSuccessMessage ? (
+            <p className="mb-4 rounded-lg border border-emerald-400/25 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100">
+              {submitSuccessMessage}
+            </p>
+          ) : null}
+          {submitError ? (
+            <p className="mb-4 rounded-lg border border-rose-400/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-100">
+              {submitError}
+            </p>
+          ) : null}
+          <div className="flex justify-end">
+            <button
+              type="button"
+              onClick={() => void submitDiscovery()}
+              disabled={submitting}
+              className="inline-flex items-center justify-center rounded-lg bg-[#1F4FBF] px-6 py-3 text-xs font-semibold uppercase tracking-[0.1em] text-white transition-colors hover:bg-[#2563eb] disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {submitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Submitting…
+                </>
+              ) : submittedAt ? (
+                "Update SAEC Discovery"
+              ) : (
+                "Submit SAEC Discovery"
+              )}
+            </button>
+          </div>
+        </section>
       </div>
     </div>
   );
