@@ -22,37 +22,31 @@ import {
 import {
   isBrowserInterfaceWorxQaSurface,
   isBrowserTestWorkspaceSurface,
-  isQaBetaWorkspaceSlug,
   isQaEnabledWorkspaceSlug,
 } from "@/lib/qa-workspace/surface";
 import type { QaPageContext, QaTaskCaptureContext } from "@/lib/qa-workspace/types";
 
-import QaBetaReportDialog, { QaBetaReportFab } from "./QaBetaReportDialog";
 import QaModeOverlay from "./QaModeOverlay";
 import QaTaskDialog from "./QaTaskDialog";
 
 type QaWorkspaceContextValue = {
   enabled: boolean;
-  betaMode: boolean;
   qaMode: boolean;
   setQaMode: (value: boolean) => void;
   pageContext: QaPageContext | null;
   openPageLevelTask: () => void;
   openModuleLevelTask: () => void;
   openWorkspaceLevelTask: () => void;
-  openBetaReport: () => void;
 };
 
 const QaWorkspaceContext = createContext<QaWorkspaceContextValue>({
   enabled: false,
-  betaMode: false,
   qaMode: false,
   setQaMode: () => undefined,
   pageContext: null,
   openPageLevelTask: () => undefined,
   openModuleLevelTask: () => undefined,
   openWorkspaceLevelTask: () => undefined,
-  openBetaReport: () => undefined,
 });
 
 export function useQaWorkspace() {
@@ -81,13 +75,11 @@ export default function QaWorkspaceProvider({
     isQaEnabledWorkspaceSlug(slug) ||
     isBrowserTestWorkspaceSurface() ||
     isBrowserInterfaceWorxQaSurface();
-  const betaMode = isQaBetaWorkspaceSlug(slug) || isBrowserInterfaceWorxQaSurface();
   const pathname = usePathname() ?? "";
   const searchParams = useSearchParams();
   const search = searchParams?.toString() ? `?${searchParams.toString()}` : "";
   const [qaMode, setQaModeState] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [betaDialogOpen, setBetaDialogOpen] = useState(false);
   const [captureContext, setCaptureContext] = useState<QaTaskCaptureContext | null>(null);
 
   const pageContext = useMemo(() => {
@@ -119,7 +111,6 @@ export default function QaWorkspaceProvider({
   useEffect(() => {
     if (!qaMode) {
       setDialogOpen(false);
-      setBetaDialogOpen(false);
       setCaptureContext(null);
     }
   }, [qaMode]);
@@ -148,11 +139,6 @@ export default function QaWorkspaceProvider({
     openCapture(buildWorkspaceCapture(pageContext));
   }, [openCapture, pageContext]);
 
-  const openBetaReport = useCallback(() => {
-    if (!enabled || !betaMode || !pageContext) return;
-    setBetaDialogOpen(true);
-  }, [enabled, betaMode, pageContext]);
-
   const handleElementSelected = useCallback(
     (elementContext: Parameters<typeof buildElementCapture>[1]) => {
       if (!pageContext) return;
@@ -164,32 +150,28 @@ export default function QaWorkspaceProvider({
   const value = useMemo(
     () => ({
       enabled,
-      betaMode,
       qaMode,
       setQaMode,
       pageContext,
       openPageLevelTask,
       openModuleLevelTask,
       openWorkspaceLevelTask,
-      openBetaReport,
     }),
     [
       enabled,
-      betaMode,
       qaMode,
       setQaMode,
       pageContext,
       openPageLevelTask,
       openModuleLevelTask,
       openWorkspaceLevelTask,
-      openBetaReport,
     ],
   );
 
   return (
     <QaWorkspaceContext.Provider value={value}>
       {children}
-      {enabled && qaMode && !betaMode && pageContext ? (
+      {enabled && qaMode && pageContext ? (
         <QaModeOverlay
           onElementSelected={handleElementSelected}
           onPageLevelTask={openPageLevelTask}
@@ -197,15 +179,7 @@ export default function QaWorkspaceProvider({
           onWorkspaceLevelTask={openWorkspaceLevelTask}
         />
       ) : null}
-      {enabled && qaMode && betaMode && activeView !== "qa-tasks" ? (
-        <div
-          data-qa-overlay
-          className="pointer-events-none fixed bottom-5 right-5 z-[80] flex justify-end"
-        >
-          <QaBetaReportFab onClick={openBetaReport} />
-        </div>
-      ) : null}
-      {enabled && !betaMode && captureContext ? (
+      {enabled && captureContext ? (
         <QaTaskDialog
           open={dialogOpen}
           captureContext={captureContext}
@@ -213,13 +187,6 @@ export default function QaWorkspaceProvider({
             setDialogOpen(false);
             setCaptureContext(null);
           }}
-        />
-      ) : null}
-      {enabled && betaMode && pageContext ? (
-        <QaBetaReportDialog
-          open={betaDialogOpen}
-          pageContext={pageContext}
-          onClose={() => setBetaDialogOpen(false)}
         />
       ) : null}
     </QaWorkspaceContext.Provider>

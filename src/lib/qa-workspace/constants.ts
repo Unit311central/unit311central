@@ -13,16 +13,6 @@ export const QA_TASK_LEGACY_STATUSES = ["completed"] as const;
 
 export type QaTaskStatus = (typeof QA_TASK_STATUSES)[number];
 
-export const QA_BETA_REPORT_TYPES = [
-  { id: "broken", label: "Something is broken" },
-  { id: "not_working", label: "Something isn't working correctly" },
-  { id: "change", label: "I'd like this changed" },
-  { id: "confused", label: "I don't understand this" },
-  { id: "feature", label: "I'd like something added" },
-] as const;
-
-export type QaBetaReportTypeId = (typeof QA_BETA_REPORT_TYPES)[number]["id"];
-
 export const QA_TASK_SCOPES = ["workspace", "module", "page", "element"] as const;
 
 export type QaTaskScope = (typeof QA_TASK_SCOPES)[number];
