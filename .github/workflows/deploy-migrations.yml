@@ -218,3 +218,23 @@ jobs:
           body=$(curl -fsS "https://unit311central.com/api/internal/company-details-health")
           echo "$body" | jq .
           echo "$body" | jq -e '.ok == true and .ready == true' >/dev/null
+
+      - name: Seed unit311 Tom expenses (idempotent)
+        env:
+          SETUP_SECRET: ${{ secrets.INTERNAL_FILES_SETUP_SECRET }}
+        run: |
+          set -euo pipefail
+          if [ -z "${SETUP_SECRET:-}" ]; then
+            echo "INTERNAL_FILES_SETUP_SECRET not configured — skipping Tom expense seed."
+            exit 0
+          fi
+          http_code=$(curl -sS -o /tmp/tom-expense-seed.json -w "%{http_code}" -X POST \
+            -H "x-setup-secret: ${SETUP_SECRET}" \
+            -H "Content-Type: application/json" \
+            "https://unit311central.com/api/internal/seed-unit311-tom-expenses")
+          cat /tmp/tom-expense-seed.json | jq . || cat /tmp/tom-expense-seed.json
+          if [ "$http_code" != "200" ]; then
+            echo "Tom expense seed failed with HTTP ${http_code}"
+            exit 1
+          fi
+          jq -e '.ok == true' /tmp/tom-expense-seed.json >/dev/null

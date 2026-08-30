@@ -34,6 +34,7 @@
     "prove:legacy-bcn-nav": "node --import tsx src/lib/__tests__/legacy-bcn-nav.check.ts",
     "db:seed-unit311-tom-expenses": "node --require ./scripts/test-server-only-hook.cjs --import tsx scripts/seed-unit311-tom-expenses.ts",
     "prove:unit311-tom-expenses": "node scripts/prove-unit311-tom-expenses.mjs",
+    "import:unit311-tom-expenses-prod": "node scripts/import-unit311-tom-expenses-prod.mjs",
     "preview:android": "next dev",
     "prove:talanton-ea": "node --import tsx src/lib/talanton/__tests__/ea-test-suite.check.ts",
     "prove:abhi-ea": "node --import tsx src/lib/abhi/__tests__/ea-test-suite.check.ts",

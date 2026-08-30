@@ -3,7 +3,7 @@
  */
 import assert from "node:assert/strict";
 
-import { internalSurveyNavSections } from "@/lib/internal-operations-data";
+import { internalSurveyNavSections, type InternalNavSection } from "@/lib/internal-operations-data";
 import { injectQaWorkspaceNav } from "@/lib/qa-workspace/nav";
 import { TEST_WORKSPACE_SLUG } from "@/lib/qa-workspace/constants";
 import {
@@ -19,9 +19,7 @@ import {
 } from "@/lib/platform-workspaces/module-catalogue";
 import { buildWorkspaceProductNavSections } from "@/lib/platform-workspaces/workspace-product-nav";
 
-function toolsItemLabels(
-  sections: readonly { kind: string; label: string; items?: { label: string }[] }[],
-): string[] {
+function toolsItemLabels(sections: readonly InternalNavSection[]): string[] {
   const tools = sections.find((section) => section.kind === "workspace" && section.label === "Tools");
   return tools?.items?.map((item) => item.label) ?? [];
 }
