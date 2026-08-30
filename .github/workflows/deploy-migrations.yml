@@ -84,6 +84,10 @@ jobs:
             if [ "$http_code" = "200" ] && echo "$response" | jq -e '.ok == true' >/dev/null 2>&1; then
               break
             fi
+            if echo "$response" | rg -q "Management API query failed \\(400\\)"; then
+              echo "Non-retryable migration apply error (HTTP ${http_code})"
+              exit 1
+            fi
             if [ "$attempt" -eq 8 ]; then
               echo "Migration apply failed after ${attempt} attempts (last HTTP ${http_code})"
               exit 1
