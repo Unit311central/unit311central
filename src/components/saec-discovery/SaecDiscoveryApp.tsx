@@ -5,7 +5,6 @@ import {
   Briefcase,
   Calculator,
   Check,
-  ChevronDown,
   ChevronRight,
   FolderKanban,
   GraduationCap,
@@ -177,25 +176,26 @@ function draftFromModule(module: ModuleDef, saved?: ModuleState): Record<string,
 export default function SaecDiscoveryApp() {
   const [stored, setStored] = useState<DiscoveryState>({});
   const [hydrated, setHydrated] = useState(false);
-  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [draft, setDraft] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    setStored(loadState());
+    const loaded = loadState();
+    setStored(loaded);
+    const first = DISCOVERY_MODULES[0];
+    if (first) {
+      setSelectedId(first.id);
+      setDraft(draftFromModule(first, loaded[first.id]));
+    }
     setHydrated(true);
   }, []);
 
-  const toggleModule = useCallback(
+  const selectModule = useCallback(
     (module: ModuleDef) => {
-      if (expandedId === module.id) {
-        setExpandedId(null);
-        setDraft({});
-        return;
-      }
-      setExpandedId(module.id);
+      setSelectedId(module.id);
       setDraft(draftFromModule(module, stored[module.id]));
     },
-    [expandedId, stored],
+    [stored],
   );
 
   const updateDraft = useCallback((functionName: string, value: string) => {
@@ -207,17 +207,19 @@ export default function SaecDiscoveryApp() {
       const responses = Object.fromEntries(
         module.functions.map((fn) => [fn, (draft[fn] ?? "").trim()]),
       );
+      const saved: ModuleState = { completed: true, responses };
       const next: DiscoveryState = {
         ...stored,
-        [module.id]: { completed: true, responses },
+        [module.id]: saved,
       };
       setStored(next);
       persistState(next);
-      setExpandedId(null);
-      setDraft({});
+      setDraft(draftFromModule(module, saved));
     },
     [draft, stored],
   );
+
+  const selectedModule = DISCOVERY_MODULES.find((module) => module.id === selectedId) ?? null;
 
   if (!hydrated) {
     return (
@@ -228,13 +230,14 @@ export default function SaecDiscoveryApp() {
   }
 
   return (
-    <div className="min-h-screen bg-[#020617] text-white">
+    <div className="flex min-h-screen flex-col bg-[#020617] text-white">
       <div
         className="pointer-events-none fixed inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,rgba(47,128,237,0.14),transparent)]"
         aria-hidden
       />
-      <div className="relative mx-auto w-full max-w-3xl px-4 py-8 sm:px-6 sm:py-10">
-        <header className="mb-8">
+
+      <div className="relative flex min-h-screen flex-col px-4 py-6 sm:px-6 sm:py-8 lg:px-10">
+        <header className="mb-6 shrink-0 lg:mb-8">
           <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-sky-300/80">
             SAEC Discovery
           </p>
@@ -244,112 +247,122 @@ export default function SaecDiscoveryApp() {
           <p className="mt-2 text-sm text-white/55">What software do you currently use?</p>
         </header>
 
-        <div className="space-y-2">
-          {DISCOVERY_MODULES.map((module) => {
-            const state = stored[module.id];
-            const completed = Boolean(state?.completed);
-            const expanded = expandedId === module.id;
-            const Icon = module.icon;
+        <div className="flex min-h-0 flex-1 flex-col gap-4 lg:flex-row lg:gap-6">
+          {/* Left navigation */}
+          <nav
+            className="shrink-0 rounded-xl border border-white/10 bg-[#0b1524]/60 lg:w-[280px] xl:w-[300px]"
+            aria-label="Discovery areas"
+          >
+            <ul className="divide-y divide-white/[0.06]">
+              {DISCOVERY_MODULES.map((module) => {
+                const state = stored[module.id];
+                const completed = Boolean(state?.completed);
+                const selected = selectedId === module.id;
+                const Icon = module.icon;
 
-            return (
-              <div
-                key={module.id}
-                className={cn(
-                  "overflow-hidden rounded-xl border transition-colors",
-                  completed
-                    ? "border-emerald-400/30 bg-emerald-500/[0.06]"
-                    : expanded
-                      ? "border-sky-400/35 bg-white/[0.04]"
-                      : "border-white/10 bg-white/[0.02]",
-                )}
-              >
-                <button
-                  type="button"
-                  onClick={() => toggleModule(module)}
-                  className={cn(
-                    "flex w-full items-center gap-3 px-4 py-3 text-left transition-colors",
-                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/50 focus-visible:ring-inset",
-                    !expanded && !completed && "hover:bg-white/[0.03]",
-                  )}
-                >
-                  <span
-                    className={cn(
-                      "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border",
-                      completed
-                        ? "border-emerald-400/25 bg-emerald-500/10 text-emerald-200"
-                        : "border-white/10 bg-white/[0.04] text-sky-200/90",
-                    )}
-                  >
-                    {completed ? (
-                      <Check className="h-4 w-4" strokeWidth={2.5} />
-                    ) : (
-                      <Icon className="h-4 w-4" strokeWidth={1.75} />
-                    )}
-                  </span>
-
-                  <span
-                    className={cn(
-                      "min-w-0 flex-1 text-sm font-semibold uppercase tracking-[0.06em]",
-                      completed ? "text-emerald-100" : "text-white",
-                    )}
-                  >
-                    {module.title}
-                  </span>
-
-                  <span className="shrink-0 text-white/35">
-                    {expanded ? (
-                      <ChevronDown className="h-4 w-4" />
-                    ) : (
-                      <ChevronRight className="h-4 w-4" />
-                    )}
-                  </span>
-                </button>
-
-                {expanded ? (
-                  <div className="border-t border-white/10 px-4 pb-4 pt-3 sm:px-5">
-                    <div className="mb-3 hidden gap-4 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/35 sm:grid sm:grid-cols-[minmax(0,1fr)_minmax(180px,240px)]">
-                      <span>Function</span>
-                      <span>Software</span>
-                    </div>
-
-                    <div className="space-y-2.5">
-                      {module.functions.map((functionName) => (
-                        <div
-                          key={functionName}
-                          className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(180px,240px)] sm:items-center sm:gap-4"
-                        >
-                          <label
-                            htmlFor={`${module.id}-${functionName}`}
-                            className="text-sm text-white/80"
-                          >
-                            {functionName}
-                          </label>
-                          <input
-                            id={`${module.id}-${functionName}`}
-                            type="text"
-                            value={draft[functionName] ?? ""}
-                            onChange={(event) => updateDraft(functionName, event.target.value)}
-                            placeholder="SAP, Excel, None…"
-                            className="w-full rounded-lg border border-white/10 bg-[#0b1524] px-3 py-2 text-sm text-white outline-none transition-colors placeholder:text-white/25 focus:border-sky-400/50"
-                          />
-                        </div>
-                      ))}
-                    </div>
-
-                    <div className="mt-5 flex justify-end">
-                      <button
-                        type="button"
-                        onClick={() => saveModule(module)}
-                        className="inline-flex items-center justify-center rounded-lg bg-[#1F4FBF] px-5 py-2 text-xs font-semibold uppercase tracking-[0.08em] text-white transition-colors hover:bg-[#2563eb]"
+                return (
+                  <li key={module.id}>
+                    <button
+                      type="button"
+                      onClick={() => selectModule(module)}
+                      className={cn(
+                        "flex w-full items-center gap-2.5 px-3 py-2.5 text-left transition-colors",
+                        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/50 focus-visible:ring-inset",
+                        selected
+                          ? "bg-sky-500/10 text-white"
+                          : "text-white/80 hover:bg-white/[0.04]",
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          "flex h-7 w-7 shrink-0 items-center justify-center rounded-md border",
+                          completed
+                            ? "border-emerald-400/25 bg-emerald-500/10 text-emerald-200"
+                            : selected
+                              ? "border-sky-400/30 bg-sky-500/10 text-sky-200"
+                              : "border-white/10 bg-white/[0.03] text-white/50",
+                        )}
                       >
-                        Save {module.title}
-                      </button>
+                        {completed ? (
+                          <Check className="h-3.5 w-3.5" strokeWidth={2.5} />
+                        ) : (
+                          <Icon className="h-3.5 w-3.5" strokeWidth={1.75} />
+                        )}
+                      </span>
+
+                      <span
+                        className={cn(
+                          "min-w-0 flex-1 text-[11px] font-semibold uppercase leading-snug tracking-[0.05em]",
+                          completed && !selected && "text-emerald-100/90",
+                        )}
+                      >
+                        {module.title}
+                      </span>
+
+                      <ChevronRight
+                        className={cn(
+                          "h-3.5 w-3.5 shrink-0",
+                          selected ? "text-sky-300/80" : "text-white/25",
+                        )}
+                      />
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </nav>
+
+          {/* Right working panel */}
+          <main className="min-h-[420px] flex-1 rounded-xl border border-white/10 bg-[#0b1524]/80 p-5 sm:p-6 lg:p-8">
+            {selectedModule ? (
+              <>
+                <h2 className="text-lg font-semibold uppercase tracking-[0.08em] text-white sm:text-xl">
+                  {selectedModule.title}
+                </h2>
+
+                <div className="mt-6 mb-4 hidden gap-6 border-b border-white/10 pb-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/35 md:grid md:grid-cols-[minmax(0,1fr)_minmax(220px,320px)]">
+                  <span>Function</span>
+                  <span>Software</span>
+                </div>
+
+                <div className="space-y-3">
+                  {selectedModule.functions.map((functionName) => (
+                    <div
+                      key={functionName}
+                      className="grid gap-2 md:grid-cols-[minmax(0,1fr)_minmax(220px,320px)] md:items-center md:gap-6"
+                    >
+                      <label
+                        htmlFor={`${selectedModule.id}-${functionName}`}
+                        className="text-sm text-white/80"
+                      >
+                        {functionName}
+                      </label>
+                      <input
+                        id={`${selectedModule.id}-${functionName}`}
+                        type="text"
+                        value={draft[functionName] ?? ""}
+                        onChange={(event) => updateDraft(functionName, event.target.value)}
+                        placeholder="SAP, Excel, None…"
+                        className="w-full rounded-lg border border-white/10 bg-[#070f1a] px-3 py-2 text-sm text-white outline-none transition-colors placeholder:text-white/25 focus:border-sky-400/50"
+                      />
                     </div>
-                  </div>
-                ) : null}
-              </div>
-            );
-          })}
+                  ))}
+                </div>
+
+                <div className="mt-8 flex justify-end border-t border-white/10 pt-6">
+                  <button
+                    type="button"
+                    onClick={() => saveModule(selectedModule)}
+                    className="inline-flex items-center justify-center rounded-lg bg-[#1F4FBF] px-6 py-2.5 text-xs font-semibold uppercase tracking-[0.08em] text-white transition-colors hover:bg-[#2563eb]"
+                  >
+                    Save {selectedModule.title}
+                  </button>
+                </div>
+              </>
+            ) : (
+              <p className="text-sm text-white/45">Select an area from the list.</p>
+            )}
+          </main>
         </div>
       </div>
     </div>
