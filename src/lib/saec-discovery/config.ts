@@ -86,7 +86,7 @@ export function clearStoredDiscoveryDraft(ownerId: string | null | undefined): v
   window.localStorage.removeItem(saecDiscoveryDraftStorageKey(ownerId));
 }
 
-export const SAEC_DISCOVERY_OPTIONAL_PLACEHOLDER = "Your answer (optional)";
+export const SAEC_DISCOVERY_OPTIONAL_PLACEHOLDER = "Your answer";
 
 export const SAEC_DISCOVERY_COMMENTS_KEY = "Any other comments";
 

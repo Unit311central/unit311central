@@ -10,6 +10,14 @@ import {
 } from "@/lib/saec-discovery/config";
 import { cn } from "@/lib/utils";
 
+/** Matches the main card header band so the sidebar logo can align to it. */
+export const DISCOVERY_HEADER_BAND_CLASS =
+  "flex min-h-[6.25rem] shrink-0 items-center sm:min-h-[6.5rem]";
+
+/** Function/question left, answer right — ~58% / 42%. */
+export const DISCOVERY_TWO_COLUMN_GRID_CLASS =
+  "grid gap-x-5 md:grid-cols-[minmax(0,58%)_minmax(0,42%)]";
+
 /** Shared typography and field styling for all SAEC Discovery sections. */
 export const DISCOVERY_QUESTION_LABEL_CLASS =
   "block text-[13px] font-normal leading-snug text-white/85";
@@ -17,11 +25,15 @@ export const DISCOVERY_QUESTION_LABEL_CLASS =
 export const DISCOVERY_FIELD_CLASS =
   "w-full rounded-lg border border-white/10 bg-[#070f1a] px-3 py-2 text-sm text-white outline-none transition-colors placeholder:text-white/30 focus:border-sky-400/50";
 
-export const DISCOVERY_SOFTWARE_GRID_CLASS =
-  "grid gap-x-4 md:grid-cols-[minmax(0,1fr)_220px]";
+export const DISCOVERY_SOFTWARE_GRID_CLASS = DISCOVERY_TWO_COLUMN_GRID_CLASS;
 
 export const DISCOVERY_COLUMN_HEADER_CLASS =
   "text-[10px] font-semibold uppercase tracking-[0.14em] text-white/35";
+
+export const DISCOVERY_SOFTWARE_ROW_CLASS = cn(
+  DISCOVERY_SOFTWARE_GRID_CLASS,
+  "items-start gap-y-1",
+);
 
 type SectionHeaderProps = {
   title: string;
@@ -145,16 +157,16 @@ export function DiscoverySoftwareFunctionPanel({
       <div
         className={cn(
           DISCOVERY_SOFTWARE_GRID_CLASS,
-          "mb-3 shrink-0 border-b border-white/10 pb-2",
+          "mb-3 shrink-0 border-b border-white/10 pb-2.5",
           DISCOVERY_COLUMN_HEADER_CLASS,
         )}
       >
         <span>Function</span>
         <span>Software / System</span>
       </div>
-      <div className="min-h-0 space-y-2.5">
+      <div className="min-h-0 space-y-3">
         {functions.map((entry) => (
-          <div key={entry.id} className={cn(DISCOVERY_SOFTWARE_GRID_CLASS, "items-start")}>
+          <div key={entry.id} className={DISCOVERY_SOFTWARE_ROW_CLASS}>
             <label htmlFor={`${sectionId}-${entry.id}`} className={DISCOVERY_QUESTION_LABEL_CLASS}>
               {entry.label}
             </label>
@@ -190,9 +202,9 @@ export function DiscoveryVerticalQuestionsPanel({
 }) {
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div className="space-y-3">
+      <div className="space-y-4">
         {questions.map((question) => (
-          <div key={question.id} className="space-y-2">
+          <div key={question.id} className="space-y-2.5">
             <label htmlFor={`${sectionId}-${question.id}`} className={DISCOVERY_QUESTION_LABEL_CLASS}>
               {question.label}
             </label>
@@ -201,7 +213,7 @@ export function DiscoveryVerticalQuestionsPanel({
               value={draft[question.id] ?? ""}
               onChange={(value) => updateDraft(question.id, value)}
               rows={answerRows}
-              className="min-h-[4rem]"
+              className="min-h-[4.25rem]"
             />
           </div>
         ))}
