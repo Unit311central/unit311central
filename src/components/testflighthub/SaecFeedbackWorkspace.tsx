@@ -4,8 +4,10 @@ import { useCallback, useEffect, useState } from "react";
 import { CheckCircle2, Loader2 } from "lucide-react";
 
 import {
-  SAEC_DISCOVERY_MODULES,
-  readModuleSoftwareAnswer,
+  SAEC_DISCOVERY_COMMENTS_KEY,
+  SAEC_DISCOVERY_SECTIONS,
+  readSectionAnswer,
+  sectionIncludesComments,
 } from "@/lib/saec-discovery/config";
 import type { SaecDiscoverySubmissionRecord } from "@/lib/saec-discovery/types";
 import { cn } from "@/lib/utils";
@@ -20,6 +22,14 @@ function formatWhen(value: string | null | undefined) {
   } catch {
     return value;
   }
+}
+
+function AnswerText({ value }: { value: string }) {
+  return (
+    <p className={cn("text-sm whitespace-pre-wrap", value ? "text-white" : "italic text-white/35")}>
+      {value || "Not provided"}
+    </p>
+  );
 }
 
 function Section({
@@ -107,44 +117,73 @@ export default function SaecFeedbackWorkspace() {
           </div>
         ) : (
           <p className="mt-5 text-sm text-white/50">
-            No SAEC Discovery submission has been recorded yet.
+            No SAEC Discovery submission has been recorded yet. Draft progress is stored locally on the
+            client questionnaire only.
           </p>
         )}
       </header>
 
       {!loading && !error && submission ? (
         <div className="space-y-4">
-          {SAEC_DISCOVERY_MODULES.map((module) => (
-            <Section key={module.id} title={module.title}>
-              <div className="hidden gap-6 border-b border-white/10 pb-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/35 md:grid md:grid-cols-[minmax(0,280px)_minmax(0,1fr)]">
-                <span>Function</span>
-                <span>Software</span>
-              </div>
-              <div className="mt-3 divide-y divide-white/[0.06]">
-                {module.functions.map((functionName) => {
-                  const answer = readModuleSoftwareAnswer(
-                    submission.responses,
-                    module.id,
-                    functionName,
-                  );
-                  return (
-                    <div
-                      key={functionName}
-                      className="grid gap-2 py-3 md:grid-cols-[minmax(0,280px)_minmax(0,1fr)] md:items-start md:gap-6"
-                    >
-                      <p className="text-sm text-white/80">{functionName}</p>
-                      <p
-                        className={cn(
-                          "text-sm",
-                          answer ? "text-white" : "italic text-white/35",
-                        )}
-                      >
-                        {answer || "Not provided"}
-                      </p>
+          {SAEC_DISCOVERY_SECTIONS.map((section) => (
+            <Section key={section.id} title={section.title}>
+              {section.kind === "general" || section.kind === "reporting" ? (
+                <div className="space-y-4">
+                  {(section.questions ?? []).map((question) => (
+                    <div key={question.id}>
+                      <p className="text-sm font-medium text-white/80">{question.label}</p>
+                      <div className="mt-2">
+                        <AnswerText
+                          value={readSectionAnswer(
+                            submission.responses,
+                            section.id,
+                            question.id,
+                          )}
+                        />
+                      </div>
                     </div>
-                  );
-                })}
-              </div>
+                  ))}
+                </div>
+              ) : (
+                <>
+                  <div className="hidden gap-6 border-b border-white/10 pb-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/35 md:grid md:grid-cols-[minmax(0,280px)_minmax(0,1fr)]">
+                    <span>Function</span>
+                    <span>Software</span>
+                  </div>
+                  <div className="mt-3 divide-y divide-white/[0.06]">
+                    {(section.functions ?? []).map((functionName) => (
+                      <div
+                        key={functionName}
+                        className="grid gap-2 py-3 md:grid-cols-[minmax(0,280px)_minmax(0,1fr)] md:items-start md:gap-6"
+                      >
+                        <p className="text-sm text-white/80">{functionName}</p>
+                        <AnswerText
+                          value={readSectionAnswer(
+                            submission.responses,
+                            section.id,
+                            functionName,
+                          )}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+
+              {sectionIncludesComments(section) ? (
+                <div className="mt-4 border-t border-white/10 pt-4">
+                  <p className="text-sm font-medium text-white/80">{SAEC_DISCOVERY_COMMENTS_KEY}</p>
+                  <div className="mt-2">
+                    <AnswerText
+                      value={readSectionAnswer(
+                        submission.responses,
+                        section.id,
+                        SAEC_DISCOVERY_COMMENTS_KEY,
+                      )}
+                    />
+                  </div>
+                </div>
+              ) : null}
             </Section>
           ))}
         </div>

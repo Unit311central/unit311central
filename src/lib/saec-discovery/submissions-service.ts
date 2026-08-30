@@ -1,8 +1,10 @@
 import "server-only";
 
 import {
+  discoveryResponsesAreBlank,
   normalizeDiscoveryResponses,
 } from "@/lib/saec-discovery/config";
+import { notifySaecDiscoverySubmitted } from "@/lib/saec-discovery/submit-notify";
 import type {
   SaecDiscoveryState,
   SaecDiscoverySubmissionRecord,
@@ -102,11 +104,20 @@ export async function submitSaecDiscoveryQuestionnaire(input: {
 
   const { data: existing, error: existingError } = await supabase
     .from("saec_discovery_submissions")
-    .select("id, created_at")
+    .select(
+      "id, created_at, responses, metadata, submitted_by_email, submitted_at, updated_at, workspaces(slug, name)",
+    )
     .eq("workspace_id", workspace.id)
     .maybeSingle();
 
   if (existingError) throw new Error(existingError.message);
+
+  if (existing && discoveryResponsesAreBlank(responses)) {
+    const prior = normalizeDiscoveryResponses(existing.responses);
+    if (!discoveryResponsesAreBlank(prior)) {
+      return mapSubmissionRow(existing as DbSubmissionRow);
+    }
+  }
 
   const payload = {
     id: existing?.id ?? randomId("saecdisc"),
@@ -129,7 +140,11 @@ export async function submitSaecDiscoveryQuestionnaire(input: {
     .single();
 
   if (error) throw new Error(error.message);
-  return mapSubmissionRow(data as DbSubmissionRow);
+  const record = mapSubmissionRow(data as DbSubmissionRow);
+  if (!discoveryResponsesAreBlank(record.responses)) {
+    void notifySaecDiscoverySubmitted(record);
+  }
+  return record;
 }
 
 export async function getSaecDiscoverySubmissionForInternal(): Promise<SaecDiscoverySubmissionRecord | null> {
