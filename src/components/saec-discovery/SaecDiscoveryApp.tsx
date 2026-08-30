@@ -49,7 +49,12 @@ const DISCOVERY_MODULES: ModuleDef[] = [
     id: "sales-management",
     title: "Sales Management",
     icon: ShoppingCart,
-    functions: ["Pipeline", "Sales Quotes", "Targets & Forecast", "Performance"],
+    functions: [
+      "Pipeline",
+      "Sales Quotes",
+      "Sales Targets & Forecast",
+      "Sales Team Performance",
+    ],
   },
   {
     id: "finances",
@@ -74,13 +79,13 @@ const DISCOVERY_MODULES: ModuleDef[] = [
     id: "marketing-events",
     title: "Marketing & Events",
     icon: Megaphone,
-    functions: ["Campaigns", "Events", "Email Marketing", "Social Media", "Mailing Lists"],
+    functions: ["Events", "Email Marketing", "Social Media", "Mailing Lists"],
   },
   {
     id: "tech-management",
     title: "Tech Management",
     icon: Settings2,
-    functions: ["IT Assets", "Software & Licenses", "Infrastructure", "Security", "Support Tickets"],
+    functions: ["IT Assets", "Software & Licenses", "Telecoms"],
   },
   {
     id: "human-resources",
@@ -92,13 +97,14 @@ const DISCOVERY_MODULES: ModuleDef[] = [
       "Time & Attendance",
       "Payroll",
       "Leave Management",
+      "Performance",
     ],
   },
   {
     id: "business-productivity",
     title: "Business Productivity",
     icon: MessageSquare,
-    functions: ["Email", "Calendar", "File Storage", "Messaging", "Video Meetings"],
+    functions: ["Email", "Calendar", "File Storage", "Messaging", "Video Meetings", "Content Studio"],
   },
   {
     id: "support",
