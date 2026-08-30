@@ -55,6 +55,7 @@
     "prove:sales-management-taxonomy": "node --import tsx src/lib/__tests__/sales-management-taxonomy.check.ts",
     "prove:corporate-information-taxonomy": "node --import tsx src/lib/__tests__/corporate-information-taxonomy.check.ts",
     "prove:home-taxonomy": "node --require ./scripts/test-server-only-hook.cjs --import tsx src/lib/__tests__/home-taxonomy.check.ts",
+    "prove:operations-taxonomy": "node --require ./scripts/test-server-only-hook.cjs --import tsx src/lib/__tests__/operations-taxonomy.check.ts",
     "prove:architecture-taxonomy": "node --require ./scripts/test-server-only-hook.cjs --import tsx src/lib/__tests__/architecture-taxonomy.check.ts",
     "prove:pending-migrations-runner": "node --import tsx src/lib/__tests__/pending-migrations-runner.check.ts && node --import tsx src/lib/__tests__/migration-query-client.check.ts",
     "prove:finances-nav": "node --import tsx src/lib/__tests__/finances-nav.check.ts",

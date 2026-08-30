@@ -23,6 +23,11 @@ import {
 import { ARCHITECTURE_DIAGRAM_CATALOG } from "@/lib/architecture-diagram-data";
 import { CORPORATE_INFORMATION_CORE_FEATURES } from "@/lib/corporate-information/corporate-information-taxonomy";
 import { HOME_MODULE_LABEL } from "@/lib/home/home-taxonomy";
+import {
+  OPERATIONS_CORE_FEATURES,
+  SAEC_INSTALLATIONS_CUSTOM_FEATURE_LABEL,
+  SAEC_INSTALLATIONS_CUSTOM_SUB_FEATURES,
+} from "@/lib/operations/operations-taxonomy";
 import { buildCentralProductNavSections } from "@/lib/platform-workspaces/central-product-nav";
 
 function child(node: ArchitectureTaxonomyNode, label: string): ArchitectureTaxonomyNode {
@@ -195,6 +200,26 @@ for (const featureLabel of [
   );
 }
 
+// Operations is formally audited → five Core Features, zero Core Sub-features.
+const operations = child(coreModules, "Operations");
+assert.equal(operations.audited, true);
+assert.ok(AUDITED_CORE_MODULE_IDS.has("operations"));
+assert.deepEqual(
+  labels(operations),
+  OPERATIONS_CORE_FEATURES.map((feature) => feature.label),
+);
+for (const feature of OPERATIONS_CORE_FEATURES) {
+  assert.equal(
+    (child(operations, feature.label).children ?? []).length,
+    0,
+    `${feature.label} has no Core Sub-features`,
+  );
+}
+assert.ok(
+  !labels(operations).includes(SAEC_INSTALLATIONS_CUSTOM_FEATURE_LABEL),
+  "Core Product Operations must not include SAEC Installations",
+);
+
 // Every unaudited module must have zero children (only audited taxonomy is classified).
 for (const mod of coreModules.children ?? []) {
   if (mod.audited) continue;
@@ -206,7 +231,7 @@ for (const mod of coreModules.children ?? []) {
 }
 
 // ---------------------------------------------------------------------------
-// VIEW 2 — Custom Product (only ABHI Regulatory Intelligence today).
+// VIEW 2 — Custom Product (ABHI Regulatory Intelligence + OmniTransit Installations).
 // ---------------------------------------------------------------------------
 const custom = buildCustomProductTaxonomy();
 const customModules = child(custom, "CUSTOM MODULES");
@@ -223,6 +248,18 @@ assert.deepEqual(labels(regIntel), [
   "Member Alerts",
 ]);
 for (const sub of regIntel.children ?? []) {
+  assert.equal(sub.kind, "custom");
+  assert.equal(sub.level, "sub-feature");
+}
+
+const omnitransitCustom = child(customFeatures, "OmniTransit");
+const installationsFeature = child(omnitransitCustom, SAEC_INSTALLATIONS_CUSTOM_FEATURE_LABEL);
+assert.equal(installationsFeature.kind, "custom");
+assert.deepEqual(
+  labels(installationsFeature),
+  SAEC_INSTALLATIONS_CUSTOM_SUB_FEATURES.map((entry) => entry.label),
+);
+for (const sub of installationsFeature.children ?? []) {
   assert.equal(sub.kind, "custom");
   assert.equal(sub.level, "sub-feature");
 }
@@ -252,11 +289,37 @@ assert.ok(labels(abhiBc).includes("Member Management"), "ABHI BC uses Member ter
 const northstar = child(workspaces, "Northstar");
 const northstarCustom = child(northstar, "CUSTOM");
 assert.equal((northstarCustom.children ?? []).length, 0, "Northstar has no custom items");
+const northstarOps = child(child(northstar, "CORE MODULES"), "Operations");
+assert.deepEqual(
+  labels(northstarOps),
+  OPERATIONS_CORE_FEATURES.map((feature) => feature.label),
+);
+
+// OmniTransit: Installations custom feature under Operations + CUSTOM group.
+const omnitransitWs = child(workspaces, "OmniTransit");
+const omnitransitCore = child(omnitransitWs, "CORE MODULES");
+const omnitransitOps = child(omnitransitCore, "Operations");
+assert.deepEqual(labels(omnitransitOps), [
+  "Dashboard",
+  SAEC_INSTALLATIONS_CUSTOM_FEATURE_LABEL,
+  "Assets",
+  "Inventory",
+  "Procurement",
+  "Logistics",
+]);
+const omnitransitInstallations = child(omnitransitOps, SAEC_INSTALLATIONS_CUSTOM_FEATURE_LABEL);
+assert.equal(omnitransitInstallations.kind, "custom");
+assert.deepEqual(
+  labels(omnitransitInstallations),
+  SAEC_INSTALLATIONS_CUSTOM_SUB_FEATURES.map((entry) => entry.label),
+);
+const omnitransitCustomGroup = child(omnitransitWs, "CUSTOM");
+assert.ok(child(omnitransitCustomGroup, SAEC_INSTALLATIONS_CUSTOM_FEATURE_LABEL));
 
 // Workspace filter narrows to a single workspace.
 const onlyAbhi = buildWorkspaceArchitectureTaxonomy("abhi");
 assert.deepEqual(labels(onlyAbhi), ["ABHI"]);
 
 console.log(
-  "prove:architecture-taxonomy: OK — Core Product (audited-only), Custom Product (ABHI Regulatory Intelligence), Workspace Architecture (6 workspaces) verified.",
+  "prove:architecture-taxonomy: OK — Core Product (audited-only), Custom Product (ABHI + OmniTransit Installations), Workspace Architecture (6 workspaces) verified.",
 );
