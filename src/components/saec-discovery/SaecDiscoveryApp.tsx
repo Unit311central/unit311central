@@ -6,6 +6,7 @@ import {
   Briefcase,
   Calculator,
   Check,
+  ChevronRight,
   FileText,
   FolderKanban,
   GraduationCap,
@@ -13,10 +14,12 @@ import {
   HardHat,
   Layers,
   Loader2,
-  Lock,
   Megaphone,
   MessageSquare,
+  Save,
+  Send,
   Settings2,
+  Shield,
   ShieldCheck,
   ShoppingCart,
   Users,
@@ -108,6 +111,19 @@ function formatSubmittedAt(value: string | null | undefined) {
   }
 }
 
+function formatDraftSavedAgo(savedAt: number | null) {
+  if (!savedAt) return null;
+  const seconds = Math.max(0, Math.floor((Date.now() - savedAt) / 1000));
+  if (seconds < 10) return "Draft saved just now";
+  if (seconds < 60) return `Draft saved ${seconds} seconds ago`;
+  const minutes = Math.floor(seconds / 60);
+  if (minutes === 1) return "Draft saved 1 minute ago";
+  if (minutes < 60) return `Draft saved ${minutes} minutes ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours === 1) return "Draft saved 1 hour ago";
+  return `Draft saved ${hours} hours ago`;
+}
+
 function SaveToast({ message }: { message: string | null }) {
   if (!message) return null;
   return (
@@ -148,40 +164,87 @@ function OptionalTextarea({
   );
 }
 
+function QuestionNumber({ n }: { n: number }) {
+  return (
+    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-sky-400/35 bg-sky-500/10 text-[11px] font-semibold text-sky-200">
+      {n}
+    </span>
+  );
+}
+
 function QuestionBlock({
   sectionId,
   question,
   value,
   onChange,
+  index,
+  layout = "stacked",
 }: {
   sectionId: string;
   question: SaecDiscoveryQuestionConfig;
   value: string;
   onChange: (value: string) => void;
+  index?: number;
+  layout?: "stacked" | "row" | "row-emphasis";
 }) {
   const inputId = `${sectionId}-${question.id}`;
-  const emphasize = question.emphasizeAnswer === true;
+  const emphasize = question.emphasizeAnswer === true || layout === "row-emphasis";
+  const questionNumber = index ?? 0;
 
-  return (
-    <div className={cn("min-h-0", emphasize ? "flex min-h-0 flex-1 flex-col" : "space-y-1")}>
+  const labelBlock = (
+    <div className="min-w-0 space-y-1">
       <label htmlFor={inputId} className="block text-[13px] leading-snug text-white/85">
         {question.label}
       </label>
       {question.note && !question.examples?.length ? (
-        <p className="text-[11px] leading-snug text-white/40">{question.note}</p>
+        <p className="text-[10px] leading-snug text-white/40">{question.note}</p>
       ) : null}
       {question.examples?.length ? (
-        <div className={cn("space-y-0.5", emphasize ? "shrink-0" : "")}>
+        <div className="space-y-0.5">
           {question.note ? (
-            <p className="text-[10px] leading-snug text-white/35">{question.note}</p>
+            <p className="text-[9px] leading-snug text-white/35">{question.note}</p>
           ) : null}
-          <ul className="list-inside list-disc space-y-0.5 text-[10px] leading-snug text-white/35">
+          <ul className="grid list-none gap-x-3 gap-y-0.5 text-[9px] leading-snug text-white/35 sm:grid-cols-2">
             {question.examples.map((example) => (
-              <li key={example}>{example}</li>
+              <li key={example} className="flex gap-1.5">
+                <span className="text-sky-400/70">•</span>
+                <span>{example}</span>
+              </li>
             ))}
           </ul>
         </div>
       ) : null}
+    </div>
+  );
+
+  if (layout === "row" || layout === "row-emphasis") {
+    return (
+      <div
+        className={cn(
+          "grid min-h-0 gap-3",
+          emphasize
+            ? "min-h-0 flex-1 grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,42%)] lg:items-stretch"
+            : "grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,42%)] lg:items-start",
+        )}
+      >
+        <div className="flex min-w-0 gap-2.5">
+          {questionNumber > 0 ? <QuestionNumber n={questionNumber} /> : null}
+          {labelBlock}
+        </div>
+        <OptionalTextarea
+          id={inputId}
+          value={value}
+          onChange={onChange}
+          rows={emphasize ? 6 : 2}
+          className={emphasize ? "min-h-[7.5rem] lg:min-h-0 lg:flex-1" : undefined}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div className={cn("min-h-0", emphasize ? "flex min-h-0 flex-1 flex-col" : "space-y-1")}>
+      {labelBlock}
       <OptionalTextarea
         id={inputId}
         value={value}
@@ -189,6 +252,36 @@ function QuestionBlock({
         rows={emphasize ? 5 : 2}
         className={emphasize ? "min-h-0 flex-1" : undefined}
       />
+    </div>
+  );
+}
+
+function SectionHeader({
+  section,
+  onSave,
+}: {
+  section: SectionDef;
+  onSave: () => void;
+}) {
+  const Icon = section.iconComponent;
+  return (
+    <div className="mb-2.5 flex shrink-0 items-center justify-between gap-3 border-b border-white/10 pb-2.5">
+      <div className="flex min-w-0 items-center gap-2">
+        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-sky-400/25 bg-sky-500/10 text-sky-200">
+          <Icon className="h-3.5 w-3.5" strokeWidth={1.75} />
+        </span>
+        <h2 className="text-sm font-semibold uppercase tracking-[0.08em] text-white sm:text-base">
+          {section.title}
+        </h2>
+      </div>
+      <button
+        type="button"
+        onClick={onSave}
+        className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-white/15 bg-white/[0.04] px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-white/85 transition-colors hover:bg-white/[0.08]"
+      >
+        <Save className="h-3 w-3" strokeWidth={2} />
+        Save
+      </button>
     </div>
   );
 }
@@ -236,29 +329,33 @@ function GeneralSectionPanel({
   const emphasized = questions.find((q) => q.emphasizeAnswer);
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-hidden">
+    <div className="flex min-h-0 flex-1 flex-col gap-1.5 overflow-hidden">
       {section.intro ? (
         <p className="shrink-0 text-[12px] leading-snug text-white/55">{section.intro}</p>
       ) : null}
-      <div className="grid min-h-0 flex-1 grid-cols-1 gap-2 lg:grid-cols-2 lg:grid-rows-3 lg:gap-x-4 lg:gap-y-2">
-        {regular.map((question) => (
+      <div className="flex min-h-0 flex-1 flex-col gap-1.5 overflow-hidden">
+        {regular.map((question, index) => (
           <QuestionBlock
             key={question.id}
             sectionId={section.id}
             question={question}
+            index={index + 1}
+            layout="row"
             value={draft[question.id] ?? ""}
             onChange={(value) => updateDraft(question.id, value)}
           />
         ))}
+        {emphasized ? (
+          <QuestionBlock
+            sectionId={section.id}
+            question={emphasized}
+            index={questions.length}
+            layout="row-emphasis"
+            value={draft[emphasized.id] ?? ""}
+            onChange={(value) => updateDraft(emphasized.id, value)}
+          />
+        ) : null}
       </div>
-      {emphasized ? (
-        <QuestionBlock
-          sectionId={section.id}
-          question={emphasized}
-          value={draft[emphasized.id] ?? ""}
-          onChange={(value) => updateDraft(emphasized.id, value)}
-        />
-      ) : null}
       {section.footer ? (
         <p className="shrink-0 text-[11px] leading-snug text-white/45">{section.footer}</p>
       ) : null}
@@ -366,10 +463,18 @@ export default function SaecDiscoveryApp() {
   const [submittedAt, setSubmittedAt] = useState<string | null>(null);
   const [submitSuccessMessage, setSubmitSuccessMessage] = useState<string | null>(null);
   const [saveNotice, setSaveNotice] = useState<string | null>(null);
+  const [draftSavedAt, setDraftSavedAt] = useState<number | null>(null);
+  const [draftSavedLabel, setDraftSavedLabel] = useState<string | null>(null);
 
   const showNotice = useCallback((message: string) => {
     setSaveNotice(message);
     window.setTimeout(() => setSaveNotice(null), 2200);
+  }, []);
+
+  const markDraftSaved = useCallback(() => {
+    const now = Date.now();
+    setDraftSavedAt(now);
+    setDraftSavedLabel(formatDraftSavedAgo(now));
   }, []);
 
   useEffect(() => {
@@ -408,6 +513,15 @@ export default function SaecDiscoveryApp() {
       cancelled = true;
     };
   }, [hydrated]);
+
+  useEffect(() => {
+    if (!draftSavedAt) return;
+    setDraftSavedLabel(formatDraftSavedAgo(draftSavedAt));
+    const timer = window.setInterval(() => {
+      setDraftSavedLabel(formatDraftSavedAgo(draftSavedAt));
+    }, 30_000);
+    return () => window.clearInterval(timer);
+  }, [draftSavedAt]);
 
   const selectedSection = useMemo(
     () => DISCOVERY_SECTIONS.find((section) => section.id === selectedId) ?? null,
@@ -448,8 +562,9 @@ export default function SaecDiscoveryApp() {
   const saveSection = useCallback(() => {
     if (!selectedSection) return;
     flushDraftToStored(selectedSection, true);
+    markDraftSaved();
     showNotice("Section saved");
-  }, [flushDraftToStored, selectedSection, showNotice]);
+  }, [flushDraftToStored, markDraftSaved, selectedSection, showNotice]);
 
   const saveDraft = useCallback(() => {
     let next = { ...stored };
@@ -457,8 +572,9 @@ export default function SaecDiscoveryApp() {
       next = flushDraftToStored(selectedSection, stored[selectedSection.id]?.completed ?? false);
     }
     persistState(next);
+    markDraftSaved();
     showNotice("Draft saved");
-  }, [flushDraftToStored, selectedSection, showNotice, stored]);
+  }, [flushDraftToStored, markDraftSaved, selectedSection, showNotice, stored]);
 
   const submitDiscovery = useCallback(async () => {
     if (submitting) return;
@@ -536,38 +652,51 @@ export default function SaecDiscoveryApp() {
               <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-sky-300/80">
                 SAEC Discovery
               </p>
-              <h1 className="mt-1 text-[1.55rem] font-semibold leading-tight tracking-tight text-white sm:text-[1.7rem]">
+              <h1 className="mt-1 text-[1.45rem] font-semibold leading-tight tracking-tight text-white sm:text-[1.62rem]">
                 Current Systems Discovery
               </h1>
               <p className="mt-1 text-[13px] text-white/55">
-                Help understand SAEC&apos;s systems. All questions are OPTIONAL.
+                Help understand SAECs systems. All questions are{" "}
+                <span className="font-semibold text-sky-300">OPTIONAL</span>.
               </p>
             </div>
           </div>
 
-          <div className="flex shrink-0 items-center gap-2 self-start">
-            <button
-              type="button"
-              onClick={saveDraft}
-              className="rounded-lg border border-white/15 bg-white/[0.04] px-4 py-2 text-xs font-semibold uppercase tracking-[0.08em] text-white/85 transition-colors hover:bg-white/[0.08]"
-            >
-              Save Draft
-            </button>
-            <button
-              type="button"
-              onClick={() => void submitDiscovery()}
-              disabled={submitting}
-              className="inline-flex items-center justify-center rounded-lg bg-[#1F4FBF] px-4 py-2 text-xs font-semibold uppercase tracking-[0.08em] text-white transition-colors hover:bg-[#2563eb] disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {submitting ? (
-                <>
-                  <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
-                  Submitting…
-                </>
-              ) : (
-                "Submit"
-              )}
-            </button>
+          <div className="flex shrink-0 flex-col items-end gap-1.5 self-start">
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={saveDraft}
+                className="inline-flex items-center gap-2 rounded-lg border border-sky-400/35 bg-sky-500/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.08em] text-white/90 transition-colors hover:bg-sky-500/15"
+              >
+                <Save className="h-3.5 w-3.5" strokeWidth={2} />
+                Save Draft
+              </button>
+              <button
+                type="button"
+                onClick={() => void submitDiscovery()}
+                disabled={submitting}
+                className="inline-flex items-center gap-2 rounded-lg bg-[#1F4FBF] px-4 py-2 text-xs font-semibold uppercase tracking-[0.08em] text-white transition-colors hover:bg-[#2563eb] disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {submitting ? (
+                  <>
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    Submitting…
+                  </>
+                ) : (
+                  <>
+                    <Send className="h-3.5 w-3.5" strokeWidth={2} />
+                    Submit
+                  </>
+                )}
+              </button>
+            </div>
+            {draftSavedLabel ? (
+              <p className="inline-flex items-center gap-1.5 text-[11px] text-emerald-300/85">
+                <Check className="h-3 w-3" strokeWidth={2.5} />
+                {draftSavedLabel}
+              </p>
+            ) : null}
           </div>
         </header>
 
@@ -595,7 +724,7 @@ export default function SaecDiscoveryApp() {
           {/* Left navigation + secure panel */}
           <div className="flex w-[240px] shrink-0 flex-col lg:w-[252px] xl:w-[268px]">
             <nav
-              className="min-h-0 flex-1 overflow-y-auto rounded-xl border border-white/10 bg-[#0b1524]/60"
+              className="min-h-0 flex-1 overflow-hidden rounded-xl border border-white/10 bg-[#0b1524]/60"
               aria-label="Discovery sections"
             >
               <ul className="divide-y divide-white/[0.06]">
@@ -614,16 +743,16 @@ export default function SaecDiscoveryApp() {
                         type="button"
                         onClick={() => selectSection(section)}
                         className={cn(
-                          "flex w-full items-center gap-2.5 px-3 py-2 text-left transition-colors",
+                          "flex w-full items-center gap-2 px-2.5 py-1.5 text-left transition-colors",
                           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/50 focus-visible:ring-inset",
                           selected
-                            ? "bg-sky-500/10 text-white"
+                            ? "bg-sky-500/12 text-white"
                             : "text-white/80 hover:bg-white/[0.04]",
                         )}
                       >
                         <span
                           className={cn(
-                            "flex h-7 w-7 shrink-0 items-center justify-center rounded-md border",
+                            "flex h-6 w-6 shrink-0 items-center justify-center rounded-md border",
                             touched
                               ? "border-emerald-400/25 bg-emerald-500/10 text-emerald-200"
                               : selected
@@ -632,14 +761,21 @@ export default function SaecDiscoveryApp() {
                           )}
                         >
                           {touched ? (
-                            <Check className="h-3.5 w-3.5" strokeWidth={2.5} />
+                            <Check className="h-3 w-3" strokeWidth={2.5} />
                           ) : (
-                            <Icon className="h-3.5 w-3.5" strokeWidth={1.75} />
+                            <Icon className="h-3 w-3" strokeWidth={1.75} />
                           )}
                         </span>
-                        <span className="min-w-0 flex-1 text-[10px] font-semibold uppercase leading-snug tracking-[0.05em]">
+                        <span className="min-w-0 flex-1 text-[9px] font-semibold uppercase leading-snug tracking-[0.05em]">
                           {section.title}
                         </span>
+                        <ChevronRight
+                          className={cn(
+                            "h-3.5 w-3.5 shrink-0",
+                            selected ? "text-sky-300/80" : "text-white/25",
+                          )}
+                          strokeWidth={2}
+                        />
                       </button>
                     </li>
                   );
@@ -649,7 +785,7 @@ export default function SaecDiscoveryApp() {
 
             <div className="mt-2 shrink-0 rounded-lg border border-white/[0.08] bg-[#0b1524]/50 px-3 py-2.5">
               <div className="flex items-start gap-2">
-                <Lock className="mt-0.5 h-3.5 w-3.5 shrink-0 text-white/35" strokeWidth={1.75} />
+                <Shield className="mt-0.5 h-3.5 w-3.5 shrink-0 text-sky-400/60" strokeWidth={1.75} />
                 <div>
                   <p className="text-[11px] font-medium text-white/70">Your responses are secure</p>
                   <p className="mt-0.5 text-[10px] leading-snug text-white/40">
@@ -661,21 +797,10 @@ export default function SaecDiscoveryApp() {
           </div>
 
           {/* Right working panel */}
-          <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-xl border border-white/10 bg-[#0b1524]/80 p-4 sm:p-5">
+          <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-xl border border-sky-400/15 bg-[#0b1524]/80 p-4 shadow-[0_0_0_1px_rgba(47,128,237,0.08)] sm:p-5">
             {selectedSection ? (
               <>
-                <div className="mb-3 flex shrink-0 items-start justify-between gap-3">
-                  <h2 className="text-base font-semibold uppercase tracking-[0.08em] text-white sm:text-lg">
-                    {selectedSection.title}
-                  </h2>
-                  <button
-                    type="button"
-                    onClick={saveSection}
-                    className="shrink-0 rounded-md border border-white/15 bg-white/[0.04] px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-white/85 transition-colors hover:bg-white/[0.08]"
-                  >
-                    Save
-                  </button>
-                </div>
+                <SectionHeader section={selectedSection} onSave={saveSection} />
 
                 <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
                   {selectedSection.kind === "general" ? (
