@@ -9,6 +9,12 @@ import {
 } from "@/lib/platform-auth";
 import { validatePlatformSignupPassword } from "@/lib/platform-password-validation";
 import { SAEC_SLUG } from "@/lib/saec-surface";
+import {
+  USER_DEPARTMENT_OPTIONS,
+  USER_ROLE_OPTIONS,
+  type UserDepartment,
+  type UserRole,
+} from "@/lib/user-management-data";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
 import { createTenancyServerClient } from "@/lib/supabase/tenancy-server";
 
@@ -35,6 +41,12 @@ export const SAEC_DEMO_ACCOUNT_SPECS: SaecDemoAccountSpec[] = [
     displayName: "OmniTransit Demo",
     operatorLabel: "OmniTransit Demo",
   },
+];
+
+/** Full-access SAEC demo operators — all platform roles and departments. */
+export const SAEC_DEMO_FULL_ACCESS_ROLES: readonly UserRole[] = [...USER_ROLE_OPTIONS];
+export const SAEC_DEMO_FULL_ACCESS_DEPARTMENTS: readonly UserDepartment[] = [
+  ...USER_DEPARTMENT_OPTIONS,
 ];
 
 export type ProvisionedSaecDemoAccount = {
@@ -194,15 +206,20 @@ async function upsertSaecDemoAccount(
     email,
     phone: null,
     role: "Admin",
-    roles: ["Admin"],
+    roles: [...SAEC_DEMO_FULL_ACCESS_ROLES],
     department: "Corporate",
-    departments: ["Corporate"],
+    departments: [...SAEC_DEMO_FULL_ACCESS_DEPARTMENTS],
     status: "Active",
     region: "",
     license_id: null,
     notes: `SAEC client demonstration · ${workspace.name}`,
     allowed_views: null,
-    dashboard_prefs: { homeTiles: defaultHomeTilesForRoles(["Admin"], ["Corporate"]) },
+    dashboard_prefs: {
+      homeTiles: defaultHomeTilesForRoles(
+        [...SAEC_DEMO_FULL_ACCESS_ROLES],
+        [...SAEC_DEMO_FULL_ACCESS_DEPARTMENTS],
+      ),
+    },
     updated_at: now,
   };
 
@@ -252,9 +269,9 @@ async function upsertSaecDemoAccount(
     workspaceMembership: { role: "admin", is_owner: false },
     operator: {
       role: "Admin",
-      roles: ["Admin"],
+      roles: [...SAEC_DEMO_FULL_ACCESS_ROLES],
       department: "Corporate",
-      departments: ["Corporate"],
+      departments: [...SAEC_DEMO_FULL_ACCESS_DEPARTMENTS],
       allowedViews: null,
     },
     passwordVerifies,
