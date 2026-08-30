@@ -1,3 +1,4 @@
+import { ALWAYS_ALLOWED_VIEWS } from "@/lib/access-presets";
 import { FINANCES_MODULE_LABEL } from "@/lib/finances-nav";
 import { isInternalDomainHost } from "@/lib/app-domains";
 import { CLIENT_PLATFORM_ALWAYS_VIEWS } from "@/lib/unit311-support/data";
@@ -106,6 +107,7 @@ export function isViewAllowedForGrants(
   allowedViews: readonly InternalOperationsView[] | null | undefined,
 ): boolean {
   if (CLIENT_PLATFORM_ALWAYS_VIEWS.has(view)) return true;
+  if ((ALWAYS_ALLOWED_VIEWS as readonly string[]).includes(view)) return true;
   if (allowedViews == null) return true;
   if (allowedViews.includes(view)) return true;
   // Fundraising cap table moved from Corporate Information to Fundraising module.
@@ -1536,6 +1538,67 @@ function insertAbhiMarketingSection(sections: readonly InternalNavSection[]): In
   }
 }
 
+const INTERNAL_ANALYTICS_NAV_ITEMS: InternalNavSection["items"] = [
+  {
+    label: "Platform Analytics",
+    icon: "LayoutDashboard",
+    view: "platform-analytics",
+  },
+  {
+    label: "Website Analytics",
+    icon: "Globe",
+    view: "website-analytics",
+  },
+  {
+    label: "System Health",
+    icon: "Activity",
+    view: "system-health",
+  },
+  {
+    label: "SAEC Feedback",
+    icon: "MessageSquare",
+    view: "saec-feedback",
+  },
+];
+
+function buildInternalAnalyticsNavSection(): InternalNavSection {
+  return {
+    kind: "workspace",
+    label: "Analytics",
+    icon: "BarChart3",
+    color: "#38BDF8",
+    items: INTERNAL_ANALYTICS_NAV_ITEMS,
+  };
+}
+
+/** Merge newly shipped analytics destinations into an existing Analytics section. */
+function mergeInternalAnalyticsNavItems(
+  existing: InternalNavSection["items"],
+  canonical: InternalNavSection["items"],
+): InternalNavSection["items"] {
+  const byView = new Map<string, InternalNavSection["items"][number]>();
+  for (const item of existing) {
+    if (item.view) byView.set(item.view, item);
+  }
+  for (const item of canonical) {
+    if (item.view && !byView.has(item.view)) {
+      byView.set(item.view, item);
+    }
+  }
+
+  const ordered: InternalNavSection["items"][number][] = [];
+  for (const item of canonical) {
+    if (!item.view) continue;
+    const merged = byView.get(item.view);
+    if (merged) {
+      ordered.push(merged);
+      byView.delete(item.view);
+    }
+  }
+  for (const item of byView.values()) ordered.push(item);
+  return ordered;
+}
+
 /**
  * Analytics — Internal host only.
  * Top-level section (after Executive Assistant) with Platform + Website Analytics.
@@ -1569,33 +1632,20 @@ function injectInternalPlatformAnalytics(
     })
     .filter((section) => section.items.length > 0);
 
-  if (cleaned.some((section) => section.label === "Analytics")) {
-    return cleaned;
+  const analyticsSection = buildInternalAnalyticsNavSection();
+  const existingAnalyticsIdx = cleaned.findIndex((section) => section.label === "Analytics");
+  if (existingAnalyticsIdx >= 0) {
+    const existing = cleaned[existingAnalyticsIdx]!;
+    const out = [...cleaned];
+    out[existingAnalyticsIdx] = {
+      ...existing,
+      kind: "workspace",
+      icon: existing.icon ?? analyticsSection.icon,
+      color: existing.color ?? analyticsSection.color,
+      items: mergeInternalAnalyticsNavItems(existing.items, analyticsSection.items),
+    };
+    return out;
   }
-
-  const analyticsSection: InternalNavSection = {
-    kind: "workspace",
-    label: "Analytics",
-    icon: "BarChart3",
-    color: "#38BDF8",
-    items: [
-      {
-        label: "Platform Analytics",
-        icon: "LayoutDashboard",
-        view: "platform-analytics",
-      },
-      {
-        label: "Website Analytics",
-        icon: "Globe",
-        view: "website-analytics",
-      },
-      {
-        label: "System Health",
-        icon: "Activity",
-        view: "system-health",
-      },
-    ],
-  };
 
   const out: InternalNavSection[] = [];
   let inserted = false;

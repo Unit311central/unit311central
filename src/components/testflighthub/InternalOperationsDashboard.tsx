@@ -289,6 +289,7 @@ import {
   PlatformAnalyticsWorkspace,
   WebsiteAnalyticsWorkspace,
   SystemHealthWorkspace,
+  SaecFeedbackWorkspace,
   ManagementWorkspace,
   ContentStudioWorkspace,
   WhiteboardWorkspace,
@@ -1380,6 +1381,12 @@ export default function InternalOperationsDashboard({
           {activeView === "system-health" && isInternalHost && (
             <WorkspaceErrorBoundary title="System Health">
               <SystemHealthWorkspace />
+            </WorkspaceErrorBoundary>
+          )}
+
+          {activeView === "saec-feedback" && isInternalHost && (
+            <WorkspaceErrorBoundary title="SAEC Feedback">
+              <SaecFeedbackWorkspace />
             </WorkspaceErrorBoundary>
           )}
 

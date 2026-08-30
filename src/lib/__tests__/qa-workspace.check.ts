@@ -214,7 +214,7 @@ assert.match(csv, /,test,/);
 // --- Migration registered ---
 const migration153 = "supabase/migrations/153_qa_workspace_tasks.sql";
 const migration154 = "supabase/migrations/154_qa_workspace_tasks_scope.sql";
-const migration185 = "supabase/migrations/185_qa_workspace_task_beta_statuses.sql";
+const migration185 = "supabase/migrations/186_qa_workspace_task_beta_statuses.sql";
 assert.ok(UNIT311_PENDING_MIGRATIONS.includes(migration153 as never));
 assert.ok(UNIT311_PENDING_MIGRATIONS.includes(migration154 as never));
 assert.ok(UNIT311_PENDING_MIGRATIONS.includes(migration185 as never));
