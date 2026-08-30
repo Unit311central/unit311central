@@ -119,7 +119,7 @@ assert.ok(
   "Installations is not a catalogue submodule",
 );
 
-const augmented = augmentSaecOperationsNav(opsNav.items);
+const augmented = augmentSaecOperationsNav([...opsNav.items]);
 const installations = augmented.find((item) => item.label === SAEC_INSTALLATIONS_CUSTOM_FEATURE_LABEL);
 assert.ok(installations?.children?.length === 3, "SAEC nav injects Installations after Dashboard");
 
