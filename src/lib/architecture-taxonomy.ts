@@ -26,6 +26,7 @@
 
 import { ABHI_INTELLIGENCE_NAV_SECTION, ABHI_REGULATORY_NAV_SECTION } from "@/lib/abhi/nav";
 import { getCanonicalModule } from "@/lib/central-application-model/canonical-modules";
+import { BOARD_CORE_FEATURES } from "@/lib/board/board-taxonomy";
 import { CORPORATE_INFORMATION_CORE_FEATURES } from "@/lib/corporate-information/corporate-information-taxonomy";
 import { HOME_MODULE_ID } from "@/lib/home/home-taxonomy";
 import type {
@@ -60,6 +61,7 @@ export const AUDITED_CORE_MODULE_IDS: ReadonlySet<string> = new Set([
   "intelligence",
   "corporate-information",
   "fundraising",
+  "board",
 ]);
 
 /** Explicit audited Intelligence taxonomy (nav omits the Dashboard, so it is not derived from nav). */
@@ -156,6 +158,15 @@ function auditedFeaturesForModule(moduleId: string): ArchitectureTaxonomyNode[] 
   if (moduleId === HOME_MODULE_ID) {
     // Audited taxonomy source: home-taxonomy.ts — module-level only (0 features).
     return [];
+  }
+  if (moduleId === "board") {
+    // Audited taxonomy source: board-taxonomy.ts (6 Core Features, 0 Sub-features).
+    return BOARD_CORE_FEATURES.map((feature) => ({
+      id: `board::${slug(feature.label)}`,
+      label: feature.label,
+      level: "feature" as const,
+      kind: "core" as const,
+    }));
   }
   if (moduleId === "fundraising") {
     // Audited taxonomy source: fundraising-taxonomy.ts (8 Core Features, 9 Sub-features).
