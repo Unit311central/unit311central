@@ -21,12 +21,19 @@
  * - Fundraising features/sub-features: fundraising-taxonomy.ts
  *   (matches fundraising-taxonomy.check.ts)
  * - Operations features: operations-taxonomy.ts (matches operations-taxonomy.check.ts)
+ * - Marketing & Events features: marketing-events-taxonomy.ts
+ *   (matches marketing-events-taxonomy.check.ts)
  * - Custom (ABHI Regulatory Intelligence): src/lib/abhi/nav.ts
+ * - Custom (ABHI Marketing & Events): marketing-events-taxonomy.ts + abhi/nav.ts
  * - Custom (OmniTransit Installations): operations-taxonomy.ts + saec/installations-nav.ts
  * - Workspace enablement: demo/saec provisioning constants + core catalogue (read-only)
  */
 
-import { ABHI_INTELLIGENCE_NAV_SECTION, ABHI_REGULATORY_NAV_SECTION } from "@/lib/abhi/nav";
+import {
+  ABHI_INTELLIGENCE_NAV_SECTION,
+  ABHI_MARKETING_NAV_SECTION,
+  ABHI_REGULATORY_NAV_SECTION,
+} from "@/lib/abhi/nav";
 import { getCanonicalModule } from "@/lib/central-application-model/canonical-modules";
 import { BOARD_CORE_FEATURES } from "@/lib/board/board-taxonomy";
 import { CORPORATE_INFORMATION_CORE_FEATURES } from "@/lib/corporate-information/corporate-information-taxonomy";
@@ -43,6 +50,12 @@ import {
   buildCentralProductNavSections,
 } from "@/lib/platform-workspaces/central-product-nav";
 import { FUNDRAISING_CORE_FEATURES } from "@/lib/fundraising/fundraising-taxonomy";
+import {
+  ABHI_MARKETING_CUSTOM_FEATURES,
+  isAbhiMarketingCustomFeatureView,
+  MARKETING_EVENTS_CORE_FEATURES,
+  MARKETING_EVENTS_MODULE_ID,
+} from "@/lib/marketing-events/marketing-events-taxonomy";
 import {
   OPERATIONS_CORE_FEATURES,
   OPERATIONS_MODULE_ID,
@@ -71,6 +84,7 @@ export const AUDITED_CORE_MODULE_IDS: ReadonlySet<string> = new Set([
   "fundraising",
   "operations",
   "board",
+  "marketing-events",
 ]);
 
 /** Explicit audited Intelligence taxonomy (nav omits the Dashboard, so it is not derived from nav). */
@@ -204,6 +218,15 @@ function auditedFeaturesForModule(moduleId: string): ArchitectureTaxonomyNode[] 
       kind: "core" as const,
     }));
   }
+  if (moduleId === MARKETING_EVENTS_MODULE_ID) {
+    // Audited taxonomy source: marketing-events-taxonomy.ts (7 Core Features, 0 Sub-features).
+    return MARKETING_EVENTS_CORE_FEATURES.map((feature) => ({
+      id: `${MARKETING_EVENTS_MODULE_ID}::${slug(feature.label)}`,
+      label: feature.label,
+      level: "feature" as const,
+      kind: "core" as const,
+    }));
+  }
   return null;
 }
 
@@ -277,6 +300,37 @@ function omnitransitOperationsFeatures(): ArchitectureTaxonomyNode[] {
   ];
 }
 
+/** ABHI Marketing & Events custom feature (flat leaf — no sub-features). */
+function abhiMarketingCustomFeatureNode(
+  idPrefix: string,
+  label: string,
+): ArchitectureTaxonomyNode {
+  return {
+    id: `${idPrefix}::${slug(label)}`,
+    label,
+    level: "feature",
+    kind: "custom",
+  };
+}
+
+/** ABHI Marketing & Events override: five standard Core Features + four Custom Features (nav order). */
+function abhiMarketingFeatures(): ArchitectureTaxonomyNode[] {
+  return ABHI_MARKETING_NAV_SECTION.items.map((item) => {
+    const viewId = item.view ?? "";
+    if (isAbhiMarketingCustomFeatureView(viewId)) {
+      return abhiMarketingCustomFeatureNode("workspace::abhi::marketing-events", item.label);
+    }
+    const coreFeature = MARKETING_EVENTS_CORE_FEATURES.find((feature) => feature.viewId === viewId);
+    const label = coreFeature?.label ?? item.label;
+    return {
+      id: `workspace::abhi::marketing-events::${slug(label)}`,
+      label,
+      level: "feature" as const,
+      kind: "core" as const,
+    };
+  });
+}
+
 /** ABHI Regulatory Intelligence custom feature (+ four custom sub-features) — from abhi/nav.ts. */
 function abhiRegulatoryIntelligenceFeature(idPrefix: string): ArchitectureTaxonomyNode {
   const featureId = `${idPrefix}::regulatory-intelligence`;
@@ -321,7 +375,12 @@ export function buildCustomProductTaxonomy(): ArchitectureTaxonomyNode {
             label: "ABHI",
             level: "workspace",
             kind: "custom",
-            children: [abhiRegulatoryIntelligenceFeature("custom-product::abhi")],
+            children: [
+              abhiRegulatoryIntelligenceFeature("custom-product::abhi"),
+              ...ABHI_MARKETING_CUSTOM_FEATURES.map((feature) =>
+                abhiMarketingCustomFeatureNode("custom-product::abhi", feature.label),
+              ),
+            ],
           },
           {
             id: "custom-product::omnitransit",
@@ -404,6 +463,12 @@ function workspaceCoreModules(spec: WorkspaceSpec): ArchitectureTaxonomyNode[] {
         note: "ABHI: Member Intelligence + Regulatory Intelligence",
       };
     }
+    if (spec.isAbhi && moduleId === MARKETING_EVENTS_MODULE_ID) {
+      return {
+        ...coreModuleNode(moduleId, label, abhiMarketingFeatures()),
+        note: "ABHI: five standard Core Features + four Custom Features",
+      };
+    }
     if (spec.id === "omnitransit" && moduleId === OPERATIONS_MODULE_ID) {
       return {
         ...coreModuleNode(moduleId, label, omnitransitOperationsFeatures()),
@@ -423,7 +488,12 @@ function workspaceNode(spec: WorkspaceSpec): ArchitectureTaxonomyNode {
         : "Full core catalogue";
 
   const customChildren: ArchitectureTaxonomyNode[] = spec.isAbhi
-    ? [abhiRegulatoryIntelligenceFeature(`workspace::${spec.id}::custom`)]
+    ? [
+        abhiRegulatoryIntelligenceFeature(`workspace::${spec.id}::custom`),
+        ...ABHI_MARKETING_CUSTOM_FEATURES.map((feature) =>
+          abhiMarketingCustomFeatureNode(`workspace::${spec.id}::custom`, feature.label),
+        ),
+      ]
     : spec.id === "omnitransit"
       ? [saecInstallationsCustomFeature(`workspace::${spec.id}::custom`)]
       : [];
