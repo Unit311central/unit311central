@@ -4,8 +4,8 @@ import { useQaWorkspace } from "@/components/qa-workspace/QaWorkspaceProvider";
 import { cn } from "@/lib/utils";
 
 export default function QaModeButton() {
-  const { enabled, betaMode, qaMode, setQaMode } = useQaWorkspace();
-  if (!enabled || betaMode) return null;
+  const { enabled, qaMode, setQaMode } = useQaWorkspace();
+  if (!enabled) return null;
 
   return (
     <button
