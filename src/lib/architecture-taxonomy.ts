@@ -16,6 +16,8 @@
  *   (matches business-central-taxonomy.check.ts)
  * - Sales Management features/sub-features: buildSalesManagementNavSection()
  *   (matches sales-management-taxonomy.check.ts)
+ * - Fundraising features/sub-features: fundraising-taxonomy.ts
+ *   (matches fundraising-taxonomy.check.ts)
  * - Intelligence: explicit audited annotation (Dashboard + three domains)
  * - Custom (ABHI Regulatory Intelligence): src/lib/abhi/nav.ts
  * - Workspace enablement: demo/saec provisioning constants + core catalogue (read-only)
@@ -34,6 +36,7 @@ import {
   buildCentralBusinessCentralNavSection,
   buildCentralProductNavSections,
 } from "@/lib/platform-workspaces/central-product-nav";
+import { FUNDRAISING_CORE_FEATURES } from "@/lib/fundraising/fundraising-taxonomy";
 import { buildSalesManagementNavSection } from "@/lib/sales-management-nav";
 import type { ArchitectureTaxonomyNode } from "@/lib/architecture-taxonomy-types";
 
@@ -47,6 +50,7 @@ export const AUDITED_CORE_MODULE_IDS: ReadonlySet<string> = new Set([
   "business-central",
   "sales-management",
   "intelligence",
+  "fundraising",
 ]);
 
 /** Explicit audited Intelligence taxonomy (nav omits the Dashboard, so it is not derived from nav). */
@@ -116,6 +120,20 @@ function auditedFeaturesForModule(moduleId: string): ArchitectureTaxonomyNode[] 
       label,
       level: "feature" as const,
       kind: "core" as const,
+    }));
+  }
+  if (moduleId === "fundraising") {
+    return FUNDRAISING_CORE_FEATURES.map((feature) => ({
+      id: `fundraising::${slug(feature.label)}`,
+      label: feature.label,
+      level: "feature" as const,
+      kind: "core" as const,
+      children: feature.subFeatures?.map((sub) => ({
+        id: `fundraising::${slug(feature.label)}::${slug(sub.label)}`,
+        label: sub.label,
+        level: "sub-feature" as const,
+        kind: "core" as const,
+      })),
     }));
   }
   return null;

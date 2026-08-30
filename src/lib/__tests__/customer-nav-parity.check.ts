@@ -128,6 +128,7 @@ const customerTree = navTree(customerNav);
 assert.ok(demoTree["Fundraising"], "Demo must include Fundraising");
 assert.ok(customerTree["Fundraising"], "Customer must include Fundraising");
 assert.ok(JSON.stringify(demoTree["Fundraising"]).includes("Cap Table"), "Cap Table under Fundraising");
+assert.ok(JSON.stringify(demoTree["Fundraising"]).includes("Grant Management"), "Grant Management under Fundraising");
 assert.ok(!JSON.stringify(demoTree["Corporate Information"]).includes("Cap Table"));
 assert.ok(!JSON.stringify(customerTree["Corporate Information"]).includes("Cap Table"));
 assert.ok(!JSON.stringify(demoTree["Corporate Information"]).includes("Board Meetings"));

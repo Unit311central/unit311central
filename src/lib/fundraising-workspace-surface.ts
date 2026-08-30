@@ -16,6 +16,7 @@ export const FUNDRAISING_MODULE_VIEWS: ReadonlySet<InternalOperationsView> = new
   "fundraising-meetings",
   "fundraising-pitch-decks",
   "fundraising-data-rooms",
+  "grants",
 ]);
 
 export function resolveFundraisingSurfaceKind(

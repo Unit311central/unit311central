@@ -120,7 +120,7 @@ assert.ok(abhiPack);
 assert.ok(abhiPack!.domains.some((domain) => domain.id === "member"));
 assert.ok(abhiPack!.domains.some((domain) => domain.id === "regulatory"));
 
-assert.equal(defaultEnabledSubModules(WORKSPACE_CORE_MODULE_IDS).length, 162);
+assert.equal(defaultEnabledSubModules(WORKSPACE_CORE_MODULE_IDS).length, 163);
 
 const intelligenceSubs = getWorkspaceModuleEntry("intelligence")?.subModules ?? [];
 assert.ok(intelligenceSubs.some((sub) => sub.viewId === "intelligence-dashboard"));

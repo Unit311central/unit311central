@@ -113,6 +113,7 @@ export function buildCentralFundraisingNavSection(): InternalNavSection {
       { label: "Meetings", icon: "CalendarDays", view: "fundraising-meetings" },
       { label: "Pitch Decks", icon: "Presentation", view: "fundraising-pitch-decks" },
       { label: "Data Rooms", icon: "FolderLock", view: "fundraising-data-rooms" },
+      { label: "Grant Management", icon: "ScrollText", view: "grants" },
     ],
   };
 }

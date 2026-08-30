@@ -32,8 +32,6 @@ import {
   internalSurveyNavSections,
   type InternalNavSection,
 } from "@/lib/internal-operations-data";
-import { viewsForWorkspaceEnablement } from "@/lib/workspace-enabled-views";
-
 const TARGET_BC_FEATURES = [
   "Dashboard",
   "Client Management",
@@ -68,7 +66,7 @@ assert.equal(bcSubs.length, 8);
 assert.ok(!bcSubs.some((sub) => sub.viewId === "member-intelligence"));
 assert.ok(!bcSubs.some((sub) => sub.viewId === "grants"), "grants must not be a BC catalogue submodule");
 
-assert.equal(defaultEnabledSubModules(WORKSPACE_CORE_MODULE_IDS).length, 162);
+assert.equal(defaultEnabledSubModules(WORKSPACE_CORE_MODULE_IDS).length, 163);
 
 assert.equal(workspaceExcludesBusinessCentralGrantManagement(ABHI_SLUG), true);
 assert.equal(workspaceExcludesBusinessCentralGrantManagement(SAEC_SLUG), true);
@@ -188,11 +186,14 @@ for (const workspace of workspaceCases) {
   });
 
   if (!workspace.abhi && !workspace.internal && workspace.enablement) {
-    const views = viewsForWorkspaceEnablement(
-      workspace.enablement.enabledModules,
-      workspace.enablement.enabledSubModules,
+    assert.ok(
+      !workspace.enablement.enabledSubModules.includes(BUSINESS_CENTRAL_GRANT_MANAGEMENT_SUBMODULE_KEY),
+      `${workspace.name}: business-central:grants must remain stripped`,
     );
-    assert.ok(!views.includes("grants"), `${workspace.name}: grants must not be enabled via BC submodule`);
+    assert.ok(
+      workspace.enablement.enabledSubModules.includes("fundraising:grants"),
+      `${workspace.name}: grants must be enabled via Fundraising submodule`,
+    );
   }
 }
 

@@ -16,7 +16,7 @@ import { WORKSPACE_FUNDING_ROUNDS } from "@/lib/workspace-fundraising-data";
 
 assert.ok(isFundraisingModuleView("fundraising-meetings"));
 assert.ok(!isFundraisingModuleView("financials"));
-assert.equal(FUNDRAISING_MODULE_VIEWS.size, 7);
+assert.equal(FUNDRAISING_MODULE_VIEWS.size, 8);
 
 assert.equal(isFundraisingModuleEnabled(null), true);
 assert.equal(isFundraisingModuleEnabled([]), true);

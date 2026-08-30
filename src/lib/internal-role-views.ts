@@ -1051,6 +1051,7 @@ const ONWARDAIR_FUNDRAISING_NAV_SECTION: InternalNavSection = {
     { label: "Meetings", icon: "CalendarDays", view: "fundraising-meetings" as const },
     { label: "Pitch Decks", icon: "ScrollText", view: "fundraising-pitch-decks" as const },
     { label: "Data Rooms", icon: "FolderOpen", view: "fundraising-data-rooms" as const },
+    { label: "Grant Management", icon: "ScrollText", view: "grants" as const },
   ],
 };
 

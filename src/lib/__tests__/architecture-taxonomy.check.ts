@@ -126,6 +126,43 @@ assert.deepEqual(labels(intel), [
   "Market Intelligence",
 ]);
 
+const fundraising = child(coreModules, "Fundraising");
+assert.equal(fundraising.audited, true);
+assert.deepEqual(labels(fundraising), [
+  "Dashboard",
+  "Investors",
+  "Cap Table Management",
+  "Pipeline",
+  "Meetings",
+  "Pitch Decks",
+  "Data Rooms",
+  "Grant Management",
+]);
+const grantMgmt = child(fundraising, "Grant Management");
+assert.deepEqual(labels(grantMgmt), [
+  "KPI Summary",
+  "Pipeline by Status",
+  "Funding by Programme",
+  "Submissions vs Approvals",
+  "Grant Applications",
+]);
+for (const featureLabel of [
+  "Dashboard",
+  "Investors",
+  "Cap Table Management",
+  "Pipeline",
+  "Meetings",
+  "Pitch Decks",
+  "Data Rooms",
+]) {
+  assert.equal(
+    (child(fundraising, featureLabel).children ?? []).length,
+    0,
+    `${featureLabel} must not expose sub-features`,
+  );
+}
+assert.ok(AUDITED_CORE_MODULE_IDS.has("fundraising"));
+
 // Corporate Information is being audited → must remain at module level (no invented taxonomy).
 const corp = child(coreModules, "Corporate Information");
 assert.equal(corp.audited, false);

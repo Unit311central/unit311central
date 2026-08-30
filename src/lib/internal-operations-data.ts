@@ -695,6 +695,7 @@ export const FUNDRAISING_NAV_VIEWS = [
   "fundraising-meetings",
   "fundraising-pitch-decks",
   "fundraising-data-rooms",
+  "grants",
 ] as const satisfies readonly InternalOperationsView[];
 
 export const OA_ENGINEERING_NAV_VIEWS = [
@@ -1274,7 +1275,7 @@ export const internalViewTitles: Record<
   "projects-dashboard": { title: "Projects Dashboard", subtitle: "Projects" },
   "projects-internal": { title: "Internal Projects", subtitle: "Projects" },
   "projects-external": { title: "External Projects", subtitle: "Projects" },
-  grants: { title: "Grant Management", subtitle: "Business Central" },
+  grants: { title: "Grant Management", subtitle: "Fundraising" },
   "recent-missions": { title: "Recent Missions", subtitle: "Internal Operations" },
   webodm: { title: "WebODM Processing", subtitle: "Internal Operations" },
   messaging: { title: "Messaging", subtitle: "Business Productivity" },

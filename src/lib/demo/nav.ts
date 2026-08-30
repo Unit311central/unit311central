@@ -20,6 +20,7 @@ const DEMO_FUNDRAISING_NAV: InternalNavSection = {
     { label: "Meetings", icon: "CalendarDays", view: "fundraising-meetings" as const },
     { label: "Pitch Decks", icon: "Presentation", view: "fundraising-pitch-decks" as const },
     { label: "Data Rooms", icon: "FolderLock", view: "fundraising-data-rooms" as const },
+    { label: "Grant Management", icon: "ScrollText", view: "grants" as const },
   ],
 };
 

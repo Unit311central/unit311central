@@ -60,7 +60,9 @@ function moduleKeysForView(viewId: string | undefined, moduleId: string): string
 
   if (view === "internal-work-packages") return ["file-explorer", "email-calendar-messaging"];
 
-  if (view === "grants" || view.startsWith("projects")) return ["projects"];
+  if (view === "grants") return ["fundraising"];
+
+  if (view.startsWith("projects")) return ["projects"];
 
   if (
     view === "financials" ||

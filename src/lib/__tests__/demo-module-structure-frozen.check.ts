@@ -1,7 +1,7 @@
 /**
  * Demo module structure freeze — regression guard.
  *
- * Demo MUST remain on the complete central catalogue (22 modules, 162 submodules).
+ * Demo MUST remain on the complete central catalogue (22 modules, 163 submodules).
  * Fails if demo-provisioning or migration drift from module-catalogue.ts.
  *
  * Run: npm run prove:demo-module-structure
@@ -38,8 +38,8 @@ assert.equal(
 );
 assert.equal(
   DEMO_CATALOGUE_SUBMODULE_COUNT,
-  162,
-  "Central catalogue must expose 162 submodule keys",
+  163,
+  "Central catalogue must expose 163 submodule keys",
 );
 
 assert.deepEqual(
@@ -81,7 +81,7 @@ const migration168 = readFileSync(
 );
 assert.match(
   migration168,
-  /22 modules, 157 submodules/,
+  /22 modules, 158 submodules/,
   "Migration 168 header must document full catalogue counts",
 );
 assert.match(migration168, /"sales-management"/, "Migration 168 must include sales-management");
@@ -90,7 +90,7 @@ assert.match(
   /business-central:information-repository/,
   "Migration 168 must include Information Repository",
 );
-assert.match(migration168, /business-central:grants/, "Migration 168 must include Grant Management");
+assert.match(migration168, /fundraising:grants/, "Migration 168 must include Fundraising Grant Management");
 
 const demoEnablement = resolveWorkspaceNavEnablement({
   workspaceSlug: DEMO_SLUG,
@@ -100,7 +100,7 @@ const demoEnablement = resolveWorkspaceNavEnablement({
 });
 
 assert.equal(demoEnablement.enabledModules.length, 22);
-assert.equal(demoEnablement.enabledSubModules.length, 157);
+assert.equal(demoEnablement.enabledSubModules.length, 158);
 
 const nav = buildWorkspaceProductNavSections({
   workspaceSlug: DEMO_SLUG,
@@ -251,7 +251,7 @@ assert.notEqual(
 );
 assert.notEqual(
   staleEnablement.enabledSubModules.length,
-  162,
+  163,
   "Stale 161 submodule list must be detected as incomplete",
 );
 
