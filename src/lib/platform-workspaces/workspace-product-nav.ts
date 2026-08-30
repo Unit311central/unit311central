@@ -11,6 +11,10 @@ import { isSaecSlug } from "@/lib/saec-surface";
 import { augmentSaecOperationsNav } from "@/lib/saec/installations-nav";
 import { CLIENT_PLATFORM_ALWAYS_VIEWS } from "@/lib/unit311-support/data";
 import { buildFinancesNavSection } from "@/lib/finances-nav";
+import {
+  filterInterfaceWorxToolsNavItems,
+  shouldFilterInterfaceWorxToolsNav,
+} from "@/lib/interface-worx-nav";
 import type {
   InternalNavChildItem,
   InternalNavItem,
@@ -304,10 +308,14 @@ export function buildWorkspaceProductNavSections(
 
     if (filteredItems.length === 0) continue;
 
-    const items =
+    let items =
       spec.id === "operations" && isSaecSlug(options.workspaceSlug)
         ? augmentSaecOperationsNav(filteredItems)
         : filteredItems;
+
+    if (spec.id === "tools" && shouldFilterInterfaceWorxToolsNav(options.workspaceSlug)) {
+      items = filterInterfaceWorxToolsNavItems(items);
+    }
 
     sections.push({ ...section, items });
   }
