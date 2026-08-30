@@ -31,9 +31,17 @@ function fieldSelector(sectionId, key) {
   return `[id="${attr}"]`;
 }
 
+function discoveryCardMainSelector() {
+  return ".rounded-b-xl main";
+}
+
+function discoveryCardHeaderSelector() {
+  return ".rounded-t-xl > header";
+}
+
 async function assertNoScroll(page) {
-  const scroll = await page.evaluate(() => {
-    const main = document.querySelector("main");
+  const scroll = await page.evaluate((mainSelector) => {
+    const main = document.querySelector(mainSelector);
     return {
       docY: document.documentElement.scrollHeight > window.innerHeight,
       docX: document.documentElement.scrollWidth > window.innerWidth,
@@ -42,7 +50,7 @@ async function assertNoScroll(page) {
       mainY: main ? main.scrollHeight > main.clientHeight : false,
       mainX: main ? main.scrollWidth > main.clientWidth : false,
     };
-  });
+  }, discoveryCardMainSelector());
   assert.equal(scroll.docY, false, "document vertical scroll");
   assert.equal(scroll.docX, false, "document horizontal scroll");
   assert.equal(scroll.bodyY, false, "body vertical scroll");
@@ -54,11 +62,12 @@ async function assertNoScroll(page) {
 async function assertGeneralQ6ExamplesVisible(page) {
   await page.getByRole("button", { name: "General", exact: true }).click();
   await page.waitForSelector("#general-desired-capabilities");
-  const result = await page.evaluate(() => {
+  const result = await page.evaluate((mainSelector) => {
     const label = document.querySelector("label[for='general-desired-capabilities']");
     const exampleRoot = label?.parentElement?.querySelector("ul");
     const examples = exampleRoot ? Array.from(exampleRoot.querySelectorAll("li")) : [];
-    const panel = document.querySelector("main > div");
+    const main = document.querySelector(mainSelector);
+    const panel = main?.querySelector(":scope > div:nth-child(2)");
     const panelRect = panel?.getBoundingClientRect();
     const clipped = examples.some((node) => {
       const rect = node.getBoundingClientRect();
@@ -70,25 +79,43 @@ async function assertGeneralQ6ExamplesVisible(page) {
       clipped,
       exampleCount: examples.length,
       lastVisible: examples.at(-1)?.checkVisibility?.() ?? false,
+      mainScroll: main ? main.scrollHeight > main.clientHeight : false,
     };
-  });
+  }, discoveryCardMainSelector());
   assert.equal(result.exampleCount, 7, "General Q6 must list all seven examples");
   assert.equal(result.clipped, false, "General Q6 examples must not be clipped");
   assert.equal(result.lastVisible, true, "General Q6 last example must be visible");
+  assert.equal(result.mainScroll, false, "General content must fit without main panel scroll");
+}
+
+async function assertPlaceholders(page) {
+  assert.equal(
+    await page.locator('input[placeholder="Your answer (optional)"], textarea[placeholder="Your answer (optional)"]').count(),
+    0,
+    'no "Your answer (optional)" placeholders',
+  );
+  assert.ok(
+    (await page.locator('input[placeholder="Your answer"], textarea[placeholder="Your answer"]').count()) > 0,
+    '"Your answer" placeholder present',
+  );
 }
 
 async function assertLogoCentered(page) {
-  const offset = await page.evaluate(() => {
-    const container = document.querySelector("aside > div:first-child");
-    const img = document.querySelector('aside img[alt="SAEC"]');
-    if (!container || !img) return 999;
-    const cRect = container.getBoundingClientRect();
-    const iRect = img.getBoundingClientRect();
-    const containerMid = cRect.top + cRect.height / 2;
-    const imgMid = iRect.top + iRect.height / 2;
-    return Math.abs(containerMid - imgMid);
+  const metrics = await page.evaluate(() => {
+    const header = document.querySelector(".rounded-t-xl > header");
+    const img = document.querySelector('img[alt="SAEC"]');
+    if (!header || !img) return { offset: 999, headerMid: 0, imgMid: 0 };
+    const headerRect = header.getBoundingClientRect();
+    const imgRect = img.getBoundingClientRect();
+    const headerMid = headerRect.top + headerRect.height / 2;
+    const imgMid = imgRect.top + imgRect.height / 2;
+    return {
+      offset: Math.abs(headerMid - imgMid),
+      headerMid,
+      imgMid,
+    };
   });
-  assert.ok(offset <= 1.5, `SAEC logo should be vertically centred (offset ${offset}px)`);
+  assert.ok(metrics.offset <= 12, `SAEC logo should align to main header band (offset ${metrics.offset}px)`);
 }
 
 async function assertSoftwareLayoutConsistency(page) {
@@ -101,8 +128,12 @@ async function assertSoftwareLayoutConsistency(page) {
       const row = input?.closest(".grid");
       const label = row?.querySelector("label");
       const comments = document.querySelector("main label[for$='-comments']");
+      const rowRect = row?.getBoundingClientRect();
+      const inputRect = input?.getBoundingClientRect();
       return {
         gridTemplateColumns: row ? getComputedStyle(row).gridTemplateColumns : "",
+        inputWidth: inputRect ? Math.round(inputRect.width) : 0,
+        rowWidth: rowRect ? Math.round(rowRect.width) : 0,
         inputHeight: input ? Math.round(input.getBoundingClientRect().height) : 0,
         labelSize: label ? getComputedStyle(label).fontSize : "",
         commentsLabel: comments?.textContent?.trim() ?? "",
@@ -116,6 +147,11 @@ async function assertSoftwareLayoutConsistency(page) {
   const first = layouts[0];
   for (const entry of layouts) {
     assert.equal(entry.gridTemplateColumns, first.gridTemplateColumns, `${entry.title} grid mismatch`);
+    assert.ok(entry.inputWidth > 280, `${entry.title} answer field should be wider than 220px (${entry.inputWidth}px)`);
+    assert.ok(
+      entry.inputWidth / Math.max(entry.rowWidth, 1) >= 0.38,
+      `${entry.title} answer column should use ~40%+ of row width`,
+    );
     assert.equal(entry.inputHeight, first.inputHeight, `${entry.title} input height mismatch`);
     assert.equal(entry.labelSize, first.labelSize, `${entry.title} label size mismatch`);
     assert.equal(entry.commentsLabel, "Any other comments", `${entry.title} comments label`);
@@ -182,6 +218,7 @@ try {
       0,
       "submitted timestamp hidden from client",
     );
+    await assertPlaceholders(page);
     await assertLogoCentered(page);
 
     for (const section of SAEC_DISCOVERY_SECTIONS) {
