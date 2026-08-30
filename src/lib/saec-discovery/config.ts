@@ -55,8 +55,6 @@ export const SAEC_DISCOVERY_SECTIONS: readonly SaecDiscoverySectionConfig[] = [
     kind: "general",
     intro:
       "Any information you can provide would be great, but don't worry if you can't or don't have time to answer everything.",
-    footer:
-      "I know these are a lot of questions, but I think the more information I get now, the better.",
     questions: [
       {
         id: "top-annoyances",
@@ -217,38 +215,34 @@ export const SAEC_DISCOVERY_SECTIONS: readonly SaecDiscoverySectionConfig[] = [
     title: "Reporting",
     icon: "BarChart2",
     kind: "reporting",
-    intro:
-      "Tell me about the reports and information you need to run SAEC.\n\nDon't worry about being precise — examples of reports, spreadsheets or information you currently receive are useful.",
     questions: [
       {
         id: "regular-reports",
         label: "What regular reports do you currently receive or produce?",
-        note: "For example: weekly, monthly or quarterly management reports, financial reports, sales reports, engineering reports, project reports, client reports, etc.",
       },
       {
-        id: "how-get-information",
-        label: "How do you currently get this information?",
-        note: "For example: directly from software, Excel spreadsheets, someone prepares it for you, emailed reports, manually combining information from different systems, etc.",
+        id: "difficult-to-produce",
+        label: "Which reports or information do you find difficult or time-consuming to produce?",
       },
       {
-        id: "untrusted-information",
+        id: "immediate-information",
         label:
-          "Is there any information you currently don't trust or can't easily get when you need it?",
+          "What information would you like to be able to see immediately that currently requires someone to prepare it?",
       },
       {
-        id: "difficult-information",
+        id: "duplicate-reports",
         label:
-          "What information would you like to be able to see quickly that is currently difficult to get?",
+          "Do different people or departments currently produce their own reports or spreadsheets for the same information?",
       },
       {
-        id: "relied-on-reports",
-        label: "Are there any reports or spreadsheets that you currently rely on heavily?",
-        note: "If so, please tell me what they are used for and, if you know, who prepares them.",
+        id: "untrusted-reports",
+        label:
+          "Are there any reports you currently receive that you don't trust or have difficulty reconciling?",
       },
       {
-        id: "kpis-anytime",
-        label: "Are there any specific numbers or KPIs you would like to have available at any time?",
-        note: "For example: revenue, gross margin, cash flow, client profitability, sales pipeline, engineer utilisation, outstanding work, project profitability, costs, etc.",
+        id: "automatic-reports",
+        label:
+          "If you could have any financial, operational, sales or management report produced automatically, what would be most useful?",
       },
     ],
     includeComments: true,

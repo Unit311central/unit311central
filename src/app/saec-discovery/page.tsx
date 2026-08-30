@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-import SaecDiscoveryApp from "@/components/saec-discovery/SaecDiscoveryApp";
+import SaecDiscoveryShell from "@/components/saec-discovery/SaecDiscoveryShell";
 import { createPageMetadata } from "@/lib/metadata";
 
 export const metadata: Metadata = createPageMetadata({
@@ -13,5 +13,5 @@ export const metadata: Metadata = createPageMetadata({
 });
 
 export default function SaecDiscoveryPage() {
-  return <SaecDiscoveryApp />;
+  return <SaecDiscoveryShell />;
 }

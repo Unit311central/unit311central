@@ -49,6 +49,10 @@ assert.equal(generalQuestions.length, 6);
 const reportingQuestions =
   SAEC_DISCOVERY_SECTIONS.find((s) => s.id === "reporting")?.questions ?? [];
 assert.equal(reportingQuestions.length, 6);
+assert.equal(reportingQuestions[1]?.id, "difficult-to-produce");
+assert.equal(reportingQuestions[5]?.id, "automatic-reports");
+
+assert.equal(SAEC_DISCOVERY_SECTIONS.find((s) => s.id === "general")?.footer, undefined);
 
 const stored = normalizeDiscoveryResponses({});
 assert.equal(Object.keys(stored).length, SAEC_DISCOVERY_SECTIONS.length);
