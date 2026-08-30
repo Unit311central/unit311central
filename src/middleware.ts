@@ -1218,7 +1218,9 @@ export async function middleware(request: NextRequest) {
     if (
       pathname === "/partners" ||
       pathname.startsWith("/partners/") ||
-      pathname.startsWith("/dev/android-preview")
+      pathname.startsWith("/dev/android-preview") ||
+      pathname === "/saec-discovery" ||
+      pathname.startsWith("/saec-discovery/")
     ) {
       headers.set("x-unit311-bare-chrome", "1");
     }
