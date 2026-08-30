@@ -229,6 +229,7 @@ export async function middleware(request: NextRequest) {
   if (pathname === "/saec-discovery" || pathname.startsWith("/saec-discovery/")) {
     const headers = new Headers(request.headers);
     headers.set("x-unit311-bare-chrome", "1");
+    headers.set("x-unit311-pathname", pathname);
     return NextResponse.next({ request: { headers } });
   }
 

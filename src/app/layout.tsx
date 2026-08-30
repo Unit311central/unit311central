@@ -60,10 +60,14 @@ export default async function RootLayout({
 }>) {
   const requestHeaders = await headers();
   const host = getRequestHost({ headers: requestHeaders });
+  const pathname = requestHeaders.get("x-unit311-pathname") ?? "";
+  const isSaecDiscoveryPath =
+    pathname === "/saec-discovery" || pathname.startsWith("/saec-discovery/");
   // Customer workspace + Internal/Demo app hosts must not show marketing chrome
   // (bare /login links would drop return_to before hydrate hides the nav).
   // Partners signup/portal is also a bare surface (see middleware x-unit311-bare-chrome).
   const hideMarketingChrome =
+    isSaecDiscoveryPath ||
     Boolean(parseClientPlatformSubdomainSafe(host)) ||
     isInternalOpsShellHost(host) ||
     isInterfaceWorxWebsiteHost(host) ||
