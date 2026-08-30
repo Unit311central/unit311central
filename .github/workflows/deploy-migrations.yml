@@ -72,11 +72,26 @@ jobs:
             echo "INTERNAL_FILES_SETUP_SECRET is not configured on this repo."
             exit 1
           fi
-          response=$(curl -fsS -X POST \
-            -H "x-setup-secret: ${SETUP_SECRET}" \
-            -H "Content-Type: application/json" \
-            "https://unit311central.com/api/internal/apply-unit311central-pending-migrations")
-          echo "$response" | jq .
+          response=""
+          for attempt in $(seq 1 8); do
+            http_code=$(curl -sS -o /tmp/migration-apply.json -w "%{http_code}" -X POST \
+              -H "x-setup-secret: ${SETUP_SECRET}" \
+              -H "Content-Type: application/json" \
+              "https://unit311central.com/api/internal/apply-unit311central-pending-migrations")
+            response=$(cat /tmp/migration-apply.json)
+            echo "attempt ${attempt}: HTTP ${http_code}"
+            echo "$response" | jq . || echo "$response"
+            if [ "$http_code" = "200" ] && echo "$response" | jq -e '.ok == true' >/dev/null 2>&1; then
+              break
+            fi
+            if [ "$attempt" -eq 8 ]; then
+              echo "Migration apply failed after ${attempt} attempts (last HTTP ${http_code})"
+              exit 1
+            fi
+            backoff=$((15 * attempt))
+            echo "Retrying migration apply after ${backoff}s..."
+            sleep "$backoff"
+          done
           echo "$response" | jq -e '.ok == true' >/dev/null
           echo "$response" | jq -e '
             ([.errors[]?] | length) == 0
