@@ -77,6 +77,77 @@ async function assertGeneralQ6ExamplesVisible(page) {
   assert.equal(result.lastVisible, true, "General Q6 last example must be visible");
 }
 
+async function assertLogoCentered(page) {
+  const offset = await page.evaluate(() => {
+    const container = document.querySelector("aside > div:first-child");
+    const img = document.querySelector('aside img[alt="SAEC"]');
+    if (!container || !img) return 999;
+    const cRect = container.getBoundingClientRect();
+    const iRect = img.getBoundingClientRect();
+    const containerMid = cRect.top + cRect.height / 2;
+    const imgMid = iRect.top + iRect.height / 2;
+    return Math.abs(containerMid - imgMid);
+  });
+  assert.ok(offset <= 1.5, `SAEC logo should be vertically centred (offset ${offset}px)`);
+}
+
+async function assertSoftwareLayoutConsistency(page) {
+  const sections = ["Operations", "Project Management", "Engineering", "Training", "QMS"];
+  const layouts = [];
+  for (const title of sections) {
+    await page.getByRole("button", { name: title, exact: true }).click();
+    const layout = await page.evaluate(() => {
+      const input = document.querySelector("main input[type='text']:not([id$='-comments'])");
+      const row = input?.closest(".grid");
+      const label = row?.querySelector("label");
+      const comments = document.querySelector("main label[for$='-comments']");
+      return {
+        gridTemplateColumns: row ? getComputedStyle(row).gridTemplateColumns : "",
+        inputHeight: input ? Math.round(input.getBoundingClientRect().height) : 0,
+        labelSize: label ? getComputedStyle(label).fontSize : "",
+        commentsLabel: comments?.textContent?.trim() ?? "",
+        commentsUppercase: comments
+          ? getComputedStyle(comments).textTransform === "uppercase"
+          : true,
+      };
+    });
+    layouts.push({ title, ...layout });
+  }
+  const first = layouts[0];
+  for (const entry of layouts) {
+    assert.equal(entry.gridTemplateColumns, first.gridTemplateColumns, `${entry.title} grid mismatch`);
+    assert.equal(entry.inputHeight, first.inputHeight, `${entry.title} input height mismatch`);
+    assert.equal(entry.labelSize, first.labelSize, `${entry.title} label size mismatch`);
+    assert.equal(entry.commentsLabel, "Any other comments", `${entry.title} comments label`);
+    assert.equal(entry.commentsUppercase, false, `${entry.title} comments label must not be uppercase`);
+  }
+}
+
+async function assertReportingLayout(page) {
+  await page.getByRole("button", { name: "Reporting", exact: true }).click();
+  const result = await page.evaluate(() => {
+    const questions = Array.from(document.querySelectorAll("main label:not([for$='-comments'])"));
+    const textareas = Array.from(document.querySelectorAll("main textarea:not([id$='-comments'])"));
+    const comments = document.querySelector("label[for='reporting-comments']");
+    const clipped = textareas.some((node) => {
+      const rect = node.getBoundingClientRect();
+      return rect.height < 60;
+    });
+    return {
+      questionCount: questions.length,
+      textareaCount: textareas.length,
+      commentsLabel: comments?.textContent?.trim() ?? "",
+      twoColumnGrid: Boolean(document.querySelector("main .lg\\:grid-cols-2")),
+      clipped,
+    };
+  });
+  assert.equal(result.questionCount, 6, "Reporting must show six questions");
+  assert.equal(result.textareaCount, 6, "Reporting must show six answer fields");
+  assert.equal(result.commentsLabel, "Any other comments");
+  assert.equal(result.twoColumnGrid, false, "Reporting must not use two-column grid");
+  assert.equal(result.clipped, false, "Reporting answer fields must not be compressed");
+}
+
 async function typeInField(page, selector, value) {
   const field = page.locator(selector);
   await field.waitFor({ state: "visible" });
@@ -111,6 +182,7 @@ try {
       0,
       "submitted timestamp hidden from client",
     );
+    await assertLogoCentered(page);
 
     for (const section of SAEC_DISCOVERY_SECTIONS) {
       await page.getByRole("button", { name: section.title, exact: true }).click();
@@ -141,6 +213,10 @@ try {
 
       await assertNoScroll(page);
     }
+
+    await assertSoftwareLayoutConsistency(page);
+    await assertReportingLayout(page);
+    await assertNoScroll(page);
 
     await page.locator('button:has-text("Save Draft")').click();
     await page.waitForSelector('[role="status"]:has-text("Draft saved")');
