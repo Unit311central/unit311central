@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { Loader2 } from "lucide-react";
 
@@ -16,25 +16,57 @@ type SaecDiscoveryLoginProps = {
   onAuthenticated: () => void;
 };
 
+function readLoginFields(form: HTMLFormElement) {
+  const usernameInput = form.elements.namedItem("username");
+  const passwordInput = form.elements.namedItem("password");
+  const username =
+    usernameInput instanceof HTMLInputElement ? usernameInput.value.trim() : "";
+  const password = passwordInput instanceof HTMLInputElement ? passwordInput.value : "";
+  return { username, password };
+}
+
 export default function SaecDiscoveryLogin({ onAuthenticated }: SaecDiscoveryLoginProps) {
-  const [email, setEmail] = useState("");
+  const formRef = useRef<HTMLFormElement>(null);
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function handleSubmit(event: FormEvent) {
+  const syncFieldsFromDom = useCallback(() => {
+    const form = formRef.current;
+    if (!form) return;
+    const { username: nextUsername, password: nextPassword } = readLoginFields(form);
+    setUsername((current) => (current === nextUsername ? current : nextUsername));
+    setPassword((current) => (current === nextPassword ? current : nextPassword));
+  }, []);
+
+  useEffect(() => {
+    syncFieldsFromDom();
+    const timers = [0, 100, 300, 800].map((delay) =>
+      window.setTimeout(syncFieldsFromDom, delay),
+    );
+    return () => {
+      for (const timer of timers) window.clearTimeout(timer);
+    };
+  }, [syncFieldsFromDom]);
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSubmitting(true);
     setError(null);
+
+    const { username: submittedUsername, password: submittedPassword } = readLoginFields(
+      event.currentTarget,
+    );
 
     try {
       const response = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email.trim(), password }),
+        body: JSON.stringify({ username: submittedUsername, password: submittedPassword }),
       });
-      const payload = (await response.json()) as { ok?: boolean; error?: string };
-      if (!response.ok || !payload.ok) {
+      const payload = (await response.json()) as { redirectPath?: string; error?: string };
+      if (!response.ok) {
         throw new Error(payload.error ?? "Unable to sign in.");
       }
       invalidatePlatformWhoamiCache();
@@ -79,17 +111,23 @@ export default function SaecDiscoveryLogin({ onAuthenticated }: SaecDiscoveryLog
           </p>
         </div>
 
-        <form className="mt-8 space-y-4" onSubmit={(event) => void handleSubmit(event)}>
+        <form
+          ref={formRef}
+          className="mt-8 space-y-4"
+          onSubmit={(event) => void handleSubmit(event)}
+        >
           <div>
             <label htmlFor="saec-discovery-email" className="mb-1.5 block text-sm text-white/75">
               Email
             </label>
             <input
               id="saec-discovery-email"
+              name="username"
               type="email"
               autoComplete="username"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
+              value={username}
+              onChange={(event) => setUsername(event.target.value)}
+              onInput={(event) => setUsername(event.currentTarget.value)}
               className="w-full rounded-lg border border-white/10 bg-[#070f1a] px-3 py-2.5 text-sm text-white outline-none focus:border-sky-400/50"
             />
           </div>
@@ -99,10 +137,12 @@ export default function SaecDiscoveryLogin({ onAuthenticated }: SaecDiscoveryLog
             </label>
             <input
               id="saec-discovery-password"
+              name="password"
               type="password"
               autoComplete="current-password"
               value={password}
               onChange={(event) => setPassword(event.target.value)}
+              onInput={(event) => setPassword(event.currentTarget.value)}
               className="w-full rounded-lg border border-white/10 bg-[#070f1a] px-3 py-2.5 text-sm text-white outline-none focus:border-sky-400/50"
             />
           </div>
