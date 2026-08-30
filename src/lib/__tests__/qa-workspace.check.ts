@@ -265,6 +265,13 @@ assert.match(qaOverlay, /onWorkspaceLevelTask/);
 assert.match(qaOverlay, /onModuleLevelTask/);
 assert.match(qaOverlay, /onPageLevelTask/);
 
+const qaModeButton = readRepoFile("src/components/qa-workspace/QaModeButton.tsx");
+assert.match(qaModeButton, /QaModeButton/);
+assert.ok(!/betaMode/.test(qaModeButton), "QaModeButton must render for beta workspaces too");
+
+const shellSource = readRepoFile("src/components/testflighthub/SurveyOperationsShell.tsx");
+assert.match(shellSource, /<QaModeButton/);
+
 // --- Browser surface helper returns false without window (SSR) ---
 assert.equal(isBrowserTestWorkspaceSurface(), false);
 assert.equal(isBrowserInterfaceWorxQaSurface(), false);
