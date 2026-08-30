@@ -13,11 +13,6 @@ export function isQaEnabledWorkspaceSlug(slug: string | null | undefined): boole
   return isTestWorkspaceSlug(slug) || isInterfaceWorxQaSlug(slug);
 }
 
-/** InterfaceWorx beta feedback UX (simple report form, not element-click QA). */
-export function isQaBetaWorkspaceSlug(slug: string | null | undefined): boolean {
-  return isInterfaceWorxQaSlug(slug);
-}
-
 /** Client-side Test workspace host detection (UI gating only — APIs enforce server-side). */
 export function isBrowserTestWorkspaceSurface(): boolean {
   if (typeof window === "undefined") return false;

@@ -9,7 +9,6 @@ import { join } from "node:path";
 import { internalSurveyNavSections } from "@/lib/internal-operations-data";
 import { allCatalogueModuleSelections } from "@/lib/platform-workspaces/module-catalogue";
 import { injectQaWorkspaceNav } from "@/lib/qa-workspace/nav";
-import { buildBetaReportTaskInput } from "@/lib/qa-workspace/beta-report";
 import { resolveQaPageContext } from "@/lib/qa-workspace/page-context";
 import { qaTasksToCsv } from "@/lib/qa-workspace/csv";
 import { assertTestWorkspaceSlug } from "@/lib/qa-workspace/auth";
@@ -34,7 +33,6 @@ import {
   isBrowserInterfaceWorxQaSurface,
   isBrowserTestWorkspaceSurface,
   isInterfaceWorxQaSlug,
-  isQaBetaWorkspaceSlug,
   isQaEnabledWorkspaceSlug,
   isTestWorkspaceSlug,
 } from "@/lib/qa-workspace/surface";
@@ -58,8 +56,6 @@ assert.equal(isInterfaceWorxQaSlug("interfaceworx"), true);
 assert.equal(isQaEnabledWorkspaceSlug("test"), true);
 assert.equal(isQaEnabledWorkspaceSlug("interfaceworx"), true);
 assert.equal(isQaEnabledWorkspaceSlug("demo"), false);
-assert.equal(isQaBetaWorkspaceSlug("interfaceworx"), true);
-assert.equal(isQaBetaWorkspaceSlug("test"), false);
 assert.equal(INTERFACE_WORX_QA_SLUG, "interfaceworx");
 assert.equal(isTestWorkspaceSlug("onwardair"), false);
 assert.equal(isTestWorkspaceSlug("abhi"), false);
@@ -173,17 +169,6 @@ assert.equal(inferScopeFromLegacyTask({ elementLabel: QA_MODULE_LEVEL_ELEMENT })
 assert.equal(inferScopeFromLegacyTask({ elementLabel: QA_WORKSPACE_LEVEL_ELEMENT }), "workspace");
 assert.equal(formatQaTaskScopeLabel("page"), "Page");
 
-const betaInput = buildBetaReportTaskInput({
-  pageContext,
-  reportTypeId: "broken",
-  description: "Submit button does nothing",
-});
-assert.equal(betaInput.scope, "page");
-assert.equal(betaInput.moduleLabel, "Finances");
-assert.equal(betaInput.pageLabel, "Invoices");
-assert.equal(betaInput.elementType, "beta:broken");
-assert.equal(validateQaWorkspaceTaskInput(betaInput), null);
-
 // --- CSV export ---
 const sampleTask: QaWorkspaceTask = {
   id: "task-1",
@@ -267,7 +252,12 @@ assert.match(qaOverlay, /onPageLevelTask/);
 
 const qaModeButton = readRepoFile("src/components/qa-workspace/QaModeButton.tsx");
 assert.match(qaModeButton, /QaModeButton/);
-assert.ok(!/betaMode/.test(qaModeButton), "QaModeButton must render for beta workspaces too");
+assert.ok(!/betaMode/.test(qaModeButton), "QaModeButton must render for all QA-enabled workspaces");
+
+const providerSource = readRepoFile("src/components/qa-workspace/QaWorkspaceProvider.tsx");
+assert.match(providerSource, /<QaModeOverlay/);
+assert.ok(!/QaBetaReport/.test(providerSource), "Provider must not use beta Report Issue workflow");
+assert.ok(!/betaMode/.test(providerSource), "Provider must use one QA mode path for all workspaces");
 
 const shellSource = readRepoFile("src/components/testflighthub/SurveyOperationsShell.tsx");
 assert.match(shellSource, /<QaModeButton/);
