@@ -123,20 +123,34 @@ function auditedFeaturesForModule(moduleId: string): ArchitectureTaxonomyNode[] 
     }));
   }
   if (moduleId === "fundraising") {
-    return FUNDRAISING_CORE_FEATURES.map((feature) => ({
-      id: `fundraising::${slug(feature.label)}`,
-      label: feature.label,
-      level: "feature" as const,
-      kind: "core" as const,
-      children: feature.subFeatures?.map((sub) => ({
-        id: `fundraising::${slug(feature.label)}::${slug(sub.label)}`,
-        label: sub.label,
-        level: "sub-feature" as const,
-        kind: "core" as const,
-      })),
-    }));
+    return fundraisingFeatureNodes(FUNDRAISING_CORE_FEATURES);
   }
   return null;
+}
+
+function fundraisingFeatureNodes(
+  features: readonly (typeof FUNDRAISING_CORE_FEATURES)[number][],
+): ArchitectureTaxonomyNode[] {
+  return features.map((feature) => ({
+    id: `fundraising::${slug(feature.label)}`,
+    label: feature.label,
+    level: "feature" as const,
+    kind: "core" as const,
+    children: feature.subFeatures?.map((sub) => ({
+      id: `fundraising::${slug(feature.label)}::${slug(sub.label)}`,
+      label: sub.label,
+      level: "sub-feature" as const,
+      kind: "core" as const,
+    })),
+  }));
+}
+
+/** OmniTransit presents Fundraising as Corporate Shareholding (three Core Features only). */
+function corporateShareholdingFeatures(): ArchitectureTaxonomyNode[] {
+  const allowed = new Set(["Dashboard", "Investors", "Cap Table Management"]);
+  return fundraisingFeatureNodes(
+    FUNDRAISING_CORE_FEATURES.filter((feature) => allowed.has(feature.label)),
+  );
 }
 
 function coreModuleNode(
@@ -300,6 +314,12 @@ function workspaceCoreModules(spec: WorkspaceSpec): ArchitectureTaxonomyNode[] {
         note: "ABHI: Member Intelligence + Regulatory Intelligence",
       };
     }
+    if (spec.enablement === "saec-core" && moduleId === "fundraising") {
+      return {
+        ...coreModuleNode(moduleId, "CORPORATE SHAREHOLDING", corporateShareholdingFeatures()),
+        note: "OmniTransit: Corporate Shareholding presentation (Fundraising subset)",
+      };
+    }
     return coreModuleNode(moduleId, label);
   });
 }
@@ -309,7 +329,7 @@ function workspaceNode(spec: WorkspaceSpec): ArchitectureTaxonomyNode {
     spec.enablement === "db-driven"
       ? "Enablement is workspace-DB-driven — standard core taxonomy shown"
       : spec.enablement === "saec-core"
-        ? "Full core catalogue (Business Central Grant Management excluded)"
+        ? "Full core catalogue (Business Central Grant Management excluded; Fundraising as Corporate Shareholding)"
         : "Full core catalogue";
 
   const customChildren: ArchitectureTaxonomyNode[] = spec.isAbhi

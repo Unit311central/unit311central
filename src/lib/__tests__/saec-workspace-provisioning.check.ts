@@ -15,6 +15,10 @@ import {
   saecEnabledSubModules,
 } from "@/lib/platform-workspaces/saec-provisioning";
 import {
+  FUNDRAISING_CORPORATE_SHAREHOLDING_EXCLUDED_SUBMODULE_KEYS,
+  filterFundraisingProvisioningSubModules,
+} from "@/lib/fundraising/fundraising-provisioning";
+import {
   buildWorkspaceProductNavSections,
   resolveWorkspaceNavEnablement,
 } from "@/lib/platform-workspaces/workspace-product-nav";
@@ -25,7 +29,7 @@ test("SAEC slug resolves to ZAR reporting currency", () => {
   assert.equal(resolveSlugReportingCurrency(SAEC_SLUG), SAEC_REPORTING_CURRENCY);
 });
 
-test("SAEC uses full central catalogue minus Grants submodule", () => {
+test("SAEC uses full central catalogue with Corporate Shareholding Fundraising subset", () => {
   assert.equal(SAEC_ENABLED_MODULES.length, 22);
   assert.deepEqual([...SAEC_ENABLED_MODULES], [...WORKSPACE_CORE_MODULE_IDS]);
 
@@ -33,16 +37,23 @@ test("SAEC uses full central catalogue minus Grants submodule", () => {
   const saecSubs = saecEnabledSubModules();
   const expectedSaecSubs = filterIntelligenceProvisioningSubModules(
     SAEC_SLUG,
-    filterBusinessCentralProvisioningSubModules(
+    filterFundraisingProvisioningSubModules(
       SAEC_SLUG,
-      defaultEnabledSubModules(WORKSPACE_CORE_MODULE_IDS),
+      filterBusinessCentralProvisioningSubModules(
+        SAEC_SLUG,
+        defaultEnabledSubModules(WORKSPACE_CORE_MODULE_IDS),
+      ),
     ),
   );
   assert.equal(fullSubCount, 163);
+  assert.equal(saecSubs.length, 153);
   assert.deepEqual([...saecSubs].sort(), [...expectedSaecSubs].sort());
-  assert.equal(SAEC_EXCLUDED_SUBMODULE_KEYS.length, 1);
+  assert.equal(SAEC_EXCLUDED_SUBMODULE_KEYS.length, 6);
   assert.equal(SAEC_EXCLUDED_SUBMODULE_KEYS[0], "business-central:grants");
   assert.equal(saecSubs.includes("business-central:grants"), false);
+  for (const excluded of FUNDRAISING_CORPORATE_SHAREHOLDING_EXCLUDED_SUBMODULE_KEYS) {
+    assert.equal(saecSubs.includes(excluded), false, `SAEC must exclude ${excluded}`);
+  }
 
   for (const required of [
     "fundraising",
@@ -83,7 +94,7 @@ test("SAEC uses full central catalogue minus Grants submodule", () => {
   for (const label of [
     "HOME",
     "Sales Management",
-    "Fundraising",
+    "CORPORATE SHAREHOLDING",
     "Business Productivity",
     "Support Desk",
     "QMS",
@@ -100,11 +111,23 @@ test("SAEC uses full central catalogue minus Grants submodule", () => {
     false,
     "Grants must not appear in SAEC Business Central nav",
   );
-  const fundraising = nav.find((section) => section.label === "Fundraising");
-  assert.ok(fundraising && fundraising.kind === "workspace");
+  const corporateShareholding = nav.find((section) => section.label === "CORPORATE SHAREHOLDING");
+  assert.ok(corporateShareholding && corporateShareholding.kind === "workspace");
+  assert.deepEqual(
+    corporateShareholding.items.map((item) => item.label),
+    ["Dashboard", "Investors", "Cap Table Management"],
+  );
   assert.ok(
-    fundraising.items.some((item) => item.view === "grants" && item.label === "Grant Management"),
-    "Grant Management must appear under Fundraising",
+    !corporateShareholding.items.some((item) => item.view === "grants"),
+    "Grant Management must not appear under Corporate Shareholding",
+  );
+  assert.ok(
+    !corporateShareholding.items.some((item) => item.view === "fundraising-pipeline"),
+    "Pipeline must not appear under Corporate Shareholding",
+  );
+  assert.ok(
+    !nav.some((section) => section.label === "Fundraising"),
+    "OmniTransit must not show Fundraising label",
   );
   assert.ok(
     bc.items.some((item) => item.view === "information-repository"),

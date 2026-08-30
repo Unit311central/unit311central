@@ -4,7 +4,7 @@
  * Formalises the agreed Fundraising taxonomy against the EXISTING implementation.
  * Verification-only — does not change routing, views, provisioning, data, or other modules.
  *
- *   1 Core Module · 8 Core Features · 5 Core Sub-features · 0 Custom
+ *   1 Core Module · 8 Core Features · 9 Core Sub-features · 0 Custom
  *
  * Run: npm run prove:fundraising-taxonomy
  */
@@ -17,7 +17,10 @@ import { getCanonicalModule } from "@/lib/central-application-model/canonical-mo
 import { demoCatalogueEnablement } from "@/lib/platform-workspaces/demo-provisioning";
 import { GREENDESERT_SLUG } from "@/lib/greendesert-surface";
 import { INTERFACE_WORX_SLUG } from "@/lib/interface-worx-surface";
+import { resolveFundraisingNavLabel } from "@/lib/fundraising/fundraising-nav-labels";
 import {
+  FUNDRAISING_CORPORATE_SHAREHOLDING_EXCLUDED_FEATURE_VIEW_IDS,
+  FUNDRAISING_CORPORATE_SHAREHOLDING_FEATURE_VIEW_IDS,
   FUNDRAISING_CORE_FEATURES,
   FUNDRAISING_CUSTOM_FEATURES,
   FUNDRAISING_CUSTOM_SUB_FEATURES,
@@ -69,10 +72,10 @@ assert.equal(getCanonicalModule(FUNDRAISING_MODULE_ID)?.label, FUNDRAISING_MODUL
 assert.ok(getWorkspaceModuleEntry(FUNDRAISING_MODULE_ID));
 
 // ---------------------------------------------------------------------------
-// 2. Eight Core Features · five Core Sub-features · zero Custom
+// 2. Eight Core Features · nine Core Sub-features · zero Custom
 // ---------------------------------------------------------------------------
 assert.equal(fundraisingCoreFeatureCount(), 8);
-assert.equal(fundraisingCoreSubFeatureCount(), 5);
+assert.equal(fundraisingCoreSubFeatureCount(), 9);
 assert.equal(FUNDRAISING_CUSTOM_FEATURES.length, 0);
 assert.equal(FUNDRAISING_CUSTOM_SUB_FEATURES.length, 0);
 
@@ -91,10 +94,21 @@ assert.deepEqual(
 );
 
 const leafFeatures = FUNDRAISING_CORE_FEATURES.filter((feature) => !feature.subFeatures?.length);
-assert.equal(leafFeatures.length, 7, "seven Core Features have zero Core Sub-features");
+assert.equal(leafFeatures.length, 6, "six Core Features have zero Core Sub-features");
 for (const feature of leafFeatures) {
   assert.equal(feature.subFeatures, undefined, `${feature.label} must not have sub-features`);
 }
+
+const capTableManagement = FUNDRAISING_CORE_FEATURES.find(
+  (feature) => feature.label === "Cap Table Management",
+);
+assert.ok(capTableManagement);
+assert.equal(capTableManagement!.viewId, "fundraising-cap-table");
+assert.deepEqual(
+  capTableManagement!.subFeatures!.map((sub) => sub.label),
+  ["Overview", "Shareholders", "Option Pool", "Share Capital"],
+);
+assert.equal(capTableManagement!.subFeatures!.length, 4);
 
 const grantManagement = FUNDRAISING_CORE_FEATURES.find((feature) => feature.label === "Grant Management");
 assert.ok(grantManagement);
@@ -109,6 +123,7 @@ assert.deepEqual(
     "Grant Applications",
   ],
 );
+assert.equal(grantManagement!.subFeatures!.length, 5);
 
 // ---------------------------------------------------------------------------
 // 3. Central product nav matches taxonomy (view IDs preserved)
@@ -175,14 +190,14 @@ type WorkspaceCase = {
   enablement?: ReturnType<typeof resolveWorkspaceNavEnablement>;
   abhi?: boolean;
   expectFundraisingNav?: boolean;
+  corporateShareholding?: boolean;
 };
 
 function fundraisingSection(
   sections: readonly InternalNavSection[],
+  label = FUNDRAISING_MODULE_LABEL,
 ): InternalNavSection | undefined {
-  return sections.find(
-    (section) => section.kind === "workspace" && section.label === FUNDRAISING_MODULE_LABEL,
-  );
+  return sections.find((section) => section.kind === "workspace" && section.label === label);
 }
 
 function assertFundraisingTaxonomyNav(
@@ -198,6 +213,29 @@ function assertFundraisingTaxonomyNav(
     assert.equal(item.label, feature.label, `${workspaceName}: ${feature.label} nav label`);
     assert.equal(item.view, feature.viewId, `${workspaceName}: ${feature.viewId} view id preserved`);
     assert.equal((item.children ?? []).length, 0, `${workspaceName}: ${feature.label} is a leaf`);
+  }
+}
+
+function assertCorporateShareholdingNav(
+  section: InternalNavSection | undefined,
+  workspaceName: string,
+): void {
+  assert.ok(section, `${workspaceName}: Corporate Shareholding section must exist`);
+  assert.equal(section!.label, "CORPORATE SHAREHOLDING");
+  assert.equal(section!.items.length, 3, `${workspaceName}: three Core Features only`);
+  assert.deepEqual(
+    section!.items.map((item) => item.label),
+    ["Dashboard", "Investors", "Cap Table Management"],
+  );
+  assert.deepEqual(
+    section!.items.map((item) => item.view),
+    [...FUNDRAISING_CORPORATE_SHAREHOLDING_FEATURE_VIEW_IDS],
+  );
+  for (const excluded of FUNDRAISING_CORPORATE_SHAREHOLDING_EXCLUDED_FEATURE_VIEW_IDS) {
+    assert.ok(
+      !section!.items.some((item) => item.view === excluded),
+      `${workspaceName}: must not expose ${excluded}`,
+    );
   }
 }
 
@@ -237,6 +275,7 @@ const workspaceCases: WorkspaceCase[] = [
       enabledSubModules: saecEnabledSubModules(),
     }),
     expectFundraisingNav: true,
+    corporateShareholding: true,
   },
   {
     name: "AMANAH",
@@ -282,6 +321,36 @@ for (const workspace of workspaceCases) {
         enablement: workspace.enablement!,
       });
 
+  if (workspace.corporateShareholding) {
+    assert.equal(resolveFundraisingNavLabel(workspace.slug), "CORPORATE SHAREHOLDING");
+    assert.equal(fundraisingSection(sections), undefined, `${workspace.name}: no Fundraising label`);
+    assertCorporateShareholdingNav(
+      fundraisingSection(sections, "CORPORATE SHAREHOLDING"),
+      workspace.name,
+    );
+    for (const excluded of FUNDRAISING_CORPORATE_SHAREHOLDING_EXCLUDED_FEATURE_VIEW_IDS) {
+      const sub = catalogueSubs.find((entry) => entry.viewId === excluded);
+      assert.ok(sub);
+      assert.ok(
+        !workspace.enablement!.enabledSubModules.includes(
+          subModuleKey(FUNDRAISING_MODULE_ID, sub!.id),
+        ),
+        `${workspace.name}: submodule ${sub!.id} must not be enabled`,
+      );
+    }
+    for (const viewId of FUNDRAISING_CORPORATE_SHAREHOLDING_FEATURE_VIEW_IDS) {
+      const sub = catalogueSubs.find((entry) => entry.viewId === viewId);
+      assert.ok(sub);
+      assert.ok(
+        workspace.enablement!.enabledSubModules.includes(
+          subModuleKey(FUNDRAISING_MODULE_ID, sub!.id),
+        ),
+        `${workspace.name}: submodule ${sub!.id} enabled in fixture`,
+      );
+    }
+    continue;
+  }
+
   const section = fundraisingSection(sections);
   if (workspace.expectFundraisingNav) {
     assertFundraisingTaxonomyNav(section, workspace.name);
@@ -297,9 +366,14 @@ for (const workspace of workspaceCases) {
     }
   } else {
     assert.equal(section, undefined, `${workspace.name}: must not expose Fundraising navigation`);
+    assert.equal(
+      fundraisingSection(sections, "CORPORATE SHAREHOLDING"),
+      undefined,
+      `${workspace.name}: must not expose Corporate Shareholding`,
+    );
   }
 }
 
 console.log(
-  "prove:fundraising-taxonomy: OK — 1 Core Module, 8 Core Features, 5 Core Sub-features, 0 Custom; view IDs, routes, and Grant Management under Fundraising preserved across six workspaces.",
+  "prove:fundraising-taxonomy: OK — 1 Core Module, 8 Core Features, 9 Core Sub-features, 0 Custom; OmniTransit Corporate Shareholding; view IDs preserved.",
 );

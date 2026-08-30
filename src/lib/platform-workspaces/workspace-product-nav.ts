@@ -5,6 +5,8 @@
 
 import { DEMO_WORKSPACE_SLUG } from "@/lib/app-domains";
 import { filterIntelligenceProvisioningSubModules } from "@/lib/intelligence/intelligence-provisioning";
+import { resolveFundraisingNavLabel } from "@/lib/fundraising/fundraising-nav-labels";
+import { filterFundraisingProvisioningSubModules } from "@/lib/fundraising/fundraising-provisioning";
 import { resolveIntelligenceNavLabel } from "@/lib/intelligence/intelligence-nav-labels";
 import { filterBusinessCentralProvisioningSubModules } from "@/lib/platform-workspaces/business-central-provisioning";
 import { isSaecSlug } from "@/lib/saec-surface";
@@ -37,6 +39,8 @@ export type WorkspaceProductNavOptions = {
   enablement: WorkspaceNavEnablement;
   /** Override intelligence workspace section label (e.g. Northstar Intelligence). */
   intelligenceLabel?: string;
+  /** Override fundraising workspace section label (e.g. Corporate Shareholding). */
+  fundraisingLabel?: string;
 };
 
 const SPECIALIST_WORKSPACE_SLUGS = new Set([
@@ -50,9 +54,12 @@ function filterWorkspaceProvisioningSubModules(
   slug: string,
   subModules: readonly string[],
 ): string[] {
-  return filterIntelligenceProvisioningSubModules(
+  return filterFundraisingProvisioningSubModules(
     slug,
-    filterBusinessCentralProvisioningSubModules(slug, subModules),
+    filterIntelligenceProvisioningSubModules(
+      slug,
+      filterBusinessCentralProvisioningSubModules(slug, subModules),
+    ),
   );
 }
 
@@ -269,6 +276,7 @@ export function buildWorkspaceProductNavSections(
   const enabledSubModuleSet = new Set(options.enablement.enabledSubModules);
   const filterSubs = options.enablement.enabledSubModules.length > 0;
   const intelligenceLabel = options.intelligenceLabel ?? resolveIntelligenceNavLabel(options.workspaceSlug);
+  const fundraisingLabel = options.fundraisingLabel ?? resolveFundraisingNavLabel(options.workspaceSlug);
 
   const sections: InternalNavSection[] = [];
 
@@ -279,6 +287,10 @@ export function buildWorkspaceProductNavSections(
 
     if (spec.id === "intelligence") {
       section = { ...section, label: intelligenceLabel };
+    }
+
+    if (spec.id === "fundraising") {
+      section = { ...section, label: fundraisingLabel };
     }
 
     if (spec.id === "financials") {

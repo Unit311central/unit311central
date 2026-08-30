@@ -146,10 +146,16 @@ assert.deepEqual(labels(grantMgmt), [
   "Submissions vs Approvals",
   "Grant Applications",
 ]);
+const capTableMgmt = child(fundraising, "Cap Table Management");
+assert.deepEqual(labels(capTableMgmt), [
+  "Overview",
+  "Shareholders",
+  "Option Pool",
+  "Share Capital",
+]);
 for (const featureLabel of [
   "Dashboard",
   "Investors",
-  "Cap Table Management",
   "Pipeline",
   "Meetings",
   "Pitch Decks",
@@ -226,6 +232,27 @@ assert.ok(labels(abhiBc).includes("Member Management"), "ABHI BC uses Member ter
 const northstar = child(workspaces, "Northstar");
 const northstarCustom = child(northstar, "CUSTOM");
 assert.equal((northstarCustom.children ?? []).length, 0, "Northstar has no custom items");
+
+const omnitransit = child(workspaces, "OmniTransit");
+const omnitransitCore = child(omnitransit, "CORE MODULES");
+const corporateShareholding = child(omnitransitCore, "CORPORATE SHAREHOLDING");
+assert.deepEqual(labels(corporateShareholding), [
+  "Dashboard",
+  "Investors",
+  "Cap Table Management",
+]);
+assert.deepEqual(labels(child(corporateShareholding, "Cap Table Management")), [
+  "Overview",
+  "Shareholders",
+  "Option Pool",
+  "Share Capital",
+]);
+assert.equal(child(omnitransitCore, "CORPORATE SHAREHOLDING").label, "CORPORATE SHAREHOLDING");
+assert.equal(
+  (omnitransitCore.children ?? []).find((node) => node.label === "Fundraising"),
+  undefined,
+  "OmniTransit must not expose Fundraising module label",
+);
 
 // Workspace filter narrows to a single workspace.
 const onlyAbhi = buildWorkspaceArchitectureTaxonomy("abhi");

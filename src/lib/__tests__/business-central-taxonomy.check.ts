@@ -190,10 +190,17 @@ for (const workspace of workspaceCases) {
       !workspace.enablement.enabledSubModules.includes(BUSINESS_CENTRAL_GRANT_MANAGEMENT_SUBMODULE_KEY),
       `${workspace.name}: business-central:grants must remain stripped`,
     );
-    assert.ok(
-      workspace.enablement.enabledSubModules.includes("fundraising:grants"),
-      `${workspace.name}: grants must be enabled via Fundraising submodule`,
-    );
+    if (workspace.slug === SAEC_SLUG) {
+      assert.ok(
+        !workspace.enablement.enabledSubModules.includes("fundraising:grants"),
+        `${workspace.name}: grants must not be enabled for Corporate Shareholding`,
+      );
+    } else {
+      assert.ok(
+        workspace.enablement.enabledSubModules.includes("fundraising:grants"),
+        `${workspace.name}: grants must be enabled via Fundraising submodule`,
+      );
+    }
   }
 }
 
