@@ -20,7 +20,9 @@
  * - Home: home-taxonomy.ts (module-level only — 0 features)
  * - Fundraising features/sub-features: fundraising-taxonomy.ts
  *   (matches fundraising-taxonomy.check.ts)
+ * - Operations features: operations-taxonomy.ts (matches operations-taxonomy.check.ts)
  * - Custom (ABHI Regulatory Intelligence): src/lib/abhi/nav.ts
+ * - Custom (OmniTransit Installations): operations-taxonomy.ts + saec/installations-nav.ts
  * - Workspace enablement: demo/saec provisioning constants + core catalogue (read-only)
  */
 
@@ -40,6 +42,12 @@ import {
   buildCentralProductNavSections,
 } from "@/lib/platform-workspaces/central-product-nav";
 import { FUNDRAISING_CORE_FEATURES } from "@/lib/fundraising/fundraising-taxonomy";
+import {
+  OPERATIONS_CORE_FEATURES,
+  OPERATIONS_MODULE_ID,
+  SAEC_INSTALLATIONS_CUSTOM_FEATURE_LABEL,
+  SAEC_INSTALLATIONS_CUSTOM_SUB_FEATURES,
+} from "@/lib/operations/operations-taxonomy";
 import { buildSalesManagementNavSection } from "@/lib/sales-management-nav";
 import type { ArchitectureTaxonomyNode } from "@/lib/architecture-taxonomy-types";
 
@@ -60,6 +68,7 @@ export const AUDITED_CORE_MODULE_IDS: ReadonlySet<string> = new Set([
   "intelligence",
   "corporate-information",
   "fundraising",
+  "operations",
 ]);
 
 /** Explicit audited Intelligence taxonomy (nav omits the Dashboard, so it is not derived from nav). */
@@ -175,6 +184,15 @@ function auditedFeaturesForModule(moduleId: string): ArchitectureTaxonomyNode[] 
       };
     });
   }
+  if (moduleId === OPERATIONS_MODULE_ID) {
+    // Audited taxonomy source: operations-taxonomy.ts (5 Core Features, 0 Sub-features).
+    return OPERATIONS_CORE_FEATURES.map((feature) => ({
+      id: `${OPERATIONS_MODULE_ID}::${slug(feature.label)}`,
+      label: feature.label,
+      level: "feature" as const,
+      kind: "core" as const,
+    }));
+  }
   return null;
 }
 
@@ -217,6 +235,35 @@ export function buildCoreProductTaxonomy(): ArchitectureTaxonomyNode {
       },
     ],
   };
+}
+
+/** OmniTransit / SAEC Installations custom feature (+ three custom sub-features). */
+function saecInstallationsCustomFeature(idPrefix: string): ArchitectureTaxonomyNode {
+  const featureId = `${idPrefix}::installations`;
+  return {
+    id: featureId,
+    label: SAEC_INSTALLATIONS_CUSTOM_FEATURE_LABEL,
+    level: "feature",
+    kind: "custom",
+    children: SAEC_INSTALLATIONS_CUSTOM_SUB_FEATURES.map((sub) => ({
+      id: `${featureId}::${slug(sub.label)}`,
+      label: sub.label,
+      level: "sub-feature" as const,
+      kind: "custom" as const,
+    })),
+  };
+}
+
+/** OmniTransit Operations: five core features + Installations custom feature (nav order). */
+function omnitransitOperationsFeatures(): ArchitectureTaxonomyNode[] {
+  const core = (auditedFeaturesForModule(OPERATIONS_MODULE_ID) ?? []).map((node) => ({ ...node }));
+  const dashboardIndex = core.findIndex((node) => node.label === "Dashboard");
+  const insertAt = dashboardIndex >= 0 ? dashboardIndex + 1 : 0;
+  return [
+    ...core.slice(0, insertAt),
+    saecInstallationsCustomFeature("module::operations"),
+    ...core.slice(insertAt),
+  ];
 }
 
 /** ABHI Regulatory Intelligence custom feature (+ four custom sub-features) — from abhi/nav.ts. */
@@ -264,6 +311,13 @@ export function buildCustomProductTaxonomy(): ArchitectureTaxonomyNode {
             level: "workspace",
             kind: "custom",
             children: [abhiRegulatoryIntelligenceFeature("custom-product::abhi")],
+          },
+          {
+            id: "custom-product::omnitransit",
+            label: "OmniTransit",
+            level: "workspace",
+            kind: "custom",
+            children: [saecInstallationsCustomFeature("custom-product::omnitransit")],
           },
         ],
       },
@@ -339,6 +393,12 @@ function workspaceCoreModules(spec: WorkspaceSpec): ArchitectureTaxonomyNode[] {
         note: "ABHI: Member Intelligence + Regulatory Intelligence",
       };
     }
+    if (spec.id === "omnitransit" && moduleId === OPERATIONS_MODULE_ID) {
+      return {
+        ...coreModuleNode(moduleId, label, omnitransitOperationsFeatures()),
+        note: "OmniTransit: Installations custom feature under Operations",
+      };
+    }
     return coreModuleNode(moduleId, label);
   });
 }
@@ -353,7 +413,9 @@ function workspaceNode(spec: WorkspaceSpec): ArchitectureTaxonomyNode {
 
   const customChildren: ArchitectureTaxonomyNode[] = spec.isAbhi
     ? [abhiRegulatoryIntelligenceFeature(`workspace::${spec.id}::custom`)]
-    : [];
+    : spec.id === "omnitransit"
+      ? [saecInstallationsCustomFeature(`workspace::${spec.id}::custom`)]
+      : [];
 
   return {
     id: `workspace::${spec.id}`,
