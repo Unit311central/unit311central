@@ -10,13 +10,13 @@ import {
 } from "@/lib/saec-discovery/config";
 import { cn } from "@/lib/utils";
 
-/** Matches the main card header band so the sidebar logo can align to it. */
-export const DISCOVERY_HEADER_BAND_CLASS =
-  "flex min-h-[6.25rem] shrink-0 items-center sm:min-h-[6.5rem]";
-
-/** Function/question left, answer right — ~58% / 42%. */
+/** Function/question left, answer right — balanced two-column layout. */
 export const DISCOVERY_TWO_COLUMN_GRID_CLASS =
-  "grid gap-x-5 md:grid-cols-[minmax(0,58%)_minmax(0,42%)]";
+  "grid gap-x-6 md:grid-cols-[minmax(0,52%)_minmax(0,48%)]";
+
+/** General numbered questions — comfortable label line-height. */
+export const DISCOVERY_GENERAL_QUESTION_LABEL_CLASS =
+  "block text-[13px] font-normal leading-relaxed text-white/85";
 
 /** Shared typography and field styling for all SAEC Discovery sections. */
 export const DISCOVERY_QUESTION_LABEL_CLASS =

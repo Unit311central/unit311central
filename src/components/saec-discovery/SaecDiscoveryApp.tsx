@@ -27,6 +27,7 @@ import {
 
 import SaecDiscoveryLogo from "@/components/saec-discovery/SaecDiscoveryLogo";
 import {
+  DISCOVERY_GENERAL_QUESTION_LABEL_CLASS,
   DISCOVERY_QUESTION_LABEL_CLASS,
   DISCOVERY_TWO_COLUMN_GRID_CLASS,
   DiscoveryOptionalTextarea,
@@ -183,27 +184,25 @@ function QuestionBlock({
   const questionNumber = index ?? 0;
 
   const labelBlock = (
-    <div className="min-w-0 space-y-1.5">
-      <label htmlFor={inputId} className={DISCOVERY_QUESTION_LABEL_CLASS}>
+    <div className="min-w-0 space-y-2">
+      <label
+        htmlFor={inputId}
+        className={layout === "row" || layout === "row-emphasis" ? DISCOVERY_GENERAL_QUESTION_LABEL_CLASS : DISCOVERY_QUESTION_LABEL_CLASS}
+      >
         {question.label}
       </label>
       {question.note && !question.examples?.length ? (
-        <p className="mt-3 text-[11px] leading-relaxed text-white/45">{question.note}</p>
+        <p className="text-[12px] leading-relaxed text-white/45">{question.note}</p>
       ) : null}
       {question.examples?.length ? (
-        <div className="space-y-1 pt-1">
+        <div className="space-y-2.5 pt-0.5">
           {question.note ? (
-            <p className="text-[12px] leading-snug text-white/55">{question.note}</p>
+            <p className="text-[12px] leading-relaxed text-white/55">{question.note}</p>
           ) : null}
-          <ul
-            className={cn(
-              "grid list-none gap-x-2 gap-y-0 text-[11px] leading-snug text-white/55",
-              question.examples.length > 4 ? "sm:grid-cols-3" : "sm:grid-cols-2",
-            )}
-          >
+          <ul className="grid list-none gap-x-6 gap-y-2.5 text-[12px] leading-relaxed text-white/55 sm:grid-cols-2">
             {question.examples.map((example) => (
-              <li key={example} className="flex gap-1.5">
-                <span className="text-sky-400/70">•</span>
+              <li key={example} className="flex gap-2">
+                <span className="shrink-0 text-sky-400/70">•</span>
                 <span>{example}</span>
               </li>
             ))}
@@ -218,11 +217,11 @@ function QuestionBlock({
       <div
         className={cn(
           DISCOVERY_TWO_COLUMN_GRID_CLASS,
-          "items-start gap-y-2",
-          emphasize ? "shrink-0" : "",
+          "items-start",
+          emphasize ? "" : "",
         )}
       >
-        <div className="flex min-w-0 items-start gap-2.5">
+        <div className="flex min-w-0 items-start gap-3">
           {questionNumber > 0 ? (
             <QuestionNumber n={questionNumber} />
           ) : null}
@@ -232,8 +231,11 @@ function QuestionBlock({
           id={inputId}
           value={value}
           onChange={onChange}
-          rows={emphasize ? 3 : answerRows}
-          className={cn("self-start", emphasize ? "min-h-[3.75rem]" : "min-h-[2.75rem]")}
+          rows={emphasize ? 4 : answerRows}
+          className={cn(
+            "self-start",
+            emphasize ? "min-h-[5rem]" : "min-h-[2.375rem]",
+          )}
         />
       </div>
     );
@@ -317,26 +319,26 @@ function GeneralSectionPanel({
   const emphasized = questions.find((q) => q.emphasizeAnswer);
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
+    <div className="min-h-0 flex-1 overflow-y-auto pr-0.5">
       {section.intro ? (
-        <p className="mb-2 shrink-0 text-[12px] leading-snug text-white/55">{section.intro}</p>
+        <p className="mb-5 shrink-0 text-[12px] leading-relaxed text-white/55">{section.intro}</p>
       ) : null}
-      <div className="flex min-h-0 flex-1 flex-col gap-1.5">
+      <div className="space-y-8 pb-3">
         {regular.map((question, index) => (
-          <div key={question.id} className="shrink-0">
+          <div key={question.id}>
             <QuestionBlock
               sectionId={section.id}
               question={question}
               index={index + 1}
               layout="row"
-              answerRows={1}
+              answerRows={2}
               value={draft[question.id] ?? ""}
               onChange={(value) => updateDraft(question.id, value)}
             />
           </div>
         ))}
         {emphasized ? (
-          <div className="shrink-0 overflow-visible">
+          <div className="pt-1">
             <QuestionBlock
               sectionId={section.id}
               question={emphasized}
@@ -573,86 +575,13 @@ export default function SaecDiscoveryApp({
         aria-hidden
       />
 
-      <div className="relative grid min-h-0 flex-1 grid-cols-[210px_minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)] gap-x-3 gap-y-2 px-4 py-2 sm:px-5 lg:grid-cols-[228px_minmax(0,1fr)] lg:gap-x-4 lg:px-6">
-        <div className="flex items-center self-stretch pt-2">
-          <SaecDiscoveryLogo height={28} maxWidth={100} priority />
-        </div>
-
-        <div className="flex min-h-0 min-w-0 flex-col overflow-hidden pt-2">
-          <div className="rounded-t-xl border border-b-0 border-sky-400/15 bg-[#0b1524]/80 shadow-[0_0_0_1px_rgba(47,128,237,0.08)]">
-            <header className="flex shrink-0 items-start justify-between gap-4 border-b border-white/10 px-4 py-5 sm:px-5">
-              <div className="min-w-0">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-sky-300/80">
-                  SAEC Discovery
-                </p>
-                <h1 className="mt-1.5 text-[1.45rem] font-semibold leading-tight tracking-tight text-white sm:text-[1.62rem]">
-                  Current Systems Discovery
-                </h1>
-                <p className="mt-2 text-[13px] leading-snug text-white/55">
-                  Help understand SAECs systems. All questions are{" "}
-                  <span className="font-semibold text-sky-300">OPTIONAL</span>.
-                </p>
-                {(submitSuccessMessage || submitError) && (
-                  <div className="mt-2 space-y-1">
-                    {submitSuccessMessage ? (
-                      <p className="text-[12px] text-emerald-200/90">{submitSuccessMessage}</p>
-                    ) : null}
-                    {submitError ? (
-                      <p className="text-[12px] text-rose-200/90">{submitError}</p>
-                    ) : null}
-                  </div>
-                )}
-              </div>
-
-              <div className="flex shrink-0 flex-col items-end gap-1.5">
-                <div className="flex flex-wrap items-center justify-end gap-2">
-                  <button
-                    type="button"
-                    onClick={resetDraft}
-                    className="inline-flex items-center gap-2 rounded-lg border border-white/15 bg-white/[0.04] px-4 py-2 text-xs font-semibold uppercase tracking-[0.08em] text-white/75 transition-colors hover:bg-white/[0.08]"
-                  >
-                    Reset
-                  </button>
-                  <button
-                    type="button"
-                    onClick={saveDraft}
-                    className="inline-flex items-center gap-2 rounded-lg border border-sky-400/35 bg-sky-500/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.08em] text-white/90 transition-colors hover:bg-sky-500/15"
-                  >
-                    <Save className="h-3.5 w-3.5" strokeWidth={2} />
-                    Save Draft
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => void submitDiscovery()}
-                    disabled={submitting}
-                    className="inline-flex items-center gap-2 rounded-lg bg-[#1F4FBF] px-4 py-2 text-xs font-semibold uppercase tracking-[0.08em] text-white transition-colors hover:bg-[#2563eb] disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    {submitting ? (
-                      <>
-                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                        Submitting…
-                      </>
-                    ) : (
-                      <>
-                        <Send className="h-3.5 w-3.5" strokeWidth={2} />
-                        Submit
-                      </>
-                    )}
-                  </button>
-                </div>
-                {draftSavedLabel ? (
-                  <p className="inline-flex items-center gap-1.5 text-[11px] text-emerald-300/85">
-                    <Check className="h-3 w-3" strokeWidth={2.5} />
-                    {draftSavedLabel}
-                  </p>
-                ) : null}
-              </div>
-            </header>
+      <div className="relative flex min-h-0 flex-1 gap-3 px-4 py-2 sm:px-5 lg:gap-4 lg:px-6">
+        {/* Left column: logo, navigation, secure panel */}
+        <aside className="flex w-[210px] shrink-0 flex-col pt-2 lg:w-[228px]">
+          <div className="mb-2 flex h-10 shrink-0 items-center pt-1">
+            <SaecDiscoveryLogo height={28} maxWidth={100} priority />
           </div>
-        </div>
 
-        {/* Left column: navigation, secure panel */}
-        <aside className="flex min-h-0 w-[210px] shrink-0 flex-col lg:w-[228px]">
           <nav
             className="min-h-0 flex-1 overflow-hidden rounded-xl border border-white/10 bg-[#0b1524]/60"
             aria-label="Discovery sections"
@@ -726,16 +655,91 @@ export default function SaecDiscoveryApp({
           </div>
         </aside>
 
-        <div className="flex min-h-0 min-w-0 flex-col overflow-hidden">
-          <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-b-xl border border-t-0 border-sky-400/15 bg-[#0b1524]/80 shadow-[0_0_0_1px_rgba(47,128,237,0.08)]">
-            <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden px-4 py-3 sm:px-5 sm:py-4">
+        {/* Right column: questionnaire shell (header + panel) */}
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden pt-2">
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-sky-400/15 bg-[#0b1524]/80 shadow-[0_0_0_1px_rgba(47,128,237,0.08)]">
+            <header className="flex shrink-0 items-start justify-between gap-4 border-b border-white/10 px-4 py-5 sm:px-5">
+              <div className="min-w-0">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-sky-300/80">
+                  SAEC Discovery
+                </p>
+                <h1 className="mt-1.5 text-[1.45rem] font-semibold leading-tight tracking-tight text-white sm:text-[1.62rem]">
+                  Current Systems Discovery
+                </h1>
+                <p className="mt-2 text-[13px] leading-snug text-white/55">
+                  Help understand SAECs systems. All questions are{" "}
+                  <span className="font-semibold text-sky-300">OPTIONAL</span>.
+                </p>
+                {(submitSuccessMessage || submitError) && (
+                  <div className="mt-2 space-y-1">
+                    {submitSuccessMessage ? (
+                      <p className="text-[12px] text-emerald-200/90">{submitSuccessMessage}</p>
+                    ) : null}
+                    {submitError ? (
+                      <p className="text-[12px] text-rose-200/90">{submitError}</p>
+                    ) : null}
+                  </div>
+                )}
+              </div>
+
+              <div className="flex shrink-0 flex-col items-end gap-1.5">
+                <div className="flex flex-wrap items-center justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={resetDraft}
+                    className="inline-flex items-center gap-2 rounded-lg border border-white/15 bg-white/[0.04] px-4 py-2 text-xs font-semibold uppercase tracking-[0.08em] text-white/75 transition-colors hover:bg-white/[0.08]"
+                  >
+                    Reset
+                  </button>
+                  <button
+                    type="button"
+                    onClick={saveDraft}
+                    className="inline-flex items-center gap-2 rounded-lg border border-sky-400/35 bg-sky-500/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.08em] text-white/90 transition-colors hover:bg-sky-500/15"
+                  >
+                    <Save className="h-3.5 w-3.5" strokeWidth={2} />
+                    Save Draft
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void submitDiscovery()}
+                    disabled={submitting}
+                    className="inline-flex items-center gap-2 rounded-lg bg-[#1F4FBF] px-4 py-2 text-xs font-semibold uppercase tracking-[0.08em] text-white transition-colors hover:bg-[#2563eb] disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {submitting ? (
+                      <>
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        Submitting…
+                      </>
+                    ) : (
+                      <>
+                        <Send className="h-3.5 w-3.5" strokeWidth={2} />
+                        Submit
+                      </>
+                    )}
+                  </button>
+                </div>
+                {draftSavedLabel ? (
+                  <p className="inline-flex items-center gap-1.5 text-[11px] text-emerald-300/85">
+                    <Check className="h-3 w-3" strokeWidth={2.5} />
+                    {draftSavedLabel}
+                  </p>
+                ) : null}
+              </div>
+            </header>
+
+            <main
+              className={cn(
+                "flex min-h-0 min-w-0 flex-1 flex-col px-4 py-3 sm:px-5 sm:py-4",
+                selectedSection?.kind === "general" ? "overflow-y-auto" : "overflow-hidden",
+              )}
+            >
               {selectedSection ? (
                 <>
                   <SectionHeader section={selectedSection} onSave={saveSection} />
                   <div
                     className={cn(
                       "flex min-h-0 flex-1 flex-col",
-                      selectedSection.kind === "general" ? "overflow-visible" : "overflow-hidden",
+                      selectedSection.kind === "general" ? "min-h-0" : "overflow-hidden",
                     )}
                   >
                     {selectedSection.kind === "general" ? (

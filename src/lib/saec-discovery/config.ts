@@ -193,8 +193,8 @@ export const SAEC_DISCOVERY_SECTIONS: readonly SaecDiscoverySectionConfig[] = [
         examples: [
           "easier ability to track engineers on the road",
           "proactive selling of upgrades to customers",
-          "better understanding of burn rates and cash flow",
           "understanding which clients are actually profitable",
+          "better understanding of burn rates and cash flow",
           "more structured / sophisticated sales management tools and pipeline",
           "easier and faster self-service access to regular, standardised financial views",
           "ad hoc financial reports",
