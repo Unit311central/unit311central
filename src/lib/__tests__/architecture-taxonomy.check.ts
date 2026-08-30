@@ -24,6 +24,7 @@ import { ARCHITECTURE_DIAGRAM_CATALOG } from "@/lib/architecture-diagram-data";
 import { BOARD_CORE_FEATURES } from "@/lib/board/board-taxonomy";
 import { CORPORATE_INFORMATION_CORE_FEATURES } from "@/lib/corporate-information/corporate-information-taxonomy";
 import { HOME_MODULE_LABEL } from "@/lib/home/home-taxonomy";
+import { MARKETING_EVENTS_CORE_FEATURES, ABHI_MARKETING_CUSTOM_FEATURES, MARKETING_EVENTS_MODULE_LABEL } from "@/lib/marketing-events/marketing-events-taxonomy";
 import {
   OPERATIONS_CORE_FEATURES,
   SAEC_INSTALLATIONS_CUSTOM_FEATURE_LABEL,
@@ -237,6 +238,28 @@ for (const feature of BOARD_CORE_FEATURES) {
   );
 }
 
+// Marketing & Events is formally audited → seven Core Features, zero Core Sub-features.
+const marketingEvents = child(coreModules, MARKETING_EVENTS_MODULE_LABEL);
+assert.equal(marketingEvents.audited, true);
+assert.ok(AUDITED_CORE_MODULE_IDS.has("marketing-events"));
+assert.deepEqual(
+  labels(marketingEvents),
+  MARKETING_EVENTS_CORE_FEATURES.map((feature) => feature.label),
+);
+for (const feature of MARKETING_EVENTS_CORE_FEATURES) {
+  assert.equal(
+    (child(marketingEvents, feature.label).children ?? []).length,
+    0,
+    `${feature.label} has no Core Sub-features`,
+  );
+}
+for (const custom of ABHI_MARKETING_CUSTOM_FEATURES) {
+  assert.ok(
+    !labels(marketingEvents).includes(custom.label),
+    `Core Product must not include ABHI custom ${custom.label}`,
+  );
+}
+
 // Every unaudited module must have zero children (only audited taxonomy is classified).
 for (const mod of coreModules.children ?? []) {
   if (mod.audited) continue;
@@ -268,6 +291,12 @@ for (const sub of regIntel.children ?? []) {
   assert.equal(sub.kind, "custom");
   assert.equal(sub.level, "sub-feature");
 }
+for (const custom of ABHI_MARKETING_CUSTOM_FEATURES) {
+  const node = child(abhi, custom.label);
+  assert.equal(node.kind, "custom");
+  assert.equal(node.level, "feature");
+  assert.equal((node.children ?? []).length, 0, `${custom.label} has no sub-features`);
+}
 
 const omnitransitCustom = child(customFeatures, "OmniTransit");
 const installationsFeature = child(omnitransitCustom, SAEC_INSTALLATIONS_CUSTOM_FEATURE_LABEL);
@@ -298,6 +327,24 @@ const abhiWs = child(workspaces, "ABHI");
 const abhiCore = child(abhiWs, "CORE MODULES");
 const abhiCustom = child(abhiWs, "CUSTOM");
 assert.ok(child(abhiCustom, "Regulatory Intelligence"), "ABHI CUSTOM has Regulatory Intelligence");
+for (const custom of ABHI_MARKETING_CUSTOM_FEATURES) {
+  assert.ok(child(abhiCustom, custom.label), `ABHI CUSTOM has ${custom.label}`);
+}
+const abhiMarketing = child(abhiCore, MARKETING_EVENTS_MODULE_LABEL);
+assert.deepEqual(labels(abhiMarketing), [
+  "Digital Newsletter",
+  "Social",
+  "External Events",
+  "ABHI Events",
+  "Event Management",
+  "ABHI Working Groups",
+  "ABHI US Accelerator",
+  "ABHI Middle East Accelerator",
+  "Mailing List",
+]);
+for (const custom of ABHI_MARKETING_CUSTOM_FEATURES) {
+  assert.equal(child(abhiMarketing, custom.label).kind, "custom");
+}
 // ABHI Business Central shows Member terminology.
 const abhiBc = child(abhiCore, "Business Central");
 assert.ok(labels(abhiBc).includes("Member Management"), "ABHI BC uses Member terminology");
@@ -338,5 +385,5 @@ const onlyAbhi = buildWorkspaceArchitectureTaxonomy("abhi");
 assert.deepEqual(labels(onlyAbhi), ["ABHI"]);
 
 console.log(
-  "prove:architecture-taxonomy: OK — Core Product (audited-only), Custom Product (ABHI + OmniTransit Installations), Workspace Architecture (6 workspaces) verified.",
+  "prove:architecture-taxonomy: OK — Core Product (audited-only), Custom Product (ABHI + OmniTransit custom features), Workspace Architecture (6 workspaces) verified.",
 );
