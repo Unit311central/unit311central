@@ -22,6 +22,7 @@ import {
 } from "@/lib/architecture-taxonomy-types";
 import { ARCHITECTURE_DIAGRAM_CATALOG } from "@/lib/architecture-diagram-data";
 import { CORPORATE_INFORMATION_CORE_FEATURES } from "@/lib/corporate-information/corporate-information-taxonomy";
+import { HOME_MODULE_LABEL } from "@/lib/home/home-taxonomy";
 import { buildCentralProductNavSections } from "@/lib/platform-workspaces/central-product-nav";
 
 function child(node: ArchitectureTaxonomyNode, label: string): ArchitectureTaxonomyNode {
@@ -126,6 +127,12 @@ assert.deepEqual(labels(intel), [
   "Client Intelligence",
   "Market Intelligence",
 ]);
+
+// Home is formally audited → module-level leaf (0 Core Features).
+const home = child(coreModules, HOME_MODULE_LABEL);
+assert.equal(home.audited, true);
+assert.ok(AUDITED_CORE_MODULE_IDS.has("home"));
+assert.equal((home.children ?? []).length, 0, "Home has no Core Features");
 
 // Corporate Information is now formally audited → Core Features + Core Sub-features.
 const corp = child(coreModules, "Corporate Information");
