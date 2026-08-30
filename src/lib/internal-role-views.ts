@@ -1586,7 +1586,7 @@ function mergeInternalAnalyticsNavItems(
     }
   }
 
-  const ordered: InternalNavSection["items"] = [];
+  const ordered: InternalNavSection["items"][number][] = [];
   for (const item of canonical) {
     if (!item.view) continue;
     const merged = byView.get(item.view);

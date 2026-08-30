@@ -17,14 +17,17 @@ function analyticsItemLabels(sections: readonly InternalNavSection[]): string[] 
   return analytics?.items.map((item) => item.label) ?? [];
 }
 
-(globalThis as typeof globalThis & { window?: Window }).window = {
+(globalThis as unknown as { window: { location: { hostname: string; pathname: string }; localStorage: Storage } }).window = {
   location: { hostname: "internal.unit311central.com", pathname: "/" },
   localStorage: {
     getItem: () => null,
     setItem: () => {},
     removeItem: () => {},
+    length: 0,
+    clear: () => {},
+    key: () => null,
   },
-} as unknown as Window;
+};
 
 const freshNav = filterInternalNavSectionsForDemoSurface(internalSurveyNavSections, {
   allowHostSurfaces: true,
