@@ -1,6 +1,6 @@
-/** Official SAEC wordmark for the discovery questionnaire (not OmniTransit). */
-export const SAEC_DISCOVERY_LOGO_SRC = "/images/workspaces/saec/logo.svg";
+/** Official SAEC logo supplied for the project (`public/images/workspaces/saec/logo.png`). */
+export const SAEC_DISCOVERY_LOGO_SRC = "/images/workspaces/saec/logo.png";
 
-export const SAEC_DISCOVERY_LOGO_WIDTH = 180;
+export const SAEC_DISCOVERY_LOGO_WIDTH = 340;
 
-export const SAEC_DISCOVERY_LOGO_HEIGHT = 48;
+export const SAEC_DISCOVERY_LOGO_HEIGHT = 103;

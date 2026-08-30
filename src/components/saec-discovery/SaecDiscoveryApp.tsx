@@ -199,14 +199,14 @@ function QuestionBlock({
         {question.label}
       </label>
       {question.note && !question.examples?.length ? (
-        <p className="text-[10px] leading-snug text-white/40">{question.note}</p>
+        <p className="mt-2 text-[10px] leading-relaxed text-white/40">{question.note}</p>
       ) : null}
       {question.examples?.length ? (
-        <div className="space-y-1 pt-0.5">
+        <div className="space-y-1.5 pt-1">
           {question.note ? (
-            <p className="text-[9px] leading-snug text-white/35">{question.note}</p>
+            <p className="text-[9px] leading-relaxed text-white/35">{question.note}</p>
           ) : null}
-          <ul className="grid list-none gap-x-4 gap-y-0.5 text-[9px] leading-snug text-white/35 sm:grid-cols-2">
+          <ul className="grid list-none gap-x-4 gap-y-1 text-[9px] leading-relaxed text-white/35 sm:grid-cols-2">
             {question.examples.map((example) => (
               <li key={example} className="flex gap-1.5">
                 <span className="text-sky-400/70">•</span>
@@ -333,9 +333,9 @@ function GeneralSectionPanel({
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
       {section.intro ? (
-        <p className="mb-3 shrink-0 text-[12px] leading-snug text-white/55">{section.intro}</p>
+        <p className="mb-5 shrink-0 text-[12px] leading-relaxed text-white/55">{section.intro}</p>
       ) : null}
-      <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden">
+      <div className="flex min-h-0 flex-1 flex-col gap-3.5 overflow-hidden">
         {regular.map((question, index) => (
           <QuestionBlock
             key={question.id}
@@ -646,18 +646,18 @@ export default function SaecDiscoveryApp() {
         aria-hidden
       />
 
-      <div className="relative flex min-h-0 flex-1 gap-3 px-4 py-3 sm:px-5 lg:gap-4 lg:px-6">
+      <div className="relative flex min-h-0 flex-1 gap-3 px-4 py-2 sm:px-5 lg:gap-4 lg:px-6">
         {/* Left column: logo, navigation, secure panel */}
         <aside className="flex w-[210px] shrink-0 flex-col lg:w-[228px]">
-          <div className="mb-3 shrink-0 pt-1">
-            <SaecDiscoveryLogo height={34} maxWidth={140} priority />
+          <div className="mb-2.5 shrink-0 pt-2">
+            <SaecDiscoveryLogo height={32} maxWidth={118} priority />
           </div>
 
           <nav
             className="min-h-0 flex-1 overflow-hidden rounded-xl border border-white/10 bg-[#0b1524]/60"
             aria-label="Discovery sections"
           >
-            <ul className="divide-y divide-white/[0.06]">
+            <ul className="flex h-full flex-col divide-y divide-white/[0.06]">
               {DISCOVERY_SECTIONS.map((section) => {
                 const state = stored[section.id];
                 const touched = Boolean(
@@ -668,12 +668,12 @@ export default function SaecDiscoveryApp() {
                 const Icon = section.iconComponent;
 
                 return (
-                  <li key={section.id}>
+                  <li key={section.id} className="flex min-h-0 flex-1">
                     <button
                       type="button"
                       onClick={() => selectSection(section)}
                       className={cn(
-                        "flex w-full items-center gap-2 px-2 py-[0.42rem] text-left transition-colors",
+                        "flex w-full flex-1 items-center gap-2 px-2.5 text-left transition-colors",
                         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/50 focus-visible:ring-inset",
                         selected
                           ? "bg-sky-500/12 text-white"
@@ -696,7 +696,7 @@ export default function SaecDiscoveryApp() {
                           <Icon className="h-2.5 w-2.5" strokeWidth={1.75} />
                         )}
                       </span>
-                      <span className="min-w-0 flex-1 text-[8.5px] font-semibold uppercase leading-snug tracking-[0.04em]">
+                      <span className="min-w-0 flex-1 text-[9px] font-semibold uppercase leading-snug tracking-[0.04em]">
                         {section.title}
                       </span>
                       <ChevronRight
@@ -726,107 +726,109 @@ export default function SaecDiscoveryApp() {
           </div>
         </aside>
 
-        {/* Right column: header + questionnaire panel */}
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-          <header className="mb-3 flex shrink-0 items-start justify-between gap-4">
-            <div className="min-w-0 pt-1">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-sky-300/80">
-                SAEC Discovery
-              </p>
-              <h1 className="mt-1 text-[1.45rem] font-semibold leading-tight tracking-tight text-white sm:text-[1.62rem]">
-                Current Systems Discovery
-              </h1>
-              <p className="mt-1 text-[13px] text-white/55">
-                Help understand SAECs systems. All questions are{" "}
-                <span className="font-semibold text-sky-300">OPTIONAL</span>.
-              </p>
-              {(submittedAt || submitSuccessMessage || submitError) && (
-                <div className="mt-2 space-y-1">
-                  {submittedAt ? (
-                    <p className="text-[11px] text-sky-200/75">
-                      Previously submitted on {formatSubmittedAt(submittedAt)}.
-                    </p>
-                  ) : null}
-                  {submitSuccessMessage ? (
-                    <p className="text-[12px] text-emerald-200/90">{submitSuccessMessage}</p>
-                  ) : null}
-                  {submitError ? (
-                    <p className="text-[12px] text-rose-200/90">{submitError}</p>
-                  ) : null}
-                </div>
-              )}
-            </div>
-
-            <div className="flex shrink-0 flex-col items-end gap-1.5 pt-1">
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={saveDraft}
-                  className="inline-flex items-center gap-2 rounded-lg border border-sky-400/35 bg-sky-500/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.08em] text-white/90 transition-colors hover:bg-sky-500/15"
-                >
-                  <Save className="h-3.5 w-3.5" strokeWidth={2} />
-                  Save Draft
-                </button>
-                <button
-                  type="button"
-                  onClick={() => void submitDiscovery()}
-                  disabled={submitting}
-                  className="inline-flex items-center gap-2 rounded-lg bg-[#1F4FBF] px-4 py-2 text-xs font-semibold uppercase tracking-[0.08em] text-white transition-colors hover:bg-[#2563eb] disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {submitting ? (
-                    <>
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                      Submitting…
-                    </>
-                  ) : (
-                    <>
-                      <Send className="h-3.5 w-3.5" strokeWidth={2} />
-                      Submit
-                    </>
-                  )}
-                </button>
-              </div>
-              {draftSavedLabel ? (
-                <p className="inline-flex items-center gap-1.5 text-[11px] text-emerald-300/85">
-                  <Check className="h-3 w-3" strokeWidth={2.5} />
-                  {draftSavedLabel}
+        {/* Right column: questionnaire shell (header + panel) */}
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden pt-2">
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-sky-400/15 bg-[#0b1524]/80 shadow-[0_0_0_1px_rgba(47,128,237,0.08)]">
+            <header className="flex shrink-0 items-start justify-between gap-4 border-b border-white/10 px-4 py-4 sm:px-5">
+              <div className="min-w-0">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-sky-300/80">
+                  SAEC Discovery
                 </p>
-              ) : null}
-            </div>
-          </header>
+                <h1 className="mt-1 text-[1.45rem] font-semibold leading-tight tracking-tight text-white sm:text-[1.62rem]">
+                  Current Systems Discovery
+                </h1>
+                <p className="mt-1.5 text-[13px] text-white/55">
+                  Help understand SAECs systems. All questions are{" "}
+                  <span className="font-semibold text-sky-300">OPTIONAL</span>.
+                </p>
+                {(submittedAt || submitSuccessMessage || submitError) && (
+                  <div className="mt-2 space-y-1">
+                    {submittedAt ? (
+                      <p className="text-[11px] text-sky-200/75">
+                        Previously submitted on {formatSubmittedAt(submittedAt)}.
+                      </p>
+                    ) : null}
+                    {submitSuccessMessage ? (
+                      <p className="text-[12px] text-emerald-200/90">{submitSuccessMessage}</p>
+                    ) : null}
+                    {submitError ? (
+                      <p className="text-[12px] text-rose-200/90">{submitError}</p>
+                    ) : null}
+                  </div>
+                )}
+              </div>
 
-          <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-xl border border-sky-400/15 bg-[#0b1524]/80 p-4 shadow-[0_0_0_1px_rgba(47,128,237,0.08)] sm:p-5">
-            {selectedSection ? (
-              <>
-                <SectionHeader section={selectedSection} onSave={saveSection} />
-                <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-                  {selectedSection.kind === "general" ? (
-                    <GeneralSectionPanel
-                      section={selectedSection}
-                      draft={draft}
-                      updateDraft={updateDraft}
-                    />
-                  ) : null}
-                  {selectedSection.kind === "reporting" ? (
-                    <ReportingSectionPanel
-                      section={selectedSection}
-                      draft={draft}
-                      updateDraft={updateDraft}
-                    />
-                  ) : null}
-                  {selectedSection.kind === "software" ? (
-                    <SoftwareSectionPanel
-                      section={selectedSection}
-                      draft={draft}
-                      updateDraft={updateDraft}
-                    />
-                  ) : null}
+              <div className="flex shrink-0 flex-col items-end gap-1.5">
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={saveDraft}
+                    className="inline-flex items-center gap-2 rounded-lg border border-sky-400/35 bg-sky-500/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.08em] text-white/90 transition-colors hover:bg-sky-500/15"
+                  >
+                    <Save className="h-3.5 w-3.5" strokeWidth={2} />
+                    Save Draft
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void submitDiscovery()}
+                    disabled={submitting}
+                    className="inline-flex items-center gap-2 rounded-lg bg-[#1F4FBF] px-4 py-2 text-xs font-semibold uppercase tracking-[0.08em] text-white transition-colors hover:bg-[#2563eb] disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {submitting ? (
+                      <>
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        Submitting…
+                      </>
+                    ) : (
+                      <>
+                        <Send className="h-3.5 w-3.5" strokeWidth={2} />
+                        Submit
+                      </>
+                    )}
+                  </button>
                 </div>
-              </>
-            ) : (
-              <p className="text-sm text-white/45">Select a section from the list.</p>
-            )}
-          </main>
+                {draftSavedLabel ? (
+                  <p className="inline-flex items-center gap-1.5 text-[11px] text-emerald-300/85">
+                    <Check className="h-3 w-3" strokeWidth={2.5} />
+                    {draftSavedLabel}
+                  </p>
+                ) : null}
+              </div>
+            </header>
+
+            <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden px-4 py-3 sm:px-5 sm:py-4">
+              {selectedSection ? (
+                <>
+                  <SectionHeader section={selectedSection} onSave={saveSection} />
+                  <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+                    {selectedSection.kind === "general" ? (
+                      <GeneralSectionPanel
+                        section={selectedSection}
+                        draft={draft}
+                        updateDraft={updateDraft}
+                      />
+                    ) : null}
+                    {selectedSection.kind === "reporting" ? (
+                      <ReportingSectionPanel
+                        section={selectedSection}
+                        draft={draft}
+                        updateDraft={updateDraft}
+                      />
+                    ) : null}
+                    {selectedSection.kind === "software" ? (
+                      <SoftwareSectionPanel
+                        section={selectedSection}
+                        draft={draft}
+                        updateDraft={updateDraft}
+                      />
+                    ) : null}
+                  </div>
+                </>
+              ) : (
+                <p className="text-sm text-white/45">Select a section from the list.</p>
+              )}
+            </main>
+          </div>
         </div>
       </div>
 
