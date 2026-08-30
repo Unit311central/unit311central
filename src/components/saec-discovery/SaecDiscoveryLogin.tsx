@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useState } from "react";
+import Image from "next/image";
 import { Loader2 } from "lucide-react";
 
 import SaecDiscoveryLogo from "@/components/saec-discovery/SaecDiscoveryLogo";
@@ -56,8 +57,18 @@ export default function SaecDiscoveryLogin({ onAuthenticated }: SaecDiscoveryLog
 
       <div className="relative w-full max-w-md rounded-2xl border border-white/10 bg-[#0b1524]/90 p-8 shadow-[0_24px_64px_rgba(0,0,0,0.45)] backdrop-blur-xl">
         <div className="flex flex-col items-center text-center">
-          <SaecDiscoveryLogo height={44} maxWidth={180} priority />
-          <p className="mt-5 text-[11px] font-semibold uppercase tracking-[0.18em] text-sky-300/85">
+          <Image
+            src="/images/unit311central-login.webp"
+            alt="Unit311 Central"
+            width={1462}
+            height={334}
+            className="h-8 w-auto max-w-[220px] object-contain"
+            priority
+          />
+          <div className="mt-4">
+            <SaecDiscoveryLogo height={32} maxWidth={130} priority />
+          </div>
+          <p className="mt-4 text-[11px] font-semibold uppercase tracking-[0.18em] text-sky-300/85">
             SAEC Discovery
           </p>
           <h1 className="mt-2 text-2xl font-semibold tracking-tight text-white">

@@ -2,6 +2,9 @@
   "framework": "nextjs",
   "installCommand": "npm install",
   "buildCommand": "npm run build",
+  "env": {
+    "NEXT_PUBLIC_SAEC_DISCOVERY_REQUIRE_AUTH": "true"
+  },
   "crons": [
     {
       "path": "/api/cron/founder-session-reminders",

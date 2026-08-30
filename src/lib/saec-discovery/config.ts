@@ -87,12 +87,12 @@ export const SAEC_DISCOVERY_SECTIONS: readonly SaecDiscoverySectionConfig[] = [
         note: "For example:",
         examples: [
           "easier ability to track engineers on the road",
-          "proactive selling of upgrades to customers",
           "better understanding of burn rates and cash flow",
-          "understanding which clients are actually profitable",
           "more structured / sophisticated sales management tools and pipeline",
-          "easier and faster self-service access to regular, standardised financial views",
           "ad hoc financial reports",
+          "proactive selling of upgrades to customers",
+          "understanding which clients are actually profitable",
+          "easier and faster self-service access to regular, standardised financial views",
         ],
       },
     ],
@@ -222,27 +222,26 @@ export const SAEC_DISCOVERY_SECTIONS: readonly SaecDiscoverySectionConfig[] = [
       },
       {
         id: "difficult-to-produce",
-        label: "Which reports or information do you find difficult or time-consuming to produce?",
+        label:
+          "Which reports or reporting processes are particularly difficult or time-consuming?",
       },
       {
         id: "immediate-information",
-        label:
-          "What information would you like to be able to see immediately that currently requires someone to prepare it?",
+        label: "What information would you most like to be able to see immediately?",
       },
       {
         id: "duplicate-reports",
         label:
-          "Do different people or departments currently produce their own reports or spreadsheets for the same information?",
+          "Are there reports or spreadsheets being produced separately by different departments that contain overlapping information?",
       },
       {
         id: "untrusted-reports",
         label:
-          "Are there any reports you currently receive that you don't trust or have difficulty reconciling?",
+          "Are there any reports that you don't fully trust or that are difficult to reconcile?",
       },
       {
         id: "automatic-reports",
-        label:
-          "If you could have any financial, operational, sales or management report produced automatically, what would be most useful?",
+        label: "What reports would be most useful if they were produced automatically?",
       },
     ],
     includeComments: true,

@@ -199,7 +199,7 @@ function QuestionBlock({
         {question.label}
       </label>
       {question.note && !question.examples?.length ? (
-        <p className="mt-2 text-[10px] leading-relaxed text-white/40">{question.note}</p>
+        <p className="mt-3 text-[10px] leading-relaxed text-white/40">{question.note}</p>
       ) : null}
       {question.examples?.length ? (
         <div className="space-y-1.5 pt-1">
@@ -225,8 +225,8 @@ function QuestionBlock({
         className={cn(
           "grid min-h-0 gap-x-4 gap-y-2",
           emphasize
-            ? "min-h-0 flex-1 grid-cols-1 lg:grid-cols-[minmax(0,38%)_minmax(0,1fr)] lg:items-stretch"
-            : "grid-cols-1 lg:grid-cols-[minmax(0,38%)_minmax(0,1fr)] lg:items-start",
+            ? "min-h-0 flex-1 grid-cols-1 lg:grid-cols-[minmax(0,44%)_minmax(0,1fr)] lg:items-stretch"
+            : "grid-cols-1 lg:grid-cols-[minmax(0,44%)_minmax(0,1fr)] lg:items-start",
         )}
       >
         <div className="flex min-w-0 gap-2.5">
@@ -333,7 +333,7 @@ function GeneralSectionPanel({
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
       {section.intro ? (
-        <p className="mb-5 shrink-0 text-[12px] leading-relaxed text-white/55">{section.intro}</p>
+        <p className="mb-6 shrink-0 text-[12px] leading-relaxed text-white/55">{section.intro}</p>
       ) : null}
       <div className="flex min-h-0 flex-1 flex-col gap-3.5 overflow-hidden">
         {regular.map((question, index) => (
@@ -649,8 +649,8 @@ export default function SaecDiscoveryApp() {
       <div className="relative flex min-h-0 flex-1 gap-3 px-4 py-2 sm:px-5 lg:gap-4 lg:px-6">
         {/* Left column: logo, navigation, secure panel */}
         <aside className="flex w-[210px] shrink-0 flex-col lg:w-[228px]">
-          <div className="mb-2.5 shrink-0 pt-2">
-            <SaecDiscoveryLogo height={32} maxWidth={118} priority />
+          <div className="mb-2 shrink-0 pt-2">
+            <SaecDiscoveryLogo height={28} maxWidth={100} priority />
           </div>
 
           <nav
@@ -729,15 +729,15 @@ export default function SaecDiscoveryApp() {
         {/* Right column: questionnaire shell (header + panel) */}
         <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden pt-2">
           <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-sky-400/15 bg-[#0b1524]/80 shadow-[0_0_0_1px_rgba(47,128,237,0.08)]">
-            <header className="flex shrink-0 items-start justify-between gap-4 border-b border-white/10 px-4 py-4 sm:px-5">
+            <header className="flex shrink-0 items-start justify-between gap-4 border-b border-white/10 px-4 py-5 sm:px-5">
               <div className="min-w-0">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-sky-300/80">
                   SAEC Discovery
                 </p>
-                <h1 className="mt-1 text-[1.45rem] font-semibold leading-tight tracking-tight text-white sm:text-[1.62rem]">
+                <h1 className="mt-1.5 text-[1.45rem] font-semibold leading-tight tracking-tight text-white sm:text-[1.62rem]">
                   Current Systems Discovery
                 </h1>
-                <p className="mt-1.5 text-[13px] text-white/55">
+                <p className="mt-2 text-[13px] leading-snug text-white/55">
                   Help understand SAECs systems. All questions are{" "}
                   <span className="font-semibold text-sky-300">OPTIONAL</span>.
                 </p>
