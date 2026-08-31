@@ -1,5 +1,11 @@
 import { cn } from "@/lib/utils";
 import type { ContentionStatus, CriterionStatus } from "@/lib/realtime-video-pipeline/workbench-types";
+import {
+  WORKBENCH_TABS,
+  type WorkbenchTabId,
+} from "@/lib/realtime-video-workbench-nav";
+
+export { WORKBENCH_TABS, type WorkbenchTabId };
 
 export function contentionTone(status: ContentionStatus) {
   if (status === "GREEN") return "border-emerald-400/30 bg-emerald-500/15 text-emerald-100";
@@ -48,21 +54,3 @@ export function fmtNum(value: number | null | undefined, digits = 2) {
   if (value == null) return "TBD";
   return value.toFixed(digits);
 }
-
-/** Top-level workbench navigation — every feature must map to one of these tabs. */
-export const WORKBENCH_TABS = [
-  { id: "overview", label: "Overview", description: "Live engineering summary tiles" },
-  { id: "pipeline", label: "Master Pipeline", description: "58-stage latency model & CRUD" },
-  { id: "flight", label: "Flight Scenarios", description: "Schedule, aircraft, connectivity" },
-  { id: "missions", label: "Mission Profiles", description: "Compute intensity per mission" },
-  { id: "video", label: "Video & Bandwidth", description: "Bitrate, GB/TB, contention" },
-  { id: "cost", label: "Cost Calculator", description: "WOLF vs Safari · 1–24 months" },
-  { id: "latency", label: "Latency & Success", description: "Performance & PASS/FAIL criteria" },
-  { id: "architectures", label: "Living Architectures", description: "Dynamic pipeline views" },
-  { id: "assumptions", label: "Assumptions", description: "Reference data register" },
-  { id: "test-runs", label: "Test Runs", description: "Measured field telemetry" },
-  { id: "failure", label: "Failure & Resilience", description: "Failure modes & recovery" },
-  { id: "architecture-options", label: "Architecture Options", description: "Cloud / edge / on-site" },
-] as const;
-
-export type WorkbenchTabId = (typeof WORKBENCH_TABS)[number]["id"];

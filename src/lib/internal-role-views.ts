@@ -10,6 +10,10 @@ import {
 } from "@/lib/project-management-nav";
 import { ENGINEERING_SOPS_NAV_ITEM } from "@/lib/engineering-nav";
 import {
+  buildRealtimeVideoWorkbenchNavItem,
+  REALTIME_VIDEO_WORKBENCH_NAV_LABEL,
+} from "@/lib/realtime-video-workbench-nav";
+import {
   ONWARDAIR_EA_ACCENT,
   ONWARDAIR_HOME_ACCENT,
   ONWARDAIR_MODULE_ACCENTS,
@@ -1558,11 +1562,7 @@ const INTERNAL_ANALYTICS_NAV_ITEMS: InternalNavSection["items"] = [
     icon: "Activity",
     view: "system-health",
   },
-  {
-    label: "Real-Time Video & AI Pipeline",
-    icon: "Video",
-    view: "realtime-video-pipeline",
-  },
+  buildRealtimeVideoWorkbenchNavItem(),
   {
     label: "SAEC Feedback",
     icon: "MessageSquare",
@@ -1597,6 +1597,11 @@ function mergeInternalAnalyticsNavItems(
 
   const ordered: InternalNavSection["items"][number][] = [];
   for (const item of canonical) {
+    if (item.label === REALTIME_VIDEO_WORKBENCH_NAV_LABEL) {
+      ordered.push(item);
+      byView.delete("realtime-video-pipeline");
+      continue;
+    }
     if (!item.view) continue;
     const merged = byView.get(item.view);
     if (merged) {
@@ -1604,7 +1609,10 @@ function mergeInternalAnalyticsNavItems(
       byView.delete(item.view);
     }
   }
-  for (const item of byView.values()) ordered.push(item);
+  for (const item of byView.values()) {
+    if (item.view === "realtime-video-pipeline" && !item.children?.length) continue;
+    ordered.push(item);
+  }
   return ordered;
 }
 

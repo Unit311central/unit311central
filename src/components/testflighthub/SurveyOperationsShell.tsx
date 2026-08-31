@@ -38,6 +38,7 @@ import { prefetchViewOnIntent } from "@/lib/workspace-prefetch";
 import DemoWorkspacePreviewSwitcher from "@/components/demo/DemoWorkspacePreviewSwitcher";
 import { demoPreviewWorkspaceLabel, readBrowserDemoPreviewSlug } from "@/lib/demo/workspace-preview";
 import { resolveSalesManagementShellTitles } from "@/lib/sales-management-nav";
+import { resolveRealtimeVideoWorkbenchShellTitles } from "@/lib/realtime-video-workbench-nav";
 import QaWorkspaceProvider from "@/components/qa-workspace/QaWorkspaceProvider";
 import QaModeButton from "@/components/qa-workspace/QaModeButton";
 import { useOperatorEntitlements } from "./OperatorEntitlementsProvider";
@@ -64,6 +65,8 @@ export default function SurveyOperationsShell({
   const { workspaceSlug } = useOperatorEntitlements();
   const searchParams = useSearchParams();
   const salesTab = searchParams.get("tab");
+  const workbenchTab =
+    activeView === "realtime-video-pipeline" ? searchParams.get("tab") : null;
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [assistantOpen, setAssistantOpen] = useState(false);
   const pathname = usePathname() ?? "";
@@ -130,7 +133,9 @@ export default function SurveyOperationsShell({
           ? "Billing"
           : activeView === "sales-management"
             ? resolveSalesManagementShellTitles(salesTab).title
-            : resolveInternalViewTitles(activeView).title
+            : activeView === "realtime-video-pipeline"
+              ? resolveRealtimeVideoWorkbenchShellTitles(workbenchTab).title
+              : resolveInternalViewTitles(activeView).title
         : surveyViewTitles[activeView as SurveyOperationsView].title
       : title;
   const resolvedSubtitle =
@@ -140,7 +145,9 @@ export default function SurveyOperationsShell({
           ? "Your subscription"
           : activeView === "sales-management"
             ? resolveSalesManagementShellTitles(salesTab).subtitle
-            : resolveInternalViewTitles(activeView).subtitle
+            : activeView === "realtime-video-pipeline"
+              ? resolveRealtimeVideoWorkbenchShellTitles(workbenchTab).subtitle
+              : resolveInternalViewTitles(activeView).subtitle
         : surveyViewTitles[activeView as SurveyOperationsView].subtitle
       : subtitle;
 
@@ -152,7 +159,9 @@ export default function SurveyOperationsShell({
     isInternalOperationsView(activeView)
       ? activeView === "sales-management"
         ? resolveSalesManagementShellTitles(salesTab).breadcrumb
-        : getInternalNavBreadcrumb(activeView)
+        : activeView === "realtime-video-pipeline"
+          ? resolveRealtimeVideoWorkbenchShellTitles(workbenchTab).breadcrumb
+          : getInternalNavBreadcrumb(activeView)
       : null;
 
   const sectionAccent =
