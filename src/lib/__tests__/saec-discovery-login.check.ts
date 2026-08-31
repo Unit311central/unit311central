@@ -8,6 +8,7 @@ import path from "node:path";
 
 import {
   isSaecDiscoveryUsername,
+  resolveSaecDiscoveryProvisionPassword,
   verifySaecDiscoveryPassword,
   wantsSaecDiscoveryPostLogin,
 } from "@/lib/saec-discovery/discovery-auth";
@@ -17,6 +18,11 @@ const root = process.cwd();
 assert.equal(isSaecDiscoveryUsername("discovery@unit311central.com"), true);
 assert.equal(isSaecDiscoveryUsername("admin@saec.co.za"), false);
 assert.equal(verifySaecDiscoveryPassword("SaecDiscovery2026$"), true);
+assert.equal(
+  resolveSaecDiscoveryProvisionPassword(),
+  "SaecDiscovery2026$",
+  "provision should fall back to default password",
+);
 assert.equal(verifySaecDiscoveryPassword("wrong-password"), false);
 assert.equal(wantsSaecDiscoveryPostLogin("/saec-discovery"), true);
 assert.equal(wantsSaecDiscoveryPostLogin("/dashboard"), false);

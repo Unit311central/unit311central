@@ -1,4 +1,5 @@
 import { assertDemoMutationAllowedForRequest } from "@/lib/demo/mutation-guard";
+import { resolveSaecDiscoveryProvisionPassword } from "@/lib/saec-discovery/discovery-auth";
 import { provisionSaecDiscoveryAccount } from "@/lib/saec-discovery/provision-discovery-account";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -24,22 +25,17 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  let password = String(process.env.SAEC_DISCOVERY_PASSWORD ?? "").trim();
+  let passwordOverride: string | undefined;
   try {
     const body = (await request.json()) as { password?: string };
     if (body.password?.trim()) {
-      password = body.password.trim();
+      passwordOverride = body.password.trim();
     }
   } catch {
-    // Body optional when SAEC_DISCOVERY_PASSWORD is set on the deployment.
+    // Empty body is fine — resolveSaecDiscoveryProvisionPassword supplies the default.
   }
 
-  if (!password) {
-    return NextResponse.json(
-      { error: "password is required in JSON body or SAEC_DISCOVERY_PASSWORD env." },
-      { status: 400 },
-    );
-  }
+  const password = resolveSaecDiscoveryProvisionPassword(passwordOverride);
 
   try {
     const result = await provisionSaecDiscoveryAccount(password);
