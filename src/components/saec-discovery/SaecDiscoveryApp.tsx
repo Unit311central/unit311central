@@ -561,10 +561,11 @@ export default function SaecDiscoveryApp({
     setSubmitSuccessMessage(null);
 
     try {
+      const merged = selectedSection ? flushDraftToStored(selectedSection, false) : stored;
       const snapshot = buildDiscoverySubmissionSnapshot(
-        selectedSection ? flushDraftToStored(selectedSection, false) : stored,
-        null,
-        {},
+        merged,
+        selectedSection?.id ?? null,
+        draft,
       );
       const response = await fetch("/api/saec-discovery/submit", {
         method: "POST",
