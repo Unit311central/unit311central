@@ -130,6 +130,7 @@ export const UNIT311_PENDING_MIGRATIONS = [
   "supabase/migrations/191_interfaceworx_repurge_projects_payroll.sql",
   "supabase/migrations/192_email_mailbox_managed_addresses.sql",
   "supabase/migrations/193_realtime_video_pipeline.sql",
+  "supabase/migrations/194_realtime_video_workbench.sql",
   "supabase/migrations/186_qa_workspace_task_beta_statuses.sql",
 ] as const;
 

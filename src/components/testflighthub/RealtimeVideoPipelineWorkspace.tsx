@@ -19,6 +19,24 @@ import {
   WsSection,
   WsSlideOver,
 } from "@/components/testflighthub/domain-workspace-ui";
+import { ArchitectureOptionsTab } from "@/components/testflighthub/realtime-video-workbench/ArchitectureOptionsTab";
+import { ArchitecturesTab } from "@/components/testflighthub/realtime-video-workbench/ArchitecturesTab";
+import { AssumptionsTab } from "@/components/testflighthub/realtime-video-workbench/AssumptionsTab";
+import { CostCalculatorTab } from "@/components/testflighthub/realtime-video-workbench/CostCalculatorTab";
+import { FailureResilienceTab } from "@/components/testflighthub/realtime-video-workbench/FailureResilienceTab";
+import { FlightScenariosTab } from "@/components/testflighthub/realtime-video-workbench/FlightScenariosTab";
+import { LatencySuccessTab } from "@/components/testflighthub/realtime-video-workbench/LatencySuccessTab";
+import { MissionProfilesTab } from "@/components/testflighthub/realtime-video-workbench/MissionProfilesTab";
+import { OverviewTab } from "@/components/testflighthub/realtime-video-workbench/OverviewTab";
+import {
+  LatencyCategoryGuide,
+  MilestoneLatencyGuide,
+} from "@/components/testflighthub/realtime-video-workbench/PipelineLatencyGuide";
+import { StageTechnicalEditor } from "@/components/testflighthub/realtime-video-workbench/StageTechnicalEditor";
+import { TestRunsTab } from "@/components/testflighthub/realtime-video-workbench/TestRunsTab";
+import { VideoBandwidthTab } from "@/components/testflighthub/realtime-video-workbench/VideoBandwidthTab";
+import { WorkbenchNav } from "@/components/testflighthub/realtime-video-workbench/WorkbenchNav";
+import type { WorkbenchTabId } from "@/components/testflighthub/realtime-video-workbench/shared";
 import { WorkspaceStatusPill } from "@/components/workspace-ui/primitives";
 import { formatLatencyMs } from "@/lib/realtime-video-pipeline/calculations";
 import { computeStageTotals } from "@/lib/realtime-video-pipeline/calculations";
@@ -29,18 +47,26 @@ import {
 import {
   createStageApi,
   deleteStageApi,
+  duplicateScenarioApi,
   duplicateStageApi,
   getScenarioApi,
+  getWorkbenchApi,
   listScenariosApi,
   reorderStagesApi,
   toggleStageApi,
   updateStageApi,
+  updateWorkbenchApi,
 } from "@/lib/realtime-video-pipeline/client-api";
 import type {
   PipelineScenario,
   PipelineStage,
   ScenarioWithSummary,
 } from "@/lib/realtime-video-pipeline/types";
+import {
+  resolveStageLocation,
+  resolveStageProvider,
+} from "@/lib/realtime-video-pipeline/stage-terminology-sync";
+import type { WorkbenchModel } from "@/lib/realtime-video-pipeline/workbench-types";
 import { cn } from "@/lib/utils";
 
 function statusTone(status: string) {
@@ -77,7 +103,11 @@ export default function RealtimeVideoPipelineWorkspace() {
   const [scenarios, setScenarios] = useState<PipelineScenario[]>([]);
   const [scenarioId, setScenarioId] = useState<string | null>(null);
   const [data, setData] = useState<ScenarioWithSummary | null>(null);
+  const [workbench, setWorkbench] = useState<WorkbenchModel | null>(null);
+  const [activeTab, setActiveTab] = useState<WorkbenchTabId>("overview");
+  const [compareId, setCompareId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [workbenchSaving, setWorkbenchSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [sectionFilter, setSectionFilter] = useState("All");
@@ -88,21 +118,39 @@ export default function RealtimeVideoPipelineWorkspace() {
   const loadScenarios = useCallback(async () => {
     const rows = await listScenariosApi();
     setScenarios(rows);
-    if (!scenarioId && rows[0]) setScenarioId(rows[0].id);
+    const flight = rows.find((s) => s.scenarioKind === "flight") ?? rows[0];
+    if (!scenarioId && flight) setScenarioId(flight.id);
   }, [scenarioId]);
 
-  const loadScenario = useCallback(async (id: string) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const row = await getScenarioApi(id);
+  const loadWorkbench = useCallback(async (id: string) => {
+    const { model } = await getWorkbenchApi(id);
+    setWorkbench(model);
+    const pipelineId =
+      model.pipelineScenario?.id ??
+      model.flightScenario.pipelineScenarioId ??
+      (model.flightScenario.scenarioKind === "pipeline" ? model.flightScenario.id : null);
+    if (pipelineId) {
+      const row = await getScenarioApi(pipelineId);
       setData(row);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load pipeline.");
-    } finally {
-      setLoading(false);
+    } else {
+      setData(null);
     }
   }, []);
+
+  const loadScenario = useCallback(
+    async (id: string) => {
+      setLoading(true);
+      setError(null);
+      try {
+        await loadWorkbench(id);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to load workbench.");
+      } finally {
+        setLoading(false);
+      }
+    },
+    [loadWorkbench],
+  );
 
   useEffect(() => {
     void loadScenarios().catch((err) =>
@@ -135,6 +183,39 @@ export default function RealtimeVideoPipelineWorkspace() {
     await loadScenario(id);
   }
 
+  async function handleSaveWorkbench(config: WorkbenchModel["config"]) {
+    if (!scenarioId) return;
+    setWorkbenchSaving(true);
+    try {
+      const { model } = await updateWorkbenchApi(scenarioId, config);
+      setWorkbench(model);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Save failed.");
+    } finally {
+      setWorkbenchSaving(false);
+    }
+  }
+
+  async function handleDuplicateScenario() {
+    if (!scenarioId || !workbench) return;
+    const name = window.prompt("New scenario name", `${workbench.flightScenario.name} (copy)`);
+    if (!name?.trim()) return;
+    try {
+      const { scenario, model } = await duplicateScenarioApi(scenarioId, name.trim());
+      await loadScenarios();
+      setScenarioId(scenario.id);
+      setWorkbench(model);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Duplicate failed.");
+    }
+  }
+
+  function jumpToStage(stageId: string) {
+    setActiveTab("pipeline");
+    const stage = data?.stages.find((s) => s.id === stageId);
+    if (stage) setEditorStage(stage);
+  }
+
   async function handleSaveStage() {
     if (!editorStage || !scenarioId) return;
     setSaving(true);
@@ -142,6 +223,7 @@ export default function RealtimeVideoPipelineWorkspace() {
       const updated = await updateStageApi(editorStage.id, editorStage);
       setData(updated);
       setEditorStage(null);
+      if (scenarioId) await loadWorkbench(scenarioId);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Save failed.");
     } finally {
@@ -218,15 +300,15 @@ export default function RealtimeVideoPipelineWorkspace() {
             Analytics · WOLF Engineering
           </p>
           <h1 className="mt-1 text-2xl font-semibold tracking-tight text-white">
-            Real-Time Video &amp; AI Pipeline
+            Real-Time Video &amp; AI Engineering Workbench
           </h1>
           <p className="mt-1 max-w-3xl text-sm text-white/50">
-            End-to-end latency model from drone camera capture through managed cloud video, AI
-            inference, WOLF backend, and Chrome overlay rendering.
+            BCN/WOLF internal engineering laboratory — master pipeline, flight scenarios, latency,
+            connectivity, cost model, success criteria, and living architectures from one model.
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <label className="text-xs text-white/45">Scenario</label>
+        <div className="flex flex-wrap items-center gap-2">
+          <label className="text-xs text-white/45">Flight scenario</label>
           <select
             className={cn(WsInputClass(), "min-w-[18rem]")}
             value={scenarioId ?? ""}
@@ -238,20 +320,85 @@ export default function RealtimeVideoPipelineWorkspace() {
               </option>
             ))}
           </select>
+          <button type="button" className={WsSecondaryButtonClass()} onClick={() => void handleDuplicateScenario()}>
+            Duplicate version
+          </button>
         </div>
       </div>
+
+      <WorkbenchNav activeTab={activeTab} onTabChange={setActiveTab} />
 
       {error ? (
         <div className="rounded-xl border border-rose-400/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-100">
           {error}
+          <p className="mt-2 text-xs text-rose-200/70">
+            If this persists, confirm migration 194 is applied and you are on the workbench branch
+            (PR #51). Production on main may show the legacy pipeline-only view until merged.
+          </p>
         </div>
       ) : null}
 
-      {loading || !data || !summary ? (
+      {loading ? (
         <div className="flex min-h-[16rem] items-center justify-center text-white/50">
-          <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Loading pipeline model…
+          <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Loading workbench…
         </div>
-      ) : (
+      ) : null}
+
+      {!loading && workbench && activeTab === "overview" ? (
+        <OverviewTab model={workbench} />
+      ) : null}
+      {!loading && workbench && activeTab === "flight" ? (
+        <FlightScenariosTab
+          model={workbench}
+          saving={workbenchSaving}
+          onSave={handleSaveWorkbench}
+        />
+      ) : null}
+      {!loading && workbench && activeTab === "missions" ? (
+        <MissionProfilesTab
+          model={workbench}
+          saving={workbenchSaving}
+          onSave={handleSaveWorkbench}
+        />
+      ) : null}
+      {!loading && workbench && activeTab === "video" ? (
+        <VideoBandwidthTab
+          model={workbench}
+          saving={workbenchSaving}
+          onSave={handleSaveWorkbench}
+        />
+      ) : null}
+      {!loading && workbench && activeTab === "cost" ? (
+        <CostCalculatorTab model={workbench} />
+      ) : null}
+      {!loading && workbench && activeTab === "latency" ? (
+        <LatencySuccessTab
+          model={workbench}
+          saving={workbenchSaving}
+          onSave={handleSaveWorkbench}
+          onJumpToStage={jumpToStage}
+        />
+      ) : null}
+      {!loading && workbench && activeTab === "architectures" ? (
+        <ArchitecturesTab model={workbench} />
+      ) : null}
+      {!loading && workbench && activeTab === "assumptions" ? (
+        <AssumptionsTab model={workbench} />
+      ) : null}
+      {!loading && activeTab === "test-runs" ? <TestRunsTab /> : null}
+      {!loading && data && activeTab === "failure" ? (
+        <FailureResilienceTab stages={data.stages} onSelectStage={jumpToStage} />
+      ) : null}
+      {!loading && workbench && activeTab === "architecture-options" ? (
+        <ArchitectureOptionsTab
+          model={workbench}
+          scenarios={scenarios.map((s) => ({ id: s.id, name: s.name }))}
+          compareId={compareId}
+          onCompareIdChange={setCompareId}
+        />
+      ) : null}
+
+      {!loading && activeTab === "pipeline" && data && summary ? (
         <>
           <WsSection
             title="AI-Annotated End-to-End Latency"
@@ -332,6 +479,14 @@ export default function RealtimeVideoPipelineWorkspace() {
           </WsSection>
 
           <WsSection title="Latency breakdown by section">
+            <div className="mb-4">
+              <p className="mb-2 text-xs text-white/45">Latency category definitions</p>
+              <LatencyCategoryGuide compact />
+            </div>
+            <div className="mb-4">
+              <p className="mb-2 text-xs text-white/45">Milestone latency definitions</p>
+              <MilestoneLatencyGuide />
+            </div>
             <div className="space-y-2">
               {SECTION_VISUAL_ORDER.map((section) => {
                 const row = summary.sectionBreakdown.find((r) => r.section === section);
@@ -398,54 +553,88 @@ export default function RealtimeVideoPipelineWorkspace() {
               </button>
             </div>
 
-            <div className="overflow-x-auto rounded-xl border border-white/10">
-              <table className="min-w-[1100px] w-full text-left text-sm">
-                <thead className="bg-white/[0.04] text-xs uppercase tracking-wide text-white/45">
+            <div className="relative overflow-x-auto rounded-xl border border-white/10">
+              <table className="min-w-[1680px] w-full border-separate border-spacing-0 text-left text-sm">
+                <thead className="bg-[#0c1220] text-xs uppercase tracking-wide text-white/45">
                   <tr>
-                    <th className="px-3 py-2">#</th>
-                    <th className="px-3 py-2">Section</th>
-                    <th className="px-3 py-2">Component</th>
-                    <th className="px-3 py-2">Status</th>
-                    <th className="px-3 py-2 text-right">Proc</th>
-                    <th className="px-3 py-2 text-right">Tx</th>
-                    <th className="px-3 py-2 text-right">Buf</th>
-                    <th className="px-3 py-2 text-right">Queue</th>
-                    <th className="px-3 py-2 text-right">AI</th>
-                    <th className="px-3 py-2 text-right">Total</th>
-                    <th className="px-3 py-2">On</th>
-                    <th className="px-3 py-2">Actions</th>
+                    <th className="sticky left-0 z-20 min-w-[2.5rem] border-b border-white/10 bg-[#0c1220] px-3 py-2">
+                      #
+                    </th>
+                    <th className="sticky left-[2.5rem] z-20 min-w-[8.5rem] border-b border-white/10 bg-[#0c1220] px-3 py-2 shadow-[4px_0_12px_rgba(0,0,0,0.35)]">
+                      Section
+                    </th>
+                    <th className="sticky left-[11rem] z-20 min-w-[14rem] border-b border-white/10 bg-[#0c1220] px-3 py-2 shadow-[4px_0_12px_rgba(0,0,0,0.35)]">
+                      Component
+                    </th>
+                    <th className="min-w-[9rem] border-b border-white/10 px-3 py-2">Location</th>
+                    <th className="min-w-[10rem] border-b border-white/10 px-3 py-2">Provider</th>
+                    <th className="min-w-[6rem] border-b border-white/10 px-3 py-2">Status</th>
+                    <th className="min-w-[4.5rem] border-b border-white/10 px-3 py-2 text-right">Proc</th>
+                    <th className="min-w-[4.5rem] border-b border-white/10 px-3 py-2 text-right">Tx</th>
+                    <th className="min-w-[4.5rem] border-b border-white/10 px-3 py-2 text-right">Buf</th>
+                    <th className="min-w-[4.5rem] border-b border-white/10 px-3 py-2 text-right">Queue</th>
+                    <th className="min-w-[4.5rem] border-b border-white/10 px-3 py-2 text-right">AI</th>
+                    <th className="min-w-[5rem] border-b border-white/10 px-3 py-2 text-right">Total</th>
+                    <th className="min-w-[3rem] border-b border-white/10 px-3 py-2">On</th>
+                    <th className="min-w-[8rem] border-b border-white/10 px-3 py-2">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-white/8">
+                <tbody className="divide-y divide-white/8 bg-[#080d18]">
                   {filteredStages.length === 0 ? (
                     <tr>
-                      <td colSpan={12} className="px-3 py-8">
+                      <td colSpan={14} className="px-3 py-8">
                         <WsEmpty message="No stages match filters" />
                       </td>
                     </tr>
                   ) : (
                     filteredStages.map((stage) => {
                       const totals = computeStageTotals(stage);
+                      const rowBg = !stage.enabled ? "bg-[#080d18]/60" : "bg-[#080d18]";
                       return (
                         <tr
                           key={stage.id}
-                          className={cn(
-                            "hover:bg-white/[0.03]",
-                            !stage.enabled && "opacity-45",
-                          )}
+                          className={cn("hover:bg-white/[0.03]", !stage.enabled && "opacity-45")}
                         >
-                          <td className="px-3 py-2 font-mono text-white/70">{stage.stageNumber}</td>
-                          <td className="px-3 py-2 text-white/60">{stage.pipelineSection}</td>
-                          <td className="px-3 py-2">
+                          <td
+                            className={cn(
+                              "sticky left-0 z-10 border-b border-white/5 px-3 py-2 font-mono text-white/70",
+                              rowBg,
+                            )}
+                          >
+                            {stage.stageNumber}
+                          </td>
+                          <td
+                            className={cn(
+                              "sticky left-[2.5rem] z-10 border-b border-white/5 px-3 py-2 text-white/60",
+                              rowBg,
+                            )}
+                          >
+                            {stage.pipelineSection}
+                          </td>
+                          <td
+                            className={cn(
+                              "sticky left-[11rem] z-10 border-b border-white/5 px-3 py-2 shadow-[4px_0_12px_rgba(0,0,0,0.25)]",
+                              rowBg,
+                            )}
+                          >
                             <button
                               type="button"
-                              className="text-left font-medium text-white hover:text-sky-200"
+                              className="max-w-[18rem] text-left font-medium text-white hover:text-sky-200"
                               onClick={() => setEditorStage(stage)}
                             >
                               {stage.component}
                             </button>
+                            <p className="mt-0.5 line-clamp-2 max-w-[18rem] text-[11px] text-white/40">
+                              {stage.whatHappens}
+                            </p>
                           </td>
-                          <td className="px-3 py-2">
+                          <td className="border-b border-white/5 px-3 py-2 text-xs text-white/55">
+                            {resolveStageLocation(stage)}
+                          </td>
+                          <td className="border-b border-white/5 px-3 py-2 text-xs text-white/55">
+                            {resolveStageProvider(stage)}
+                          </td>
+                          <td className="border-b border-white/5 px-3 py-2">
                             <span
                               className={cn(
                                 "inline-flex rounded-full border px-2 py-0.5 text-[11px]",
@@ -455,15 +644,25 @@ export default function RealtimeVideoPipelineWorkspace() {
                               {stage.measurementStatus}
                             </span>
                           </td>
-                          <td className="px-3 py-2 text-right font-mono">{latencyCell(stage.processingMs)}</td>
-                          <td className="px-3 py-2 text-right font-mono">{latencyCell(stage.transmissionMs)}</td>
-                          <td className="px-3 py-2 text-right font-mono">{latencyCell(stage.bufferMs)}</td>
-                          <td className="px-3 py-2 text-right font-mono">{latencyCell(stage.queueMs)}</td>
-                          <td className="px-3 py-2 text-right font-mono">{latencyCell(stage.aiInferenceMs)}</td>
-                          <td className="px-3 py-2 text-right font-mono font-semibold text-white">
+                          <td className="border-b border-white/5 px-3 py-2 text-right font-mono">
+                            {latencyCell(stage.processingMs)}
+                          </td>
+                          <td className="border-b border-white/5 px-3 py-2 text-right font-mono">
+                            {latencyCell(stage.transmissionMs)}
+                          </td>
+                          <td className="border-b border-white/5 px-3 py-2 text-right font-mono">
+                            {latencyCell(stage.bufferMs)}
+                          </td>
+                          <td className="border-b border-white/5 px-3 py-2 text-right font-mono">
+                            {latencyCell(stage.queueMs)}
+                          </td>
+                          <td className="border-b border-white/5 px-3 py-2 text-right font-mono">
+                            {latencyCell(stage.aiInferenceMs)}
+                          </td>
+                          <td className="border-b border-white/5 px-3 py-2 text-right font-mono font-semibold text-white">
                             {latencyCell(totals.totalMs)}
                           </td>
-                          <td className="px-3 py-2">
+                          <td className="border-b border-white/5 px-3 py-2">
                             <input
                               type="checkbox"
                               checked={stage.enabled}
@@ -472,7 +671,7 @@ export default function RealtimeVideoPipelineWorkspace() {
                               }
                             />
                           </td>
-                          <td className="px-3 py-2">
+                          <td className="border-b border-white/5 px-3 py-2">
                             <div className="flex items-center gap-1">
                               <button type="button" className={WsSecondaryButtonClass()} onClick={() => void handleMove(stage, -1)} aria-label="Move up">
                                 <ArrowUp className="h-3.5 w-3.5" />
@@ -495,9 +694,13 @@ export default function RealtimeVideoPipelineWorkspace() {
                 </tbody>
               </table>
             </div>
+            <p className="mt-2 text-xs text-white/40">
+              Scroll horizontally for latency columns — stage number, section, and component remain
+              fixed while reviewing engineering data.
+            </p>
           </WsSection>
         </>
-      )}
+      ) : null}
 
       {editorStage ? (
       <WsSlideOver
@@ -634,6 +837,7 @@ export default function RealtimeVideoPipelineWorkspace() {
                 </select>
               </label>
             </div>
+            <StageTechnicalEditor stage={editorStage} onChange={setEditorStage} />
             <label className="block space-y-1">
               <span className="text-white/50">Source / evidence</span>
               <input

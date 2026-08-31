@@ -6,6 +6,7 @@ import type {
   PIPELINE_SECTIONS,
   SOURCE_TYPES,
 } from "@/lib/realtime-video-pipeline/constants";
+import type { ScenarioKind, WorkbenchConfig } from "@/lib/realtime-video-pipeline/workbench-types";
 
 export type PipelineSection = (typeof PIPELINE_SECTIONS)[number];
 export type MeasurementStatus = (typeof MEASUREMENT_STATUSES)[number];
@@ -89,6 +90,17 @@ export type StageDetails = {
   serviceEndpoint?: string;
   managed?: boolean;
   customerManaged?: boolean;
+  /** Explicit location classification (AIRCRAFT, CLOUD, etc.) */
+  location?: string;
+  /** Service/product technology — distinct from provider */
+  technology?: string;
+  architectureStatus?: string;
+  inputDescription?: string;
+  outputDescription?: string;
+  dependencies?: string;
+  failureImpact?: string;
+  failureFallback?: string;
+  failureRecovery?: string;
 };
 
 export type PipelineStage = {
@@ -131,8 +143,12 @@ export type PipelineScenario = {
   name: string;
   description: string;
   isDefault: boolean;
+  scenarioKind: ScenarioKind;
+  parentScenarioId: string | null;
+  pipelineScenarioId: string | null;
   config: ScenarioConfig;
   syncConfig: SyncConfig;
+  workbenchConfig: WorkbenchConfig;
   createdAt: string;
   updatedAt: string;
 };
