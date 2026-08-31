@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState, startTransition } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Loader2, RefreshCw, Receipt } from "lucide-react";
+import { Loader2, Pencil, RefreshCw, Receipt, Trash2 } from "lucide-react";
 
 import { formatMoney } from "@/lib/accounting/chart-of-accounts";
 import { isBrowserDemoSurface } from "@/lib/demo-enterprise";
@@ -72,6 +72,38 @@ const SECTION_COPY: Record<ApSection, { title: string; description: string }> = 
   },
 };
 
+type DraftEditorForm = {
+  supplier: string;
+  reference: string;
+  amount: string;
+  currency: string;
+  invoiceDate: string;
+  dueDate: string;
+  description: string;
+};
+
+const EMPTY_DRAFT_FORM: DraftEditorForm = {
+  supplier: "",
+  reference: "",
+  amount: "",
+  currency: "GBP",
+  invoiceDate: "",
+  dueDate: "",
+  description: "",
+};
+
+function draftToForm(draft: SupplierInvoiceDraft): DraftEditorForm {
+  return {
+    supplier: draft.supplier,
+    reference: draft.reference ?? "",
+    amount: String(draft.amount),
+    currency: draft.currency,
+    invoiceDate: draft.invoiceDate,
+    dueDate: draft.dueDate ?? "",
+    description: draft.description,
+  };
+}
+
 export default function AccountsPayableWorkspace({
   forcedSection,
 }: {
@@ -84,10 +116,11 @@ export default function AccountsPayableWorkspace({
   const [error, setError] = useState<string | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<NorthstarPayableCategory | "all">("all");
   const [drafts, setDrafts] = useState<SupplierInvoiceDraft[]>([]);
-  const [ingestText, setIngestText] = useState(
-    "Supplier: Acme Parts Ltd\nInvoice number: AP-99201\nTotal due: GBP 1,240.50\nDue date: 30/09/2026",
-  );
+  const [ingestText, setIngestText] = useState("");
   const [ingestBusy, setIngestBusy] = useState(false);
+  const [editorOpen, setEditorOpen] = useState(false);
+  const [editingDraftId, setEditingDraftId] = useState<string | null>(null);
+  const [draftForm, setDraftForm] = useState<DraftEditorForm>(EMPTY_DRAFT_FORM);
   const isDemo = isBrowserDemoSurface();
 
   const load = useCallback(async () => {
@@ -219,6 +252,69 @@ export default function AccountsPayableWorkspace({
     }
   }
 
+  function openDraftEditor(draft: SupplierInvoiceDraft) {
+    setEditingDraftId(draft.id);
+    setDraftForm(draftToForm(draft));
+    setEditorOpen(true);
+  }
+
+  function closeDraftEditor() {
+    setEditorOpen(false);
+    setEditingDraftId(null);
+    setDraftForm(EMPTY_DRAFT_FORM);
+  }
+
+  async function handleSaveDraft() {
+    if (!editingDraftId) return;
+    setIngestBusy(true);
+    setError(null);
+    try {
+      const amount = Number(draftForm.amount);
+      const response = await fetch(`/api/financials/supplier-invoices/${editingDraftId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          supplier: draftForm.supplier.trim(),
+          reference: draftForm.reference.trim() || null,
+          amount,
+          currency: draftForm.currency.trim() || currency,
+          invoiceDate: draftForm.invoiceDate || null,
+          dueDate: draftForm.dueDate || null,
+          description: draftForm.description.trim(),
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error ?? "Update failed");
+      closeDraftEditor();
+      await loadDrafts();
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : "Update failed");
+    } finally {
+      setIngestBusy(false);
+    }
+  }
+
+  async function handleDeleteDraft(id: string) {
+    const draft = drafts.find((row) => row.id === id);
+    if (!draft) return;
+    const label = draft.reference ? `${draft.supplier} (${draft.reference})` : draft.supplier;
+    if (!window.confirm(`Delete draft supplier invoice for ${label}?`)) return;
+
+    setIngestBusy(true);
+    setError(null);
+    try {
+      const response = await fetch(`/api/financials/supplier-invoices/${id}`, { method: "DELETE" });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error ?? "Delete failed");
+      if (editingDraftId === id) closeDraftEditor();
+      await loadDrafts();
+    } catch (deleteError) {
+      setError(deleteError instanceof Error ? deleteError.message : "Delete failed");
+    } finally {
+      setIngestBusy(false);
+    }
+  }
+
   useEffect(() => {
     startTransition(() => {
       void load();
@@ -344,12 +440,6 @@ export default function AccountsPayableWorkspace({
         </p>
       ) : null}
 
-      {error ? (
-        <p className="rounded-xl border border-rose-400/25 bg-rose-500/10 px-4 py-3 text-sm text-rose-100">
-          {error}
-        </p>
-      ) : null}
-
       {showIngest ? (
       <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
         <p className="text-sm font-medium text-white/80">
@@ -365,7 +455,8 @@ export default function AccountsPayableWorkspace({
           value={ingestText}
           onChange={(event) => setIngestText(event.target.value)}
           rows={4}
-          className="mt-3 w-full rounded-xl border border-white/10 bg-[#0b1524] px-3 py-2 text-sm text-white outline-none focus:border-sky-400/40"
+          placeholder="Paste supplier invoice text or email body…"
+          className="mt-3 w-full rounded-xl border border-white/10 bg-[#0b1524] px-3 py-2 text-sm text-white outline-none placeholder:text-white/30 focus:border-sky-400/40"
         />
         ) : null}
         {section === "invoices" ? (
@@ -403,14 +494,34 @@ export default function AccountsPayableWorkspace({
                     <td className="px-3 py-2 capitalize text-white/55">{draft.status}</td>
                     <td className="px-3 py-2">
                       {draft.status === "draft" ? (
-                        <button
-                          type="button"
-                          disabled={ingestBusy}
-                          onClick={() => void handleApproveDraft(draft.id)}
-                          className="rounded border border-emerald-400/30 bg-emerald-500/10 px-2 py-1 text-xs text-emerald-200"
-                        >
-                          Approve → GL
-                        </button>
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <button
+                            type="button"
+                            disabled={ingestBusy}
+                            onClick={() => void handleApproveDraft(draft.id)}
+                            className="rounded border border-emerald-400/30 bg-emerald-500/10 px-2 py-1 text-xs text-emerald-200"
+                          >
+                            Approve → GL
+                          </button>
+                          <button
+                            type="button"
+                            disabled={ingestBusy}
+                            onClick={() => openDraftEditor(draft)}
+                            className="inline-flex items-center gap-1 rounded border border-white/15 px-2 py-1 text-xs text-white/75 hover:text-white"
+                          >
+                            <Pencil className="h-3 w-3" />
+                            Edit
+                          </button>
+                          <button
+                            type="button"
+                            disabled={ingestBusy}
+                            onClick={() => void handleDeleteDraft(draft.id)}
+                            className="inline-flex items-center gap-1 rounded border border-rose-400/25 bg-rose-500/10 px-2 py-1 text-xs text-rose-200"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                            Delete
+                          </button>
+                        </div>
                       ) : (
                         <span className="text-xs text-emerald-300">Posted</span>
                       )}
@@ -423,6 +534,104 @@ export default function AccountsPayableWorkspace({
         ) : section === "approvals" ? (
           <div className="mt-4 rounded-xl border border-dashed border-white/15 px-4 py-8 text-center text-sm text-white/50">
             No supplier invoice drafts awaiting approval.
+          </div>
+        ) : null}
+        {editorOpen ? (
+          <div className="mt-4 rounded-xl border border-sky-400/25 bg-sky-500/5 p-4">
+            <p className="text-sm font-medium text-white">Edit draft supplier invoice</p>
+            <div className="mt-3 grid gap-3 sm:grid-cols-2">
+              <label className="block text-xs text-white/55">
+                Supplier
+                <input
+                  value={draftForm.supplier}
+                  onChange={(event) =>
+                    setDraftForm((current) => ({ ...current, supplier: event.target.value }))
+                  }
+                  className="mt-1 w-full rounded-lg border border-white/10 bg-[#0b1524] px-3 py-2 text-sm text-white outline-none focus:border-sky-400/40"
+                />
+              </label>
+              <label className="block text-xs text-white/55">
+                Reference
+                <input
+                  value={draftForm.reference}
+                  onChange={(event) =>
+                    setDraftForm((current) => ({ ...current, reference: event.target.value }))
+                  }
+                  className="mt-1 w-full rounded-lg border border-white/10 bg-[#0b1524] px-3 py-2 text-sm text-white outline-none focus:border-sky-400/40"
+                />
+              </label>
+              <label className="block text-xs text-white/55">
+                Amount
+                <input
+                  value={draftForm.amount}
+                  onChange={(event) =>
+                    setDraftForm((current) => ({ ...current, amount: event.target.value }))
+                  }
+                  inputMode="decimal"
+                  className="mt-1 w-full rounded-lg border border-white/10 bg-[#0b1524] px-3 py-2 text-sm text-white outline-none focus:border-sky-400/40"
+                />
+              </label>
+              <label className="block text-xs text-white/55">
+                Currency
+                <input
+                  value={draftForm.currency}
+                  onChange={(event) =>
+                    setDraftForm((current) => ({ ...current, currency: event.target.value }))
+                  }
+                  className="mt-1 w-full rounded-lg border border-white/10 bg-[#0b1524] px-3 py-2 text-sm text-white outline-none focus:border-sky-400/40"
+                />
+              </label>
+              <label className="block text-xs text-white/55">
+                Invoice date
+                <input
+                  type="date"
+                  value={draftForm.invoiceDate}
+                  onChange={(event) =>
+                    setDraftForm((current) => ({ ...current, invoiceDate: event.target.value }))
+                  }
+                  className="mt-1 w-full rounded-lg border border-white/10 bg-[#0b1524] px-3 py-2 text-sm text-white outline-none focus:border-sky-400/40"
+                />
+              </label>
+              <label className="block text-xs text-white/55">
+                Due date
+                <input
+                  type="date"
+                  value={draftForm.dueDate}
+                  onChange={(event) =>
+                    setDraftForm((current) => ({ ...current, dueDate: event.target.value }))
+                  }
+                  className="mt-1 w-full rounded-lg border border-white/10 bg-[#0b1524] px-3 py-2 text-sm text-white outline-none focus:border-sky-400/40"
+                />
+              </label>
+              <label className="block text-xs text-white/55 sm:col-span-2">
+                Description
+                <input
+                  value={draftForm.description}
+                  onChange={(event) =>
+                    setDraftForm((current) => ({ ...current, description: event.target.value }))
+                  }
+                  className="mt-1 w-full rounded-lg border border-white/10 bg-[#0b1524] px-3 py-2 text-sm text-white outline-none focus:border-sky-400/40"
+                />
+              </label>
+            </div>
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                disabled={ingestBusy || !draftForm.supplier.trim() || !Number(draftForm.amount)}
+                onClick={() => void handleSaveDraft()}
+                className="inline-flex h-9 items-center rounded-xl bg-sky-600 px-3 text-xs font-semibold text-white hover:bg-sky-500 disabled:opacity-50"
+              >
+                {ingestBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Save changes"}
+              </button>
+              <button
+                type="button"
+                disabled={ingestBusy}
+                onClick={closeDraftEditor}
+                className="inline-flex h-9 items-center rounded-xl border border-white/15 px-3 text-xs font-semibold text-white/75"
+              >
+                Cancel
+              </button>
+            </div>
           </div>
         ) : null}
       </section>

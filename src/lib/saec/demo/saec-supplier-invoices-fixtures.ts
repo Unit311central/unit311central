@@ -72,3 +72,10 @@ export function upsertSaecSupplierInvoiceDraft(draft: SupplierInvoiceDraft): Sup
   else drafts.push(draft);
   return draft;
 }
+
+export function deleteSaecSupplierInvoiceDraft(id: string) {
+  const index = drafts.findIndex((row) => row.id === id);
+  if (index < 0) return false;
+  drafts.splice(index, 1);
+  return true;
+}

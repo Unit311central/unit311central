@@ -42,3 +42,10 @@ export function upsertNorthstarSupplierInvoiceDraft(draft: SupplierInvoiceDraft)
   else drafts.push(draft);
   return draft;
 }
+
+export function deleteNorthstarSupplierInvoiceDraft(id: string) {
+  const index = drafts.findIndex((row) => row.id === id);
+  if (index < 0) return false;
+  drafts.splice(index, 1);
+  return true;
+}

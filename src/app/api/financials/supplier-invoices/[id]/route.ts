@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { approveSupplierInvoiceDraft } from "@/lib/accounting/supplier-invoice-service";
+import {
+  approveSupplierInvoiceDraft,
+  deleteSupplierInvoiceDraft,
+  updateSupplierInvoiceDraft,
+} from "@/lib/accounting/supplier-invoice-service";
 import { assertDemoMutationAllowedForRequest } from "@/lib/demo/mutation-guard";
 import { isDemoApiRequest } from "@/lib/demo/demo-request";
 import { requirePlatformSession } from "@/lib/platform-session";
@@ -15,6 +19,56 @@ async function resolveScope() {
   await requirePlatformSession();
   const workspace = await requireCurrentWorkspace();
   return { workspaceId: workspace.id, workspaceSlug: workspace.slug };
+}
+
+export async function PATCH(
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> },
+) {
+  const demoMutationBlock = await assertDemoMutationAllowedForRequest(request);
+  if (demoMutationBlock) return demoMutationBlock;
+
+  try {
+    const { id } = await context.params;
+    const body = (await request.json()) as {
+      supplier?: string;
+      reference?: string | null;
+      amount?: number;
+      currency?: string;
+      invoiceDate?: string | null;
+      dueDate?: string | null;
+      description?: string;
+    };
+
+    const scope = await resolveScope();
+    const draft = await updateSupplierInvoiceDraft(id, scope, body);
+    return NextResponse.json({ draft });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unable to update supplier invoice.";
+    const status =
+      message.includes("Authentication required") || message.includes("Workspace context") ? 401 : 500;
+    return NextResponse.json({ error: message }, { status });
+  }
+}
+
+export async function DELETE(
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> },
+) {
+  const demoMutationBlock = await assertDemoMutationAllowedForRequest(request);
+  if (demoMutationBlock) return demoMutationBlock;
+
+  try {
+    const { id } = await context.params;
+    const scope = await resolveScope();
+    await deleteSupplierInvoiceDraft(id, scope);
+    return NextResponse.json({ ok: true });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unable to delete supplier invoice.";
+    const status =
+      message.includes("Authentication required") || message.includes("Workspace context") ? 401 : 500;
+    return NextResponse.json({ error: message }, { status });
+  }
 }
 
 export async function POST(

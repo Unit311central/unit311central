@@ -1,16 +1,23 @@
 import { parseSupplierInvoiceText } from "@/lib/accounting/supplier-invoice-parse";
 import type { SupplierInvoiceDraft } from "@/lib/accounting/types";
 import {
+  deleteNorthstarSupplierInvoiceDraft,
   getNorthstarSupplierInvoiceDraftById,
   getNorthstarSupplierInvoiceDrafts,
   upsertNorthstarSupplierInvoiceDraft,
 } from "@/lib/demo/northstar-supplier-invoices-fixtures";
 import {
+  deleteSaecSupplierInvoiceDraft,
   getSaecSupplierInvoiceDraftById,
   getSaecSupplierInvoiceDrafts,
   upsertSaecSupplierInvoiceDraft,
 } from "@/lib/saec/demo/saec-supplier-invoices-fixtures";
-import { createExpense, listExpenses, updateExpense } from "@/lib/financial-expenses-service";
+import {
+  createExpense,
+  deleteExpense,
+  listExpenses,
+  updateExpense,
+} from "@/lib/financial-expenses-service";
 import {
   getInternalUserById,
   isSupplierAccountsPayableExpense,
@@ -147,6 +154,118 @@ export async function ingestSupplierInvoice(
   );
 
   return mapExpenseToDraft(expense);
+}
+
+async function requireDraftSupplierInvoice(
+  id: string,
+  scope: FinancialsWorkspaceScope,
+): Promise<SupplierInvoiceDraft> {
+  const fixture = resolveAccountingFixtureSource(scope.workspaceSlug);
+  if (fixture === "northstar" || fixture === "saec") {
+    const draft =
+      fixture === "saec"
+        ? getSaecSupplierInvoiceDraftById(id)
+        : getNorthstarSupplierInvoiceDraftById(id);
+    if (!draft) throw new Error("Supplier invoice not found.");
+    return draft;
+  }
+
+  const expenses = await listExpenses(scope);
+  const expense = expenses.find((row) => row.id === id);
+  if (!expense || !isSupplierAccountsPayableExpense(expense)) {
+    throw new Error("Supplier invoice not found.");
+  }
+  return mapExpenseToDraft(expense);
+}
+
+export async function updateSupplierInvoiceDraft(
+  id: string,
+  scope: FinancialsWorkspaceScope,
+  input: {
+    supplier?: string;
+    reference?: string | null;
+    amount?: number;
+    currency?: string;
+    invoiceDate?: string | null;
+    dueDate?: string | null;
+    description?: string;
+  },
+): Promise<SupplierInvoiceDraft> {
+  const existing = await requireDraftSupplierInvoice(id, scope);
+  if (existing.status !== "draft") {
+    throw new Error("Only draft supplier invoices can be edited.");
+  }
+
+  const supplier = input.supplier?.trim() || existing.supplier;
+  const amount = input.amount ?? existing.amount;
+  const currency = input.currency ?? existing.currency;
+  const reference = input.reference !== undefined ? input.reference : existing.reference;
+  const invoiceDate = input.invoiceDate ?? existing.invoiceDate;
+  const dueDate = input.dueDate !== undefined ? input.dueDate : existing.dueDate;
+  const description = input.description?.trim() || existing.description;
+
+  if (!supplier.trim()) throw new Error("Supplier name is required.");
+  if (!amount || amount <= 0) throw new Error("A valid invoice amount is required.");
+
+  const now = new Date().toISOString();
+  const fixture = resolveAccountingFixtureSource(scope.workspaceSlug);
+
+  if (fixture === "northstar" || fixture === "saec") {
+    const updated: SupplierInvoiceDraft = {
+      ...existing,
+      supplier: supplier.trim(),
+      reference,
+      amount,
+      currency,
+      invoiceDate,
+      dueDate,
+      description,
+      updatedAt: now,
+    };
+    return fixture === "saec"
+      ? upsertSaecSupplierInvoiceDraft(updated)
+      : upsertNorthstarSupplierInvoiceDraft(updated);
+  }
+
+  const updated = await updateExpense(
+    id,
+    {
+      supplier: supplier.trim(),
+      reference,
+      amount,
+      currency: currency as ExpenseCurrency,
+      expenseDate: invoiceDate,
+      purposeDescription: description,
+    },
+    scope,
+  );
+  return mapExpenseToDraft(updated);
+}
+
+export async function deleteSupplierInvoiceDraft(
+  id: string,
+  scope: FinancialsWorkspaceScope,
+): Promise<void> {
+  const existing = await requireDraftSupplierInvoice(id, scope);
+  if (existing.status !== "draft") {
+    throw new Error("Only draft supplier invoices can be deleted.");
+  }
+
+  const fixture = resolveAccountingFixtureSource(scope.workspaceSlug);
+  if (fixture === "northstar") {
+    if (!deleteNorthstarSupplierInvoiceDraft(id)) {
+      throw new Error("Supplier invoice not found.");
+    }
+    return;
+  }
+  if (fixture === "saec") {
+    if (!deleteSaecSupplierInvoiceDraft(id)) {
+      throw new Error("Supplier invoice not found.");
+    }
+    return;
+  }
+
+  await deleteExpense(id, scope);
 }
 
 export async function approveSupplierInvoiceDraft(
