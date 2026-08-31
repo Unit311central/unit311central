@@ -38,7 +38,7 @@ export const DISCOVERY_SOFTWARE_ROW_CLASS = cn(
 type SectionHeaderProps = {
   title: string;
   icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
-  onSave: () => void;
+  onSave?: () => void;
 };
 
 export function DiscoverySectionHeader({ title, icon: Icon, onSave }: SectionHeaderProps) {
@@ -52,14 +52,16 @@ export function DiscoverySectionHeader({ title, icon: Icon, onSave }: SectionHea
           {title}
         </h2>
       </div>
-      <button
-        type="button"
-        onClick={onSave}
-        className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-white/15 bg-white/[0.04] px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-white/85 transition-colors hover:bg-white/[0.08]"
-      >
-        <Save className="h-3 w-3" strokeWidth={2} />
-        Save
-      </button>
+      {onSave ? (
+        <button
+          type="button"
+          onClick={onSave}
+          className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-white/15 bg-white/[0.04] px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-white/85 transition-colors hover:bg-white/[0.08]"
+        >
+          <Save className="h-3 w-3" strokeWidth={2} />
+          Save
+        </button>
+      ) : null}
     </div>
   );
 }

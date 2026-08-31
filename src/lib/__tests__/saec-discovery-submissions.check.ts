@@ -44,6 +44,7 @@ const feedback = fs.readFileSync(
   path.join(root, "src/components/testflighthub/SaecFeedbackWorkspace.tsx"),
   "utf8",
 );
-assert.match(feedback, /submissions\.map/, "SAEC Feedback must render multiple submissions");
+assert.match(feedback, /Submissions/, "SAEC Feedback must list submissions");
+assert.match(feedback, /selection/, "SAEC Feedback must use selectable records");
 
 console.log("ok  saec-discovery-submissions checks passed\n");

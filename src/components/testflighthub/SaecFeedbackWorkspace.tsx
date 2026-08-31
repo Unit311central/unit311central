@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { CheckCircle2, Loader2 } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { CheckCircle2, FileEdit, Loader2 } from "lucide-react";
 
 import {
   SAEC_DISCOVERY_COMMENTS_KEY,
@@ -9,8 +9,15 @@ import {
   readSectionAnswer,
   sectionIncludesComments,
 } from "@/lib/saec-discovery/config";
-import type { SaecDiscoverySubmissionRecord } from "@/lib/saec-discovery/types";
+import type {
+  SaecDiscoveryDraftRecord,
+  SaecDiscoverySubmissionRecord,
+} from "@/lib/saec-discovery/types";
 import { cn } from "@/lib/utils";
+
+type FeedbackSelection =
+  | { kind: "draft"; id: string }
+  | { kind: "submission"; id: string };
 
 function formatWhen(value: string | null | undefined) {
   if (!value) return "—";
@@ -47,7 +54,7 @@ function Section({
   );
 }
 
-function SubmissionResponses({ submission }: { submission: SaecDiscoverySubmissionRecord }) {
+function ResponseBody({ responses }: { responses: SaecDiscoverySubmissionRecord["responses"] }) {
   return (
     <div className="space-y-4">
       {SAEC_DISCOVERY_SECTIONS.map((section) => (
@@ -58,9 +65,7 @@ function SubmissionResponses({ submission }: { submission: SaecDiscoverySubmissi
                 <div key={question.id}>
                   <p className="text-sm font-medium text-white/80">{question.label}</p>
                   <div className="mt-2">
-                    <AnswerText
-                      value={readSectionAnswer(submission.responses, section.id, question.id)}
-                    />
+                    <AnswerText value={readSectionAnswer(responses, section.id, question.id)} />
                   </div>
                 </div>
               ))}
@@ -78,9 +83,7 @@ function SubmissionResponses({ submission }: { submission: SaecDiscoverySubmissi
                     className="grid gap-2 py-3 md:grid-cols-[minmax(0,280px)_minmax(0,1fr)] md:items-start md:gap-6"
                   >
                     <p className="text-sm text-white/80">{entry.label}</p>
-                    <AnswerText
-                      value={readSectionAnswer(submission.responses, section.id, entry.id)}
-                    />
+                    <AnswerText value={readSectionAnswer(responses, section.id, entry.id)} />
                   </div>
                 ))}
               </div>
@@ -92,11 +95,7 @@ function SubmissionResponses({ submission }: { submission: SaecDiscoverySubmissi
               <p className="text-sm font-medium text-white/80">{SAEC_DISCOVERY_COMMENTS_KEY}</p>
               <div className="mt-2">
                 <AnswerText
-                  value={readSectionAnswer(
-                    submission.responses,
-                    section.id,
-                    SAEC_DISCOVERY_COMMENTS_KEY,
-                  )}
+                  value={readSectionAnswer(responses, section.id, SAEC_DISCOVERY_COMMENTS_KEY)}
                 />
               </div>
             </div>
@@ -107,12 +106,39 @@ function SubmissionResponses({ submission }: { submission: SaecDiscoverySubmissi
   );
 }
 
+function ListButton({
+  selected,
+  onClick,
+  children,
+}: {
+  selected: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "w-full rounded-xl border px-4 py-3 text-left transition-colors",
+        selected
+          ? "border-sky-400/35 bg-sky-500/10"
+          : "border-white/10 bg-white/[0.03] hover:border-white/20 hover:bg-white/[0.05]",
+      )}
+    >
+      {children}
+    </button>
+  );
+}
+
 export default function SaecFeedbackWorkspace() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [drafts, setDrafts] = useState<SaecDiscoveryDraftRecord[]>([]);
   const [submissions, setSubmissions] = useState<SaecDiscoverySubmissionRecord[]>([]);
+  const [selection, setSelection] = useState<FeedbackSelection | null>(null);
 
-  const loadSubmission = useCallback(async () => {
+  const loadFeedback = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -120,26 +146,75 @@ export default function SaecFeedbackWorkspace() {
         cache: "no-store",
       });
       const payload = (await response.json()) as {
+        drafts?: SaecDiscoveryDraftRecord[];
         submissions?: SaecDiscoverySubmissionRecord[];
         error?: string;
       };
       if (!response.ok) {
         throw new Error(payload.error ?? "Unable to load SAEC Feedback.");
       }
-      setSubmissions(payload.submissions ?? []);
+      const nextDrafts = payload.drafts ?? [];
+      const nextSubmissions = payload.submissions ?? [];
+      setDrafts(nextDrafts);
+      setSubmissions(nextSubmissions);
+      setSelection((current) => {
+        if (current) {
+          if (current.kind === "draft" && nextDrafts.some((draft) => draft.id === current.id)) {
+            return current;
+          }
+          if (
+            current.kind === "submission" &&
+            nextSubmissions.some((submission) => submission.id === current.id)
+          ) {
+            return current;
+          }
+        }
+        if (nextSubmissions[0]) {
+          return { kind: "submission", id: nextSubmissions[0].id };
+        }
+        if (nextDrafts[0]) {
+          return { kind: "draft", id: nextDrafts[0].id };
+        }
+        return null;
+      });
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : "Unable to load SAEC Feedback.");
+      setDrafts([]);
       setSubmissions([]);
+      setSelection(null);
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    void loadSubmission();
-  }, [loadSubmission]);
+    void loadFeedback();
+  }, [loadFeedback]);
 
-  const latest = submissions[0] ?? null;
+  const selectedDraft = useMemo(
+    () => (selection?.kind === "draft" ? drafts.find((draft) => draft.id === selection.id) ?? null : null),
+    [drafts, selection],
+  );
+
+  const selectedSubmission = useMemo(
+    () =>
+      selection?.kind === "submission"
+        ? submissions.find((submission) => submission.id === selection.id) ?? null
+        : null,
+    [selection, submissions],
+  );
+
+  const summaryLabel = useMemo(() => {
+    if (selectedSubmission) {
+      const index = submissions.findIndex((entry) => entry.id === selectedSubmission.id);
+      const number = submissions.length - index;
+      return `Submission ${number}${index === 0 ? " (Latest)" : ""}`;
+    }
+    if (selectedDraft) {
+      return "Draft";
+    }
+    return null;
+  }, [selectedDraft, selectedSubmission, submissions]);
 
   return (
     <div className="space-y-5 pb-8">
@@ -153,62 +228,149 @@ export default function SaecFeedbackWorkspace() {
         {loading ? (
           <div className="mt-5 flex items-center gap-2 text-sm text-white/50">
             <Loader2 className="h-4 w-4 animate-spin" />
-            Loading submission…
+            Loading SAEC Feedback…
           </div>
         ) : error ? (
           <p className="mt-5 rounded-lg border border-rose-400/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-100">
             {error}
           </p>
-        ) : latest ? (
+        ) : (
           <div className="mt-5 flex flex-wrap items-center gap-3">
-            <span className="inline-flex items-center gap-2 rounded-full border border-emerald-400/30 bg-emerald-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.08em] text-emerald-100">
-              <CheckCircle2 className="h-3.5 w-3.5" />
-              {submissions.length} submission{submissions.length === 1 ? "" : "s"}
-            </span>
-            <div className="text-sm text-white/70">
-              <span className="text-white/45">Latest:</span> {formatWhen(latest.submittedAt)}
-            </div>
-            {latest.submittedByEmail ? (
-              <div className="text-sm text-white/70">
-                <span className="text-white/45">Submitted by:</span> {latest.submittedByEmail}
-              </div>
+            {drafts.length > 0 ? (
+              <span className="inline-flex items-center gap-2 rounded-full border border-amber-400/30 bg-amber-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.08em] text-amber-100">
+                <FileEdit className="h-3.5 w-3.5" />
+                {drafts.length} draft{drafts.length === 1 ? "" : "s"}
+              </span>
+            ) : null}
+            {submissions.length > 0 ? (
+              <span className="inline-flex items-center gap-2 rounded-full border border-emerald-400/30 bg-emerald-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.08em] text-emerald-100">
+                <CheckCircle2 className="h-3.5 w-3.5" />
+                {submissions.length} submission{submissions.length === 1 ? "" : "s"}
+              </span>
+            ) : null}
+            {!drafts.length && !submissions.length ? (
+              <p className="text-sm text-white/50">
+                No SAEC Discovery drafts or submissions have been recorded yet.
+              </p>
             ) : null}
           </div>
-        ) : (
-          <p className="mt-5 text-sm text-white/50">
-            No SAEC Discovery submission has been recorded yet. Draft progress is stored locally on the
-            client questionnaire only.
-          </p>
         )}
       </header>
 
-      {!loading && !error && submissions.length > 0 ? (
-        <div className="space-y-8">
-          {submissions.map((submission, index) => (
-            <div key={submission.id} className="space-y-4">
+      {!loading && !error && (drafts.length > 0 || submissions.length > 0) ? (
+        <div className="grid gap-5 lg:grid-cols-[minmax(0,320px)_minmax(0,1fr)]">
+          <div className="space-y-6">
+            {drafts.length > 0 ? (
+              <section>
+                <h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-white/45">
+                  Drafts
+                </h2>
+                <div className="mt-3 space-y-2 border-t border-white/10 pt-3">
+                  {drafts.map((draft) => (
+                    <ListButton
+                      key={draft.id}
+                      selected={selection?.kind === "draft" && selection.id === draft.id}
+                      onClick={() => setSelection({ kind: "draft", id: draft.id })}
+                    >
+                      <p className="text-xs font-semibold uppercase tracking-[0.12em] text-amber-200/90">
+                        Draft
+                      </p>
+                      <div className="mt-2 space-y-1 text-sm text-white/70">
+                        <p>
+                          <span className="text-white/45">Last saved:</span>{" "}
+                          {formatWhen(draft.lastSavedAt)}
+                        </p>
+                        <p>
+                          <span className="text-white/45">Status:</span> Draft
+                        </p>
+                        {draft.ownerEmail ? (
+                          <p>
+                            <span className="text-white/45">Owner:</span> {draft.ownerEmail}
+                          </p>
+                        ) : null}
+                      </div>
+                    </ListButton>
+                  ))}
+                </div>
+              </section>
+            ) : null}
+
+            {submissions.length > 0 ? (
+              <section>
+                <h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-white/45">
+                  Submissions
+                </h2>
+                <div className="mt-3 space-y-2 border-t border-white/10 pt-3">
+                  {submissions.map((submission, index) => (
+                    <ListButton
+                      key={submission.id}
+                      selected={
+                        selection?.kind === "submission" && selection.id === submission.id
+                      }
+                      onClick={() => setSelection({ kind: "submission", id: submission.id })}
+                    >
+                      <p className="text-xs font-semibold uppercase tracking-[0.12em] text-sky-200/80">
+                        Submission {submissions.length - index}
+                        {index === 0 ? " (Latest)" : ""}
+                      </p>
+                      <div className="mt-2 space-y-1 text-sm text-white/70">
+                        <p>
+                          <span className="text-white/45">Submitted:</span>{" "}
+                          {formatWhen(submission.submittedAt)}
+                        </p>
+                        <p>
+                          <span className="text-white/45">ID:</span> {submission.id}
+                        </p>
+                        {submission.submittedByEmail ? (
+                          <p>
+                            <span className="text-white/45">By:</span> {submission.submittedByEmail}
+                          </p>
+                        ) : null}
+                      </div>
+                    </ListButton>
+                  ))}
+                </div>
+              </section>
+            ) : null}
+          </div>
+
+          <div className="min-w-0 space-y-4">
+            {summaryLabel ? (
               <div className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3">
                 <p className="text-xs font-semibold uppercase tracking-[0.12em] text-sky-200/80">
-                  Submission {submissions.length - index}
-                  {index === 0 ? " (latest)" : ""}
+                  {summaryLabel}
                 </p>
-                <div className="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-sm text-white/70">
-                  <span>
-                    <span className="text-white/45">Submitted:</span>{" "}
-                    {formatWhen(submission.submittedAt)}
-                  </span>
-                  <span>
-                    <span className="text-white/45">ID:</span> {submission.id}
-                  </span>
-                  {submission.submittedByEmail ? (
+                {selectedDraft ? (
+                  <div className="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-sm text-white/70">
                     <span>
-                      <span className="text-white/45">By:</span> {submission.submittedByEmail}
+                      <span className="text-white/45">Last saved:</span>{" "}
+                      {formatWhen(selectedDraft.lastSavedAt)}
                     </span>
-                  ) : null}
-                </div>
+                    <span>
+                      <span className="text-white/45">Status:</span> Draft
+                    </span>
+                    <span>
+                      <span className="text-white/45">ID:</span> {selectedDraft.id}
+                    </span>
+                  </div>
+                ) : null}
+                {selectedSubmission ? (
+                  <div className="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-sm text-white/70">
+                    <span>
+                      <span className="text-white/45">Submitted:</span>{" "}
+                      {formatWhen(selectedSubmission.submittedAt)}
+                    </span>
+                    <span>
+                      <span className="text-white/45">ID:</span> {selectedSubmission.id}
+                    </span>
+                  </div>
+                ) : null}
               </div>
-              <SubmissionResponses submission={submission} />
-            </div>
-          ))}
+            ) : null}
+
+            {selectedDraft ? <ResponseBody responses={selectedDraft.responses} /> : null}
+            {selectedSubmission ? <ResponseBody responses={selectedSubmission.responses} /> : null}
+          </div>
         </div>
       ) : null}
     </div>

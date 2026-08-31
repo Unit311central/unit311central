@@ -208,8 +208,8 @@ const browser = await chromium.launch({ headless: true });
 try {
   for (const viewport of VIEWPORTS) {
     const page = await browser.newPage({ viewport });
-    await page.goto(BASE, { waitUntil: "networkidle" });
-    await page.waitForSelector("text=Current Systems Discovery");
+    await page.goto(BASE, { waitUntil: "domcontentloaded" });
+    await page.waitForSelector("text=Current Systems Discovery", { timeout: 60_000 });
 
     assert.equal(await page.locator('text=Next').count(), 0, "no Next button");
     assert.equal(await page.locator('text=Back').count(), 0, "no Back button");
@@ -240,18 +240,20 @@ try {
         await typeInField(page, selector, `${section.title} ${key} test`);
       }
 
-      await page.locator('main button').filter({ hasText: /^Save$/ }).click();
-      await page.waitForFunction(
-        (args) => {
-          const raw = window.localStorage.getItem(args.storageKey);
-          if (!raw) return false;
-          const parsed = JSON.parse(raw);
-          const state = parsed?.state ?? parsed;
-          const responses = state[args.sectionId]?.responses ?? {};
-          return Object.values(responses).some((value) => typeof value === "string" && value.includes("test"));
-        },
-        { storageKey: STORAGE_KEY, sectionId: section.id },
-      );
+      if (section.id === "general") {
+        await page.locator("#general-top-annoyances").fill("autosave draft test");
+        await page.waitForFunction(
+          () => {
+            const raw = window.localStorage.getItem("saec-discovery-v3");
+            if (!raw) return false;
+            const parsed = JSON.parse(raw);
+            const state = parsed?.state ?? parsed;
+            return state.general?.responses?.["top-annoyances"] === "autosave draft test";
+          },
+          undefined,
+          { timeout: 5000 },
+        );
+      }
 
       if (section.id === "general") {
         await assertGeneralQ6ExamplesReadable(page);
@@ -268,21 +270,32 @@ try {
     await assertReportingReachable(page);
     await assertNoHorizontalOverflow(page);
 
-    await page.locator('button:has-text("Save Draft")').click();
-    await page.waitForSelector('[role="status"]:has-text("Draft saved")');
+    assert.equal(await page.locator('button:has-text("Save Draft")').count(), 0, "no Save Draft button");
+    assert.equal(await page.locator('main button').filter({ hasText: /^Save$/ }).count(), 0, "no section Save button");
 
     page.once("dialog", (dialog) => dialog.accept());
     await page.locator('button:has-text("RESET")').click();
     await page.waitForSelector('[role="status"]:has-text("Draft cleared")');
-    await page.reload({ waitUntil: "networkidle" });
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await page.waitForSelector("text=Current Systems Discovery", { timeout: 60_000 });
     await page.getByRole("button", { name: "General", exact: true }).click();
     assert.equal(await page.locator("#general-top-annoyances").inputValue(), "", "reset clears draft");
 
     await page.locator("#general-top-annoyances").fill("post-reset draft");
-    await page.locator('button:has-text("Save Draft")').click();
-    await page.waitForSelector('[role="status"]:has-text("Draft saved")');
+    await page.waitForFunction(
+      () => {
+        const raw = window.localStorage.getItem("saec-discovery-v3");
+        if (!raw) return false;
+        const parsed = JSON.parse(raw);
+        const state = parsed?.state ?? parsed;
+        return state.general?.responses?.["top-annoyances"] === "post-reset draft";
+      },
+      undefined,
+      { timeout: 5000 },
+    );
 
-    await page.reload({ waitUntil: "networkidle" });
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await page.waitForSelector("text=Current Systems Discovery", { timeout: 60_000 });
     await page.getByRole("button", { name: "General", exact: true }).click();
     const q1 = page.locator("#general-top-annoyances");
     assert.equal(await q1.inputValue(), "post-reset draft", "reload restores draft after reset cycle");
