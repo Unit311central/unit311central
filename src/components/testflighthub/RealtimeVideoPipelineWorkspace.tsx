@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowDown,
   ArrowUp,
@@ -35,9 +36,14 @@ import {
 import { StageTechnicalEditor } from "@/components/testflighthub/realtime-video-workbench/StageTechnicalEditor";
 import { TestRunsTab } from "@/components/testflighthub/realtime-video-workbench/TestRunsTab";
 import { VideoBandwidthTab } from "@/components/testflighthub/realtime-video-workbench/VideoBandwidthTab";
-import { WorkbenchNav } from "@/components/testflighthub/realtime-video-workbench/WorkbenchNav";
 import type { WorkbenchTabId } from "@/components/testflighthub/realtime-video-workbench/shared";
 import { WorkspaceStatusPill } from "@/components/workspace-ui/primitives";
+import {
+  DEFAULT_REALTIME_VIDEO_WORKBENCH_TAB_SLUG,
+  isRealtimeVideoWorkbenchTabSlug,
+  resolveWorkbenchTabIdFromSlug,
+  workbenchTabSlug,
+} from "@/lib/realtime-video-workbench-nav";
 import { formatLatencyMs } from "@/lib/realtime-video-pipeline/calculations";
 import { computeStageTotals } from "@/lib/realtime-video-pipeline/calculations";
 import {
@@ -100,11 +106,18 @@ const SECTION_VISUAL_ORDER = [
 ] as const;
 
 export default function RealtimeVideoPipelineWorkspace() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const activeTab = useMemo(
+    () => resolveWorkbenchTabIdFromSlug(searchParams.get("tab")),
+    [searchParams],
+  );
+
   const [scenarios, setScenarios] = useState<PipelineScenario[]>([]);
   const [scenarioId, setScenarioId] = useState<string | null>(null);
   const [data, setData] = useState<ScenarioWithSummary | null>(null);
   const [workbench, setWorkbench] = useState<WorkbenchModel | null>(null);
-  const [activeTab, setActiveTab] = useState<WorkbenchTabId>("overview");
   const [compareId, setCompareId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [workbenchSaving, setWorkbenchSaving] = useState(false);
@@ -114,6 +127,22 @@ export default function RealtimeVideoPipelineWorkspace() {
   const [statusFilter, setStatusFilter] = useState("All");
   const [editorStage, setEditorStage] = useState<PipelineStage | null>(null);
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (searchParams.get("view") !== "realtime-video-pipeline") return;
+    const tab = searchParams.get("tab");
+    if (tab && isRealtimeVideoWorkbenchTabSlug(tab)) return;
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("tab", DEFAULT_REALTIME_VIDEO_WORKBENCH_TAB_SLUG);
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+  }, [pathname, router, searchParams]);
+
+  function navigateToTab(tabId: WorkbenchTabId) {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("view", "realtime-video-pipeline");
+    params.set("tab", workbenchTabSlug(tabId));
+    router.push(`${pathname}?${params.toString()}`, { scroll: false });
+  }
 
   const loadScenarios = useCallback(async () => {
     const rows = await listScenariosApi();
@@ -211,7 +240,7 @@ export default function RealtimeVideoPipelineWorkspace() {
   }
 
   function jumpToStage(stageId: string) {
-    setActiveTab("pipeline");
+    navigateToTab("pipeline");
     const stage = data?.stages.find((s) => s.id === stageId);
     if (stage) setEditorStage(stage);
   }
@@ -294,47 +323,27 @@ export default function RealtimeVideoPipelineWorkspace() {
 
   return (
     <div className="space-y-5 pb-10">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-300/80">
-            Analytics · WOLF Engineering
-          </p>
-          <h1 className="mt-1 text-2xl font-semibold tracking-tight text-white">
-            Real-Time Video &amp; AI Engineering Workbench
-          </h1>
-          <p className="mt-1 max-w-3xl text-sm text-white/50">
-            BCN/WOLF internal engineering laboratory — master pipeline, flight scenarios, latency,
-            connectivity, cost model, success criteria, and living architectures from one model.
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <label className="text-xs text-white/45">Flight scenario</label>
-          <select
-            className={cn(WsInputClass(), "min-w-[18rem]")}
-            value={scenarioId ?? ""}
-            onChange={(e) => setScenarioId(e.target.value)}
-          >
-            {scenarios.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.name}
-              </option>
-            ))}
-          </select>
-          <button type="button" className={WsSecondaryButtonClass()} onClick={() => void handleDuplicateScenario()}>
-            Duplicate version
-          </button>
-        </div>
+      <div className="flex flex-wrap items-center justify-end gap-2">
+        <label className="text-xs text-white/45">Flight scenario</label>
+        <select
+          className={cn(WsInputClass(), "min-w-[18rem]")}
+          value={scenarioId ?? ""}
+          onChange={(e) => setScenarioId(e.target.value)}
+        >
+          {scenarios.map((s) => (
+            <option key={s.id} value={s.id}>
+              {s.name}
+            </option>
+          ))}
+        </select>
+        <button type="button" className={WsSecondaryButtonClass()} onClick={() => void handleDuplicateScenario()}>
+          Duplicate version
+        </button>
       </div>
-
-      <WorkbenchNav activeTab={activeTab} onTabChange={setActiveTab} />
 
       {error ? (
         <div className="rounded-xl border border-rose-400/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-100">
           {error}
-          <p className="mt-2 text-xs text-rose-200/70">
-            If this persists, confirm migration 194 is applied and you are on the workbench branch
-            (PR #51). Production on main may show the legacy pipeline-only view until merged.
-          </p>
         </div>
       ) : null}
 
