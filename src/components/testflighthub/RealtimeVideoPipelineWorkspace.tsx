@@ -19,6 +19,19 @@ import {
   WsSection,
   WsSlideOver,
 } from "@/components/testflighthub/domain-workspace-ui";
+import { ArchitecturesTab, CompareTab } from "@/components/testflighthub/realtime-video-workbench/ArchitecturesTab";
+import { AssumptionsTab } from "@/components/testflighthub/realtime-video-workbench/AssumptionsTab";
+import { CostModelTab } from "@/components/testflighthub/realtime-video-workbench/CostModelTab";
+import { FlightScenariosTab } from "@/components/testflighthub/realtime-video-workbench/FlightScenariosTab";
+import { OverviewTab } from "@/components/testflighthub/realtime-video-workbench/OverviewTab";
+import {
+  PerformanceTab,
+  SuccessCriteriaTab,
+} from "@/components/testflighthub/realtime-video-workbench/SuccessCriteriaTab";
+import {
+  WORKBENCH_TABS,
+  type WorkbenchTabId,
+} from "@/components/testflighthub/realtime-video-workbench/shared";
 import { WorkspaceStatusPill } from "@/components/workspace-ui/primitives";
 import { formatLatencyMs } from "@/lib/realtime-video-pipeline/calculations";
 import { computeStageTotals } from "@/lib/realtime-video-pipeline/calculations";
@@ -29,18 +42,22 @@ import {
 import {
   createStageApi,
   deleteStageApi,
+  duplicateScenarioApi,
   duplicateStageApi,
   getScenarioApi,
+  getWorkbenchApi,
   listScenariosApi,
   reorderStagesApi,
   toggleStageApi,
   updateStageApi,
+  updateWorkbenchApi,
 } from "@/lib/realtime-video-pipeline/client-api";
 import type {
   PipelineScenario,
   PipelineStage,
   ScenarioWithSummary,
 } from "@/lib/realtime-video-pipeline/types";
+import type { WorkbenchModel } from "@/lib/realtime-video-pipeline/workbench-types";
 import { cn } from "@/lib/utils";
 
 function statusTone(status: string) {
@@ -77,7 +94,11 @@ export default function RealtimeVideoPipelineWorkspace() {
   const [scenarios, setScenarios] = useState<PipelineScenario[]>([]);
   const [scenarioId, setScenarioId] = useState<string | null>(null);
   const [data, setData] = useState<ScenarioWithSummary | null>(null);
+  const [workbench, setWorkbench] = useState<WorkbenchModel | null>(null);
+  const [activeTab, setActiveTab] = useState<WorkbenchTabId>("overview");
+  const [compareId, setCompareId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [workbenchSaving, setWorkbenchSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [sectionFilter, setSectionFilter] = useState("All");
@@ -88,21 +109,39 @@ export default function RealtimeVideoPipelineWorkspace() {
   const loadScenarios = useCallback(async () => {
     const rows = await listScenariosApi();
     setScenarios(rows);
-    if (!scenarioId && rows[0]) setScenarioId(rows[0].id);
+    const flight = rows.find((s) => s.scenarioKind === "flight") ?? rows[0];
+    if (!scenarioId && flight) setScenarioId(flight.id);
   }, [scenarioId]);
 
-  const loadScenario = useCallback(async (id: string) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const row = await getScenarioApi(id);
+  const loadWorkbench = useCallback(async (id: string) => {
+    const { model } = await getWorkbenchApi(id);
+    setWorkbench(model);
+    const pipelineId =
+      model.pipelineScenario?.id ??
+      model.flightScenario.pipelineScenarioId ??
+      (model.flightScenario.scenarioKind === "pipeline" ? model.flightScenario.id : null);
+    if (pipelineId) {
+      const row = await getScenarioApi(pipelineId);
       setData(row);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load pipeline.");
-    } finally {
-      setLoading(false);
+    } else {
+      setData(null);
     }
   }, []);
+
+  const loadScenario = useCallback(
+    async (id: string) => {
+      setLoading(true);
+      setError(null);
+      try {
+        await loadWorkbench(id);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to load workbench.");
+      } finally {
+        setLoading(false);
+      }
+    },
+    [loadWorkbench],
+  );
 
   useEffect(() => {
     void loadScenarios().catch((err) =>
@@ -135,6 +174,39 @@ export default function RealtimeVideoPipelineWorkspace() {
     await loadScenario(id);
   }
 
+  async function handleSaveWorkbench(config: WorkbenchModel["config"]) {
+    if (!scenarioId) return;
+    setWorkbenchSaving(true);
+    try {
+      const { model } = await updateWorkbenchApi(scenarioId, config);
+      setWorkbench(model);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Save failed.");
+    } finally {
+      setWorkbenchSaving(false);
+    }
+  }
+
+  async function handleDuplicateScenario() {
+    if (!scenarioId || !workbench) return;
+    const name = window.prompt("New scenario name", `${workbench.flightScenario.name} (copy)`);
+    if (!name?.trim()) return;
+    try {
+      const { scenario, model } = await duplicateScenarioApi(scenarioId, name.trim());
+      await loadScenarios();
+      setScenarioId(scenario.id);
+      setWorkbench(model);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Duplicate failed.");
+    }
+  }
+
+  function jumpToStage(stageId: string) {
+    setActiveTab("pipeline");
+    const stage = data?.stages.find((s) => s.id === stageId);
+    if (stage) setEditorStage(stage);
+  }
+
   async function handleSaveStage() {
     if (!editorStage || !scenarioId) return;
     setSaving(true);
@@ -142,6 +214,7 @@ export default function RealtimeVideoPipelineWorkspace() {
       const updated = await updateStageApi(editorStage.id, editorStage);
       setData(updated);
       setEditorStage(null);
+      if (scenarioId) await loadWorkbench(scenarioId);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Save failed.");
     } finally {
@@ -218,15 +291,15 @@ export default function RealtimeVideoPipelineWorkspace() {
             Analytics · WOLF Engineering
           </p>
           <h1 className="mt-1 text-2xl font-semibold tracking-tight text-white">
-            Real-Time Video &amp; AI Pipeline
+            Real-Time Video &amp; AI Engineering Workbench
           </h1>
           <p className="mt-1 max-w-3xl text-sm text-white/50">
-            End-to-end latency model from drone camera capture through managed cloud video, AI
-            inference, WOLF backend, and Chrome overlay rendering.
+            BCN/WOLF internal engineering laboratory — master pipeline, flight scenarios, latency,
+            connectivity, cost model, success criteria, and living architectures from one model.
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <label className="text-xs text-white/45">Scenario</label>
+        <div className="flex flex-wrap items-center gap-2">
+          <label className="text-xs text-white/45">Flight scenario</label>
           <select
             className={cn(WsInputClass(), "min-w-[18rem]")}
             value={scenarioId ?? ""}
@@ -238,7 +311,28 @@ export default function RealtimeVideoPipelineWorkspace() {
               </option>
             ))}
           </select>
+          <button type="button" className={WsSecondaryButtonClass()} onClick={() => void handleDuplicateScenario()}>
+            Duplicate version
+          </button>
         </div>
+      </div>
+
+      <div className="flex flex-wrap gap-1 border-b border-white/10 pb-1">
+        {WORKBENCH_TABS.map((tab) => (
+          <button
+            key={tab.id}
+            type="button"
+            className={cn(
+              "rounded-t-lg px-3 py-2 text-xs font-medium",
+              activeTab === tab.id
+                ? "bg-white/10 text-white"
+                : "text-white/45 hover:text-white/80",
+            )}
+            onClick={() => setActiveTab(tab.id)}
+          >
+            {tab.label}
+          </button>
+        ))}
       </div>
 
       {error ? (
@@ -247,11 +341,47 @@ export default function RealtimeVideoPipelineWorkspace() {
         </div>
       ) : null}
 
-      {loading || !data || !summary ? (
+      {loading ? (
         <div className="flex min-h-[16rem] items-center justify-center text-white/50">
-          <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Loading pipeline model…
+          <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Loading workbench…
         </div>
-      ) : (
+      ) : null}
+
+      {!loading && workbench && activeTab === "overview" ? (
+        <OverviewTab model={workbench} />
+      ) : null}
+      {!loading && workbench && activeTab === "flight" ? (
+        <FlightScenariosTab
+          model={workbench}
+          saving={workbenchSaving}
+          onSave={handleSaveWorkbench}
+        />
+      ) : null}
+      {!loading && workbench && activeTab === "cost" ? (
+        <CostModelTab model={workbench} />
+      ) : null}
+      {!loading && workbench && activeTab === "performance" ? (
+        <PerformanceTab model={workbench} />
+      ) : null}
+      {!loading && workbench && activeTab === "criteria" ? (
+        <SuccessCriteriaTab model={workbench} onJumpToStage={jumpToStage} />
+      ) : null}
+      {!loading && workbench && activeTab === "architectures" ? (
+        <ArchitecturesTab model={workbench} />
+      ) : null}
+      {!loading && workbench && activeTab === "compare" ? (
+        <CompareTab
+          model={workbench}
+          scenarios={scenarios.map((s) => ({ id: s.id, name: s.name }))}
+          compareId={compareId}
+          onCompareIdChange={setCompareId}
+        />
+      ) : null}
+      {!loading && workbench && activeTab === "assumptions" ? (
+        <AssumptionsTab model={workbench} />
+      ) : null}
+
+      {!loading && activeTab === "pipeline" && data && summary ? (
         <>
           <WsSection
             title="AI-Annotated End-to-End Latency"
@@ -497,7 +627,7 @@ export default function RealtimeVideoPipelineWorkspace() {
             </div>
           </WsSection>
         </>
-      )}
+      ) : null}
 
       {editorStage ? (
       <WsSlideOver
@@ -634,6 +764,135 @@ export default function RealtimeVideoPipelineWorkspace() {
                 </select>
               </label>
             </div>
+            <details className="rounded-lg border border-white/10 bg-black/20 p-3">
+              <summary className="cursor-pointer text-xs font-semibold uppercase tracking-wide text-white/55">
+                Video &amp; encoding
+              </summary>
+              <div className="mt-3 grid grid-cols-2 gap-3">
+                {(
+                  [
+                    ["resolution", "Resolution"],
+                    ["codec", "Codec"],
+                    ["streamingProtocol", "Streaming protocol"],
+                    ["transportProtocol", "Transport protocol"],
+                  ] as const
+                ).map(([key, label]) => (
+                  <label key={key} className="block space-y-1">
+                    <span className="text-white/50">{label}</span>
+                    <input
+                      className={WsInputClass()}
+                      value={String(editorStage.details[key] ?? "")}
+                      onChange={(e) =>
+                        setEditorStage({
+                          ...editorStage,
+                          details: { ...editorStage.details, [key]: e.target.value || undefined },
+                        })
+                      }
+                    />
+                  </label>
+                ))}
+                {(
+                  [
+                    ["fps", "FPS"],
+                    ["bitrateMbps", "Bitrate Mbps"],
+                  ] as const
+                ).map(([key, label]) => (
+                  <label key={key} className="block space-y-1">
+                    <span className="text-white/50">{label}</span>
+                    <input
+                      className={WsInputClass()}
+                      value={editorStage.details[key] ?? ""}
+                      onChange={(e) =>
+                        setEditorStage({
+                          ...editorStage,
+                          details: {
+                            ...editorStage.details,
+                            [key]: e.target.value === "" ? null : Number(e.target.value),
+                          },
+                        })
+                      }
+                    />
+                  </label>
+                ))}
+              </div>
+            </details>
+            <details className="rounded-lg border border-white/10 bg-black/20 p-3">
+              <summary className="cursor-pointer text-xs font-semibold uppercase tracking-wide text-white/55">
+                Network
+              </summary>
+              <div className="mt-3 grid grid-cols-2 gap-3">
+                {(
+                  [
+                    ["uploadMbps", "Upload Mbps"],
+                    ["downloadMbps", "Download Mbps"],
+                    ["rttMs", "RTT ms"],
+                    ["jitterMs", "Jitter ms"],
+                    ["packetLossPct", "Packet loss %"],
+                  ] as const
+                ).map(([key, label]) => (
+                  <label key={key} className="block space-y-1">
+                    <span className="text-white/50">{label}</span>
+                    <input
+                      className={WsInputClass()}
+                      value={editorStage.details[key] ?? ""}
+                      onChange={(e) =>
+                        setEditorStage({
+                          ...editorStage,
+                          details: {
+                            ...editorStage.details,
+                            [key]: e.target.value === "" ? null : Number(e.target.value),
+                          },
+                        })
+                      }
+                    />
+                  </label>
+                ))}
+              </div>
+            </details>
+            <details className="rounded-lg border border-white/10 bg-black/20 p-3">
+              <summary className="cursor-pointer text-xs font-semibold uppercase tracking-wide text-white/55">
+                Compute &amp; AI
+              </summary>
+              <div className="mt-3 grid grid-cols-2 gap-3">
+                {(
+                  [
+                    ["aiModel", "AI model"],
+                    ["gpuModel", "GPU model"],
+                    ["aiRuntime", "AI runtime"],
+                  ] as const
+                ).map(([key, label]) => (
+                  <label key={key} className="block space-y-1">
+                    <span className="text-white/50">{label}</span>
+                    <input
+                      className={WsInputClass()}
+                      value={String(editorStage.details[key] ?? "")}
+                      onChange={(e) =>
+                        setEditorStage({
+                          ...editorStage,
+                          details: { ...editorStage.details, [key]: e.target.value || undefined },
+                        })
+                      }
+                    />
+                  </label>
+                ))}
+                <label className="block space-y-1">
+                  <span className="text-white/50">GPU VRAM GB</span>
+                  <input
+                    className={WsInputClass()}
+                    value={editorStage.details.gpuVramGb ?? ""}
+                    onChange={(e) =>
+                      setEditorStage({
+                        ...editorStage,
+                        details: {
+                          ...editorStage.details,
+                          gpuVramGb: e.target.value === "" ? null : Number(e.target.value),
+                        },
+                      })
+                    }
+                  />
+                </label>
+              </div>
+            </details>
             <label className="block space-y-1">
               <span className="text-white/50">Source / evidence</span>
               <input

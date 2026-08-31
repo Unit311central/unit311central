@@ -90,3 +90,38 @@ export async function toggleStageApi(
 ): Promise<ScenarioWithSummary> {
   return updateStageApi(stageId, { enabled });
 }
+
+export async function getWorkbenchApi(id: string) {
+  const res = await fetch(`/api/internal/realtime-video-pipeline/scenarios/${id}/workbench`, {
+    cache: "no-store",
+  });
+  return readJson<{ model: import("@/lib/realtime-video-pipeline/workbench-types").WorkbenchModel }>(
+    res,
+  );
+}
+
+export async function updateWorkbenchApi(
+  id: string,
+  workbenchConfig: import("@/lib/realtime-video-pipeline/workbench-types").WorkbenchConfig,
+) {
+  const res = await fetch(`/api/internal/realtime-video-pipeline/scenarios/${id}/workbench`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ workbenchConfig }),
+  });
+  return readJson<{ model: import("@/lib/realtime-video-pipeline/workbench-types").WorkbenchModel }>(
+    res,
+  );
+}
+
+export async function duplicateScenarioApi(id: string, name: string) {
+  const res = await fetch(`/api/internal/realtime-video-pipeline/scenarios/${id}/workbench`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ action: "duplicate", name }),
+  });
+  return readJson<{
+    scenario: PipelineScenario;
+    model: import("@/lib/realtime-video-pipeline/workbench-types").WorkbenchModel;
+  }>(res);
+}

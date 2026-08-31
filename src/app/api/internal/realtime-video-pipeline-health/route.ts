@@ -7,9 +7,11 @@ import { NextResponse } from "next/server";
 import { REFERENCE_SCENARIO_SLUG } from "@/lib/realtime-video-pipeline/constants";
 import { REFERENCE_PIPELINE_STAGES } from "@/lib/realtime-video-pipeline/reference-scenario-seed";
 import {
+  ensureBcnFlightScenario,
   ensureReferenceScenario,
   getScenarioWithStages,
 } from "@/lib/realtime-video-pipeline/service";
+import { BCN_FLIGHT_SCENARIO_SLUG } from "@/lib/realtime-video-pipeline/workbench-reference-data";
 import { isSupabaseServiceRoleConfigured } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -29,6 +31,7 @@ export async function GET() {
 
   try {
     const scenario = await ensureReferenceScenario();
+    const flight = await ensureBcnFlightScenario();
     const loaded = await getScenarioWithStages(scenario.id);
     const enabledStages = loaded.stages.filter((stage) => stage.enabled);
 
@@ -42,13 +45,20 @@ export async function GET() {
       rfPropagationCalculated: rfPropagation?.measurementStatus === "Calculated",
       completeLatencyTbd: loaded.summary.completeLatencyMs == null,
       knownMinimumMs: loaded.summary.knownMinimumMs,
+      bcnFlightScenario: flight.slug === BCN_FLIGHT_SCENARIO_SLUG,
+      bcnFlightHoursPerDay: flight.workbenchConfig?.flightSchedule?.reduce(
+        (sum, leg) => sum + (leg.durationHours ?? 0),
+        0,
+      ),
     };
 
     const ready =
       checks.referenceScenarioSlug &&
       checks.stageCount >= REFERENCE_PIPELINE_STAGES.length &&
       checks.rfPropagationCalculated &&
-      checks.completeLatencyTbd;
+      checks.completeLatencyTbd &&
+      checks.bcnFlightScenario &&
+      checks.bcnFlightHoursPerDay === 8;
 
     return NextResponse.json(
       {

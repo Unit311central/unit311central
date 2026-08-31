@@ -17,6 +17,14 @@ import type {
   UpdateStageInput,
 } from "@/lib/realtime-video-pipeline/types";
 import { computePipelineSummary } from "@/lib/realtime-video-pipeline/calculations";
+import type { WorkbenchConfig } from "@/lib/realtime-video-pipeline/workbench-types";
+import { buildWorkbenchModel } from "@/lib/realtime-video-pipeline/workbench-engine";
+import {
+  BCN_FLIGHT_SCENARIO_DESCRIPTION,
+  BCN_FLIGHT_SCENARIO_NAME,
+  BCN_FLIGHT_SCENARIO_SLUG,
+  createBcnWorkbenchConfig,
+} from "@/lib/realtime-video-pipeline/workbench-reference-data";
 import { createSupabaseServiceRoleClient, isSupabaseServiceRoleConfigured } from "@/lib/supabase/server";
 import { findWorkspaceBySlug, INTERNAL_WORKSPACE_SLUG } from "@/lib/workspace-host";
 
@@ -27,8 +35,12 @@ type ScenarioRow = {
   name: string;
   description: string;
   is_default: boolean;
+  scenario_kind?: string;
+  parent_scenario_id?: string | null;
+  pipeline_scenario_id?: string | null;
   config: ScenarioConfig;
   sync_config: SyncConfig;
+  workbench_config?: WorkbenchConfig;
   created_at: string;
   updated_at: string;
 };
@@ -80,8 +92,12 @@ function mapScenario(row: ScenarioRow): PipelineScenario {
     name: row.name,
     description: row.description,
     isDefault: row.is_default,
+    scenarioKind: (row.scenario_kind as PipelineScenario["scenarioKind"]) ?? "pipeline",
+    parentScenarioId: row.parent_scenario_id ?? null,
+    pipelineScenarioId: row.pipeline_scenario_id ?? null,
     config: row.config ?? {},
     syncConfig: row.sync_config ?? {},
+    workbenchConfig: row.workbench_config ?? ({} as WorkbenchConfig),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -181,6 +197,7 @@ export async function ensureReferenceScenario(): Promise<PipelineScenario> {
       name: REFERENCE_SCENARIO_NAME,
       description: REFERENCE_SCENARIO_DESCRIPTION,
       is_default: true,
+      scenario_kind: "pipeline",
       config: REFERENCE_SCENARIO_CONFIG,
       sync_config: {},
     })
@@ -202,6 +219,7 @@ export async function ensureReferenceScenario(): Promise<PipelineScenario> {
 
 export async function listScenarios(): Promise<PipelineScenario[]> {
   await ensureReferenceScenario();
+  await ensureBcnFlightScenario();
   const supabase = requireDb();
   const workspaceId = await resolveUnit311WorkspaceId();
   const { data, error } = await supabase
@@ -479,4 +497,157 @@ export async function reorderStages(scenarioId: string, orderedStageIds: string[
       .eq("workspace_id", workspaceId);
     if (error) throw new Error(error.message);
   }
+}
+
+export async function ensureBcnFlightScenario(): Promise<PipelineScenario> {
+  const pipeline = await ensureReferenceScenario();
+  const supabase = requireDb();
+  const workspaceId = await resolveUnit311WorkspaceId();
+
+  const { data: existing } = await supabase
+    .from("realtime_video_scenarios")
+    .select("*")
+    .eq("workspace_id", workspaceId)
+    .eq("slug", BCN_FLIGHT_SCENARIO_SLUG)
+    .maybeSingle();
+
+  if (existing) {
+    const row = existing as ScenarioRow;
+    const wb = row.workbench_config as WorkbenchConfig | undefined;
+    if (!wb || Object.keys(wb).length === 0 || !wb.flightSchedule?.length) {
+      const { error: updateError } = await supabase
+        .from("realtime_video_scenarios")
+        .update({
+          workbench_config: createBcnWorkbenchConfig(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", row.id);
+      if (updateError) throw new Error(updateError.message);
+      const { data: refreshed } = await supabase
+        .from("realtime_video_scenarios")
+        .select("*")
+        .eq("id", row.id)
+        .single();
+      if (refreshed) return mapScenario(refreshed as ScenarioRow);
+    }
+    return mapScenario(row);
+  }
+
+  const { data: created, error } = await supabase
+    .from("realtime_video_scenarios")
+    .insert({
+      workspace_id: workspaceId,
+      slug: BCN_FLIGHT_SCENARIO_SLUG,
+      name: BCN_FLIGHT_SCENARIO_NAME,
+      description: BCN_FLIGHT_SCENARIO_DESCRIPTION,
+      is_default: false,
+      scenario_kind: "flight",
+      pipeline_scenario_id: pipeline.id,
+      config: {},
+      sync_config: {},
+      workbench_config: createBcnWorkbenchConfig(),
+    })
+    .select("*")
+    .single();
+
+  if (error || !created) throw new Error(error?.message ?? "Failed to create BCN flight scenario.");
+  return mapScenario(created as ScenarioRow);
+}
+
+export async function getWorkbenchModelForScenario(flightScenarioId: string) {
+  await ensureReferenceScenario();
+  await ensureBcnFlightScenario();
+  const supabase = requireDb();
+  const workspaceId = await resolveUnit311WorkspaceId();
+
+  const { data: flightRow, error } = await supabase
+    .from("realtime_video_scenarios")
+    .select("*")
+    .eq("id", flightScenarioId)
+    .eq("workspace_id", workspaceId)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!flightRow) throw new Error("Scenario not found.");
+
+  const flightScenario = mapScenario(flightRow as ScenarioRow);
+  const pipelineId =
+    flightScenario.pipelineScenarioId ??
+    (flightScenario.scenarioKind === "pipeline" ? flightScenario.id : null);
+
+  let pipeline: ScenarioWithSummary | null = null;
+  if (pipelineId) {
+    pipeline = await getScenarioWithStages(pipelineId);
+  }
+
+  const model = buildWorkbenchModel({
+    flightScenario,
+    pipeline: pipeline
+      ? { stages: pipeline.stages, summary: pipeline.summary }
+      : null,
+  });
+  model.pipelineScenario = pipeline;
+  return model;
+}
+
+export async function updateWorkbenchConfig(
+  scenarioId: string,
+  workbenchConfig: WorkbenchConfig,
+): Promise<PipelineScenario> {
+  const supabase = requireDb();
+  const workspaceId = await resolveUnit311WorkspaceId();
+  const { data, error } = await supabase
+    .from("realtime_video_scenarios")
+    .update({
+      workbench_config: workbenchConfig,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", scenarioId)
+    .eq("workspace_id", workspaceId)
+    .select("*")
+    .single();
+  if (error || !data) throw new Error(error?.message ?? "Scenario not found.");
+  return mapScenario(data as ScenarioRow);
+}
+
+export async function duplicateScenarioVersion(
+  scenarioId: string,
+  newName: string,
+): Promise<PipelineScenario> {
+  const supabase = requireDb();
+  const workspaceId = await resolveUnit311WorkspaceId();
+  const { data: source, error } = await supabase
+    .from("realtime_video_scenarios")
+    .select("*")
+    .eq("id", scenarioId)
+    .eq("workspace_id", workspaceId)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!source) throw new Error("Scenario not found.");
+
+  const row = source as ScenarioRow;
+  const slug = newName
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .slice(0, 80);
+
+  const { data: created, error: insertError } = await supabase
+    .from("realtime_video_scenarios")
+    .insert({
+      workspace_id: workspaceId,
+      slug: slug || `copy-${Date.now()}`,
+      name: newName.trim(),
+      description: row.description,
+      is_default: false,
+      scenario_kind: row.scenario_kind ?? "flight",
+      parent_scenario_id: scenarioId,
+      pipeline_scenario_id: row.pipeline_scenario_id,
+      config: row.config ?? {},
+      sync_config: row.sync_config ?? {},
+      workbench_config: row.workbench_config ?? {},
+    })
+    .select("*")
+    .single();
+  if (insertError || !created) throw new Error(insertError?.message ?? "Duplicate failed.");
+  return mapScenario(created as ScenarioRow);
 }
