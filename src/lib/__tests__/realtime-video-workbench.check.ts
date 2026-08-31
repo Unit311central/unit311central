@@ -20,6 +20,11 @@ import {
   createBcnWorkbenchConfig,
   REFERENCE_MISSION_PROFILES,
 } from "@/lib/realtime-video-pipeline/workbench-reference-data";
+import {
+  buildScenarioDefinition,
+  isOperationalFlightScenario,
+  resolveScenarioPresentation,
+} from "@/lib/realtime-video-pipeline/workbench-scenario-presentation";
 import type { PipelineScenario, PipelineStage } from "@/lib/realtime-video-pipeline/types";
 import { applyStageTerminologyPatch } from "@/lib/realtime-video-pipeline/stage-terminology-sync";
 
@@ -122,5 +127,41 @@ assert.ok(model2.videoData.mbps > model.videoData.mbps, "bitrate increase propag
 
 assert.ok(buildAssumptionsRegister(createBcnWorkbenchConfig()).length >= 8);
 assert.ok(compareWorkbenchModels(model, model2).deltas.length >= 4);
+
+const bcnPresentation = resolveScenarioPresentation(mockFlightScenario());
+assert.equal(bcnPresentation.typeLabel, "Operational Reference Scenario");
+assert.match(bcnPresentation.statusLabel, /Validated With BCN/);
+
+const bcnDefinition = buildScenarioDefinition(model);
+assert.equal(bcnDefinition.kind, "operational_flight");
+if (bcnDefinition.kind === "operational_flight") {
+  assert.equal(bcnDefinition.keyParameters.aircraft, ORYX_AIRCRAFT_NAME);
+  assert.equal(bcnDefinition.keyParameters.flightsPerDay, 4);
+  assert.equal(bcnDefinition.keyParameters.flightHoursPerDay, 8);
+  assert.equal(bcnDefinition.missions.length, 4);
+  assert.ok(bcnDefinition.missions.some((m) => m.label.includes("Fence")));
+}
+
+const pipelineScenario = (): PipelineScenario => ({
+  ...mockFlightScenario(),
+  slug: "reference-drone-to-wolf-ai-pipeline",
+  name: "Reference Drone-to-WOLF AI Pipeline",
+  description: "Technical reference architecture for drone → WOLF pipeline.",
+  scenarioKind: "pipeline",
+  pipelineScenarioId: null,
+  workbenchConfig: {} as PipelineScenario["workbenchConfig"],
+});
+
+const pipelineModel = buildWorkbenchModel({
+  flightScenario: pipelineScenario(),
+  pipeline: { stages: [], summary: { stageCount: 58, enabledStageCount: 58 } as never },
+});
+assert.equal(isOperationalFlightScenario(pipelineModel), false);
+const pipelineDefinition = buildScenarioDefinition(pipelineModel);
+assert.equal(pipelineDefinition.kind, "technical_pipeline");
+if (pipelineDefinition.kind === "technical_pipeline") {
+  assert.match(pipelineDefinition.purpose, /Technical reference architecture/);
+  assert.equal(pipelineDefinition.stageCount, 58);
+}
 
 console.log("realtime-video-workbench.check.ts: ok");

@@ -72,4 +72,19 @@ const roleViewsSrc = fs.readFileSync(
 );
 assert.match(roleViewsSrc, /buildRealtimeVideoWorkbenchNavItem/, "Analytics nav must nest workbench");
 
+const overviewSrc = fs.readFileSync(
+  path.join(process.cwd(), "src/components/testflighthub/realtime-video-workbench/OverviewTab.tsx"),
+  "utf8",
+);
+assert.match(overviewSrc, /buildScenarioDefinition/, "Overview must derive scenario definition from model");
+assert.match(overviewSrc, /Scenario definition/, "Overview must show scenario definition panel");
+assert.doesNotMatch(overviewSrc, /Daily mission schedule/, "Overview must not duplicate full flight schedule section");
+
+const presentationSrc = fs.readFileSync(
+  path.join(process.cwd(), "src/lib/realtime-video-pipeline/workbench-scenario-presentation.ts"),
+  "utf8",
+);
+assert.match(presentationSrc, /operational_flight/, "Presentation must distinguish operational flight scenarios");
+assert.match(presentationSrc, /technical_pipeline/, "Presentation must distinguish technical pipeline scenarios");
+
 console.log("realtime-video-workbench-ui.check.ts: ok");

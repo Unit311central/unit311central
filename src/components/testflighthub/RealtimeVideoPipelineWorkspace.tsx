@@ -29,6 +29,7 @@ import { FlightScenariosTab } from "@/components/testflighthub/realtime-video-wo
 import { LatencySuccessTab } from "@/components/testflighthub/realtime-video-workbench/LatencySuccessTab";
 import { MissionProfilesTab } from "@/components/testflighthub/realtime-video-workbench/MissionProfilesTab";
 import { OverviewTab } from "@/components/testflighthub/realtime-video-workbench/OverviewTab";
+import { ScenarioContextBar } from "@/components/testflighthub/realtime-video-workbench/ScenarioContextBar";
 import {
   LatencyCategoryGuide,
   MilestoneLatencyGuide,
@@ -323,23 +324,12 @@ export default function RealtimeVideoPipelineWorkspace() {
 
   return (
     <div className="space-y-5 pb-10">
-      <div className="flex flex-wrap items-center justify-end gap-2">
-        <label className="text-xs text-white/45">Flight scenario</label>
-        <select
-          className={cn(WsInputClass(), "min-w-[18rem]")}
-          value={scenarioId ?? ""}
-          onChange={(e) => setScenarioId(e.target.value)}
-        >
-          {scenarios.map((s) => (
-            <option key={s.id} value={s.id}>
-              {s.name}
-            </option>
-          ))}
-        </select>
-        <button type="button" className={WsSecondaryButtonClass()} onClick={() => void handleDuplicateScenario()}>
-          Duplicate version
-        </button>
-      </div>
+      <ScenarioContextBar
+        scenarios={scenarios}
+        scenarioId={scenarioId}
+        onScenarioChange={setScenarioId}
+        onDuplicate={() => void handleDuplicateScenario()}
+      />
 
       {error ? (
         <div className="rounded-xl border border-rose-400/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-100">
@@ -354,7 +344,7 @@ export default function RealtimeVideoPipelineWorkspace() {
       ) : null}
 
       {!loading && workbench && activeTab === "overview" ? (
-        <OverviewTab model={workbench} />
+        <OverviewTab model={workbench} onOpenFlightScenarios={() => navigateToTab("flight")} />
       ) : null}
       {!loading && workbench && activeTab === "flight" ? (
         <FlightScenariosTab
