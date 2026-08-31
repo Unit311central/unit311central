@@ -1,4 +1,9 @@
-import type { EmailAccount, EmailAccountId, EmailMailboxFolder } from "@/lib/email/types";
+import type {
+  EmailAccount,
+  EmailAccountId,
+  EmailMailboxFolder,
+  PlatformEmailAccountId,
+} from "@/lib/email/types";
 import type { EmailWorkspaceScope } from "@/lib/email-workspace";
 
 import { resolveAccountCredentials } from "@/lib/email/credentials-service";
@@ -38,22 +43,25 @@ const ACCOUNT_DEFINITIONS: readonly EmailAccount[] = [
   },
 ];
 
-const ALL_ACCOUNT_IDS: readonly EmailAccountId[] = ["info", "paul", "admin", "demo"];
+const ALL_ACCOUNT_IDS: readonly PlatformEmailAccountId[] = ["info", "paul", "admin", "demo"];
 
-/** Talanton / OnwardAir Email show only the shared demo mailbox (not full platform inboxes). */
-const DEMO_ONLY_EMAIL_ACCOUNT_IDS: readonly EmailAccountId[] = ["demo"];
+export type { PlatformEmailAccountId };
 
-export function listEmailAccountIds(): readonly EmailAccountId[] {
+export function listEmailAccountIds(): readonly PlatformEmailAccountId[] {
   return ALL_ACCOUNT_IDS;
 }
 
-function accountsForIds(ids: readonly EmailAccountId[]): EmailAccount[] {
+/** Talanton / OnwardAir Email show only the shared demo mailbox (not full platform inboxes). */
+const DEMO_ONLY_EMAIL_ACCOUNT_IDS: readonly PlatformEmailAccountId[] = ["demo"];
+
+function accountsForIds(ids: readonly PlatformEmailAccountId[]): EmailAccount[] {
   return ids
     .map((id) => ACCOUNT_DEFINITIONS.find((account) => account.id === id))
     .filter((account): account is EmailAccount => Boolean(account))
     .map((account) => ({
       ...account,
-      email: resolveAccountEmailFromEnv(account.id) ?? account.email,
+      email:
+        resolveAccountEmailFromEnv(account.id as PlatformEmailAccountId) ?? account.email,
     }));
 }
 
@@ -78,14 +86,16 @@ export function getPublicEmailAccounts(options?: {
 
 export function getAccountDefinition(id: EmailAccountId): EmailAccount {
   const account = ACCOUNT_DEFINITIONS.find((entry) => entry.id === id);
-  if (!account) throw new Error(`Unknown mailbox: ${id}`);
+  if (!account) {
+    throw new Error(`Unknown mailbox: ${id}`);
+  }
   return {
     ...account,
-    email: resolveAccountEmailFromEnv(id) ?? account.email,
+    email: resolveAccountEmailFromEnv(id as PlatformEmailAccountId) ?? account.email,
   };
 }
 
-function resolveAccountEmailFromEnv(id: EmailAccountId): string | null {
+function resolveAccountEmailFromEnv(id: PlatformEmailAccountId): string | null {
   const account = ACCOUNT_DEFINITIONS.find((entry) => entry.id === id);
   const defaultEmail = account?.email ?? "";
 
@@ -136,8 +146,18 @@ export async function isAnyMailboxConfigured(scope?: EmailWorkspaceScope): Promi
 }
 
 export function parseAccountId(value: string | null): EmailAccountId | null {
-  if (value === "info" || value === "paul" || value === "admin" || value === "demo") {
-    return value;
+  const trimmed = value?.trim();
+  if (!trimmed) return null;
+  if (
+    trimmed === "info" ||
+    trimmed === "paul" ||
+    trimmed === "admin" ||
+    trimmed === "demo"
+  ) {
+    return trimmed;
+  }
+  if (/^[a-z][a-z0-9_-]{0,62}$/.test(trimmed)) {
+    return trimmed;
   }
   return null;
 }

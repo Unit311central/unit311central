@@ -10,7 +10,7 @@ import {
   threadStatusLabel,
   type InfoEmailThreadStatus,
 } from "@/lib/info-email-data";
-import type { EmailAccount, EmailAccountId, EmailMailboxFolder, EmailMessage } from "@/lib/email/types";
+import type { EmailAccount, EmailAccountId, EmailMailboxFolder, EmailManagedAddress, EmailMessage } from "@/lib/email/types";
 import { isPlatformManagedMailboxEmail } from "@/lib/email/platform-mailbox";
 import {
   filterRemovedMailboxes,
@@ -151,7 +151,23 @@ function emailSignatureCompany() {
   return "Workspace";
 }
 
-type EmailAccountOption = EmailAccount & { configured?: boolean };
+type EmailAccountOption = EmailAccount & { configured?: boolean; addresses?: EmailManagedAddress[] };
+
+function managedAddressesForAccount(account: EmailAccountOption | null): EmailManagedAddress[] {
+  if (!account) return [];
+  if (account.addresses?.length) return account.addresses;
+  if (account.email) return [{ address: account.email, kind: "primary" }];
+  return [];
+}
+
+function primaryAddressForAccount(account: EmailAccountOption | null): string {
+  const addresses = managedAddressesForAccount(account);
+  return (
+    addresses.find((entry) => entry.kind === "primary")?.address ??
+    account?.email ??
+    ""
+  );
+}
 
 type WhatsAppStatus = {
   configured: boolean;
@@ -297,6 +313,9 @@ export default function InfoEmailWorkspace() {
   const [composeCc, setComposeCc] = useState("");
   const [composeSubject, setComposeSubject] = useState("");
   const [composeBody, setComposeBody] = useState("");
+  const [composeFromAddress, setComposeFromAddress] = useState("");
+  const [replyFromAddress, setReplyFromAddress] = useState("");
+  const [addressFilter, setAddressFilter] = useState<string>("all");
   const [replyOpen, setReplyOpen] = useState(true);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const replyTextareaRef = useRef<HTMLTextAreaElement>(null);
@@ -311,9 +330,30 @@ export default function InfoEmailWorkspace() {
     [accounts, selectedAccountId],
   );
 
+  const managedAddresses = useMemo(
+    () => managedAddressesForAccount(selectedAccount),
+    [selectedAccount],
+  );
+
+  const primaryFromAddress = useMemo(
+    () => primaryAddressForAccount(selectedAccount),
+    [selectedAccount],
+  );
+
+  const filteredThreads = useMemo(() => {
+    if (addressFilter === "all" || isSentView) return threads;
+    const needle = addressFilter.trim().toLowerCase();
+    return threads.filter((thread) =>
+      thread.messages.some((message) => (message.receivedBy ?? "").toLowerCase() === needle),
+    );
+  }, [addressFilter, isSentView, threads]);
+
   const selectedThread = useMemo(
-    () => threads.find((thread) => thread.id === selectedThreadId) ?? threads[0] ?? null,
-    [threads, selectedThreadId],
+    () =>
+      filteredThreads.find((thread) => thread.id === selectedThreadId) ??
+      filteredThreads[0] ??
+      null,
+    [filteredThreads, selectedThreadId],
   );
 
   const replyAsUser = operators.find((operator) => operator.id === replyAsUserId);
@@ -607,8 +647,23 @@ export default function InfoEmailWorkspace() {
       setSetupPassword("");
       resetComposeFields();
       setSuccessMessage(null);
+      setAddressFilter("all");
+      setComposeFromAddress(primaryFromAddress);
+      setReplyFromAddress(primaryFromAddress);
     });
-  }, [selectedAccountId]);
+  }, [selectedAccountId, primaryFromAddress]);
+
+  useEffect(() => {
+    if (!selectedThread) return;
+    const latestInbound = [...selectedThread.messages]
+      .reverse()
+      .find((message) => message.direction === "inbound");
+    if (latestInbound?.receivedBy) {
+      setReplyFromAddress(latestInbound.receivedBy);
+    } else {
+      setReplyFromAddress(primaryFromAddress);
+    }
+  }, [primaryFromAddress, selectedThread]);
 
   useEffect(() => {
     if (!successMessage) return;
@@ -726,6 +781,7 @@ export default function InfoEmailWorkspace() {
           messageId: replyTarget.id,
           html,
           text: `${replyBody.trim()}${signature}`,
+          fromAddress: replyFromAddress || primaryFromAddress,
           repliedBy: replyAsUser.fullName,
           context: {
             to: replyTo,
@@ -741,7 +797,7 @@ export default function InfoEmailWorkspace() {
       if (!response.ok || !data.ok) throw new Error(data.error ?? "Failed to send reply");
 
       setReplyBody("");
-      setSuccessMessage(`Reply sent from ${mailboxEmail}`);
+      setSuccessMessage(`Reply sent from ${replyFromAddress || primaryFromAddress}`);
       await loadMailbox({ background: true });
     } catch (sendError) {
       setError(sendError instanceof Error ? sendError.message : "Failed to send reply");
@@ -759,6 +815,7 @@ export default function InfoEmailWorkspace() {
     setComposeCc("");
     setComposeSubject("");
     setComposeBody("");
+    setComposeFromAddress(primaryFromAddress);
   }
 
   async function loadComposeAttachmentPayload() {
@@ -805,6 +862,7 @@ export default function InfoEmailWorkspace() {
     setComposeCc("");
     setComposeSubject("");
     setComposeBody("");
+    setComposeFromAddress(primaryFromAddress);
     setError(null);
     setSuccessMessage(null);
   }
@@ -913,6 +971,7 @@ export default function InfoEmailWorkspace() {
           account: selectedAccountId,
           to: composeTo.trim(),
           cc: composeCc.trim() || undefined,
+          fromAddress: composeFromAddress || primaryFromAddress,
           subject: composeSubject.trim(),
           html,
           text: `${composeBody.trim()}${signature}`,
@@ -927,7 +986,7 @@ export default function InfoEmailWorkspace() {
       if (!response.ok || !data.ok) throw new Error(data.error ?? "Failed to send email");
 
       resetComposeFields();
-      setSuccessMessage(`Email sent from ${mailboxEmail}`);
+      setSuccessMessage(`Email sent from ${composeFromAddress || primaryFromAddress}`);
       await loadMailbox({ background: true });
     } catch (sendError) {
       setError(sendError instanceof Error ? sendError.message : "Failed to send email");
@@ -1087,6 +1146,42 @@ export default function InfoEmailWorkspace() {
         </p>
       )}
 
+      {!accountsLoading && selectedAccount && accounts.length > 0 && (
+        <section className="rounded-2xl border border-white/10 bg-[#0a1422]/80 px-4 py-4 sm:px-5">
+          <div className="grid gap-4 lg:grid-cols-2">
+            <div>
+              <p className="text-[10px] font-medium uppercase tracking-[0.12em] text-white/45">
+                Mailbox
+              </p>
+              <p className="mt-1 text-sm font-semibold text-white">{selectedAccount.name}</p>
+              <p className="text-sm text-white/70">{primaryFromAddress || selectedAccount.email}</p>
+              <p className="mt-1 text-xs text-white/45">
+                {selectedAccount.provider === "zoho" ? "Zoho" : "Email"} ·{" "}
+                {selectedAccountConfigured ? "Connected" : "Not connected"}
+              </p>
+            </div>
+            <div>
+              <p className="text-[10px] font-medium uppercase tracking-[0.12em] text-white/45">
+                Managed addresses
+              </p>
+              <ul className="mt-2 space-y-2">
+                {managedAddresses.map((entry) => (
+                  <li
+                    key={entry.address}
+                    className="flex items-center justify-between gap-3 rounded-lg border border-white/10 bg-[#0b1524] px-3 py-2"
+                  >
+                    <span className="text-sm text-white/85">{entry.address}</span>
+                    <span className="rounded-md border border-white/10 px-2 py-0.5 text-[10px] uppercase tracking-[0.08em] text-white/50">
+                      {entry.kind === "primary" ? "Primary" : "Alias"}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </section>
+      )}
+
       {composeOpen && selectedAccountConfigured && (
         <section className="rounded-2xl border border-sky-400/25 bg-sky-500/5 px-4 py-4 sm:px-5">
           <div className="flex items-start justify-between gap-3">
@@ -1119,6 +1214,24 @@ export default function InfoEmailWorkspace() {
           </div>
 
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            {managedAddresses.length > 1 ? (
+              <div className="sm:col-span-2">
+                <label className="text-[10px] font-medium uppercase tracking-[0.12em] text-white/45">
+                  From
+                </label>
+                <select
+                  value={composeFromAddress || primaryFromAddress}
+                  onChange={(event) => setComposeFromAddress(event.target.value)}
+                  className={cn(inputClassName(), "mt-1.5")}
+                >
+                  {managedAddresses.map((entry) => (
+                    <option key={entry.address} value={entry.address}>
+                      {entry.address}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ) : null}
             <div>
               <label className="text-[10px] font-medium uppercase tracking-[0.12em] text-white/45">
                 To
@@ -1282,9 +1395,8 @@ export default function InfoEmailWorkspace() {
         <section className="rounded-2xl border border-amber-400/25 bg-amber-500/10 px-4 py-4 sm:px-5">
           <h3 className="text-sm font-semibold text-amber-100">Connect {mailboxEmail}</h3>
           <p className="mt-1 text-sm text-amber-100/80">
-            Enter the Zoho app-specific password for {mailboxEmail}. Credentials are stored on
-            the server (Supabase when available, otherwise secure session memory) and never sent
-            back to the browser.
+            Enter the Zoho app-specific password for {primaryFromAddress || mailboxEmail}. Aliases on
+            this mailbox share the same credentials — use the primary mailbox password only.
           </p>
           <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-end">
             <div className="flex-1">
@@ -1374,19 +1486,50 @@ export default function InfoEmailWorkspace() {
                 {isSentView ? "Sent" : "Inbox"}
               </p>
               <p className="mt-0.5 text-sm text-white/70">
-                {loading ? "Loading…" : `${threads.length} threads`}
+                {loading ? "Loading…" : `${filteredThreads.length} threads`}
               </p>
+              {!isSentView && managedAddresses.length > 1 ? (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setAddressFilter("all")}
+                    className={cn(
+                      "rounded-lg border px-2.5 py-1 text-[11px] transition-colors",
+                      addressFilter === "all"
+                        ? "border-sky-400/30 bg-sky-500/10 text-sky-200"
+                        : "border-white/10 text-white/55 hover:bg-white/[0.04]",
+                    )}
+                  >
+                    All
+                  </button>
+                  {managedAddresses.map((entry) => (
+                    <button
+                      key={entry.address}
+                      type="button"
+                      onClick={() => setAddressFilter(entry.address)}
+                      className={cn(
+                        "rounded-lg border px-2.5 py-1 text-[11px] transition-colors",
+                        addressFilter === entry.address
+                          ? "border-sky-400/30 bg-sky-500/10 text-sky-200"
+                          : "border-white/10 text-white/55 hover:bg-white/[0.04]",
+                      )}
+                    >
+                      {entry.address}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
             </div>
 
             {loading ? (
               <div className="flex flex-1 items-center justify-center py-12 text-white/50">
                 <Loader2 className="h-5 w-5 animate-spin" />
               </div>
-            ) : threads.length === 0 ? (
+            ) : filteredThreads.length === 0 ? (
               <p className="px-4 py-8 text-sm text-white/45">No messages yet.</p>
             ) : (
               <div className="min-h-0 flex-1 overflow-y-auto">
-                {threads.map((thread) => {
+                {filteredThreads.map((thread) => {
                   const active = selectedThread?.id === thread.id;
                   const preview =
                     thread.messages[thread.messages.length - 1]?.snippet ??
@@ -1527,8 +1670,15 @@ export default function InfoEmailWorkspace() {
                               )}
                             </p>
                             <p className="text-xs text-white/45">
-                              {isOutbound ? mailboxEmail : message.fromEmail}
+                              {isOutbound
+                                ? message.receivedBy ?? mailboxEmail
+                                : message.fromEmail}
                             </p>
+                            {!isOutbound && message.receivedBy ? (
+                              <p className="text-[11px] text-white/35">
+                                Received by {message.receivedBy}
+                              </p>
+                            ) : null}
                           </div>
                           <time className="text-xs text-white/40" dateTime={message.date}>
                             {formatEmailDateLong(message.date)}
@@ -1570,7 +1720,7 @@ export default function InfoEmailWorkspace() {
                   <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                     <div className="flex items-center gap-2 text-sm text-white/60">
                       <Reply className="h-4 w-4" />
-                      Reply from {mailboxEmail}
+                      Reply from {replyFromAddress || primaryFromAddress}
                     </div>
                     {replyRecipient ? (
                       <p className="text-xs text-white/45">
@@ -1580,6 +1730,24 @@ export default function InfoEmailWorkspace() {
                   </div>
 
                   <div className="grid gap-3 sm:grid-cols-[minmax(0,12rem)_1fr]">
+                    {managedAddresses.length > 1 ? (
+                      <div>
+                        <label className="text-[10px] font-medium uppercase tracking-[0.12em] text-white/45">
+                          From
+                        </label>
+                        <select
+                          value={replyFromAddress || primaryFromAddress}
+                          onChange={(event) => setReplyFromAddress(event.target.value)}
+                          className={cn(inputClassName(), "mt-1.5")}
+                        >
+                          {managedAddresses.map((entry) => (
+                            <option key={entry.address} value={entry.address}>
+                              {entry.address}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    ) : null}
                     <div>
                       <label className="text-[10px] font-medium uppercase tracking-[0.12em] text-white/45">
                         Reply as
@@ -1596,7 +1764,7 @@ export default function InfoEmailWorkspace() {
                         ))}
                       </select>
                     </div>
-                    <div>
+                    <div className={managedAddresses.length > 1 ? "sm:col-span-2" : ""}>
                       <label className="text-[10px] font-medium uppercase tracking-[0.12em] text-white/45">
                         Message
                       </label>

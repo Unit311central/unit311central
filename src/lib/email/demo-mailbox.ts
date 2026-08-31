@@ -59,6 +59,7 @@ export function listDemoMailboxMessages(
         references: [],
         replyToEmail: null,
         direction: folder === "sent" ? ("outbound" as const) : ("inbound" as const),
+        receivedBy: folder === "sent" ? mailbox : mailbox,
       };
     })
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());

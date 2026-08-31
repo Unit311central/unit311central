@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { parseAccountId, parseMailboxFolder } from "@/lib/email/accounts";
+import { isMailboxAllowedOnWorkspace } from "@/lib/email/mailbox-registry";
 import { isDemoApiRequest } from "@/lib/demo/demo-request";
 import { listDemoMailboxMessages } from "@/lib/email/demo-mailbox";
 import { emailErrorResponse } from "@/lib/email/api-utils";
@@ -38,6 +39,13 @@ export async function GET(request: NextRequest) {
   try {
     await requirePlatformSession();
     const workspace = await requireCurrentWorkspace();
+    const allowed = await isMailboxAllowedOnWorkspace(account, {
+      workspaceId: workspace.id,
+      workspaceSlug: workspace.slug,
+    });
+    if (!allowed) {
+      return NextResponse.json({ error: "Mailbox is not available on this workspace." }, { status: 403 });
+    }
     const scope = { workspaceId: workspace.id };
 
     // Demo uses the same live Zoho mailboxes as Internal (info@/paul@/admin@/demo@).

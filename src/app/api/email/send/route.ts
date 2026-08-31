@@ -2,6 +2,7 @@ import { assertDemoMutationAllowedForRequest } from "@/lib/demo/mutation-guard";
 import { NextRequest, NextResponse } from "next/server";
 
 import { parseAccountId } from "@/lib/email/accounts";
+import { isMailboxAllowedOnWorkspace } from "@/lib/email/mailbox-registry";
 import { emailErrorResponse } from "@/lib/email/api-utils";
 import { sendMailboxEmail } from "@/lib/email/smtp";
 import type { EmailAccountId } from "@/lib/email/types";
@@ -24,13 +25,13 @@ export async function POST(request: NextRequest) {
 
   try {
     await requirePlatformSession();
-    await requireCurrentWorkspace();
 
     const body = (await request.json()) as {
       account?: EmailAccountId;
       to?: string;
       cc?: string;
       bcc?: string;
+      fromAddress?: string;
       subject?: string;
       html?: string;
       text?: string;
@@ -46,6 +47,14 @@ export async function POST(request: NextRequest) {
     const account = parseAccountId(body.account ?? null);
     if (!account) {
       return NextResponse.json({ error: "Valid account is required." }, { status: 400 });
+    }
+    const workspace = await requireCurrentWorkspace();
+    const allowed = await isMailboxAllowedOnWorkspace(account, {
+      workspaceId: workspace.id,
+      workspaceSlug: workspace.slug,
+    });
+    if (!allowed) {
+      return NextResponse.json({ error: "Mailbox is not available on this workspace." }, { status: 403 });
     }
     if (!body.to?.trim()) {
       return NextResponse.json({ error: "Recipient is required." }, { status: 400 });
@@ -67,12 +76,14 @@ export async function POST(request: NextRequest) {
       to: body.to,
       cc: body.cc,
       bcc: body.bcc,
+      fromAddress: body.fromAddress,
       subject: body.subject,
       html: body.html,
       text: body.text,
       inReplyTo: body.inReplyTo ?? undefined,
       references: body.references,
       attachments: attachments.length > 0 ? attachments : undefined,
+      workspaceId: workspace.id,
     });
 
     return NextResponse.json({ ok: true, ...result });

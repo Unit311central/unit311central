@@ -4,9 +4,9 @@ import { isDemoApiRequest } from "@/lib/demo/demo-request";
 import {
   getDemoPublicEmailAccounts,
   isDemoEmailAccountConfigured,
-  listDemoMailboxMessages,
 } from "@/lib/email/demo-mailbox";
-import { getPublicEmailAccounts, isAccountConfigured } from "@/lib/email/accounts";
+import { ensureWorkspaceMailboxCredentialsFromEnv } from "@/lib/email/credentials-service";
+import { listWorkspaceMailboxProfiles } from "@/lib/email/mailbox-registry";
 import { PLATFORM_EMAIL_ACCOUNT_IDS } from "@/lib/email/platform-mailbox";
 import { requirePlatformSession } from "@/lib/platform-session";
 import { isDemoWiseWorkspaceSlug } from "@/lib/treasury/bank-provider";
@@ -29,6 +29,8 @@ export async function GET() {
       .map((account) => ({
         ...account,
         configured: isDemoEmailAccountConfigured(account.id),
+        provider: "zoho" as const,
+        addresses: [{ address: account.email, kind: "primary" as const }],
       }));
     return NextResponse.json(accounts);
   }
@@ -36,34 +38,29 @@ export async function GET() {
   try {
     await requirePlatformSession();
     const workspace = await requireCurrentWorkspace();
-    const demo = isDemoWiseWorkspaceSlug(workspace.slug);
-    const accounts = getPublicEmailAccounts({ demo, workspaceSlug: workspace.slug });
+    void isDemoWiseWorkspaceSlug(workspace.slug);
 
     if (isPlatformWorkspaceSlug(workspace.slug)) {
-      const { ensureWorkspaceMailboxCredentialsFromEnv } = await import(
-        "@/lib/email/credentials-service"
-      );
       await ensureWorkspaceMailboxCredentialsFromEnv(PLATFORM_EMAIL_ACCOUNT_IDS, {
         workspaceId: workspace.id,
       });
-    } else if (accounts.some((account) => account.id === "demo")) {
-      const { ensureWorkspaceMailboxCredentialsFromEnv } = await import(
-        "@/lib/email/credentials-service"
-      );
-      await ensureWorkspaceMailboxCredentialsFromEnv(
-        accounts.map((account) => account.id),
-        { workspaceId: workspace.id },
-      );
     }
 
-    const withStatus = await Promise.all(
-      accounts.map(async (account) => ({
-        ...account,
-        configured: await isAccountConfigured(account.id, { workspaceId: workspace.id }),
+    const profiles = await listWorkspaceMailboxProfiles({
+      workspaceId: workspace.id,
+      workspaceSlug: workspace.slug,
+    });
+
+    return NextResponse.json(
+      profiles.map((profile) => ({
+        id: profile.id,
+        email: profile.email,
+        name: profile.name,
+        provider: profile.provider,
+        configured: profile.configured,
+        addresses: profile.addresses,
       })),
     );
-
-    return NextResponse.json(withStatus);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to load email accounts";
     return NextResponse.json({ error: message }, { status: authErrorStatus(message) });
