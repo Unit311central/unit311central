@@ -258,3 +258,29 @@ jobs:
             exit 1
           fi
           jq -e '.ok == true' /tmp/iw-tom-expense-seed.json >/dev/null
+
+      - name: Provision SAEC Discovery login account (idempotent)
+        env:
+          SETUP_SECRET: ${{ secrets.INTERNAL_FILES_SETUP_SECRET }}
+          SAEC_DISCOVERY_PASSWORD: ${{ secrets.SAEC_DISCOVERY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          if [ -z "${SETUP_SECRET:-}" ]; then
+            echo "INTERNAL_FILES_SETUP_SECRET not configured — skipping SAEC Discovery provision."
+            exit 0
+          fi
+          payload='{}'
+          if [ -n "${SAEC_DISCOVERY_PASSWORD:-}" ]; then
+            payload=$(jq -n --arg password "$SAEC_DISCOVERY_PASSWORD" '{password:$password}')
+          fi
+          http_code=$(curl -sS -o /tmp/saec-discovery-provision.json -w "%{http_code}" -X POST \
+            -H "x-setup-secret: ${SETUP_SECRET}" \
+            -H "Content-Type: application/json" \
+            -d "$payload" \
+            "https://unit311central.com/api/internal/provision-saec-discovery-account")
+          cat /tmp/saec-discovery-provision.json | jq . || cat /tmp/saec-discovery-provision.json
+          if [ "$http_code" != "200" ]; then
+            echo "SAEC Discovery provision failed with HTTP ${http_code}"
+            exit 1
+          fi
+          jq -e '.ok == true' /tmp/saec-discovery-provision.json >/dev/null

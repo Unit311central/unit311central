@@ -65,6 +65,14 @@ import {
   TALANTON_IMPACT_SLUG,
 } from "@/lib/talanton-surface";
 import { canonicalizeSaecWorkspaceSlug, isSaecSlug, SAEC_SLUG } from "@/lib/saec-surface";
+import {
+  isSaecDiscoveryUsername,
+  SAEC_DISCOVERY_DISPLAY_NAME,
+  SAEC_DISCOVERY_USER_ID,
+  SAEC_DISCOVERY_USERNAME,
+  verifySaecDiscoveryPassword,
+  wantsSaecDiscoveryPostLogin,
+} from "@/lib/saec-discovery/discovery-auth";
 import { canonicalizePailexSlug } from "@/lib/pailex/pailex-surface";
 import { canonicalizeWolfCentralSlug, isWolfCentralSlug } from "@/lib/wolf/wolf-surface";
 import {
@@ -718,6 +726,65 @@ async function createOmnitransitPortalsExternalLoginResponse(
   return response;
 }
 
+async function createSaecDiscoveryLoginResponse(
+  request: NextRequest,
+  usernameRaw: string,
+  password: string,
+  returnToRaw: string | null,
+  nextRaw: string | null,
+) {
+  const username = normalizePlatformUsername(usernameRaw);
+  if (!isSaecDiscoveryUsername(username) || !verifySaecDiscoveryPassword(password)) {
+    return null;
+  }
+
+  const workspace = await resolveWorkspaceBinding({
+    workspaceSlug: SAEC_SLUG,
+    fallbackInternal: false,
+  });
+  if (!workspace) return null;
+
+  const session: PlatformSession = withSessionWorkspace(
+    {
+      sub: SAEC_DISCOVERY_USER_ID,
+      username: normalizePlatformUsername(SAEC_DISCOVERY_USERNAME),
+      displayName: SAEC_DISCOVERY_DISPLAY_NAME,
+      userType: "internal",
+      redirectPath: "/saec-discovery",
+      exp: Date.now() + PLATFORM_SESSION_MAX_AGE_SECONDS * 1000,
+    },
+    workspace,
+  );
+
+  const effectiveNext =
+    wantsSaecDiscoveryPostLogin(nextRaw) || wantsSaecDiscoveryPostLogin(returnToRaw)
+      ? "/saec-discovery"
+      : nextRaw;
+
+  const redirectPath = await resolvePostLoginRedirect({
+    redirectPath: "/saec-discovery",
+    requestHost: getRequestHost(request),
+    returnToRaw,
+    nextRaw: effectiveNext,
+    userType: "internal",
+    username: session.username,
+  });
+
+  const response = NextResponse.json({
+    redirectPath,
+    userType: session.userType,
+    displayName: session.displayName,
+    workspace: {
+      id: workspace.id,
+      slug: workspace.slug,
+      name: workspace.name,
+    },
+  });
+
+  applyPlatformSessionCookie(response, await createPlatformSessionToken(session), request);
+  return response;
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = (await request.json()) as {
@@ -955,6 +1022,15 @@ export async function POST(request: NextRequest) {
       workspaceSlug,
     );
     if (omnitransitPortalLogin) return omnitransitPortalLogin;
+
+    const saecDiscoveryLogin = await createSaecDiscoveryLoginResponse(
+      request,
+      body.username,
+      body.password,
+      returnToRaw,
+      nextRaw,
+    );
+    if (saecDiscoveryLogin) return saecDiscoveryLogin;
 
     return NextResponse.json({ error: "Invalid username or password." }, { status: 401 });
   } catch (error) {

@@ -35,6 +35,7 @@
     "db:seed-unit311-tom-expenses": "node --require ./scripts/test-server-only-hook.cjs --import tsx scripts/seed-unit311-tom-expenses.ts",
     "prove:unit311-tom-expenses": "node scripts/prove-unit311-tom-expenses.mjs",
     "prove:interfaceworx-tom-expenses": "node scripts/prove-interfaceworx-tom-expenses.mjs",
+    "prove:saec-discovery-login": "node scripts/prove-saec-discovery-login.mjs",
     "import:unit311-tom-expenses-prod": "node scripts/import-unit311-tom-expenses-prod.mjs",
     "preview:android": "next dev",
     "prove:talanton-ea": "node --import tsx src/lib/talanton/__tests__/ea-test-suite.check.ts",

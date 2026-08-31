@@ -63,7 +63,11 @@ export default function SaecDiscoveryLogin({ onAuthenticated }: SaecDiscoveryLog
       const response = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username: submittedUsername, password: submittedPassword }),
+        body: JSON.stringify({
+          username: submittedUsername,
+          password: submittedPassword,
+          next: "/saec-discovery",
+        }),
       });
       const payload = (await response.json()) as { redirectPath?: string; error?: string };
       if (!response.ok) {
