@@ -1836,6 +1836,28 @@ export function upsertContract(contract: SupplierContract) {
   });
 }
 
+export function upsertApprovalRule(rule: ApprovalRule) {
+  const exists = state.approvalRules.some((row) => row.id === rule.id);
+  setState({
+    ...state,
+    approvalRules: exists
+      ? state.approvalRules.map((row) => (row.id === rule.id ? rule : row))
+      : [rule, ...state.approvalRules],
+  });
+}
+
+export function deleteSupplier(id: string) {
+  setState({ ...state, suppliers: state.suppliers.filter((row) => row.id !== id) });
+}
+
+export function deleteApprovalRule(id: string) {
+  setState({ ...state, approvalRules: state.approvalRules.filter((row) => row.id !== id) });
+}
+
+export function deleteContract(id: string) {
+  setState({ ...state, contracts: state.contracts.filter((row) => row.id !== id) });
+}
+
 export function toggleIntegration(id: string) {
   setState({
     ...state,

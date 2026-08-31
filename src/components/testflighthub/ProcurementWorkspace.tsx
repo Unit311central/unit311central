@@ -48,6 +48,7 @@ import {
   type PurchaseRequisition,
   type RequisitionStatus,
   type RolePermissionMatrix,
+  type SupplierRecord,
 } from "@/lib/procurement-data";
 import {
   advanceRequisition,
@@ -65,6 +66,12 @@ import {
   setProcurementRole,
   toggleIntegration,
   uid,
+  upsertApprovalRule,
+  upsertContract,
+  upsertSupplier,
+  deleteSupplier,
+  deleteApprovalRule,
+  deleteContract,
 } from "@/lib/procurement-mock-store";
 import { isBrowserCustomerWorkspaceSurface } from "@/lib/customer-workspace-surface";
 import { isBrowserOnwardAirSurface } from "@/lib/onwardair-surface";
@@ -426,6 +433,79 @@ export default function ProcurementWorkspace() {
   function showToast(message: string) {
     setToast(message);
     window.setTimeout(() => setToast(null), 3200);
+  }
+
+  function addSupplierRecord() {
+    const companyName = window.prompt("Supplier company name")?.trim();
+    if (!companyName) return;
+    const supplier: SupplierRecord = {
+      id: uid("sup"),
+      companyName,
+      contacts: [{ name: "Account Manager", email: "accounts@example.com", phone: "", role: "Account Manager" }],
+      addresses: [{ label: "HQ", line1: "", city: "", country: "United Kingdom", postcode: "" }],
+      taxId: "",
+      paymentTerms: "Net 30",
+      bankDetails: "",
+      preferred: false,
+      insuranceExpiry: "",
+      contractExpiry: "",
+      rating: 0,
+      performanceScore: 0,
+      onTimeDeliveryPct: 0,
+      qualityScore: 0,
+      priceCompetitiveness: 0,
+      averageLeadTimeDays: 0,
+      totalSpend: 0,
+      notes: "",
+      documents: [],
+      category: "General",
+      currency: DEFAULT_CURRENCY,
+      status: "active",
+    };
+    upsertSupplier(supplier);
+    showToast(`Added supplier ${companyName}.`);
+  }
+
+  function addApprovalRuleRecord() {
+    const name = window.prompt("Approval rule name")?.trim();
+    if (!name) return;
+    const minValue = Number(window.prompt("Minimum value (GBP)", "0") ?? "0") || 0;
+    upsertApprovalRule({
+      id: uid("rule"),
+      name,
+      minValue,
+      maxValue: null,
+      department: "any",
+      businessUnit: "any",
+      costCentre: "any",
+      project: "any",
+      levels: [{ level: 1, role: "department_manager", label: "Manager approval" }],
+      active: true,
+    });
+    showToast(`Added approval rule ${name}.`);
+  }
+
+  function addContractRecord() {
+    const title = window.prompt("Contract title")?.trim();
+    if (!title) return;
+    const supplierName = window.prompt("Supplier name")?.trim() || "TBC";
+    upsertContract({
+      id: uid("contract"),
+      title,
+      supplierId: store.suppliers[0]?.id ?? uid("sup"),
+      supplierName,
+      contractValue: 0,
+      currency: DEFAULT_CURRENCY,
+      startDate: isoDaysFromNow(0),
+      renewalDate: isoDaysFromNow(365),
+      noticePeriodDays: 30,
+      owner: "Operations",
+      status: "draft",
+      documents: [],
+      reminderSent: false,
+      notes: "",
+    });
+    showToast(`Added contract ${title}.`);
   }
 
   function openNewRequisition() {
@@ -1137,7 +1217,19 @@ export default function ProcurementWorkspace() {
       ) : null}
 
       {tab === "Suppliers" ? (
-        <ProcurementSection title="Suppliers" subtitle="Performance, preference, and commercial details">
+        <ProcurementSection
+          title="Suppliers"
+          subtitle="Performance, preference, and commercial details"
+          actions={
+            <button type="button" className={procurementPrimaryButtonClass()} onClick={addSupplierRecord}>
+              <Plus className="h-3.5 w-3.5" />
+              Add supplier
+            </button>
+          }
+        >
+          {store.suppliers.length === 0 ? (
+            <p className="text-sm text-white/45">No suppliers yet — add one to get started.</p>
+          ) : null}
           <div className="grid gap-3 sm:grid-cols-2">
             {store.suppliers.map((supplier) => {
               const open = expandedSupplier === supplier.id;
@@ -1434,7 +1526,19 @@ export default function ProcurementWorkspace() {
 
       {tab === "Approvals" ? (
         <div className="grid gap-5 lg:grid-cols-2">
-          <ProcurementSection title="Approval rules" subtitle="Value bands and routing levels">
+          <ProcurementSection
+            title="Approval rules"
+            subtitle="Value bands and routing levels"
+            actions={
+              <button type="button" className={procurementPrimaryButtonClass()} onClick={addApprovalRuleRecord}>
+                <Plus className="h-3.5 w-3.5" />
+                Add rule
+              </button>
+            }
+          >
+            {store.approvalRules.length === 0 ? (
+              <p className="mb-3 text-sm text-white/45">No approval rules yet.</p>
+            ) : null}
             <ul className="space-y-3">
               {store.approvalRules.map((rule) => (
                 <li key={rule.id} className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-3">
@@ -1492,7 +1596,19 @@ export default function ProcurementWorkspace() {
       ) : null}
 
       {tab === "Contracts" ? (
-        <ProcurementSection title="Supplier contracts" subtitle="Renewal watch and commercial frameworks">
+        <ProcurementSection
+          title="Supplier contracts"
+          subtitle="Renewal watch and commercial frameworks"
+          actions={
+            <button type="button" className={procurementPrimaryButtonClass()} onClick={addContractRecord}>
+              <Plus className="h-3.5 w-3.5" />
+              Add contract
+            </button>
+          }
+        >
+          {store.contracts.length === 0 ? (
+            <p className="mb-3 text-sm text-white/45">No contracts yet.</p>
+          ) : null}
           <ul className="space-y-3">
             {store.contracts.map((contract) => (
               <li

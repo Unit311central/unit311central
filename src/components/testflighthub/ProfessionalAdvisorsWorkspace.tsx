@@ -38,7 +38,7 @@ const emptyAdvisorForm = (): AdvisorFormState => ({
   company: "",
   contact: "",
   category: "Consultants",
-  country: "Spain",
+  country: "United Kingdom",
   phone: "",
   email: "",
   retainer: "",
