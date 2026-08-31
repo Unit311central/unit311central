@@ -258,7 +258,7 @@ try {
         await typeInField(page, selector, `${section.title} ${key} test`);
       }
 
-      await page.locator('main button').filter({ hasText: /^Save$/ }).click();
+      await waitForDraftSaved(page);
       await page.waitForFunction(
         (args) => {
           const raw = window.localStorage.getItem(args.storageKey);
