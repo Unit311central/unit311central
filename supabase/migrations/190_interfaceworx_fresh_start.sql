@@ -55,5 +55,5 @@ set
   default_tax_state = '',
   updated_at = now()
 from public.workspaces w
-where ps.workspace_id = w.id
+where ps.workspace_id = w.id::text
   and w.slug = 'interfaceworx';
