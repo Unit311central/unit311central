@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { getRequestHost, isInternalDomainHost } from "@/lib/app-domains";
 import { getPlatformSession } from "@/lib/platform-session";
+import { getSaecDiscoveryDraftsForInternal } from "@/lib/saec-discovery/draft-service";
 import { getSaecDiscoverySubmissionsForInternal } from "@/lib/saec-discovery/submissions-service";
 
 export const dynamic = "force-dynamic";
@@ -25,8 +26,11 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const submissions = await getSaecDiscoverySubmissionsForInternal();
-    return NextResponse.json({ submissions }, {
+    const [drafts, submissions] = await Promise.all([
+      getSaecDiscoveryDraftsForInternal(),
+      getSaecDiscoverySubmissionsForInternal(),
+    ]);
+    return NextResponse.json({ drafts, submissions }, {
       headers: { "Cache-Control": "private, no-store" },
     });
   } catch (error) {

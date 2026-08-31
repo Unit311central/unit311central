@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { getPlatformSession } from "@/lib/platform-session";
+import { clearSaecDiscoveryDraft } from "@/lib/saec-discovery/draft-service";
 import {
   getSaecDiscoverySubmissionStatus,
   submitSaecDiscoveryQuestionnaire,
@@ -29,11 +31,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "responses is required." }, { status: 400 });
     }
 
+    const session = await getPlatformSession();
+    const submittedByEmail =
+      session?.username?.trim() ||
+      (typeof body.submittedByEmail === "string" ? body.submittedByEmail : null);
+
     const submission = await submitSaecDiscoveryQuestionnaire({
       responses: body.responses,
-      submittedByEmail:
-        typeof body.submittedByEmail === "string" ? body.submittedByEmail : null,
+      submittedByEmail,
     });
+
+    if (session?.sub) {
+      await clearSaecDiscoveryDraft(session.sub);
+    }
 
     return NextResponse.json({
       ok: true,
