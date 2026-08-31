@@ -1,6 +1,10 @@
 "use client";
 
 import { formatLatencyMs } from "@/lib/realtime-video-pipeline/calculations";
+import {
+  BCN_REFERENCE_CONFIG_STATUS,
+  ORYX_AIRCRAFT_NAME,
+} from "@/lib/realtime-video-pipeline/workbench-reference-data";
 import type { WorkbenchModel } from "@/lib/realtime-video-pipeline/workbench-types";
 import { WorkspaceStatusPill } from "@/components/workspace-ui/primitives";
 
@@ -22,6 +26,7 @@ export function OverviewTab({ model }: { model: WorkbenchModel }) {
             : undefined,
           "md:col-span-2",
         )}
+        {metricTile("Aircraft", ORYX_AIRCRAFT_NAME, BCN_REFERENCE_CONFIG_STATUS)}
         {metricTile("Flight hours / day", fmtNum(o.flightHoursPerDay, 1), `${o.flightsPerDay} flights`)}
         {metricTile("Video / hour", `${fmtNum(o.videoGbPerHour)} GB`, `${fmtNum(model.videoData.mbps, 1)} Mbps effective`)}
         {metricTile("Video / month", `${fmtNum(o.videoTbPerMonth, 3)} TB`, "Calculated from schedule")}

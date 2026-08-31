@@ -10,6 +10,23 @@ import type {
 
 export const BCN_FLIGHT_SCENARIO_SLUG = "south-africa-bcn-daily-reserve-operations";
 
+export const ORYX_AIRCRAFT_NAME = "Oryx";
+
+/** User-facing validation label for BCN reference values not yet confirmed in the field. */
+export const BCN_VALIDATION_STATUS = "Reference Assumption — To Be Validated With BCN";
+
+export const BCN_REFERENCE_CONFIG_STATUS = "Reference configuration — to be validated";
+
+export const BCN_REFERENCE_CAMERA_LABEL = "Reference configuration";
+
+export const BCN_REFERENCE_LIVE_STREAM_LABEL = "Reference configuration";
+
+/** Provenance for assumptions register — not shown as the primary aircraft name in UI. */
+export const ORYX_VIDEO_PROVENANCE_SOURCE =
+  "Populated using Mavic 3 Enterprise-class comparable characteristics for engineering model demonstration only — not Oryx specifications";
+
+export const ORYX_VIDEO_PROVENANCE_URL = "https://enterprise.dji.com/mavic-3-enterprise";
+
 export const DEFAULT_SUCCESS_CRITERIA: SuccessCriterion[] = [
   {
     id: "e2e-latency",
@@ -58,15 +75,15 @@ export const DEFAULT_SUCCESS_CRITERIA: SuccessCriterion[] = [
   },
 ];
 
-/** DJI Mavic 3 Enterprise-class reference — manufacturer specs where cited. */
+/** Oryx BCN reference aircraft — video values comparable to Mavic 3 Enterprise-class for modelling only. */
 export const REFERENCE_VIDEO_PROFILE: VideoProfile = {
-  droneModel: "DJI Mavic 3 Enterprise (reference class)",
-  cameraModel: "Wide camera (reference class)",
+  droneModel: ORYX_AIRCRAFT_NAME,
+  cameraModel: BCN_REFERENCE_CAMERA_LABEL,
   recordingResolution: "5280×3956",
   recordingFps: 30,
   recordingCodec: "H.265 / HEVC",
   maxRecordingBitrateMbps: 200,
-  maxRecordingBitrateStatus: "Verified Specification",
+  maxRecordingBitrateStatus: "Reference Assumption",
   nominalFlightTimeMin: 45,
   operationalFlightTimeMin: 35,
   liveStreamResolution: "1080p",
@@ -75,8 +92,8 @@ export const REFERENCE_VIDEO_PROFILE: VideoProfile = {
   liveStreamBitrateMbps: 8,
   liveStreamBitrateStatus: "Reference Assumption",
   protocolOverheadPct: 12,
-  source: "DJI Mavic 3 Enterprise specs (recording); live stream bitrate is engineering reference assumption",
-  sourceUrl: "https://enterprise.dji.com/mavic-3-enterprise",
+  source: ORYX_VIDEO_PROVENANCE_SOURCE,
+  sourceUrl: ORYX_VIDEO_PROVENANCE_URL,
 };
 
 function starlinkTier(

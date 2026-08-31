@@ -23,7 +23,9 @@ import {
   BCN_FLIGHT_SCENARIO_DESCRIPTION,
   BCN_FLIGHT_SCENARIO_NAME,
   BCN_FLIGHT_SCENARIO_SLUG,
+  ORYX_AIRCRAFT_NAME,
   createBcnWorkbenchConfig,
+  resolveWorkbenchConfig,
 } from "@/lib/realtime-video-pipeline/workbench-reference-data";
 import { createSupabaseServiceRoleClient, isSupabaseServiceRoleConfigured } from "@/lib/supabase/server";
 import { findWorkspaceBySlug, INTERNAL_WORKSPACE_SLUG } from "@/lib/workspace-host";
@@ -514,11 +516,19 @@ export async function ensureBcnFlightScenario(): Promise<PipelineScenario> {
   if (existing) {
     const row = existing as ScenarioRow;
     const wb = row.workbench_config as WorkbenchConfig | undefined;
-    if (!wb || Object.keys(wb).length === 0 || !wb.flightSchedule?.length) {
+    const needsSeed = !wb || Object.keys(wb).length === 0 || !wb.flightSchedule?.length;
+    const needsOryxProfile = wb?.videoProfile?.droneModel !== ORYX_AIRCRAFT_NAME;
+    if (needsSeed || needsOryxProfile) {
+      const nextConfig = needsSeed
+        ? createBcnWorkbenchConfig()
+        : resolveWorkbenchConfig({
+            ...wb,
+            videoProfile: createBcnWorkbenchConfig().videoProfile,
+          });
       const { error: updateError } = await supabase
         .from("realtime_video_scenarios")
         .update({
-          workbench_config: createBcnWorkbenchConfig(),
+          workbench_config: nextConfig,
           updated_at: new Date().toISOString(),
         })
         .eq("id", row.id);

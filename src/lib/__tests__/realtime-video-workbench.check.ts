@@ -16,6 +16,7 @@ import {
 import { buildAssumptionsRegister } from "@/lib/realtime-video-pipeline/workbench-assumptions";
 import {
   BCN_FLIGHT_SCHEDULE,
+  ORYX_AIRCRAFT_NAME,
   createBcnWorkbenchConfig,
   REFERENCE_MISSION_PROFILES,
 } from "@/lib/realtime-video-pipeline/workbench-reference-data";
@@ -64,6 +65,7 @@ const model = buildWorkbenchModel({
   pipeline: null,
 });
 assert.equal(model.schedule.flightHoursPerDay, 8);
+assert.equal(model.config.videoProfile.droneModel, ORYX_AIRCRAFT_NAME);
 assert.equal(model.overview.flightsPerDay, 4);
 assert.ok(model.criteria.length >= 4);
 assert.ok(model.architectureViews.length >= 5);

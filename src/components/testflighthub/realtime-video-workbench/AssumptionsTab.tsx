@@ -5,6 +5,8 @@ import { buildAssumptionsRegister } from "@/lib/realtime-video-pipeline/workbenc
 import { cn } from "@/lib/utils";
 
 function statusTone(status: string) {
+  if (status.includes("To Be Validated") || status === "Reference Assumption")
+    return "border-amber-400/30 bg-amber-500/15 text-amber-100";
   if (status === "Verified Specification" || status === "Measured")
     return "border-emerald-400/30 bg-emerald-500/15 text-emerald-100";
   if (status === "Calculated") return "border-sky-400/30 bg-sky-500/15 text-sky-100";
@@ -46,10 +48,10 @@ export function AssumptionsTab({ model }: { model: WorkbenchModel }) {
                   <span
                     className={cn(
                       "inline-flex rounded-full border px-2 py-0.5 text-[11px]",
-                      statusTone(row.status),
+                      statusTone(row.displayStatus),
                     )}
                   >
-                    {row.status}
+                    {row.displayStatus}
                   </span>
                 </td>
                 <td className="px-3 py-2 text-white/55">
