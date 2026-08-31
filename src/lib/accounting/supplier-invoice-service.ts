@@ -11,7 +11,11 @@ import {
   upsertSaecSupplierInvoiceDraft,
 } from "@/lib/saec/demo/saec-supplier-invoices-fixtures";
 import { createExpense, listExpenses, updateExpense } from "@/lib/financial-expenses-service";
-import { getInternalUserById, type ExpenseCurrency } from "@/lib/expenses-data";
+import {
+  getInternalUserById,
+  isSupplierAccountsPayableExpense,
+  type ExpenseCurrency,
+} from "@/lib/expenses-data";
 import { resolveAccountingFixtureSource } from "@/lib/workspace-accounting-fixtures";
 import { resolveFinancialsWorkspaceId, type FinancialsWorkspaceScope } from "@/lib/financials-workspace";
 import { requirePlatformSession } from "@/lib/platform-session";
@@ -63,7 +67,10 @@ export async function listSupplierInvoiceDrafts(
 
   const expenses = await listExpenses(scope);
   return expenses
-    .filter((expense) => expense.recordStatus === "draft")
+    .filter(
+      (expense) =>
+        expense.recordStatus === "draft" && isSupplierAccountsPayableExpense(expense),
+    )
     .map((expense) => mapExpenseToDraft(expense));
 }
 

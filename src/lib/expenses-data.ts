@@ -408,6 +408,50 @@ export function isAccountsPayableSeedExpense(expense: {
   return purpose.includes("· oa ap seed") || purpose.includes("· corpcentre ap seed");
 }
 
+const EMPLOYEE_EXPENSE_REFERENCE_PREFIXES = ["UNIT311-TOM-2026-", "IW-TOM-2026-"] as const;
+
+/** Seeded employee reimbursement rows (Tom Armenstein expense import). */
+export function isTomEmployeeExpenseReference(reference: string | null | undefined): boolean {
+  const ref = String(reference ?? "");
+  return EMPLOYEE_EXPENSE_REFERENCE_PREFIXES.some((prefix) => ref.startsWith(prefix));
+}
+
+/** Employee expense claim awaiting reimbursement — not a supplier invoice. */
+export function isEmployeeExpenseClaim(expense: {
+  reimbursable?: boolean | null;
+  claimantEmployeeId?: string | null;
+  expenseCategoryId?: string | null;
+  paymentMethod?: string | null;
+  reference?: string | null;
+  purposeDescription?: string | null;
+}): boolean {
+  if (isAccountsPayableSeedExpense(expense)) return false;
+  if (isTomEmployeeExpenseReference(expense.reference)) return true;
+  if (expense.reimbursable && expense.claimantEmployeeId) return true;
+  if (
+    expense.reimbursable &&
+    expense.paymentMethod === "personally_paid" &&
+    expense.expenseCategoryId
+  ) {
+    return true;
+  }
+  return false;
+}
+
+/** Supplier bill in Accounts Payable — excludes employee reimbursement claims. */
+export function isSupplierAccountsPayableExpense(expense: {
+  reimbursable?: boolean | null;
+  claimantEmployeeId?: string | null;
+  expenseCategoryId?: string | null;
+  paymentMethod?: string | null;
+  reference?: string | null;
+  purposeDescription?: string | null;
+}): boolean {
+  if (isEmployeeExpenseClaim(expense)) return false;
+  if (isAccountsPayableSeedExpense(expense)) return true;
+  return !expense.reimbursable && !expense.claimantEmployeeId;
+}
+
 export function getInternalUserById(userId: string) {
   return INTERNAL_EXPENSE_USERS.find((user) => user.id === userId) ?? null;
 }

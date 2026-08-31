@@ -50,6 +50,7 @@ import {
 import { isOnwardAirSlug, ONWARDAIR_REPORTING_CURRENCY } from "@/lib/onwardair-surface";
 import { isTalantonImpactSlug, TALANTON_REPORTING_CURRENCY } from "@/lib/talanton-surface";
 import { listExpenses } from "@/lib/financial-expenses-service";
+import { isSupplierAccountsPayableExpense } from "@/lib/expenses-data";
 import {
   resolveFinancialsWorkspaceId,
   type FinancialsWorkspaceScope,
@@ -502,7 +503,9 @@ export async function getFinancialOverview(
       else ageing[4].amount = roundMoney(ageing[4].amount + amountGbp);
     }
 
-    const unpaidExpenses = allExpenses.filter((expense) => !expense.paid);
+    const unpaidExpenses = allExpenses.filter(
+      (expense) => !expense.paid && isSupplierAccountsPayableExpense(expense),
+    );
     const monthEnd = `${monthPrefix}-31`;
     const apDueThisMonth = unpaidExpenses.filter((expense) => {
       const date = String(expense.expenseDate ?? expense.dateSubmitted ?? "");

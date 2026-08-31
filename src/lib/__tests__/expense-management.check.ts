@@ -6,7 +6,12 @@ import {
   countExpensesByWorkflow,
   sumOwedToEmployee,
 } from "@/lib/expense-workflow-summary";
-import { expenseWorkflowLabel } from "@/lib/expenses-data";
+import {
+  expenseWorkflowLabel,
+  isEmployeeExpenseClaim,
+  isSupplierAccountsPayableExpense,
+  isTomEmployeeExpenseReference,
+} from "@/lib/expenses-data";
 import { calculateExpectedPaymentDate } from "@/lib/expense-management/payment-schedule";
 import { resolveExpenseAccess } from "@/lib/expense-management/permissions";
 import { migrationsMissingSatisfactionProbes } from "@/lib/migration-satisfaction-probes";
@@ -102,4 +107,39 @@ test("workspace reporting currency resolves InterfaceWorx to GBP", () => {
   const { resolveSlugReportingCurrency } = require("@/lib/financial-reporting-currency") as typeof import("@/lib/financial-reporting-currency");
   assert.equal(resolveSlugReportingCurrency("interfaceworx"), "GBP");
   assert.equal(resolveSlugReportingCurrency("demo"), "GBP");
+});
+
+test("employee expense claims are excluded from supplier AP", () => {
+  const tomClaim = {
+    reference: "IW-TOM-2026-01",
+    reimbursable: true,
+    claimantEmployeeId: "hr-27ca32da",
+    expenseCategoryId: "cat-1",
+    paymentMethod: "personally_paid",
+    purposeDescription: "Zoho Email",
+  };
+  const supplierBill = {
+    reference: "AP-99201",
+    reimbursable: false,
+    claimantEmployeeId: null,
+    expenseCategoryId: null,
+    paymentMethod: null,
+    purposeDescription: "Acme Parts invoice",
+  };
+  const apSeed = {
+    reference: "OA-AP-001",
+    reimbursable: false,
+    claimantEmployeeId: null,
+    expenseCategoryId: null,
+    paymentMethod: null,
+    purposeDescription: "OA AP seed",
+  };
+
+  assert.equal(isTomEmployeeExpenseReference("IW-TOM-2026-12"), true);
+  assert.equal(isTomEmployeeExpenseReference("AP-99201"), false);
+  assert.equal(isEmployeeExpenseClaim(tomClaim), true);
+  assert.equal(isEmployeeExpenseClaim(supplierBill), false);
+  assert.equal(isSupplierAccountsPayableExpense(tomClaim), false);
+  assert.equal(isSupplierAccountsPayableExpense(supplierBill), true);
+  assert.equal(isSupplierAccountsPayableExpense(apSeed), true);
 });

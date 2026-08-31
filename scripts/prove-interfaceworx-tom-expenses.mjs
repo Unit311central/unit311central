@@ -11,6 +11,40 @@ const PASSWORD = process.env.DEMO_PROSPECT_PASSWORD ?? "Letmein2026$";
 const REF_PREFIX = "IW-TOM-2026-";
 const EXPECTED_TOTAL = 2996.06;
 
+function isAccountsPayableSeedExpense(expense) {
+  const ref = String(expense.reference ?? "").toUpperCase();
+  if (ref.startsWith("OA-AP-") || ref.startsWith("CC-AP-") || ref.startsWith("AP-DME")) {
+    return true;
+  }
+  const purpose = String(expense.purposeDescription ?? "").toLowerCase();
+  return purpose.includes("· oa ap seed") || purpose.includes("· corpcentre ap seed");
+}
+
+function isTomEmployeeExpenseReference(reference) {
+  const ref = String(reference ?? "");
+  return ref.startsWith("UNIT311-TOM-2026-") || ref.startsWith("IW-TOM-2026-");
+}
+
+function isEmployeeExpenseClaim(expense) {
+  if (isAccountsPayableSeedExpense(expense)) return false;
+  if (isTomEmployeeExpenseReference(expense.reference)) return true;
+  if (expense.reimbursable && expense.claimantEmployeeId) return true;
+  if (
+    expense.reimbursable &&
+    expense.paymentMethod === "personally_paid" &&
+    expense.expenseCategoryId
+  ) {
+    return true;
+  }
+  return false;
+}
+
+function isSupplierAccountsPayableExpense(expense) {
+  if (isEmployeeExpenseClaim(expense)) return false;
+  if (isAccountsPayableSeedExpense(expense)) return true;
+  return !expense.reimbursable && !expense.claimantEmployeeId;
+}
+
 function cookieHeader(setCookieHeaders) {
   const list = Array.isArray(setCookieHeaders)
     ? setCookieHeaders
@@ -80,6 +114,22 @@ async function main() {
   assert.ok(
     tomRows.every((row) => String(row.currency).toUpperCase() === "GBP"),
     "Tom expenses must be GBP",
+  );
+  assert.ok(
+    tomRows.every((row) => isEmployeeExpenseClaim(row)),
+    "Tom rows must classify as employee expense claims",
+  );
+  assert.ok(
+    tomRows.every((row) => !isSupplierAccountsPayableExpense(row)),
+    "Tom rows must not classify as supplier AP payables",
+  );
+  const supplierPayables = expenses.filter(
+    (row) => !row.paid && isSupplierAccountsPayableExpense(row),
+  );
+  assert.equal(
+    supplierPayables.length,
+    0,
+    `InterfaceWorx should have no open supplier AP payables from Tom import, found ${supplierPayables.length}`,
   );
 
   console.log(

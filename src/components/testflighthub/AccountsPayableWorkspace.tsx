@@ -7,6 +7,7 @@ import { Loader2, RefreshCw, Receipt } from "lucide-react";
 
 import { formatMoney } from "@/lib/accounting/chart-of-accounts";
 import { isBrowserDemoSurface } from "@/lib/demo-enterprise";
+import { isSupplierAccountsPayableExpense } from "@/lib/expenses-data";
 import { useWorkspaceReportingCurrency } from "@/lib/workspace-reporting-currency";
 import type { SupplierInvoiceDraft } from "@/lib/accounting/types";
 import type { NorthstarPayableCategory } from "@/lib/demo/northstar-ap-ar-fixtures";
@@ -121,8 +122,24 @@ export default function AccountsPayableWorkspace({
       }
 
       const expenses = (data.expenses ?? []) as Array<Record<string, unknown>>;
+      const supplierPayables = expenses.filter((expense) =>
+        isSupplierAccountsPayableExpense({
+          reimbursable: Boolean(expense.reimbursable),
+          claimantEmployeeId: expense.claimantEmployeeId
+            ? String(expense.claimantEmployeeId)
+            : null,
+          expenseCategoryId: expense.expenseCategoryId
+            ? String(expense.expenseCategoryId)
+            : null,
+          paymentMethod: expense.paymentMethod ? String(expense.paymentMethod) : null,
+          reference: expense.reference ? String(expense.reference) : null,
+          purposeDescription: expense.purposeDescription
+            ? String(expense.purposeDescription)
+            : null,
+        }),
+      );
       setRows(
-        expenses.map((expense) => ({
+        supplierPayables.map((expense) => ({
           id: String(expense.id),
           supplier: String(expense.supplier ?? expense.submitterName ?? "Supplier"),
           description: String(expense.purposeDescription ?? ""),
