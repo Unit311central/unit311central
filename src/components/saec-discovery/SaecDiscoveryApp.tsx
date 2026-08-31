@@ -563,7 +563,7 @@ export default function SaecDiscoveryApp({
       <div className="relative flex min-h-0 flex-1 gap-3 px-4 py-2 sm:px-5 lg:gap-4 lg:px-6">
         {/* Left column: logo, navigation, secure panel */}
         <aside className="flex w-[210px] shrink-0 flex-col pt-2 lg:w-[228px]">
-          <div className="mb-2 grid h-10 shrink-0 place-items-center justify-items-start">
+          <div className="mb-2 grid h-10 shrink-0 place-items-center justify-items-center">
             <SaecDiscoveryLogo height={28} maxWidth={100} priority />
           </div>
 

@@ -93,13 +93,24 @@ async function assertLogoPosition(page) {
     const aside = document.querySelector("aside");
     const logoBand = aside?.querySelector(".grid.h-10");
     const img = aside?.querySelector('img[alt="SAEC"]');
+    const asideRect = aside?.getBoundingClientRect();
+    const imgRect = img?.getBoundingClientRect();
+    const asideCenterX = asideRect ? asideRect.left + asideRect.width / 2 : null;
+    const imgCenterX = imgRect ? imgRect.left + imgRect.width / 2 : null;
+    const horizontalOffset =
+      asideCenterX != null && imgCenterX != null ? Math.abs(asideCenterX - imgCenterX) : null;
     return {
       logoInAside: Boolean(aside && img && aside.contains(img)),
       hasPreviousLogoBand: Boolean(logoBand),
+      horizontalOffset,
     };
   });
   assert.equal(metrics.logoInAside, true, "SAEC logo must remain in the aside");
   assert.equal(metrics.hasPreviousLogoBand, true, "SAEC logo must use the previous h-10 grid band");
+  assert.ok(
+    metrics.horizontalOffset != null && metrics.horizontalOffset <= 4,
+    `SAEC logo must be centered in the sidebar column (offset ${metrics.horizontalOffset}px)`,
+  );
 }
 
 async function assertPlaceholderAndComments(page) {
