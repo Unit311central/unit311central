@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useMemo, useState, startTransition } from "react";
 
 import TreasuryShell from "@/components/treasury/TreasuryShell";
+import CustomerTreasuryZeroPanel from "@/components/testflighthub/CustomerTreasuryZeroPanel";
+import { isBrowserCustomerWorkspaceSurface } from "@/lib/customer-workspace-surface";
 import { isBrowserDemoSurface } from "@/lib/demo-enterprise";
 import { useWorkspaceReportingCurrency } from "@/lib/workspace-reporting-currency";
 import type { TreasuryView } from "@/lib/treasury/treasury-types";
@@ -44,6 +46,7 @@ export default function WiseWorkspace({
   const [error, setError] = useState<string | null>(null);
 
   const reportingCurrency = useWorkspaceReportingCurrency();
+  const isCustomer = isBrowserCustomerWorkspaceSurface();
   const isUsdWorkspace = reportingCurrency === "USD";
   const demoMode = useMemo(
     () => isUsdWorkspace || isBrowserDemoSurface() || Boolean(status?.demoMode),
@@ -73,10 +76,18 @@ export default function WiseWorkspace({
   }, []);
 
   useEffect(() => {
+    if (isCustomer) {
+      setLoading(false);
+      return;
+    }
     startTransition(() => {
       void loadStatus("initial");
     });
-  }, [loadStatus]);
+  }, [isCustomer, loadStatus]);
+
+  if (isCustomer) {
+    return <CustomerTreasuryZeroPanel areaTitle={areaTitle} areaDescription={areaDescription} />;
+  }
 
   return (
     <TreasuryShell

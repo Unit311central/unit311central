@@ -25,9 +25,27 @@ export type CustomerFundraisingPipelineDeal = {
   notes: string;
 };
 
+export type CustomerFundraisingPitchDeck = {
+  id: string;
+  title: string;
+  version: string;
+  url: string;
+  notes: string;
+};
+
+export type CustomerFundraisingDataRoom = {
+  id: string;
+  name: string;
+  url: string;
+  investor: string;
+  notes: string;
+};
+
 export type CustomerFundraisingState = {
   investors: CustomerFundraisingInvestor[];
   pipeline: CustomerFundraisingPipelineDeal[];
+  pitchDecks: CustomerFundraisingPitchDeck[];
+  dataRooms: CustomerFundraisingDataRoom[];
 };
 
 type Listener = () => void;
@@ -41,13 +59,15 @@ function storageKey(slug: string) {
 }
 
 function emptyState(): CustomerFundraisingState {
-  return { investors: [], pipeline: [] };
+  return { investors: [], pipeline: [], pitchDecks: [], dataRooms: [] };
 }
 
 function clone(state: CustomerFundraisingState): CustomerFundraisingState {
   return {
     investors: state.investors.map((row) => ({ ...row })),
     pipeline: state.pipeline.map((row) => ({ ...row })),
+    pitchDecks: state.pitchDecks.map((row) => ({ ...row })),
+    dataRooms: state.dataRooms.map((row) => ({ ...row })),
   };
 }
 
@@ -66,7 +86,12 @@ function readPersisted(slug: string): CustomerFundraisingState | null {
     if (!raw) return null;
     const parsed = JSON.parse(raw) as CustomerFundraisingState;
     if (!Array.isArray(parsed.investors) || !Array.isArray(parsed.pipeline)) return null;
-    return parsed;
+    return {
+      investors: parsed.investors,
+      pipeline: parsed.pipeline,
+      pitchDecks: Array.isArray(parsed.pitchDecks) ? parsed.pitchDecks : [],
+      dataRooms: Array.isArray(parsed.dataRooms) ? parsed.dataRooms : [],
+    };
   } catch {
     return null;
   }
@@ -165,4 +190,54 @@ export function upsertCustomerFundraisingPipelineDeal(
 export function deleteCustomerFundraisingPipelineDeal(id: string, slug?: string | null) {
   const state = getState(slug);
   writeState(slug, { ...state, pipeline: state.pipeline.filter((row) => row.id !== id) });
+}
+
+export function upsertCustomerFundraisingPitchDeck(
+  input: Omit<CustomerFundraisingPitchDeck, "id"> & { id?: string },
+  slug?: string | null,
+) {
+  const state = getState(slug);
+  const id = input.id ?? uid("deck");
+  const row: CustomerFundraisingPitchDeck = {
+    id,
+    title: input.title,
+    version: input.version,
+    url: input.url,
+    notes: input.notes,
+  };
+  const pitchDecks = state.pitchDecks.some((item) => item.id === id)
+    ? state.pitchDecks.map((item) => (item.id === id ? row : item))
+    : [...state.pitchDecks, row];
+  writeState(slug, { ...state, pitchDecks });
+  return row;
+}
+
+export function deleteCustomerFundraisingPitchDeck(id: string, slug?: string | null) {
+  const state = getState(slug);
+  writeState(slug, { ...state, pitchDecks: state.pitchDecks.filter((row) => row.id !== id) });
+}
+
+export function upsertCustomerFundraisingDataRoom(
+  input: Omit<CustomerFundraisingDataRoom, "id"> & { id?: string },
+  slug?: string | null,
+) {
+  const state = getState(slug);
+  const id = input.id ?? uid("room");
+  const row: CustomerFundraisingDataRoom = {
+    id,
+    name: input.name,
+    url: input.url,
+    investor: input.investor,
+    notes: input.notes,
+  };
+  const dataRooms = state.dataRooms.some((item) => item.id === id)
+    ? state.dataRooms.map((item) => (item.id === id ? row : item))
+    : [...state.dataRooms, row];
+  writeState(slug, { ...state, dataRooms });
+  return row;
+}
+
+export function deleteCustomerFundraisingDataRoom(id: string, slug?: string | null) {
+  const state = getState(slug);
+  writeState(slug, { ...state, dataRooms: state.dataRooms.filter((row) => row.id !== id) });
 }
