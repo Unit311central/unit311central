@@ -3,6 +3,8 @@ import type { EmailAccountId } from "@/lib/email/types";
 import { resolveEmailWorkspaceId, type EmailWorkspaceScope } from "@/lib/email-workspace";
 
 import { getAccountDefinition, listEmailAccountIds } from "@/lib/email/accounts";
+import { resolveWorkspaceMailboxProfile } from "@/lib/email/mailbox-registry";
+import { primaryManagedAddress } from "@/lib/email/received-address";
 import { isPlatformManagedMailboxEmail } from "@/lib/email/platform-mailbox";
 
 type DbCredential = {
@@ -217,7 +219,18 @@ export async function saveMailboxCredentials(
   }
 
   const workspaceId = await resolveEmailWorkspaceId(scope);
-  const accountEmail = email?.trim() || getAccountDefinition(id).email;
+  const profile = await resolveWorkspaceMailboxProfile(id, { workspaceId });
+  let accountEmail = email?.trim() || "";
+  if (!accountEmail && profile) {
+    accountEmail = primaryManagedAddress(profile.addresses, profile.email);
+  }
+  if (!accountEmail) {
+    try {
+      accountEmail = getAccountDefinition(id).email;
+    } catch {
+      throw new Error(`Unknown mailbox: ${id}`);
+    }
+  }
 
   if (isSupabaseConfigured()) {
     const supabase = createSupabaseServerClient();

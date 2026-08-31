@@ -2,6 +2,7 @@ import { assertDemoMutationAllowedForRequest } from "@/lib/demo/mutation-guard";
 import { NextRequest, NextResponse } from "next/server";
 
 import { parseAccountId } from "@/lib/email/accounts";
+import { isMailboxAllowedOnWorkspace } from "@/lib/email/mailbox-registry";
 import { emailErrorResponse } from "@/lib/email/api-utils";
 import { sendMailboxReply } from "@/lib/email/smtp";
 import type { EmailAccountId } from "@/lib/email/types";
@@ -24,13 +25,14 @@ export async function POST(request: NextRequest) {
 
   try {
     await requirePlatformSession();
-    await requireCurrentWorkspace();
+    const workspace = await requireCurrentWorkspace();
 
     const body = (await request.json()) as {
       account?: EmailAccountId;
       messageId?: string;
       html?: string;
       text?: string;
+      fromAddress?: string;
       context?: {
         to?: string;
         subject?: string;
@@ -42,6 +44,13 @@ export async function POST(request: NextRequest) {
     const account = parseAccountId(body.account ?? null);
     if (!account) {
       return NextResponse.json({ error: "Valid account is required." }, { status: 400 });
+    }
+    const allowed = await isMailboxAllowedOnWorkspace(account, {
+      workspaceId: workspace.id,
+      workspaceSlug: workspace.slug,
+    });
+    if (!allowed) {
+      return NextResponse.json({ error: "Mailbox is not available on this workspace." }, { status: 403 });
     }
     if (!body.messageId?.trim()) {
       return NextResponse.json({ error: "messageId is required." }, { status: 400 });
@@ -65,7 +74,9 @@ export async function POST(request: NextRequest) {
       messageId: body.messageId,
       html: body.html,
       text: body.text,
+      fromAddress: body.fromAddress,
       context,
+      workspaceId: workspace.id,
     });
 
     return NextResponse.json({ ok: true, ...result });

@@ -1,4 +1,14 @@
-export type EmailAccountId = "info" | "paul" | "admin" | "demo";
+export type PlatformEmailAccountId = "info" | "paul" | "admin" | "demo";
+
+/** Platform ids (info/paul/admin/demo) or workspace-scoped mailbox slugs (e.g. tom). */
+export type EmailAccountId = PlatformEmailAccountId | (string & {});
+
+export type EmailManagedAddressKind = "primary" | "alias";
+
+export type EmailManagedAddress = {
+  address: string;
+  kind: EmailManagedAddressKind;
+};
 
 export type EmailMailboxFolder = "inbox" | "sent";
 
@@ -6,6 +16,9 @@ export type EmailAccount = {
   id: EmailAccountId;
   email: string;
   name: string;
+  provider?: "zoho";
+  addresses?: EmailManagedAddress[];
+  configured?: boolean;
 };
 
 export type EmailAttachmentMeta = {
@@ -36,6 +49,8 @@ export type EmailMessage = {
   references: string[];
   replyToEmail: string | null;
   direction: "inbound" | "outbound";
+  /** Managed address the message was received on (inbound) or sent from (outbound). */
+  receivedBy: string | null;
 };
 
 export type EmailThreadStatus = "unread" | "open" | "replied" | "closed";
@@ -52,6 +67,7 @@ export type EmailSendPayload = {
   cc?: string;
   bcc?: string;
   replyTo?: string;
+  fromAddress?: string;
   subject: string;
   html?: string;
   text?: string;
@@ -74,8 +90,10 @@ export type EmailReplyPayload = {
   messageId: string;
   html?: string;
   text?: string;
+  fromAddress?: string;
   /** When provided, SMTP send skips IMAP re-fetch (required when inbox read is unavailable). */
   context?: EmailReplyContext;
+  workspaceId?: string | null;
 };
 
 export class EmailServiceError extends Error {

@@ -7,21 +7,32 @@ import {
   ZOHO_SMTP_PORT,
 } from "@/lib/email/accounts";
 import { fetchMailboxMessageById } from "@/lib/email/imap";
+import { resolveWorkspaceMailboxProfile } from "@/lib/email/mailbox-registry";
+import {
+  isAllowedFromAddress,
+  primaryManagedAddress,
+} from "@/lib/email/received-address";
 import {
   EmailServiceError,
   type EmailAccountId,
   type EmailReplyPayload,
   type EmailSendPayload,
 } from "@/lib/email/types";
+import type { EmailWorkspaceScope } from "@/lib/email-workspace";
 
-function createTransport(
+async function createTransport(
   accountId: EmailAccountId,
-  scope?: { workspaceId?: string | null },
+  scope?: EmailWorkspaceScope,
 ) {
-  return getAccountCredentials(accountId, scope).then((credentials) => ({
+  const profile = await resolveWorkspaceMailboxProfile(accountId, scope);
+  const credentials = await getAccountCredentials(accountId, scope);
+  const smtpHost = profile?.smtpHost ?? ZOHO_SMTP_HOST;
+
+  return {
     credentials,
+    profile,
     transport: nodemailer.createTransport({
-      host: ZOHO_SMTP_HOST,
+      host: smtpHost,
       port: ZOHO_SMTP_PORT,
       secure: true,
       auth: {
@@ -32,14 +43,26 @@ function createTransport(
       greetingTimeout: 20_000,
       socketTimeout: 30_000,
     } satisfies SMTPTransport.Options),
-  }));
+  };
+}
+
+function resolveFromAddress(
+  requested: string | null | undefined,
+  profile: Awaited<ReturnType<typeof resolveWorkspaceMailboxProfile>>,
+  credentialsEmail: string,
+): string {
+  const managed = profile?.addresses ?? [{ address: credentialsEmail, kind: "primary" as const }];
+  if (requested && isAllowedFromAddress(requested, managed)) {
+    return requested.trim().toLowerCase();
+  }
+  return primaryManagedAddress(managed, credentialsEmail);
 }
 
 export async function verifyMailboxTransport(
   accountId: EmailAccountId,
-  scope?: { workspaceId?: string | null },
+  scope?: EmailWorkspaceScope,
 ) {
-  const { credentials, transport } = await createTransport(accountId, scope);
+  const { credentials, transport, profile } = await createTransport(accountId, scope);
 
   try {
     await transport.verify();
@@ -47,7 +70,7 @@ export async function verifyMailboxTransport(
       ok: true as const,
       account: accountId,
       email: credentials.email,
-      host: ZOHO_SMTP_HOST,
+      host: profile?.smtpHost ?? ZOHO_SMTP_HOST,
       port: ZOHO_SMTP_PORT,
     };
   } catch (error) {
@@ -67,13 +90,13 @@ function parseRecipients(value: string | undefined) {
 }
 
 export async function sendMailboxEmail(payload: EmailSendPayload) {
-  const { credentials, transport } = await createTransport(payload.account, {
-    workspaceId: payload.workspaceId,
-  });
+  const scope = payload.workspaceId ? { workspaceId: payload.workspaceId } : undefined;
+  const { credentials, transport, profile } = await createTransport(payload.account, scope);
+  const fromAddress = resolveFromAddress(payload.fromAddress, profile, credentials.email);
 
   try {
     const info = await transport.sendMail({
-      from: credentials.email,
+      from: fromAddress,
       to: parseRecipients(payload.to),
       cc: parseRecipients(payload.cc),
       bcc: parseRecipients(payload.bcc),
@@ -94,6 +117,7 @@ export async function sendMailboxEmail(payload: EmailSendPayload) {
     return {
       messageId: info.messageId ?? null,
       accepted: info.accepted,
+      fromAddress,
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to send email.";
@@ -108,9 +132,10 @@ function buildReplySubject(subject: string) {
 }
 
 export async function sendMailboxReply(payload: EmailReplyPayload) {
+  const scope = payload.workspaceId ? { workspaceId: payload.workspaceId } : undefined;
   const original = payload.context
     ? null
-    : await fetchMailboxMessageById(payload.account, payload.messageId);
+    : await fetchMailboxMessageById(payload.account, payload.messageId, "inbox", scope);
 
   const replyTo =
     payload.context?.to?.trim() ||
@@ -133,11 +158,17 @@ export async function sendMailboxReply(payload: EmailReplyPayload) {
     ? [...threadingReferences, threadingMessageId].filter(Boolean)
     : threadingReferences;
 
-  const { credentials, transport } = await createTransport(payload.account);
+  const preferredFrom =
+    payload.fromAddress ??
+    (original?.direction === "inbound" ? original.receivedBy : null) ??
+    undefined;
+
+  const { credentials, transport, profile } = await createTransport(payload.account, scope);
+  const fromAddress = resolveFromAddress(preferredFrom, profile, credentials.email);
 
   try {
     const info = await transport.sendMail({
-      from: credentials.email,
+      from: fromAddress,
       to: replyTo,
       subject,
       text,
@@ -149,6 +180,7 @@ export async function sendMailboxReply(payload: EmailReplyPayload) {
     return {
       messageId: info.messageId ?? null,
       accepted: info.accepted,
+      fromAddress,
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to send reply.";

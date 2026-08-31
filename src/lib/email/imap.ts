@@ -7,6 +7,11 @@ import {
   ZOHO_IMAP_HOST,
   ZOHO_IMAP_PORT,
 } from "@/lib/email/accounts";
+import { resolveWorkspaceMailboxProfile } from "@/lib/email/mailbox-registry";
+import {
+  resolveReceivedByAddress,
+  resolveSentFromAddress,
+} from "@/lib/email/received-address";
 import type { EmailWorkspaceScope } from "@/lib/email-workspace";
 import { EmailServiceError, type EmailAccountId, type EmailAttachmentMeta, type EmailMailboxFolder, type EmailMessage } from "@/lib/email/types";
 
@@ -96,14 +101,17 @@ async function withImapClient<T>(
   scope?: EmailWorkspaceScope,
 ): Promise<T> {
   let credentials;
+  const profile = await resolveWorkspaceMailboxProfile(accountId, scope);
   try {
     credentials = await getAccountCredentials(accountId, scope);
   } catch {
     throw new EmailServiceError("Mailbox credentials are not configured.", "NOT_CONFIGURED");
   }
 
+  const imapHost = profile?.imapHost ?? ZOHO_IMAP_HOST;
+
   const client = new ImapFlow({
-    host: ZOHO_IMAP_HOST,
+    host: imapHost,
     port: ZOHO_IMAP_PORT,
     secure: true,
     auth: {
@@ -135,6 +143,7 @@ async function parseMessageSource(
     uid: number;
     unread: boolean;
     mailboxEmail: string;
+    managedAddresses: { address: string; kind: "primary" | "alias" }[];
   },
 ): Promise<EmailMessage> {
   const parsed = await simpleParser(source);
@@ -157,8 +166,27 @@ async function parseMessageSource(
       : [parsed.references]
     : [];
   const fromEmail = from.email.toLowerCase();
+  const managedSet = new Set(
+    meta.managedAddresses.map((entry) => entry.address.trim().toLowerCase()).filter(Boolean),
+  );
   const direction =
-    fromEmail === meta.mailboxEmail.toLowerCase() ? ("outbound" as const) : ("inbound" as const);
+    fromEmail === meta.mailboxEmail.toLowerCase() || managedSet.has(fromEmail)
+      ? ("outbound" as const)
+      : ("inbound" as const);
+  const receivedBy =
+    direction === "inbound"
+      ? resolveReceivedByAddress({
+          headers: parsed.headers,
+          to: parsed.to,
+          cc: parsed.cc,
+          managedAddresses: meta.managedAddresses,
+          mailboxAuthEmail: meta.mailboxEmail,
+        })
+      : resolveSentFromAddress({
+          fromEmail: from.email,
+          managedAddresses: meta.managedAddresses,
+          mailboxAuthEmail: meta.mailboxEmail,
+        });
 
   return {
     id: String(meta.uid),
@@ -181,6 +209,7 @@ async function parseMessageSource(
     references,
     replyToEmail,
     direction,
+    receivedBy,
   };
 }
 
@@ -221,6 +250,10 @@ export async function fetchMailboxMessages(
   scope?: EmailWorkspaceScope,
 ): Promise<EmailMessage[]> {
   return withImapClient(accountId, async (client, mailboxEmail) => {
+    const profile = await resolveWorkspaceMailboxProfile(accountId, scope);
+    const managedAddresses =
+      profile?.addresses ??
+      [{ address: mailboxEmail, kind: "primary" as const }];
     const folderPath = await resolveImapFolderPath(client, folder);
     const lock = await client.getMailboxLock(folderPath);
     try {
@@ -242,6 +275,7 @@ export async function fetchMailboxMessages(
           uid: item.uid,
           unread,
           mailboxEmail,
+          managedAddresses,
         });
         messages.push(
           folder === "sent"
@@ -271,6 +305,10 @@ export async function fetchMailboxMessageById(
   }
 
   return withImapClient(accountId, async (client, mailboxEmail) => {
+    const profile = await resolveWorkspaceMailboxProfile(accountId, scope);
+    const managedAddresses =
+      profile?.addresses ??
+      [{ address: mailboxEmail, kind: "primary" as const }];
     const folderPath = await resolveImapFolderPath(client, folder);
     const lock = await client.getMailboxLock(folderPath);
     try {
@@ -286,6 +324,7 @@ export async function fetchMailboxMessageById(
         uid: item.uid,
         unread: !item.flags?.has("\\Seen"),
         mailboxEmail,
+        managedAddresses,
       });
       return folder === "sent"
         ? { ...parsed, direction: "outbound" as const, unread: false }
@@ -334,5 +373,9 @@ export async function fetchAttachmentContent(
 }
 
 export function getMailboxLabel(accountId: EmailAccountId) {
-  return getAccountDefinition(accountId).email;
+  try {
+    return getAccountDefinition(accountId).email;
+  } catch {
+    return accountId;
+  }
 }

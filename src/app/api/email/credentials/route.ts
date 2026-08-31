@@ -2,6 +2,7 @@ import { assertDemoMutationAllowedForRequest } from "@/lib/demo/mutation-guard";
 import { NextRequest, NextResponse } from "next/server";
 
 import { parseAccountId } from "@/lib/email/accounts";
+import { isMailboxAllowedOnWorkspace } from "@/lib/email/mailbox-registry";
 import {
   ensureWorkspaceMailboxCredentialsFromEnv,
   getMailboxCredentialStatus,
@@ -61,6 +62,13 @@ export async function POST(request: NextRequest) {
     const account = parseAccountId(body.account ?? null);
     if (!account) {
       return NextResponse.json({ error: "Valid account is required." }, { status: 400 });
+    }
+    const allowed = await isMailboxAllowedOnWorkspace(account, {
+      workspaceId: workspace.id,
+      workspaceSlug: workspace.slug,
+    });
+    if (!allowed) {
+      return NextResponse.json({ error: "Mailbox is not available on this workspace." }, { status: 403 });
     }
     const password = body.password?.trim() ?? "";
     if (!password) {
