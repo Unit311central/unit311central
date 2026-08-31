@@ -54,7 +54,7 @@ try {
 
   await page.getByRole("button", { name: "Reporting", exact: true }).click();
   await page.locator("#reporting-regular-reports").fill("Monthly P&L");
-  await page.locator("#reporting-kpis-anytime").fill("Cash flow");
+  await page.locator("#reporting-immediate-information").fill("Cash flow");
 
   await page.getByRole("button", { name: "General", exact: true }).click();
   await page.waitForSelector("#general-top-annoyances");
