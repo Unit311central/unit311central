@@ -25,3 +25,21 @@ export type SaecDiscoverySubmissionStatus = {
   submittedAt: string | null;
   updatedAt: string | null;
 };
+
+export type SaecDiscoveryDraftRecord = {
+  id: string;
+  workspaceId: string;
+  workspaceSlug: string;
+  workspaceName: string;
+  ownerUserId: string;
+  ownerEmail: string | null;
+  responses: SaecDiscoveryState;
+  lastSavedAt: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type SaecDiscoveryFeedbackSnapshot = {
+  drafts: SaecDiscoveryDraftRecord[];
+  submissions: SaecDiscoverySubmissionRecord[];
+};

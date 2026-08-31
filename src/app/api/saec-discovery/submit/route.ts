@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { getPlatformSession } from "@/lib/platform-session";
 import {
   getSaecDiscoverySubmissionStatus,
   submitSaecDiscoveryQuestionnaire,
@@ -24,6 +25,7 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
+    const session = await getPlatformSession();
     const body = (await request.json()) as Record<string, unknown>;
     if (!body.responses || typeof body.responses !== "object") {
       return NextResponse.json({ error: "responses is required." }, { status: 400 });
@@ -32,7 +34,10 @@ export async function POST(request: NextRequest) {
     const submission = await submitSaecDiscoveryQuestionnaire({
       responses: body.responses,
       submittedByEmail:
-        typeof body.submittedByEmail === "string" ? body.submittedByEmail : null,
+        typeof body.submittedByEmail === "string"
+          ? body.submittedByEmail
+          : session?.username ?? null,
+      ownerUserId: session?.sub ?? null,
     });
 
     return NextResponse.json({

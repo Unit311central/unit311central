@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { getRequestHost, isInternalDomainHost } from "@/lib/app-domains";
 import { getPlatformSession } from "@/lib/platform-session";
-import { getSaecDiscoverySubmissionsForInternal } from "@/lib/saec-discovery/submissions-service";
+import { getSaecDiscoveryFeedbackForInternal } from "@/lib/saec-discovery/submissions-service";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -25,8 +25,8 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const submissions = await getSaecDiscoverySubmissionsForInternal();
-    return NextResponse.json({ submissions }, {
+    const snapshot = await getSaecDiscoveryFeedbackForInternal();
+    return NextResponse.json(snapshot, {
       headers: { "Cache-Control": "private, no-store" },
     });
   } catch (error) {

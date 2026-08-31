@@ -124,6 +124,7 @@ export const UNIT311_PENDING_MIGRATIONS = [
   "supabase/migrations/184_saec_demo_omnitransit_full_access.sql",
   "supabase/migrations/185_saec_discovery_submissions.sql",
   "supabase/migrations/187_saec_discovery_submissions_multiple.sql",
+  "supabase/migrations/188_saec_discovery_drafts.sql",
   "supabase/migrations/186_qa_workspace_task_beta_statuses.sql",
 ] as const;
 

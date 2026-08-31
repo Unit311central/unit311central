@@ -1,15 +1,20 @@
 import "server-only";
 
 import {
+  clearSaecDiscoveryDraftForOwner,
+  getSaecDiscoveryDraftsForInternal,
+} from "@/lib/saec-discovery/drafts-service";
+import {
   discoveryResponsesAreBlank,
   normalizeDiscoveryResponses,
 } from "@/lib/saec-discovery/config";
-import { notifySaecDiscoverySubmitted } from "@/lib/saec-discovery/submit-notify";
 import type {
+  SaecDiscoveryFeedbackSnapshot,
   SaecDiscoveryState,
   SaecDiscoverySubmissionRecord,
   SaecDiscoverySubmissionStatus,
 } from "@/lib/saec-discovery/types";
+import { notifySaecDiscoverySubmitted } from "@/lib/saec-discovery/submit-notify";
 import { SAEC_SLUG } from "@/lib/saec-surface";
 import {
   createSupabaseServiceRoleClient,
@@ -101,6 +106,7 @@ export async function getSaecDiscoverySubmissionStatus(): Promise<SaecDiscoveryS
 export async function submitSaecDiscoveryQuestionnaire(input: {
   responses: unknown;
   submittedByEmail?: string | null;
+  ownerUserId?: string | null;
 }): Promise<SaecDiscoverySubmissionRecord> {
   const supabase = requireServiceSupabase();
   const workspace = await resolveSaecWorkspaceId(supabase);
@@ -131,6 +137,9 @@ export async function submitSaecDiscoveryQuestionnaire(input: {
 
   if (error) throw new Error(error.message);
   const record = mapSubmissionRow(data as DbSubmissionRow);
+  if (input.ownerUserId?.trim()) {
+    await clearSaecDiscoveryDraftForOwner({ ownerUserId: input.ownerUserId.trim() });
+  }
   void notifySaecDiscoverySubmitted(record);
   return record;
 }
@@ -154,4 +163,12 @@ export async function getSaecDiscoverySubmissionsForInternal(): Promise<SaecDisc
 export async function getSaecDiscoverySubmissionForInternal(): Promise<SaecDiscoverySubmissionRecord | null> {
   const submissions = await getSaecDiscoverySubmissionsForInternal();
   return submissions[0] ?? null;
+}
+
+export async function getSaecDiscoveryFeedbackForInternal(): Promise<SaecDiscoveryFeedbackSnapshot> {
+  const [drafts, submissions] = await Promise.all([
+    getSaecDiscoveryDraftsForInternal(),
+    getSaecDiscoverySubmissionsForInternal(),
+  ]);
+  return { drafts, submissions };
 }
