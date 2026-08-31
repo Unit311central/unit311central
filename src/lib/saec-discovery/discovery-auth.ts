@@ -35,12 +35,13 @@ export function isSaecDiscoveryUsername(username: string | null | undefined): bo
 }
 
 export function verifySaecDiscoveryPassword(password: string): boolean {
+  const normalized = String(password ?? "").trim();
   const fromEnv = String(process.env.SAEC_DISCOVERY_PASSWORD ?? "").trim();
-  if (fromEnv && password === fromEnv) {
+  if (fromEnv && normalized === fromEnv) {
     return true;
   }
-  if (!password) return false;
-  const candidate = scryptSync(password, DISCOVERY_PASSWORD_SALT, 64).toString("hex");
+  if (!normalized) return false;
+  const candidate = scryptSync(normalized, DISCOVERY_PASSWORD_SALT, 64).toString("hex");
   try {
     return timingSafeEqual(
       Buffer.from(DISCOVERY_PASSWORD_HASH, "hex"),

@@ -32,6 +32,11 @@ const loginRoute = readFileSync(
   "utf8",
 );
 assert.match(loginRoute, /createSaecDiscoveryLoginResponse/, "login route must support discovery auth");
+assert.match(
+  loginRoute,
+  /isSaecDiscoveryUsername\(body\.username\)/,
+  "discovery login must run before generic platform auth",
+);
 
 const loginUi = readFileSync(
   path.join(root, "src/components/saec-discovery/SaecDiscoveryLogin.tsx"),

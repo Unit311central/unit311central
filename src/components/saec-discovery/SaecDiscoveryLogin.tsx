@@ -21,7 +21,7 @@ function readLoginFields(form: HTMLFormElement) {
   const passwordInput = form.elements.namedItem("password");
   const username =
     usernameInput instanceof HTMLInputElement ? usernameInput.value.trim() : "";
-  const password = passwordInput instanceof HTMLInputElement ? passwordInput.value : "";
+  const password = passwordInput instanceof HTMLInputElement ? passwordInput.value.trim() : "";
   return { username, password };
 }
 

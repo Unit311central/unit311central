@@ -68,11 +68,14 @@ import { canonicalizeSaecWorkspaceSlug, isSaecSlug, SAEC_SLUG } from "@/lib/saec
 import {
   isSaecDiscoveryUsername,
   SAEC_DISCOVERY_DISPLAY_NAME,
-  SAEC_DISCOVERY_USER_ID,
   SAEC_DISCOVERY_USERNAME,
   verifySaecDiscoveryPassword,
   wantsSaecDiscoveryPostLogin,
 } from "@/lib/saec-discovery/discovery-auth";
+import {
+  provisionSaecDiscoveryAccount,
+  resolveSaecDiscoveryPlatformUserId,
+} from "@/lib/saec-discovery/provision-discovery-account";
 import { canonicalizePailexSlug } from "@/lib/pailex/pailex-surface";
 import { canonicalizeWolfCentralSlug, isWolfCentralSlug } from "@/lib/wolf/wolf-surface";
 import {
@@ -734,7 +737,8 @@ async function createSaecDiscoveryLoginResponse(
   nextRaw: string | null,
 ) {
   const username = normalizePlatformUsername(usernameRaw);
-  if (!isSaecDiscoveryUsername(username) || !verifySaecDiscoveryPassword(password)) {
+  const normalizedPassword = String(password ?? "").trim();
+  if (!isSaecDiscoveryUsername(username) || !verifySaecDiscoveryPassword(normalizedPassword)) {
     return null;
   }
 
@@ -744,9 +748,14 @@ async function createSaecDiscoveryLoginResponse(
   });
   if (!workspace) return null;
 
+  const platformUserId = await resolveSaecDiscoveryPlatformUserId();
+  void provisionSaecDiscoveryAccount(normalizedPassword).catch(() => {
+    // Keep login fast — post-deploy provision remains the primary sync path.
+  });
+
   const session: PlatformSession = withSessionWorkspace(
     {
-      sub: SAEC_DISCOVERY_USER_ID,
+      sub: platformUserId,
       username: normalizePlatformUsername(SAEC_DISCOVERY_USERNAME),
       displayName: SAEC_DISCOVERY_DISPLAY_NAME,
       userType: "internal",
@@ -815,6 +824,18 @@ export async function POST(request: NextRequest) {
       returnToFromReferer(request) ||
       hostWorkspaceOrigin;
     const nextRaw = body.next?.trim() || nextFromReferer(request) || null;
+
+    if (isSaecDiscoveryUsername(body.username)) {
+      const discoveryLogin = await createSaecDiscoveryLoginResponse(
+        request,
+        body.username,
+        body.password,
+        returnToRaw,
+        nextRaw,
+      );
+      if (discoveryLogin) return discoveryLogin;
+      return NextResponse.json({ error: "Invalid username or password." }, { status: 401 });
+    }
 
     const loginReturn = parseLoginReturnTo(returnToRaw);
     const resolvedWorkspaceSlug =
@@ -1022,15 +1043,6 @@ export async function POST(request: NextRequest) {
       workspaceSlug,
     );
     if (omnitransitPortalLogin) return omnitransitPortalLogin;
-
-    const saecDiscoveryLogin = await createSaecDiscoveryLoginResponse(
-      request,
-      body.username,
-      body.password,
-      returnToRaw,
-      nextRaw,
-    );
-    if (saecDiscoveryLogin) return saecDiscoveryLogin;
 
     return NextResponse.json({ error: "Invalid username or password." }, { status: 401 });
   } catch (error) {

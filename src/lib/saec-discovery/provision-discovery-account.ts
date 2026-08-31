@@ -156,3 +156,37 @@ export async function provisionSaecDiscoveryAccount(
     created,
   };
 }
+
+/** Prefer the provisioned platform_users row — credential login must match SAEC membership. */
+export async function resolveSaecDiscoveryPlatformUserId(): Promise<string> {
+  if (!isSupabaseConfigured()) {
+    return SAEC_DISCOVERY_USER_ID;
+  }
+
+  const supabase = createTenancyServerClient();
+  const email = SAEC_DISCOVERY_USERNAME.trim().toLowerCase();
+  const username = email;
+
+  const { data: byEmail } = await supabase
+    .from("platform_users")
+    .select("id")
+    .eq("email", email)
+    .maybeSingle();
+  if (byEmail?.id) return String(byEmail.id);
+
+  const { data: byUsername } = await supabase
+    .from("platform_users")
+    .select("id")
+    .eq("username", username)
+    .maybeSingle();
+  if (byUsername?.id) return String(byUsername.id);
+
+  const { data: byId } = await supabase
+    .from("platform_users")
+    .select("id")
+    .eq("id", SAEC_DISCOVERY_USER_ID)
+    .maybeSingle();
+  if (byId?.id) return String(byId.id);
+
+  return SAEC_DISCOVERY_USER_ID;
+}
