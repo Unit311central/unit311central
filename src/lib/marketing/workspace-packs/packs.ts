@@ -18,7 +18,7 @@ function unavailable(
 }
 
 function centralPlatformPack(
-  id: "internal" | "demo" | "saec",
+  id: "internal" | "demo" | "saec" | "customer",
   label: string,
 ): MarketingWorkspacePack {
   return {
@@ -73,6 +73,9 @@ export const internalMarketingPack = centralPlatformPack("internal", "Unit311 In
 export const demoMarketingPack = centralPlatformPack("demo", "Northstar Demo");
 
 export const saecMarketingPack = centralPlatformPack("saec", "OmniTransit");
+
+/** Generic customer workspaces (Interface Worx, etc.) — central marketing renderers, empty until configured. */
+export const customerMarketingPack = centralPlatformPack("customer", "Customer workspace");
 
 export const onwardAirMarketingPack: MarketingWorkspacePack = {
   id: "onwardair",

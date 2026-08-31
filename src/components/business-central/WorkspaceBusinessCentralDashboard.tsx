@@ -42,6 +42,7 @@ export default function WorkspaceBusinessCentralDashboard() {
       description="Commercial snapshot across clients, pipeline, discovery, onboarding, partners, and grants."
       summary={EMPTY_BC_DASHBOARD_SUMMARY}
       grantsTile={{ value: "—", hint: "No grant programmes configured" }}
+      currency="GBP"
     />
   );
 }

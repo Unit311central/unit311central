@@ -1200,6 +1200,20 @@ export function createInitialAssetRegistry(): AssetRegistryState {
     } catch {
       // Fall through to Internal registry.
     }
+
+    try {
+      const { isBrowserCustomerWorkspaceSurface } =
+        require("@/lib/customer-workspace-surface") as typeof import("@/lib/customer-workspace-surface");
+      if (isBrowserCustomerWorkspaceSurface()) {
+        return {
+          assets: [],
+          categories: [...DEFAULT_ASSET_CATEGORIES],
+          locations: [],
+        };
+      }
+    } catch {
+      // Fall through.
+    }
   }
 
   const assets = [

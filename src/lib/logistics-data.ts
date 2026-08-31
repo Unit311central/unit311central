@@ -664,6 +664,17 @@ const CORPCENTRE_LOGISTICS_SHIPMENTS: LogisticsShipment[] = [
 ];
 
 export function getLogisticsMockShipments(): LogisticsShipment[] {
+  if (typeof window !== "undefined") {
+    try {
+      const { isBrowserCustomerWorkspaceSurface } =
+        require("@/lib/customer-workspace-surface") as typeof import("@/lib/customer-workspace-surface");
+      if (isBrowserCustomerWorkspaceSurface()) {
+        return [];
+      }
+    } catch {
+      // Fall through.
+    }
+  }
   if (isOnwardAirLogisticsSurface()) {
     const { ONWARDAIR_LOGISTICS_SHIPMENTS } =
       require("@/lib/onwardair/operations-data") as typeof import("@/lib/onwardair/operations-data");
@@ -697,6 +708,19 @@ export function getFeaturedLogisticsRoute(): FeaturedRouteSnapshot {
 }
 
 export function getLogisticsBrandName() {
+  if (typeof window !== "undefined") {
+    try {
+      const { isBrowserCustomerWorkspaceSurface } =
+        require("@/lib/customer-workspace-surface") as typeof import("@/lib/customer-workspace-surface");
+      if (isBrowserCustomerWorkspaceSurface()) {
+        const { resolveBrowserWorkspaceDisplayName } =
+          require("@/lib/workspace-brand") as typeof import("@/lib/workspace-brand");
+        return `${resolveBrowserWorkspaceDisplayName()} Logistics`;
+      }
+    } catch {
+      // Fall through.
+    }
+  }
   if (isOnwardAirLogisticsSurface()) return "OnwardAir Logistics";
   if (isOmniTransitLogisticsSurface()) return "OmniTransit Logistics";
   if (isAbhiLogisticsSurface()) return "ABHI Logistics";

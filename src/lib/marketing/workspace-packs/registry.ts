@@ -3,6 +3,7 @@ import type { MarketingWorkspaceKey } from "@/lib/marketing/workspace-context";
 import type { MarketingWorkspacePack } from "./types";
 import {
   abhiMarketingPack,
+  customerMarketingPack,
   demoMarketingPack,
   internalMarketingPack,
   onwardAirMarketingPack,
@@ -37,6 +38,7 @@ export function ensureMarketingWorkspacePacksRegistered(): boolean {
     registerMarketingWorkspacePack(talantonMarketingPack);
     registerMarketingWorkspacePack(abhiMarketingPack);
     registerMarketingWorkspacePack(saecMarketingPack);
+    registerMarketingWorkspacePack(customerMarketingPack);
     bootstrapped = true;
   }
   return bootstrapped;

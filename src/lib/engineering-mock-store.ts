@@ -28,6 +28,25 @@ let state: EngineeringMockState = buildInitialEngineeringState();
 function buildInitialEngineeringState(): EngineeringMockState {
   if (typeof window !== "undefined") {
     try {
+      const { isBrowserCustomerWorkspaceSurface } =
+        require("@/lib/customer-workspace-surface") as typeof import("@/lib/customer-workspace-surface");
+      if (isBrowserCustomerWorkspaceSurface()) {
+        return {
+          engineers: [],
+          projects: [],
+          activity: [],
+          incidents: [],
+          debt: [],
+          currentSprint: "—",
+          upcomingReleases: [],
+          infraStatus: "Not configured",
+        };
+      }
+    } catch {
+      // Fall through.
+    }
+
+    try {
       const { isBrowserSaecSurface } =
         require("@/lib/saec-surface") as typeof import("@/lib/saec-surface");
       if (isBrowserSaecSurface()) {

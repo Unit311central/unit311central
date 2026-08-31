@@ -55,7 +55,39 @@ export type TqmsMockState = {
 
 let state: TqmsMockState = createInitialTqmsState();
 
+function createEmptyTqmsState(): TqmsMockState {
+  return {
+    courses: [],
+    learners: [],
+    assignments: [],
+    certificates: [],
+    assessments: [],
+    learningPaths: [],
+    activity: [],
+    events: [],
+    documents: [],
+    capas: [],
+    audits: [],
+    managementReviews: [],
+    reports: [],
+    notes: [],
+    qmsSections: [],
+  };
+}
+
 function createInitialTqmsState(): TqmsMockState {
+  if (typeof window !== "undefined") {
+    try {
+      const { isBrowserCustomerWorkspaceSurface } =
+        require("@/lib/customer-workspace-surface") as typeof import("@/lib/customer-workspace-surface");
+      if (isBrowserCustomerWorkspaceSurface()) {
+        return createEmptyTqmsState();
+      }
+    } catch {
+      // Fall through.
+    }
+  }
+
   const fixtures = tryGetDemoFixtures();
   let base: TqmsMockState = {
     courses: createSeedTqmsCourses(),
@@ -258,6 +290,24 @@ export function subscribeTqmsMockStore(listener: () => void) {
 }
 
 export function getTqmsMockSnapshot(): TqmsMockState {
+  if (typeof window !== "undefined") {
+    try {
+      const { isBrowserCustomerWorkspaceSurface } =
+        require("@/lib/customer-workspace-surface") as typeof import("@/lib/customer-workspace-surface");
+      if (isBrowserCustomerWorkspaceSurface()) {
+        const hasLegacy =
+          state.courses.length > 0 ||
+          state.learners.length > 0 ||
+          state.documents.length > 0 ||
+          state.capas.length > 0;
+        if (hasLegacy) {
+          state = createEmptyTqmsState();
+        }
+      }
+    } catch {
+      /* ignore */
+    }
+  }
   // Re-seed once on Demo if Internal Unit311 academy leaked in via SSR.
   if (
     typeof window !== "undefined" &&

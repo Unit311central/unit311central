@@ -5,12 +5,14 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import SoftwareSaasExecutiveDashboard from "@/components/testflighthub/software-saas/SoftwareSaasExecutiveDashboard";
 import { buildSoftwareSaasExecutiveDashboard } from "@/lib/software-billing/build-software-saas-executive-dashboard";
 import type { SoftwareAsset } from "@/lib/software-assets-data";
+import { useWorkspaceReportingCurrency } from "@/lib/workspace-reporting-currency";
 
 /**
  * Software & SaaS executive dashboard workspace.
  * Loads the same software-asset register records used by Software Explorer.
  */
 export default function SoftwareSaasDashboardWorkspace() {
+  const reportingCurrency = useWorkspaceReportingCurrency();
   const [assets, setAssets] = useState<SoftwareAsset[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -39,10 +41,13 @@ export default function SoftwareSaasDashboardWorkspace() {
     void load();
   }, [load]);
 
-  const dashboard = useMemo(
-    () => buildSoftwareSaasExecutiveDashboard({ assets }),
-    [assets],
-  );
+  const dashboard = useMemo(() => {
+    const built = buildSoftwareSaasExecutiveDashboard({ assets });
+    if (assets.length === 0 && built.currency === "USD" && reportingCurrency !== "USD") {
+      return { ...built, currency: reportingCurrency };
+    }
+    return built;
+  }, [assets, reportingCurrency]);
 
   return (
     <div className="space-y-4">

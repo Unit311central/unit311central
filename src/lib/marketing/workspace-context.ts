@@ -1,5 +1,6 @@
 import { isDemoDomainHost, isInternalDomainHost } from "@/lib/app-domains";
 import { isAbhiSlug } from "@/lib/abhi-surface";
+import { isCustomerWorkspaceSlug } from "@/lib/customer-workspace-surface";
 import { isSaecSlug } from "@/lib/saec-surface";
 import { isOnwardAirSlug } from "@/lib/onwardair-surface";
 import { isTalantonImpactSlug } from "@/lib/talanton-surface";
@@ -13,6 +14,7 @@ export type MarketingWorkspaceKey =
   | "talanton"
   | "abhi"
   | "saec"
+  | "customer"
   | "unknown";
 
 /** Resolve active workspace for Marketing module routing (client-safe). */
@@ -30,6 +32,7 @@ export function resolveMarketingWorkspaceKey(
     if (isTalantonImpactSlug(normalizedSlug)) return "talanton";
     if (isAbhiSlug(normalizedSlug)) return "abhi";
     if (isSaecSlug(normalizedSlug)) return "saec";
+    if (isCustomerWorkspaceSlug(normalizedSlug)) return "customer";
   }
 
   if (typeof window !== "undefined" && !hostname) {
@@ -51,6 +54,7 @@ export function resolveMarketingWorkspaceKey(
     if (isTalantonImpactSlug(subdomain)) return "talanton";
     if (isAbhiSlug(subdomain)) return "abhi";
     if (isSaecSlug(subdomain)) return "saec";
+    if (isCustomerWorkspaceSlug(subdomain)) return "customer";
   }
 
   if (host.includes("onwardair") || host === "onward.localhost") return "onwardair";

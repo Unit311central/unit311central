@@ -23,6 +23,7 @@ import type { TiBoardPortalSection } from "@/lib/talanton/board-portal-data";
 
 import AbhiBoardMembersWorkspace from "./AbhiBoardMembersWorkspace";
 import BoardDirectorsWorkspace from "./BoardDirectorsWorkspace";
+import CustomerBoardGovernanceWorkspace from "./CustomerBoardGovernanceWorkspace";
 
 /** Staff-facing wrapper around Board Portal sections. */
 export default function BoardGovernanceWorkspace({
@@ -109,6 +110,31 @@ export default function BoardGovernanceWorkspace({
     return (
       <div className="rounded-3xl border border-white/10 bg-[#07111f]/40 p-1 sm:p-2">
         <SaecBoardGovernanceSection section={saecSection} />
+      </div>
+    );
+  }
+
+  const isCustomer = (() => {
+    try {
+      const { isBrowserCustomerWorkspaceSurface } =
+        require("@/lib/customer-workspace-surface") as typeof import("@/lib/customer-workspace-surface");
+      return isBrowserCustomerWorkspaceSurface();
+    } catch {
+      return false;
+    }
+  })();
+
+  if (isCustomer) {
+    if (section === "members") {
+      return (
+        <div className="rounded-3xl border border-white/10 bg-[#07111f]/40 p-1 sm:p-2">
+          <BoardDirectorsWorkspace />
+        </div>
+      );
+    }
+    return (
+      <div className="rounded-3xl border border-white/10 bg-[#07111f]/40 p-1 sm:p-2">
+        <CustomerBoardGovernanceWorkspace section={section as AbhiBoardPortalSection} />
       </div>
     );
   }

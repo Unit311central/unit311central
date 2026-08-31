@@ -3,6 +3,7 @@
  */
 
 import { DEMO_WORKSPACE_SLUG, isDemoDomainHost, parseClientPlatformSubdomainSafe } from "@/lib/app-domains";
+import { isCustomerWorkspaceSlug } from "@/lib/customer-workspace-surface";
 import { readEffectiveBrowserWorkspaceSlug } from "@/lib/demo-enterprise/workspace-tenancy-surface";
 import { isSaecSlug } from "@/lib/saec-surface";
 import {
@@ -83,6 +84,9 @@ function seedState(slug?: string): ManagementWorkspaceState {
       functionPacks: SAEC_MANAGEMENT_FUNCTION_PACKS.map((pack) => ({ ...pack })),
       actions: SAEC_MANAGEMENT_ACTIONS.map((action) => ({ ...action })),
     };
+  }
+  if (isCustomerWorkspaceSlug(slug)) {
+    return { meetings: [], functionPacks: [], actions: [] };
   }
   return {
     meetings: MANAGEMENT_MEETINGS.map((meeting) => ({ ...meeting, readiness: [...meeting.readiness] })),

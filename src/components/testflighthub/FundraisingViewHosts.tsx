@@ -47,7 +47,7 @@ function Host({
   }
   const surface = resolveFundraisingSurfaceKind(workspaceSlug);
   if (surface === "demo") return <>{demo}</>;
-  if (surface === "onwardair" || surface === "workspace") return <>{onwardair}</>;
+  if (surface === "onwardair") return <>{onwardair}</>;
   return <FundraisingCustomerEmptyWorkspace title={customerTitle} subtitle={customerSubtitle} />;
 }
 

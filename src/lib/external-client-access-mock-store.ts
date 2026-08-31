@@ -14,11 +14,26 @@ export type EcaMockState = {
   invitations: EcaInvitation[];
 };
 
-let state: EcaMockState = {
-  portals: createSeedEcaPortals(),
-  audit: createSeedEcaAudit(),
-  invitations: createSeedEcaInvitations(),
-};
+let state: EcaMockState = buildInitialEcaState();
+
+function buildInitialEcaState(): EcaMockState {
+  if (typeof window !== "undefined") {
+    try {
+      const { isBrowserCustomerWorkspaceSurface } =
+        require("@/lib/customer-workspace-surface") as typeof import("@/lib/customer-workspace-surface");
+      if (isBrowserCustomerWorkspaceSurface()) {
+        return { portals: [], audit: [], invitations: [] };
+      }
+    } catch {
+      // Fall through.
+    }
+  }
+  return {
+    portals: createSeedEcaPortals(),
+    audit: createSeedEcaAudit(),
+    invitations: createSeedEcaInvitations(),
+  };
+}
 
 const listeners = new Set<() => void>();
 function emit() {

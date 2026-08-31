@@ -15,6 +15,10 @@ import {
   filterInterfaceWorxToolsNavItems,
   shouldFilterInterfaceWorxToolsNav,
 } from "@/lib/interface-worx-nav";
+import {
+  filterCustomerSupportNavItems,
+  isCustomerWorkspaceSlug,
+} from "@/lib/customer-workspace-surface";
 import type {
   InternalNavChildItem,
   InternalNavItem,
@@ -315,6 +319,10 @@ export function buildWorkspaceProductNavSections(
 
     if (spec.id === "tools" && shouldFilterInterfaceWorxToolsNav(options.workspaceSlug)) {
       items = filterInterfaceWorxToolsNavItems(items);
+    }
+
+    if (spec.id === "support-desk" && isCustomerWorkspaceSlug(options.workspaceSlug)) {
+      items = filterCustomerSupportNavItems(items);
     }
 
     sections.push({ ...section, items });

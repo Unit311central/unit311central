@@ -227,6 +227,31 @@ function resolveProductivitySnapshot(displayName?: string | null): ProductivityS
       approvals: fixtures.productivity.approvals,
     };
   }
+  if (typeof window !== "undefined") {
+    try {
+      const { isBrowserCustomerWorkspaceSurface } =
+        require("@/lib/customer-workspace-surface") as typeof import("@/lib/customer-workspace-surface");
+      if (isBrowserCustomerWorkspaceSurface()) {
+        return {
+          summary: {
+            attention: 0,
+            changed: 0,
+            nextUp: "—",
+            headline: "Your workspace is ready. Add clients, projects, and tickets to see activity here.",
+          },
+          emails: [],
+          schedule: [],
+          messages: [],
+          files: [],
+          support: { open: 0, waiting: 0, resolvedToday: 0, critical: 0, items: [] },
+          social: [],
+          approvals: [],
+        };
+      }
+    } catch {
+      // Fall through.
+    }
+  }
   return INTERNAL_SNAPSHOT;
 }
 

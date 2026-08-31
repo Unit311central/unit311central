@@ -48,3 +48,24 @@ export function readBrowserCustomerWorkspaceSlug(): string | null {
 export function isBrowserCustomerWorkspaceSurface(): boolean {
   return readBrowserCustomerWorkspaceSlug() != null;
 }
+
+/** Support Desk views hidden on generic customer workspaces (e.g. Interface Worx). */
+export const CUSTOMER_EXCLUDED_SUPPORT_VIEWS = new Set(["whatsapp-integration"]);
+
+export function filterCustomerSupportNavItems<T extends { view?: string; children?: readonly { view?: string }[] }>(
+  items: readonly T[],
+): T[] {
+  return items
+    .map((item) => {
+      if (!item.children?.length) return item;
+      const children = item.children.filter(
+        (child) => !child.view || !CUSTOMER_EXCLUDED_SUPPORT_VIEWS.has(child.view),
+      );
+      return { ...item, children };
+    })
+    .filter((item) => {
+      if (item.children?.length) return item.children.length > 0;
+      if (!item.view) return true;
+      return !CUSTOMER_EXCLUDED_SUPPORT_VIEWS.has(item.view);
+    });
+}

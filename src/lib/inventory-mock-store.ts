@@ -678,6 +678,16 @@ function seedTalantonInventoryState(): InventoryMockState {
 function seedState(): InventoryMockState {
   if (typeof window !== "undefined") {
     try {
+      const { isBrowserCustomerWorkspaceSurface } =
+        require("@/lib/customer-workspace-surface") as typeof import("@/lib/customer-workspace-surface");
+      if (isBrowserCustomerWorkspaceSurface()) {
+        return { assets: [], activity: [] };
+      }
+    } catch {
+      // Fall through.
+    }
+
+    try {
       const { isBrowserOnwardAirSurface } =
         require("@/lib/onwardair-surface") as typeof import("@/lib/onwardair-surface");
       if (isBrowserOnwardAirSurface()) {
@@ -1884,6 +1894,21 @@ export function subscribeInventoryMockStore(listener: Listener) {
 
 export function getInventoryMockSnapshot(): InventoryMockState {
   if (typeof window !== "undefined") {
+    try {
+      const { isBrowserCustomerWorkspaceSurface } =
+        require("@/lib/customer-workspace-surface") as typeof import("@/lib/customer-workspace-surface");
+      if (isBrowserCustomerWorkspaceSurface()) {
+        const hasLegacy =
+          state.assets.length > 0 ||
+          state.activity.some((row) => /Barcelona|Porto|Oxford|Matrice|DJI|Unit311/i.test(row.detail));
+        if (hasLegacy) {
+          state = { assets: [], activity: [] };
+        }
+      }
+    } catch {
+      // Fall through.
+    }
+
     try {
       const { isBrowserOnwardAirSurface } =
         require("@/lib/onwardair-surface") as typeof import("@/lib/onwardair-surface");

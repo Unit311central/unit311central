@@ -15,6 +15,8 @@ import { isArchitectureTreeSlug } from "@/lib/architecture-taxonomy-types";
 import { isDemoApiRequest } from "@/lib/demo/demo-request";
 import { getPlatformSession } from "@/lib/platform-session";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
+import { isCustomerWorkspaceSlug } from "@/lib/customer-workspace-surface";
+import { requireCurrentWorkspace } from "@/lib/workspace-context";
 
 export const dynamic = "force-dynamic";
 
@@ -41,6 +43,16 @@ export async function GET(request: NextRequest) {
     const sectionSlug = request.nextUrl.searchParams.get("section")?.trim().toLowerCase();
     const includeCatalog = request.nextUrl.searchParams.get("catalog") === "1";
 
+    let customerWorkspace = false;
+    if (!await isDemoApiRequest()) {
+      try {
+        const workspace = await requireCurrentWorkspace();
+        customerWorkspace = isCustomerWorkspaceSlug(workspace.slug);
+      } catch {
+        customerWorkspace = false;
+      }
+    }
+
     // Living hierarchy (tree) views are derived server-side from existing sources —
     // no diagram document, no seeds, no DB read/write.
     if (sectionSlug && isArchitectureTreeSlug(sectionSlug)) {
@@ -49,6 +61,19 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({
         taxonomy,
         renderer: "tree",
+        ...(includeCatalog ? { catalog: getArchitectureCatalog() } : {}),
+      });
+    }
+
+    if (customerWorkspace) {
+      if (!sectionSlug) {
+        return NextResponse.json({
+          diagrams: [],
+          ...(includeCatalog ? { catalog: getArchitectureCatalog() } : {}),
+        });
+      }
+      return NextResponse.json({
+        diagram: null,
         ...(includeCatalog ? { catalog: getArchitectureCatalog() } : {}),
       });
     }
