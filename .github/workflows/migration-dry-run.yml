@@ -18,6 +18,8 @@ jobs:
       (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    env:
+      REPOSITORY: ${{ github.repository }}
     steps:
       - name: Wait for Vercel production deploy
         if: github.event_name == 'workflow_dispatch'
@@ -58,12 +60,71 @@ jobs:
         env:
           SETUP_SECRET: ${{ secrets.INTERNAL_FILES_SETUP_SECRET }}
           DEPLOY_SHA: ${{ steps.deploy_sha.outputs.sha }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           if [ -z "${SETUP_SECRET:-}" ]; then
             echo "INTERNAL_FILES_SETUP_SECRET is not configured on this repo."
             exit 1
           fi
+
+          deployment_sha_ok() {
+            local live_sha="$1"
+            local expected_sha="$2"
+            if [ -z "${live_sha}" ] || [ "${live_sha}" = "null" ]; then
+              echo "deploymentCommitSha missing"
+              return 1
+            fi
+            if [ "${live_sha}" = "${expected_sha}" ]; then
+              echo "deploymentCommitSha matches ${expected_sha}"
+              return 0
+            fi
+            local compare
+            compare=$(curl -fsS \
+              -H "Authorization: Bearer ${GH_TOKEN}" \
+              -H "Accept: application/vnd.github+json" \
+              "https://api.github.com/repos/${REPOSITORY}/compare/${expected_sha}...${live_sha}" \
+              | jq -r '.status // empty')
+            case "${compare}" in
+              identical|ahead)
+                echo "deploymentCommitSha ${live_sha} is ${compare} relative to ${expected_sha} — accepting overlapping deploy"
+                return 0
+                ;;
+              behind)
+                echo "deploymentCommitSha ${live_sha} is behind ${expected_sha} — waiting for production"
+                return 1
+                ;;
+              *)
+                echo "deploymentCommitSha ${live_sha} diverged from ${expected_sha} (status=${compare:-unknown})"
+                return 1
+                ;;
+            esac
+          }
+
+          validate_plan() {
+            echo "$response" | jq -e '.queryBackend != null' >/dev/null
+            echo "$response" | jq -e '.plan != null' >/dev/null
+            echo "$response" | jq -e '.queryError == null' >/dev/null
+            echo "$response" | jq -e '
+              ([.plan.pending[]?] | length) == 0
+            ' >/dev/null
+            echo "$response" | jq -e '
+              (.plan.satisfied | index("supabase/migrations/151_workspace_phase3_provisioning.sql")) != null
+            ' >/dev/null
+            echo "$response" | jq -e '
+              (.plan.satisfied | index("supabase/migrations/150_workspace_admin_metadata.sql")) != null
+            ' >/dev/null
+            echo "$response" | jq -e '
+              (.plan.satisfied | index("supabase/migrations/149_sales_management_foundation.sql")) != null
+            ' >/dev/null
+            echo "$response" | jq -e '
+              ([.plan.actions[] | select(.kind == "apply")] | length) == 0
+            ' >/dev/null
+            echo "$response" | jq -e '
+              ([.plan.actions[] | select(.kind == "skip")] | length) >= 86
+            ' >/dev/null
+          }
+
           echo "Cooling down 90s so Supabase Management API is not contending with post-deploy apply..."
           sleep 90
           for attempt in $(seq 1 15); do
@@ -72,38 +133,40 @@ jobs:
               "https://unit311central.com/api/internal/apply-unit311central-pending-migrations")
             echo "attempt ${attempt}:"
             echo "$response" | jq .
-            if echo "$response" | jq -e '.queryError == null' >/dev/null 2>&1; then
-              break
+
+            if ! echo "$response" | jq -e '.queryError == null' >/dev/null 2>&1; then
+              if [ "$attempt" -eq 15 ]; then
+                echo "Migration dry-run failed after queryError retries"
+                exit 1
+              fi
+              backoff=$((20 * attempt))
+              echo "queryError present — retrying after ${backoff}s Supabase Management API cooldown..."
+              sleep "$backoff"
+              continue
             fi
+
+            live_sha=$(echo "$response" | jq -r '.deploymentCommitSha // empty')
+            if ! deployment_sha_ok "${live_sha}" "${DEPLOY_SHA}"; then
+              if [ "$attempt" -eq 15 ]; then
+                echo "Migration dry-run failed: production SHA never matched ${DEPLOY_SHA}"
+                exit 1
+              fi
+              backoff=$((20 * attempt))
+              echo "Retrying after ${backoff}s for Vercel propagation..."
+              sleep "$backoff"
+              continue
+            fi
+
+            if validate_plan; then
+              echo "Migration dry-run passed"
+              exit 0
+            fi
+
             if [ "$attempt" -eq 15 ]; then
-              echo "Migration dry-run failed after retries"
+              echo "Migration dry-run failed plan validation"
               exit 1
             fi
             backoff=$((20 * attempt))
-            echo "queryError present — retrying after ${backoff}s Supabase Management API cooldown..."
+            echo "Plan validation failed — retrying after ${backoff}s..."
             sleep "$backoff"
           done
-          echo "$response" | jq -e '.queryBackend != null' >/dev/null
-          echo "$response" | jq -e '.plan != null' >/dev/null
-          echo "$response" | jq -e '.queryError == null' >/dev/null
-          echo "$response" | jq -e --arg sha "${DEPLOY_SHA}" '
-            (.deploymentCommitSha == $sha)
-          ' >/dev/null
-          echo "$response" | jq -e '
-            ([.plan.pending[]?] | length) == 0
-          ' >/dev/null
-          echo "$response" | jq -e '
-            (.plan.satisfied | index("supabase/migrations/151_workspace_phase3_provisioning.sql")) != null
-          ' >/dev/null
-          echo "$response" | jq -e '
-            (.plan.satisfied | index("supabase/migrations/150_workspace_admin_metadata.sql")) != null
-          ' >/dev/null
-          echo "$response" | jq -e '
-            (.plan.satisfied | index("supabase/migrations/149_sales_management_foundation.sql")) != null
-          ' >/dev/null
-          echo "$response" | jq -e '
-            ([.plan.actions[] | select(.kind == "apply")] | length) == 0
-          ' >/dev/null
-          echo "$response" | jq -e '
-            ([.plan.actions[] | select(.kind == "skip")] | length) >= 86
-          ' >/dev/null
