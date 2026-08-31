@@ -181,12 +181,22 @@ function persistState(slug: string, state: ManagementWorkspaceState) {
   }
 }
 
+function isLegacyPlaceholderManagementState(state: ManagementWorkspaceState): boolean {
+  return state.meetings.some((meeting) => meeting.id === "mgmt-weekly-1" || /Weekly Management Meeting/i.test(meeting.name));
+}
+
 function ensureHydrated(slug: string) {
   const bucket = getBucket(slug);
   if (bucket.hydrated || typeof window === "undefined") return;
   bucket.hydrated = true;
   const persisted = readPersistedState(slug);
   if (persisted) {
+    if (isCustomerWorkspaceSlug(slug) && isLegacyPlaceholderManagementState(persisted)) {
+      bucket.state = cloneState(seedState(slug));
+      bucket.serverSnapshot = cloneState(bucket.state);
+      persistState(slug, bucket.state);
+      return;
+    }
     bucket.state = persisted;
     bucket.serverSnapshot = cloneState(persisted);
   } else {

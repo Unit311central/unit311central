@@ -33,6 +33,7 @@ import {
   sumTiTelecomMonthlySpend,
 } from "@/lib/talanton/tech-fake-data";
 import { buildTechnologyManagementDashboardConfig } from "@/lib/technology-management-dashboard";
+import { useWorkspaceReportingCurrency } from "@/lib/workspace-reporting-currency";
 
 type SoftwareAssetRow = {
   id?: string;
@@ -62,6 +63,7 @@ export default function TechnologyDashboardWorkspace() {
   const isTi = isBrowserTalantonImpactSurface();
   const isDemo = isBrowserDemoSurface();
   const hasEstate = isAbhi || isOa || isTi;
+  const reportingCurrency = useWorkspaceReportingCurrency();
   const [assets, setAssets] = useState<SoftwareAssetRow[]>([]);
   const [summary, setSummary] = useState<{
     annualSpend?: number;
@@ -203,16 +205,24 @@ export default function TechnologyDashboardWorkspace() {
           })()
         : undefined;
 
+    const currency =
+      summary?.currency ??
+      (isOa || isTi
+        ? "USD"
+        : assets.length === 0 && reportingCurrency !== "USD"
+          ? reportingCurrency
+          : undefined);
+
     return buildTechnologyManagementDashboardConfig({
       softwareCount: assets.length,
       activeCount,
       renewingSoonCount,
       annualSpend: summary?.annualSpend,
       monthlySpend,
-      currency: summary?.currency ?? (isOa || isTi ? "USD" : undefined),
+      currency,
       estate,
     });
-  }, [assets, summary, isAbhi, isOa, isTi, telecomMonthly]);
+  }, [assets, summary, isAbhi, isOa, isTi, telecomMonthly, reportingCurrency]);
 
   const softwareUpcomingGbp = useMemo(() => {
     return assets.reduce((sum, row) => {

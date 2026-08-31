@@ -1,5 +1,6 @@
 import { buildTechnologyTelecomStarterCatalogue, buildSaecTechnologyTelecomCatalogue } from "@/lib/technology-telecom/starter-catalogue";
 import { isSaecSlug } from "@/lib/saec-surface";
+import { isCustomerWorkspaceSlug } from "@/lib/customer-workspace-surface";
 import type {
   TechnologyTelecomService,
   TechnologyTelecomServiceInput,
@@ -69,6 +70,11 @@ export async function ensureTechnologyTelecomStarterCatalogue(
     .eq("workspace_id", workspaceId);
   if (countError) throw new Error(countError.message);
   if ((count ?? 0) > 0) return { inserted: 0, skipped: true };
+
+  const normalizedSlug = String(workspaceSlug ?? "").trim().toLowerCase();
+  if (isCustomerWorkspaceSlug(normalizedSlug) && !isSaecSlug(normalizedSlug)) {
+    return { inserted: 0, skipped: true };
+  }
 
   const currency = await resolveWorkspaceReportingCurrency(workspaceId, workspaceSlug);
   const catalogue = isSaecSlug(workspaceSlug)

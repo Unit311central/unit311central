@@ -31,6 +31,8 @@ import {
   roundPayrollMoney,
 } from "@/lib/payroll/types";
 import { createSupabaseServerClient, isSupabaseConfigured } from "@/lib/supabase/server";
+import { requireCurrentWorkspace } from "@/lib/workspace-context";
+import { resolveWorkspaceReportingCurrency } from "@/lib/workspace-reporting-currency-server";
 
 async function withPayrollDb<T>(operation: () => Promise<T>): Promise<T> {
   await ensurePayrollModuleTables();
@@ -164,6 +166,15 @@ export async function getPayrollSettings(scope?: HrWorkspaceScope): Promise<Payr
     if (error) throw new Error(error.message);
     if (!data) {
       const now = new Date().toISOString();
+      let workspaceSlug: string | null = null;
+      try {
+        workspaceSlug = (await requireCurrentWorkspace()).slug;
+      } catch {
+        /* explicit scope callers */
+      }
+      const reportingCurrency = await resolveWorkspaceReportingCurrency(workspaceId, workspaceSlug);
+      const countryCode = reportingCurrency === "GBP" ? "GB" : DEFAULT_PAYROLL_SETTINGS.countryCode;
+      const defaultTaxState = reportingCurrency === "GBP" ? "" : DEFAULT_PAYROLL_SETTINGS.defaultTaxState;
       const insert = {
         workspace_id: workspaceId,
         federal_tax_pct: DEFAULT_PAYROLL_SETTINGS.federalTaxPct,
@@ -171,13 +182,13 @@ export async function getPayrollSettings(scope?: HrWorkspaceScope): Promise<Payr
         social_security_pct: DEFAULT_PAYROLL_SETTINGS.socialSecurityPct,
         medicare_pct: DEFAULT_PAYROLL_SETTINGS.medicarePct,
         employer_payroll_pct: DEFAULT_PAYROLL_SETTINGS.employerPayrollPct,
-        default_currency: DEFAULT_PAYROLL_SETTINGS.defaultCurrency,
+        default_currency: reportingCurrency,
         payroll_frequency: DEFAULT_PAYROLL_SETTINGS.payrollFrequency,
         pay_day: DEFAULT_PAYROLL_SETTINGS.payDay,
         bonus_pay_month: DEFAULT_PAYROLL_SETTINGS.bonusPayMonth,
         bonus_pay_day: DEFAULT_PAYROLL_SETTINGS.bonusPayDay,
-        country_code: DEFAULT_PAYROLL_SETTINGS.countryCode,
-        default_tax_state: DEFAULT_PAYROLL_SETTINGS.defaultTaxState,
+        country_code: countryCode,
+        default_tax_state: defaultTaxState,
         updated_at: now,
       };
       const { data: created, error: insertError } = await supabase

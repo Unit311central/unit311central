@@ -27,6 +27,7 @@ import type {
   PayrollRun,
   PayrollSettings,
 } from "@/lib/payroll/types";
+import { useWorkspaceReportingCurrency } from "@/lib/workspace-reporting-currency";
 import { cn } from "@/lib/utils";
 
 type Panel = "dashboard" | "runs" | "settings";
@@ -71,6 +72,7 @@ function statusClass(status: string) {
 }
 
 export default function PayrollWorkspace() {
+  const reportingCurrency = useWorkspaceReportingCurrency();
   const [panel, setPanel] = useState<Panel>("dashboard");
   const [dashboard, setDashboard] = useState<PayrollDashboardSnapshot | null>(null);
   const [runs, setRuns] = useState<PayrollRun[]>([]);
@@ -82,9 +84,9 @@ export default function PayrollWorkspace() {
   const [message, setMessage] = useState<string | null>(null);
 
   const money = useCallback(
-    (value: number, currency = dashboard?.currency ?? settings?.defaultCurrency ?? "USD") =>
+    (value: number, currency = dashboard?.currency ?? settings?.defaultCurrency ?? reportingCurrency) =>
       formatMoney(value, currency),
-    [dashboard?.currency, settings?.defaultCurrency],
+    [dashboard?.currency, reportingCurrency, settings?.defaultCurrency],
   );
 
   const selectedRun = useMemo(
