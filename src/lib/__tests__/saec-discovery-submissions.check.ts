@@ -38,7 +38,7 @@ assert.doesNotMatch(
   /Submit again to update the stored response/,
   "client must not warn about overwriting submissions",
 );
-assert.doesNotMatch(app, /Save Draft/, "client must not expose Save Draft button");
+assert.match(app, /Save Draft/, "client must expose Save Draft button in header");
 assert.match(app, /kind === "reporting"\s*\?\s*"overflow-y-auto"/, "Reporting must allow vertical scroll in main panel");
 
 const feedback = fs.readFileSync(

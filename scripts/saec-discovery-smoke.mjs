@@ -16,7 +16,8 @@ try {
 
   await page.waitForSelector('text=Current Systems Discovery');
   await page.waitForSelector('button:has-text("Submit")');
-  assert.equal(await page.locator('button:has-text("Save Draft")').count(), 0, "no Save Draft button");
+  await page.waitForSelector('button:has-text("Save Draft")');
+  assert.equal(await page.locator('button:has-text("Save Draft")').count(), 1, "Save Draft button visible");
 
   const navCount = await page.locator("nav[aria-label='Discovery sections'] button").count();
   assert.equal(navCount, 15, "expected 15 nav sections");

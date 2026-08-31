@@ -16,6 +16,7 @@ import {
   Loader2,
   Megaphone,
   MessageSquare,
+  Save,
   Send,
   Settings2,
   Shield,
@@ -81,7 +82,7 @@ const DISCOVERY_SECTIONS: SectionDef[] = SAEC_DISCOVERY_SECTIONS.map((section) =
 
 /** General numbered questions only — ~60% question / ~40% answer. */
 const GENERAL_QUESTION_GRID_CLASS =
-  "grid items-start gap-x-6 gap-y-3 md:grid-cols-[minmax(0,60%)_minmax(0,40%)]";
+  "grid w-full min-w-0 items-start gap-x-5 gap-y-3 md:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]";
 
 const AUTO_SAVE_DEBOUNCE_MS = 750;
 
@@ -218,23 +219,25 @@ function QuestionBlock({
 
   if (layout === "row" || layout === "row-emphasis") {
     return (
-      <div className={cn(GENERAL_QUESTION_GRID_CLASS, emphasize ? "" : "")}>
+      <div className={GENERAL_QUESTION_GRID_CLASS}>
         <div className="flex min-w-0 items-start gap-3">
           {questionNumber > 0 ? (
             <QuestionNumber n={questionNumber} />
           ) : null}
           {labelBlock}
         </div>
-        <OptionalTextarea
-          id={inputId}
-          value={value}
-          onChange={onChange}
-          rows={emphasize ? 5 : answerRows}
-          className={cn(
-            "self-start",
-            emphasize ? "min-h-[5.5rem]" : "min-h-[3rem]",
-          )}
-        />
+        <div className="min-w-0 self-start">
+          <OptionalTextarea
+            id={inputId}
+            value={value}
+            onChange={onChange}
+            rows={emphasize ? 5 : answerRows}
+            className={cn(
+              "w-full min-w-0",
+              emphasize ? "min-h-[5.5rem]" : "min-h-[3rem]",
+            )}
+          />
+        </div>
       </div>
     );
   }
@@ -311,7 +314,7 @@ function GeneralSectionPanel({
   const emphasized = questions.find((q) => q.emphasizeAnswer);
 
   return (
-    <div className="min-h-0 flex-1 overflow-y-auto pr-0.5">
+    <div className="min-h-0 w-full min-w-0 flex-1">
       {section.intro ? (
         <p className="mb-6 shrink-0 text-[13px] leading-relaxed text-white/55">{section.intro}</p>
       ) : null}
@@ -356,6 +359,7 @@ export default function SaecDiscoveryApp({
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [draft, setDraft] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
+  const [savingDraft, setSavingDraft] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submittedAt, setSubmittedAt] = useState<string | null>(null);
   const [submitSuccessMessage, setSubmitSuccessMessage] = useState<string | null>(null);
@@ -528,6 +532,23 @@ export default function SaecDiscoveryApp({
   const updateDraft = useCallback((key: string, value: string) => {
     setDraft((current) => ({ ...current, [key]: value }));
   }, []);
+
+  const saveDraftNow = useCallback(async () => {
+    if (savingDraft || !selectedSection) return;
+
+    setSavingDraft(true);
+    try {
+      if (autoSaveTimerRef.current) {
+        window.clearTimeout(autoSaveTimerRef.current);
+        autoSaveTimerRef.current = null;
+      }
+      const next = flushDraftToStored(selectedSection, false);
+      persistDraftSnapshot(next, Date.now());
+      showNotice("Draft saved");
+    } finally {
+      setSavingDraft(false);
+    }
+  }, [flushDraftToStored, persistDraftSnapshot, savingDraft, selectedSection, showNotice]);
 
   const resetDraft = useCallback(() => {
     if (
@@ -734,6 +755,24 @@ export default function SaecDiscoveryApp({
                   </button>
                   <button
                     type="button"
+                    onClick={() => void saveDraftNow()}
+                    disabled={savingDraft || submitting}
+                    className="inline-flex items-center gap-2 rounded-lg border border-sky-400/25 bg-sky-500/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.08em] text-sky-100 transition-colors hover:bg-sky-500/20 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {savingDraft ? (
+                      <>
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        Saving…
+                      </>
+                    ) : (
+                      <>
+                        <Save className="h-3.5 w-3.5" strokeWidth={2} />
+                        Save Draft
+                      </>
+                    )}
+                  </button>
+                  <button
+                    type="button"
                     onClick={() => void submitDiscovery()}
                     disabled={submitting}
                     className="inline-flex items-center gap-2 rounded-lg bg-[#1F4FBF] px-4 py-2 text-xs font-semibold uppercase tracking-[0.08em] text-white transition-colors hover:bg-[#2563eb] disabled:cursor-not-allowed disabled:opacity-60"
@@ -762,7 +801,7 @@ export default function SaecDiscoveryApp({
 
             <main
               className={cn(
-                "flex min-h-0 min-w-0 flex-1 flex-col px-4 py-3 sm:px-5 sm:py-4",
+                "flex min-h-0 min-w-0 flex-1 flex-col overflow-x-hidden px-4 py-3 sm:px-5 sm:py-4",
                 selectedSection?.kind === "general" || selectedSection?.kind === "reporting"
                   ? "overflow-y-auto"
                   : "overflow-hidden",

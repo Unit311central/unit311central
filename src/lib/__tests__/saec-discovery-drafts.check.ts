@@ -75,8 +75,8 @@ const app = fs.readFileSync(
   "utf8",
 );
 assert.match(app, /AUTO_SAVE_DEBOUNCE_MS = 750/, "questionnaire must debounce auto-save at 750ms");
-assert.doesNotMatch(app, /Save Draft/, "questionnaire must not expose Save Draft button");
-assert.doesNotMatch(app, />Save</, "questionnaire must not expose section Save button");
+assert.match(app, /Save Draft/, "questionnaire must expose Save Draft button in header");
+assert.match(app, /saveDraftNow/, "questionnaire must support manual draft save");
 assert.match(app, /\/api\/saec-discovery\/draft/, "questionnaire must persist drafts server-side");
 const shell = fs.readFileSync(
   path.join(root, "src/components/saec-discovery/SaecDiscoveryShell.tsx"),
