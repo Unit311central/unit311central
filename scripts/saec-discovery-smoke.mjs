@@ -15,8 +15,8 @@ try {
   await page.goto(BASE, { waitUntil: "networkidle" });
 
   await page.waitForSelector('text=Current Systems Discovery');
-  await page.waitForSelector('text=Save Draft');
   await page.waitForSelector('button:has-text("Submit")');
+  assert.equal(await page.locator('button:has-text("Save Draft")').count(), 0, "no Save Draft button");
 
   const navCount = await page.locator("nav[aria-label='Discovery sections'] button").count();
   assert.equal(navCount, 15, "expected 15 nav sections");
@@ -26,8 +26,10 @@ try {
 
   const generalQ1 = page.locator("#general-top-annoyances");
   await generalQ1.fill("Slow monthly reports");
-  await page.locator('button:has-text("Save Draft")').click();
-  await page.waitForSelector('[role="status"]:has-text("Draft saved")');
+  await page.waitForFunction(() => {
+    const labels = Array.from(document.querySelectorAll("header p"));
+    return labels.some((node) => node.textContent?.includes("Draft saved"));
+  }, { timeout: 5000 });
 
   const scrollY = await page.evaluate(() => ({
     doc: document.documentElement.scrollHeight > window.innerHeight,
@@ -39,7 +41,10 @@ try {
   await page.getByRole("button", { name: "Client Management", exact: true }).click();
   await page.locator("#client-management-Client\\ Directory").fill("Excel");
   await page.locator("#client-management-comments").fill("Legacy CRM notes");
-  await page.locator('main button').filter({ hasText: /^Save$/ }).click();
+  await page.waitForFunction(() => {
+    const labels = Array.from(document.querySelectorAll("header p"));
+    return labels.some((node) => node.textContent?.includes("Draft saved"));
+  }, { timeout: 5000 });
   await page.waitForFunction(() => {
     const raw = window.localStorage.getItem("saec-discovery-v3");
     if (!raw) return false;
