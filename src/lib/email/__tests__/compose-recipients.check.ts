@@ -37,6 +37,7 @@ function message(partial: Partial<EmailMessage> & Pick<EmailMessage, "id">): Ema
     references: [],
     direction: "inbound",
     replyToEmail: null,
+    receivedBy: null,
     ...partial,
   };
 }
