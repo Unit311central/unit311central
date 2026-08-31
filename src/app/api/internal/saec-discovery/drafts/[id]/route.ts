@@ -1,23 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { deleteSaecDiscoveryDraftForInternal } from "@/lib/saec-discovery/drafts-service";
 import { requireInternalSaecOperator } from "@/lib/saec-discovery/internal-api-auth";
-import { getSaecDiscoveryFeedbackForInternal } from "@/lib/saec-discovery/submissions-service";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-/**
- * Internal SAEC Feedback — submitted Current Systems discovery for SAEC.
- */
-export async function GET(request: NextRequest) {
+type RouteContext = { params: Promise<{ id: string }> };
+
+export async function DELETE(request: NextRequest, context: RouteContext) {
   try {
     await requireInternalSaecOperator(request);
-    const snapshot = await getSaecDiscoveryFeedbackForInternal();
-    return NextResponse.json(snapshot, {
-      headers: { "Cache-Control": "private, no-store" },
-    });
+    const { id } = await context.params;
+    await deleteSaecDiscoveryDraftForInternal(id);
+    return NextResponse.json({ ok: true });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Unable to load SAEC Feedback.";
+    const message = error instanceof Error ? error.message : "Unable to delete SAEC draft.";
     const status =
       message === "Authentication required."
         ? 401

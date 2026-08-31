@@ -52,6 +52,23 @@ assert.match(
   /getSaecDiscoveryFeedbackForInternal/,
   "internal feedback must load drafts and submissions together",
 );
+assert.match(
+  submitService,
+  /deleteSaecDiscoverySubmissionForInternal/,
+  "internal feedback must support deleting submissions",
+);
+assert.match(
+  submitService,
+  /updateSaecDiscoverySubmissionForInternal/,
+  "internal feedback must support editing submissions",
+);
+
+const internalSubmissionRoute = fs.readFileSync(
+  path.join(root, "src/app/api/internal/saec-discovery/submissions/[id]/route.ts"),
+  "utf8",
+);
+assert.match(internalSubmissionRoute, /export async function DELETE/, "internal submission route must support DELETE");
+assert.match(internalSubmissionRoute, /export async function PATCH/, "internal submission route must support PATCH");
 
 const app = fs.readFileSync(
   path.join(root, "src/components/saec-discovery/SaecDiscoveryApp.tsx"),
@@ -71,5 +88,8 @@ assert.match(feedback, /ListDivider label="Submissions"/, "SAEC Feedback must sh
 assert.match(feedback, /Last saved:/, "SAEC Feedback must label draft timestamps as Last saved");
 assert.match(feedback, /Submitted:/, "SAEC Feedback must label submission timestamps as Submitted");
 assert.match(feedback, /setSelection/, "SAEC Feedback must allow selecting a draft or submission");
+assert.match(feedback, /Refresh/, "SAEC Feedback must provide a refresh control");
+assert.match(feedback, /deleteSubmission/, "SAEC Feedback must support deleting submissions");
+assert.match(feedback, /deleteDraft/, "SAEC Feedback must support removing drafts");
 
 console.log("ok  saec-discovery-drafts checks passed\n");

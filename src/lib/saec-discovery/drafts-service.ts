@@ -154,3 +154,16 @@ export async function getSaecDiscoveryDraftsForInternal(): Promise<SaecDiscovery
   if (!data?.length) return [];
   return (data as DbDraftRow[]).map(mapDraftRow);
 }
+
+export async function deleteSaecDiscoveryDraftForInternal(id: string): Promise<void> {
+  const supabase = requireServiceSupabase();
+  const workspace = await resolveSaecWorkspaceId(supabase);
+
+  const { error } = await supabase
+    .from("saec_discovery_drafts")
+    .delete()
+    .eq("id", id)
+    .eq("workspace_id", workspace.id);
+
+  if (error) throw new Error(error.message);
+}

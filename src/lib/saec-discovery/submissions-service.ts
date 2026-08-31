@@ -172,3 +172,40 @@ export async function getSaecDiscoveryFeedbackForInternal(): Promise<SaecDiscove
   ]);
   return { drafts, submissions };
 }
+
+export async function deleteSaecDiscoverySubmissionForInternal(id: string): Promise<void> {
+  const supabase = requireServiceSupabase();
+  const workspace = await resolveSaecWorkspaceId(supabase);
+
+  const { error } = await supabase
+    .from("saec_discovery_submissions")
+    .delete()
+    .eq("id", id)
+    .eq("workspace_id", workspace.id);
+
+  if (error) throw new Error(error.message);
+}
+
+export async function updateSaecDiscoverySubmissionForInternal(input: {
+  id: string;
+  responses: unknown;
+}): Promise<SaecDiscoverySubmissionRecord> {
+  const supabase = requireServiceSupabase();
+  const workspace = await resolveSaecWorkspaceId(supabase);
+  const responses = normalizeDiscoveryResponses(input.responses);
+  const now = new Date().toISOString();
+
+  const { data, error } = await supabase
+    .from("saec_discovery_submissions")
+    .update({
+      responses,
+      updated_at: now,
+    })
+    .eq("id", input.id)
+    .eq("workspace_id", workspace.id)
+    .select(SUBMISSION_SELECT)
+    .single();
+
+  if (error) throw new Error(error.message);
+  return mapSubmissionRow(data as DbSubmissionRow);
+}
