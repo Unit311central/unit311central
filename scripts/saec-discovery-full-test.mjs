@@ -113,6 +113,13 @@ async function assertLogoPosition(page) {
   );
 }
 
+async function waitForDraftSaved(page) {
+  await page.waitForFunction(() => {
+    const labels = Array.from(document.querySelectorAll("header p"));
+    return labels.some((node) => node.textContent?.includes("Draft saved"));
+  }, { timeout: 5000 });
+}
+
 async function assertPlaceholderAndComments(page) {
   const field = page.locator("#general-top-annoyances");
   assert.equal(await field.getAttribute("placeholder"), SAEC_DISCOVERY_OPTIONAL_PLACEHOLDER);
@@ -279,8 +286,7 @@ try {
     await assertReportingReachable(page);
     await assertNoHorizontalOverflow(page);
 
-    await page.locator('button:has-text("Save Draft")').click();
-    await page.waitForSelector('[role="status"]:has-text("Draft saved")');
+    await waitForDraftSaved(page);
 
     page.once("dialog", (dialog) => dialog.accept());
     await page.locator('button:has-text("RESET")').click();
@@ -290,8 +296,7 @@ try {
     assert.equal(await page.locator("#general-top-annoyances").inputValue(), "", "reset clears draft");
 
     await page.locator("#general-top-annoyances").fill("post-reset draft");
-    await page.locator('button:has-text("Save Draft")').click();
-    await page.waitForSelector('[role="status"]:has-text("Draft saved")');
+    await waitForDraftSaved(page);
 
     await page.reload({ waitUntil: "networkidle" });
     await page.getByRole("button", { name: "General", exact: true }).click();

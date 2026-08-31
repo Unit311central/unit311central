@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { CheckCircle2, Loader2 } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { CheckCircle2, FilePenLine, Loader2 } from "lucide-react";
 
 import {
   SAEC_DISCOVERY_COMMENTS_KEY,
@@ -9,8 +9,16 @@ import {
   readSectionAnswer,
   sectionIncludesComments,
 } from "@/lib/saec-discovery/config";
-import type { SaecDiscoverySubmissionRecord } from "@/lib/saec-discovery/types";
+import type {
+  SaecDiscoveryDraftRecord,
+  SaecDiscoveryState,
+  SaecDiscoverySubmissionRecord,
+} from "@/lib/saec-discovery/types";
 import { cn } from "@/lib/utils";
+
+type Selection =
+  | { kind: "draft"; id: string }
+  | { kind: "submission"; id: string };
 
 function formatWhen(value: string | null | undefined) {
   if (!value) return "—";
@@ -32,7 +40,7 @@ function AnswerText({ value }: { value: string }) {
   );
 }
 
-function Section({
+function SectionBlock({
   title,
   children,
 }: {
@@ -47,20 +55,18 @@ function Section({
   );
 }
 
-function SubmissionResponses({ submission }: { submission: SaecDiscoverySubmissionRecord }) {
+function DiscoveryResponses({ responses }: { responses: SaecDiscoveryState }) {
   return (
     <div className="space-y-4">
       {SAEC_DISCOVERY_SECTIONS.map((section) => (
-        <Section key={section.id} title={section.title}>
+        <SectionBlock key={section.id} title={section.title}>
           {section.kind === "general" || section.kind === "reporting" ? (
             <div className="space-y-4">
               {(section.questions ?? []).map((question) => (
                 <div key={question.id}>
                   <p className="text-sm font-medium text-white/80">{question.label}</p>
                   <div className="mt-2">
-                    <AnswerText
-                      value={readSectionAnswer(submission.responses, section.id, question.id)}
-                    />
+                    <AnswerText value={readSectionAnswer(responses, section.id, question.id)} />
                   </div>
                 </div>
               ))}
@@ -78,9 +84,7 @@ function SubmissionResponses({ submission }: { submission: SaecDiscoverySubmissi
                     className="grid gap-2 py-3 md:grid-cols-[minmax(0,280px)_minmax(0,1fr)] md:items-start md:gap-6"
                   >
                     <p className="text-sm text-white/80">{entry.label}</p>
-                    <AnswerText
-                      value={readSectionAnswer(submission.responses, section.id, entry.id)}
-                    />
+                    <AnswerText value={readSectionAnswer(responses, section.id, entry.id)} />
                   </div>
                 ))}
               </div>
@@ -92,27 +96,59 @@ function SubmissionResponses({ submission }: { submission: SaecDiscoverySubmissi
               <p className="text-sm font-medium text-white/80">{SAEC_DISCOVERY_COMMENTS_KEY}</p>
               <div className="mt-2">
                 <AnswerText
-                  value={readSectionAnswer(
-                    submission.responses,
-                    section.id,
-                    SAEC_DISCOVERY_COMMENTS_KEY,
-                  )}
+                  value={readSectionAnswer(responses, section.id, SAEC_DISCOVERY_COMMENTS_KEY)}
                 />
               </div>
             </div>
           ) : null}
-        </Section>
+        </SectionBlock>
       ))}
     </div>
+  );
+}
+
+function ListDivider({ label }: { label: string }) {
+  return (
+    <div className="flex items-center gap-3">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-sky-300/80">{label}</p>
+      <div className="h-px flex-1 bg-white/10" />
+    </div>
+  );
+}
+
+function RecordButton({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "w-full rounded-xl border px-4 py-3 text-left transition-colors",
+        active
+          ? "border-sky-400/35 bg-sky-500/10"
+          : "border-white/10 bg-white/[0.03] hover:border-white/20 hover:bg-white/[0.05]",
+      )}
+    >
+      {children}
+    </button>
   );
 }
 
 export default function SaecFeedbackWorkspace() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [drafts, setDrafts] = useState<SaecDiscoveryDraftRecord[]>([]);
   const [submissions, setSubmissions] = useState<SaecDiscoverySubmissionRecord[]>([]);
+  const [selection, setSelection] = useState<Selection | null>(null);
 
-  const loadSubmission = useCallback(async () => {
+  const loadFeedback = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -120,26 +156,80 @@ export default function SaecFeedbackWorkspace() {
         cache: "no-store",
       });
       const payload = (await response.json()) as {
+        drafts?: SaecDiscoveryDraftRecord[];
         submissions?: SaecDiscoverySubmissionRecord[];
         error?: string;
       };
       if (!response.ok) {
         throw new Error(payload.error ?? "Unable to load SAEC Feedback.");
       }
-      setSubmissions(payload.submissions ?? []);
+      const nextDrafts = payload.drafts ?? [];
+      const nextSubmissions = payload.submissions ?? [];
+      setDrafts(nextDrafts);
+      setSubmissions(nextSubmissions);
+      setSelection((current) => {
+        if (current) {
+          if (
+            current.kind === "draft" &&
+            nextDrafts.some((draft) => draft.id === current.id)
+          ) {
+            return current;
+          }
+          if (
+            current.kind === "submission" &&
+            nextSubmissions.some((submission) => submission.id === current.id)
+          ) {
+            return current;
+          }
+        }
+        if (nextSubmissions[0]) {
+          return { kind: "submission", id: nextSubmissions[0].id };
+        }
+        if (nextDrafts[0]) {
+          return { kind: "draft", id: nextDrafts[0].id };
+        }
+        return null;
+      });
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : "Unable to load SAEC Feedback.");
+      setDrafts([]);
       setSubmissions([]);
+      setSelection(null);
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    void loadSubmission();
-  }, [loadSubmission]);
+    void loadFeedback();
+  }, [loadFeedback]);
 
-  const latest = submissions[0] ?? null;
+  const selectedDraft = useMemo(
+    () =>
+      selection?.kind === "draft"
+        ? (drafts.find((draft) => draft.id === selection.id) ?? null)
+        : null,
+    [drafts, selection],
+  );
+
+  const selectedSubmission = useMemo(
+    () =>
+      selection?.kind === "submission"
+        ? (submissions.find((submission) => submission.id === selection.id) ?? null)
+        : null,
+    [selection, submissions],
+  );
+
+  const summaryLabel = useMemo(() => {
+    const parts: string[] = [];
+    if (drafts.length > 0) {
+      parts.push(`${drafts.length} draft${drafts.length === 1 ? "" : "s"}`);
+    }
+    if (submissions.length > 0) {
+      parts.push(`${submissions.length} submission${submissions.length === 1 ? "" : "s"}`);
+    }
+    return parts.length > 0 ? parts.join(" · ") : "No draft or submission yet";
+  }, [drafts.length, submissions.length]);
 
   return (
     <div className="space-y-5 pb-8">
@@ -153,62 +243,171 @@ export default function SaecFeedbackWorkspace() {
         {loading ? (
           <div className="mt-5 flex items-center gap-2 text-sm text-white/50">
             <Loader2 className="h-4 w-4 animate-spin" />
-            Loading submission…
+            Loading SAEC Feedback…
           </div>
         ) : error ? (
           <p className="mt-5 rounded-lg border border-rose-400/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-100">
             {error}
           </p>
-        ) : latest ? (
+        ) : (
           <div className="mt-5 flex flex-wrap items-center gap-3">
-            <span className="inline-flex items-center gap-2 rounded-full border border-emerald-400/30 bg-emerald-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.08em] text-emerald-100">
-              <CheckCircle2 className="h-3.5 w-3.5" />
-              {submissions.length} submission{submissions.length === 1 ? "" : "s"}
+            <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/[0.04] px-3 py-1 text-xs font-semibold uppercase tracking-[0.08em] text-white/85">
+              {summaryLabel}
             </span>
-            <div className="text-sm text-white/70">
-              <span className="text-white/45">Latest:</span> {formatWhen(latest.submittedAt)}
-            </div>
-            {latest.submittedByEmail ? (
-              <div className="text-sm text-white/70">
-                <span className="text-white/45">Submitted by:</span> {latest.submittedByEmail}
-              </div>
+            {submissions.length > 0 ? (
+              <span className="inline-flex items-center gap-2 rounded-full border border-emerald-400/30 bg-emerald-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.08em] text-emerald-100">
+                <CheckCircle2 className="h-3.5 w-3.5" />
+                Latest submission {formatWhen(submissions[0]?.submittedAt)}
+              </span>
             ) : null}
           </div>
-        ) : (
-          <p className="mt-5 text-sm text-white/50">
-            No SAEC Discovery submission has been recorded yet. Draft progress is stored locally on the
-            client questionnaire only.
-          </p>
         )}
       </header>
 
-      {!loading && !error && submissions.length > 0 ? (
-        <div className="space-y-8">
-          {submissions.map((submission, index) => (
-            <div key={submission.id} className="space-y-4">
-              <div className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3">
-                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-sky-200/80">
-                  Submission {submissions.length - index}
-                  {index === 0 ? " (latest)" : ""}
-                </p>
-                <div className="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-sm text-white/70">
-                  <span>
-                    <span className="text-white/45">Submitted:</span>{" "}
-                    {formatWhen(submission.submittedAt)}
-                  </span>
-                  <span>
-                    <span className="text-white/45">ID:</span> {submission.id}
-                  </span>
-                  {submission.submittedByEmail ? (
-                    <span>
-                      <span className="text-white/45">By:</span> {submission.submittedByEmail}
-                    </span>
-                  ) : null}
-                </div>
-              </div>
-              <SubmissionResponses submission={submission} />
+      {!loading && !error ? (
+        <div className="grid gap-5 lg:grid-cols-[minmax(0,320px)_minmax(0,1fr)]">
+          <div className="space-y-6">
+            <div className="space-y-3">
+              <ListDivider label="Drafts" />
+              {drafts.length === 0 ? (
+                <p className="text-sm text-white/45">No active draft saved on the server.</p>
+              ) : (
+                drafts.map((draft) => {
+                  const active = selection?.kind === "draft" && selection.id === draft.id;
+                  return (
+                    <RecordButton
+                      key={draft.id}
+                      active={active}
+                      onClick={() => setSelection({ kind: "draft", id: draft.id })}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-amber-200/90">
+                            Draft
+                          </p>
+                          <p className="mt-1 text-sm text-white/75">
+                            <span className="text-white/45">Last saved:</span>{" "}
+                            {formatWhen(draft.lastSavedAt)}
+                          </p>
+                          <p className="mt-1 text-sm text-white/75">
+                            <span className="text-white/45">Status:</span> Draft
+                          </p>
+                          {draft.ownerEmail ? (
+                            <p className="mt-1 text-sm text-white/60">
+                              <span className="text-white/45">Owner:</span> {draft.ownerEmail}
+                            </p>
+                          ) : null}
+                        </div>
+                        <FilePenLine className="h-4 w-4 shrink-0 text-amber-200/70" />
+                      </div>
+                      <p className="mt-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-sky-200/80">
+                        {active ? "Viewing draft" : "View draft"}
+                      </p>
+                    </RecordButton>
+                  );
+                })
+              )}
             </div>
-          ))}
+
+            <div className="space-y-3">
+              <ListDivider label="Submissions" />
+              {submissions.length === 0 ? (
+                <p className="text-sm text-white/45">No submissions recorded yet.</p>
+              ) : (
+                submissions.map((submission, index) => {
+                  const active =
+                    selection?.kind === "submission" && selection.id === submission.id;
+                  const number = submissions.length - index;
+                  return (
+                    <RecordButton
+                      key={submission.id}
+                      active={active}
+                      onClick={() => setSelection({ kind: "submission", id: submission.id })}
+                    >
+                      <p className="text-xs font-semibold uppercase tracking-[0.12em] text-sky-200/80">
+                        Submission {number}
+                        {index === 0 ? " (Latest)" : ""}
+                      </p>
+                      <div className="mt-2 space-y-1 text-sm text-white/75">
+                        <p>
+                          <span className="text-white/45">Submitted:</span>{" "}
+                          {formatWhen(submission.submittedAt)}
+                        </p>
+                        <p>
+                          <span className="text-white/45">ID:</span> {submission.id}
+                        </p>
+                        {submission.submittedByEmail ? (
+                          <p>
+                            <span className="text-white/45">By:</span> {submission.submittedByEmail}
+                          </p>
+                        ) : null}
+                      </div>
+                    </RecordButton>
+                  );
+                })
+              )}
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            {selectedDraft ? (
+              <>
+                <div className="rounded-xl border border-amber-400/20 bg-amber-500/10 px-4 py-3">
+                  <p className="text-xs font-semibold uppercase tracking-[0.12em] text-amber-100/90">
+                    Draft — working questionnaire state
+                  </p>
+                  <div className="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-sm text-white/75">
+                    <span>
+                      <span className="text-white/45">Last saved:</span>{" "}
+                      {formatWhen(selectedDraft.lastSavedAt)}
+                    </span>
+                    <span>
+                      <span className="text-white/45">ID:</span> {selectedDraft.id}
+                    </span>
+                    {selectedDraft.ownerEmail ? (
+                      <span>
+                        <span className="text-white/45">Owner:</span> {selectedDraft.ownerEmail}
+                      </span>
+                    ) : null}
+                  </div>
+                </div>
+                <DiscoveryResponses responses={selectedDraft.responses} />
+              </>
+            ) : null}
+
+            {selectedSubmission ? (
+              <>
+                <div className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3">
+                  <p className="text-xs font-semibold uppercase tracking-[0.12em] text-sky-200/80">
+                    Submission
+                    {submissions[0]?.id === selectedSubmission.id ? " (Latest)" : ""}
+                  </p>
+                  <div className="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-sm text-white/75">
+                    <span>
+                      <span className="text-white/45">Submitted:</span>{" "}
+                      {formatWhen(selectedSubmission.submittedAt)}
+                    </span>
+                    <span>
+                      <span className="text-white/45">ID:</span> {selectedSubmission.id}
+                    </span>
+                    {selectedSubmission.submittedByEmail ? (
+                      <span>
+                        <span className="text-white/45">By:</span>{" "}
+                        {selectedSubmission.submittedByEmail}
+                      </span>
+                    ) : null}
+                  </div>
+                </div>
+                <DiscoveryResponses responses={selectedSubmission.responses} />
+              </>
+            ) : null}
+
+            {!selectedDraft && !selectedSubmission ? (
+              <div className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-8 text-center text-sm text-white/45">
+                No draft or submission to display yet.
+              </div>
+            ) : null}
+          </div>
         </div>
       ) : null}
     </div>

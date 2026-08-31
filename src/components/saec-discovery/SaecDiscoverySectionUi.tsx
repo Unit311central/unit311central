@@ -1,7 +1,5 @@
 "use client";
 
-import { Save } from "lucide-react";
-
 import {
   SAEC_DISCOVERY_COMMENTS_KEY,
   SAEC_DISCOVERY_OPTIONAL_PLACEHOLDER,
@@ -35,31 +33,21 @@ export const DISCOVERY_SOFTWARE_ROW_CLASS = cn(
   "items-start gap-y-1",
 );
 
-type SectionHeaderProps = {
+export function DiscoverySectionHeader({
+  title,
+  icon: Icon,
+}: {
   title: string;
   icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
-  onSave: () => void;
-};
-
-export function DiscoverySectionHeader({ title, icon: Icon, onSave }: SectionHeaderProps) {
+}) {
   return (
-    <div className="mb-4 flex shrink-0 items-center justify-between gap-3 border-b border-white/10 pb-3">
-      <div className="flex min-w-0 items-center gap-2">
-        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-sky-400/25 bg-sky-500/10 text-sky-200">
-          <Icon className="h-3.5 w-3.5" strokeWidth={1.75} />
-        </span>
-        <h2 className="text-sm font-semibold uppercase tracking-[0.08em] text-white sm:text-base">
-          {title}
-        </h2>
-      </div>
-      <button
-        type="button"
-        onClick={onSave}
-        className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-white/15 bg-white/[0.04] px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-white/85 transition-colors hover:bg-white/[0.08]"
-      >
-        <Save className="h-3 w-3" strokeWidth={2} />
-        Save
-      </button>
+    <div className="mb-4 flex shrink-0 items-center gap-3 border-b border-white/10 pb-3">
+      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-sky-400/25 bg-sky-500/10 text-sky-200">
+        <Icon className="h-3.5 w-3.5" strokeWidth={1.75} />
+      </span>
+      <h2 className="text-sm font-semibold uppercase tracking-[0.08em] text-white sm:text-base">
+        {title}
+      </h2>
     </div>
   );
 }

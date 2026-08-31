@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   BarChart2,
   Briefcase,
@@ -16,7 +16,6 @@ import {
   Loader2,
   Megaphone,
   MessageSquare,
-  Save,
   Send,
   Settings2,
   Shield,
@@ -83,6 +82,8 @@ const DISCOVERY_SECTIONS: SectionDef[] = SAEC_DISCOVERY_SECTIONS.map((section) =
 /** General numbered questions only — ~60% question / ~40% answer. */
 const GENERAL_QUESTION_GRID_CLASS =
   "grid items-start gap-x-6 gap-y-3 md:grid-cols-[minmax(0,60%)_minmax(0,40%)]";
+
+const AUTO_SAVE_DEBOUNCE_MS = 750;
 
 function loadState(draftOwnerId: string | null | undefined) {
   return readStoredDiscoveryDraft(draftOwnerId);
@@ -252,15 +253,9 @@ function QuestionBlock({
   );
 }
 
-function SectionHeader({
-  section,
-  onSave,
-}: {
-  section: SectionDef;
-  onSave: () => void;
-}) {
+function SectionHeader({ section }: { section: SectionDef }) {
   const Icon = section.iconComponent;
-  return <DiscoverySectionHeader title={section.title} icon={Icon} onSave={onSave} />;
+  return <DiscoverySectionHeader title={section.title} icon={Icon} />;
 }
 
 function ReportingSectionPanel({
@@ -367,31 +362,64 @@ export default function SaecDiscoveryApp({
   const [saveNotice, setSaveNotice] = useState<string | null>(null);
   const [draftSavedAt, setDraftSavedAt] = useState<number | null>(null);
   const [draftSavedLabel, setDraftSavedLabel] = useState<string | null>(null);
+  const autoSaveTimerRef = useRef<number | null>(null);
+  const serverDraftLoadedRef = useRef(false);
 
   const showNotice = useCallback((message: string) => {
     setSaveNotice(message);
     window.setTimeout(() => setSaveNotice(null), 2200);
   }, []);
 
-  const markDraftSaved = useCallback(() => {
-    const now = Date.now();
-    setDraftSavedAt(now);
-    setDraftSavedLabel(formatDraftSavedAgo(now));
-  }, []);
-
   useEffect(() => {
-    const { state: loaded, savedAt } = loadState(draftOwnerId);
-    setStored(loaded);
-    if (savedAt) {
-      setDraftSavedAt(savedAt);
-      setDraftSavedLabel(formatDraftSavedAgo(savedAt));
-    }
-    const first = DISCOVERY_SECTIONS[0];
-    if (first) {
-      setSelectedId(first.id);
-      setDraft(draftFromSection(first, loaded[first.id]));
-    }
-    setHydrated(true);
+    let cancelled = false;
+
+    void (async () => {
+      const { state: localState, savedAt: localSavedAt } = loadState(draftOwnerId);
+      let mergedState = localState;
+      let mergedSavedAt = localSavedAt;
+
+      if (draftOwnerId) {
+        try {
+          const response = await fetch("/api/saec-discovery/draft", { cache: "no-store" });
+          if (response.ok) {
+            const payload = (await response.json()) as {
+              draft?: { responses?: SaecDiscoveryState; lastSavedAt?: string } | null;
+            };
+            const serverDraft = payload.draft;
+            if (serverDraft?.responses) {
+              const serverSavedAt = serverDraft.lastSavedAt
+                ? new Date(serverDraft.lastSavedAt).getTime()
+                : null;
+              if (serverSavedAt && (!localSavedAt || serverSavedAt > localSavedAt)) {
+                mergedState = normalizeDiscoveryResponses(serverDraft.responses);
+                mergedSavedAt = serverSavedAt;
+                writeStoredDiscoveryDraft(draftOwnerId, mergedState, mergedSavedAt);
+              }
+            }
+          }
+        } catch {
+          // Server draft restore is best-effort; local draft remains available offline.
+        }
+      }
+
+      if (cancelled) return;
+      serverDraftLoadedRef.current = true;
+      setStored(mergedState);
+      if (mergedSavedAt) {
+        setDraftSavedAt(mergedSavedAt);
+        setDraftSavedLabel(formatDraftSavedAgo(mergedSavedAt));
+      }
+      const first = DISCOVERY_SECTIONS[0];
+      if (first) {
+        setSelectedId(first.id);
+        setDraft(draftFromSection(first, mergedState[first.id]));
+      }
+      setHydrated(true);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [draftOwnerId]);
 
   useEffect(() => {
@@ -434,6 +462,23 @@ export default function SaecDiscoveryApp({
     [selectedId],
   );
 
+  const persistDraftSnapshot = useCallback(
+    (state: SaecDiscoveryState, savedAt: number) => {
+      setDraftSavedAt(savedAt);
+      setDraftSavedLabel(formatDraftSavedAgo(savedAt));
+      persistState(state, draftOwnerId, savedAt);
+      if (!draftOwnerId) return;
+      void fetch("/api/saec-discovery/draft", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ responses: state }),
+      }).catch(() => {
+        // Server draft persistence is best-effort; local draft remains available offline.
+      });
+    },
+    [draftOwnerId],
+  );
+
   const flushDraftToStored = useCallback(
     (section: SectionDef, markComplete = false): SaecDiscoveryState => {
       const keys = responseKeysForSection(section);
@@ -450,6 +495,25 @@ export default function SaecDiscoveryApp({
     [draft, draftOwnerId, draftSavedAt, stored],
   );
 
+  useEffect(() => {
+    if (!hydrated || !serverDraftLoadedRef.current || !selectedSection) return;
+
+    if (autoSaveTimerRef.current) {
+      window.clearTimeout(autoSaveTimerRef.current);
+    }
+
+    autoSaveTimerRef.current = window.setTimeout(() => {
+      const next = flushDraftToStored(selectedSection, false);
+      persistDraftSnapshot(next, Date.now());
+    }, AUTO_SAVE_DEBOUNCE_MS);
+
+    return () => {
+      if (autoSaveTimerRef.current) {
+        window.clearTimeout(autoSaveTimerRef.current);
+      }
+    };
+  }, [draft, flushDraftToStored, hydrated, persistDraftSnapshot, selectedSection]);
+
   const selectSection = useCallback(
     (section: SectionDef) => {
       if (selectedSection && selectedSection.id !== section.id) {
@@ -465,29 +529,10 @@ export default function SaecDiscoveryApp({
     setDraft((current) => ({ ...current, [key]: value }));
   }, []);
 
-  const saveSection = useCallback(() => {
-    if (!selectedSection) return;
-    flushDraftToStored(selectedSection, true);
-    markDraftSaved();
-    showNotice("Section saved");
-  }, [flushDraftToStored, markDraftSaved, selectedSection, showNotice]);
-
-  const saveDraft = useCallback(() => {
-    let next = { ...stored };
-    if (selectedSection) {
-      next = flushDraftToStored(selectedSection, stored[selectedSection.id]?.completed ?? false);
-    }
-    const now = Date.now();
-    setDraftSavedAt(now);
-    setDraftSavedLabel(formatDraftSavedAgo(now));
-    persistState(next, draftOwnerId, now);
-    showNotice("Draft saved");
-  }, [draftOwnerId, flushDraftToStored, selectedSection, showNotice, stored]);
-
   const resetDraft = useCallback(() => {
     if (
       !window.confirm(
-        "This will clear your saved draft on this device. Previously submitted information will not be affected. Continue?",
+        "This will clear your saved draft on this device and on the server. Previously submitted information will not be affected. Continue?",
       )
     ) {
       return;
@@ -501,6 +546,9 @@ export default function SaecDiscoveryApp({
     setDraftSavedLabel(null);
     if (selectedSection) {
       setDraft(draftFromSection(selectedSection, empty[selectedSection.id]));
+    }
+    if (draftOwnerId) {
+      void fetch("/api/saec-discovery/draft", { method: "DELETE" }).catch(() => {});
     }
     showNotice("Draft cleared");
   }, [draftOwnerId, selectedSection, showNotice]);
@@ -535,15 +583,22 @@ export default function SaecDiscoveryApp({
 
       const when = payload.submission?.submittedAt ?? payload.submission?.updatedAt ?? null;
       setSubmittedAt(when);
-      persistState(snapshot, draftOwnerId, draftSavedAt);
-      setStored(snapshot);
+      const empty = normalizeDiscoveryResponses({});
+      clearStoredDiscoveryDraft(draftOwnerId);
+      writeStoredDiscoveryDraft(draftOwnerId, empty);
+      setStored(empty);
+      setDraftSavedAt(null);
+      setDraftSavedLabel(null);
+      if (selectedSection) {
+        setDraft(draftFromSection(selectedSection, empty[selectedSection.id]));
+      }
       setSubmitSuccessMessage("Questionnaire submitted successfully.");
     } catch (error) {
       setSubmitError(error instanceof Error ? error.message : "Unable to submit SAEC Discovery.");
     } finally {
       setSubmitting(false);
     }
-  }, [draftOwnerId, draftSavedAt, flushDraftToStored, selectedSection, stored, submitting]);
+  }, [draftOwnerId, flushDraftToStored, selectedSection, stored, submitting]);
 
   if (!hydrated) {
     return (
@@ -678,14 +733,6 @@ export default function SaecDiscoveryApp({
                   </button>
                   <button
                     type="button"
-                    onClick={saveDraft}
-                    className="inline-flex items-center gap-2 rounded-lg border border-sky-400/35 bg-sky-500/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.08em] text-white/90 transition-colors hover:bg-sky-500/15"
-                  >
-                    <Save className="h-3.5 w-3.5" strokeWidth={2} />
-                    Save Draft
-                  </button>
-                  <button
-                    type="button"
                     onClick={() => void submitDiscovery()}
                     disabled={submitting}
                     className="inline-flex items-center gap-2 rounded-lg bg-[#1F4FBF] px-4 py-2 text-xs font-semibold uppercase tracking-[0.08em] text-white transition-colors hover:bg-[#2563eb] disabled:cursor-not-allowed disabled:opacity-60"
@@ -722,7 +769,7 @@ export default function SaecDiscoveryApp({
             >
               {selectedSection ? (
                 <>
-                  <SectionHeader section={selectedSection} onSave={saveSection} />
+                  <SectionHeader section={selectedSection} />
                   <div
                     className={cn(
                       "flex min-h-0 flex-1 flex-col",
