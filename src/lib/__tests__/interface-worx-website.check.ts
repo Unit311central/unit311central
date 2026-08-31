@@ -7,6 +7,7 @@ import {
   INTERFACE_WORX_SLUG,
   INTERFACE_WORX_WEBSITE_HOST,
   INTERFACE_WORX_WEBSITE_URL,
+  INTERFACE_WORX_WORKSPACE_LOGO_SRC,
   interfaceWorxWebsiteImplPath,
   isInterfaceWorxSlug,
   isInterfaceWorxWebsiteHost,
@@ -71,4 +72,11 @@ test("interface worx website impl paths", () => {
 
 test("draft website URL uses iw-website host", () => {
   assert.equal(INTERFACE_WORX_WEBSITE_URL, `https://${INTERFACE_WORX_WEBSITE_HOST}`);
+});
+
+test("interface worx workspace logo asset is configured", () => {
+  assert.equal(
+    INTERFACE_WORX_WORKSPACE_LOGO_SRC,
+    "/images/workspaces/interfaceworx/interfacelogo.svg",
+  );
 });

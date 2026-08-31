@@ -11,6 +11,7 @@ import CorpCentreLogoMark from "@/components/layout/CorpCentreLogoMark";
 import NorthstarLogoMark from "@/components/layout/NorthstarLogoMark";
 import SaecLogoMark from "@/components/layout/SaecLogoMark";
 import WolfLogoMark from "@/components/layout/WolfLogoMark";
+import InterfaceWorxLogoMark from "@/components/layout/InterfaceWorxLogoMark";
 import AbhiLogoMark from "@/components/layout/AbhiLogoMark";
 import OnwardAirLogoMark from "@/components/layout/OnwardAirLogoMark";
 import TalantonLogoMark from "@/components/layout/TalantonLogoMark";
@@ -213,7 +214,7 @@ export default function Unit311LoginPage({
 }: {
   variant?: "default" | "central";
   /** Tenant login branding. CorpCentre / Talanton / ABHI / OnwardAir / customer / northstar use workspace branding. */
-  brand?: "default" | "central" | "corpcentre" | "talanton" | "abhi" | "onwardair" | "customer" | "northstar" | "saec" | "wolf" | "pailex";
+  brand?: "default" | "central" | "corpcentre" | "talanton" | "abhi" | "onwardair" | "customer" | "northstar" | "saec" | "wolf" | "pailex" | "interfaceworx";
   /** Display name for generic customer hosts (e.g. Acme). */
   workspaceName?: string | null;
   /** Persisted customer login page title from workspace provisioning. */
@@ -238,7 +239,8 @@ export default function Unit311LoginPage({
     brand === "onwardair" ||
     brand === "customer" ||
     brand === "wolf" ||
-    brand === "pailex";
+    brand === "pailex" ||
+    brand === "interfaceworx";
   const isCorpCentre = brand === "corpcentre";
   const isTalanton = brand === "talanton";
   const isAbhi = brand === "abhi";
@@ -247,6 +249,7 @@ export default function Unit311LoginPage({
   const isSaec = brand === "saec";
   const isWolf = brand === "wolf";
   const isPailex = brand === "pailex";
+  const isInterfaceWorx = brand === "interfaceworx";
   const isCustomer = brand === "customer";
   const customerLabel = loginTitle?.trim() || workspaceName?.trim() || "Workspace";
   const customerBackground = loginBackgroundUrl?.trim() || LOGIN_BACKGROUND;
@@ -477,6 +480,8 @@ export default function Unit311LoginPage({
                 WOLF Wildlife Operations
               </p>
             </div>
+          ) : isInterfaceWorx ? (
+            <InterfaceWorxLogoMark height={72} maxWidth={320} priority />
           ) : isCustomer ? (
             loginLogoUrl ? (
               <div className="relative flex h-24 w-full max-w-[280px] items-center justify-center">
@@ -535,6 +540,8 @@ export default function Unit311LoginPage({
                       ? "OnwardAir Login"
                       : isSaec
                         ? "OmniTransit Enterprise Login"
+                      : isInterfaceWorx
+                        ? "Interface Worx Login"
                       : isNorthstar
                         ? "Northstar Industrial Technologies Login"
                       : isCustomer
@@ -558,6 +565,8 @@ export default function Unit311LoginPage({
                       ? "Secure access to your OnwardAir workspace"
                       : isSaec
                         ? "Secure access to OmniTransit — elevators, escalators and vertical transportation"
+                      : isInterfaceWorx
+                        ? "Secure access to your Interface Worx workspace"
                       : isNorthstar
                         ? "Secure access to Northstar Industrial Technologies"
                       : isCustomer

@@ -23,6 +23,7 @@ import { loadWorkspaceLoginBrandingBySlug } from "@/lib/platform-workspaces/work
 import { findWorkspaceBySlug } from "@/lib/workspace-host";
 import { isPailexSlug, canonicalizePailexSlug } from "@/lib/pailex/pailex-surface";
 import { canonicalizeWolfCentralSlug, isWolfCentralSlug } from "@/lib/wolf/wolf-surface";
+import { isInterfaceWorxSlug } from "@/lib/interface-worx-surface";
 
 function workspaceSlugFromReturnTo(returnTo: string | null | undefined): string | null {
   const target = parseLoginReturnTo(returnTo);
@@ -98,6 +99,14 @@ export async function generateMetadata({
     };
   }
 
+  if (isInterfaceWorxSlug(workspaceSlug)) {
+    return {
+      title: "Login | Interface Worx",
+      description: "Secure access to your Interface Worx workspace.",
+      robots: { index: false, follow: false },
+    };
+  }
+
   if (workspaceSlug) {
     const workspace = await findWorkspaceBySlug(workspaceSlug);
     const name = workspace?.name?.trim() || workspaceSlug;
@@ -163,6 +172,8 @@ export default async function LoginPage({ searchParams }: PageProps) {
             ? "saec"
             : isWolfCentralSlug(workspaceSlug)
               ? "wolf"
+            : isInterfaceWorxSlug(workspaceSlug)
+              ? "interfaceworx"
             : isPailexSlug(workspaceSlug)
               ? "pailex"
             : isDemo || workspaceSlug === "demo"
@@ -187,6 +198,7 @@ export default async function LoginPage({ searchParams }: PageProps) {
         brand === "customer" ||
         brand === "saec" ||
         brand === "wolf" ||
+        brand === "interfaceworx" ||
         brand === "pailex" ||
         brand === "central"
           ? "central"
