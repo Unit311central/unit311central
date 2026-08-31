@@ -83,6 +83,11 @@ const shell = fs.readFileSync(
   "utf8",
 );
 assert.match(shell, /\/api\/saec-discovery\/access/, "shell must verify SAEC workspace access");
+assert.doesNotMatch(
+  shell,
+  /NEXT_PUBLIC_SAEC_DISCOVERY_REQUIRE_AUTH/,
+  "shell must not gate auth client-side — use access API",
+);
 
 const accessService = fs.readFileSync(
   path.join(root, "src/lib/saec-discovery/access-service.ts"),

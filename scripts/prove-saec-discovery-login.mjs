@@ -24,7 +24,18 @@ function cookieHeader(setCookieHeaders) {
     .join("; ");
 }
 
+async function fetchAccess(origin, cookie) {
+  const headers = cookie ? { Cookie: cookie } : {};
+  const res = await fetch(`${origin}/api/saec-discovery/access`, { headers });
+  return { status: res.status, json: await res.json().catch(() => ({})) };
+}
+
 async function main() {
+  const access = await fetchAccess(ORIGIN);
+  assert.equal(access.status, 200, "access API should succeed");
+  assert.equal(access.json.allowed, false, "anonymous access must be denied in production");
+  assert.equal(access.json.authRequired, true, "production must require auth");
+
   const loginRes = await fetch(`${ORIGIN}/api/auth/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -50,6 +61,10 @@ async function main() {
     `expected ${USERNAME}, got ${whoami.username ?? "(missing)"}`,
   );
   assert.ok(whoami.userId, "whoami must include userId");
+
+  const authedAccess = await fetchAccess(ORIGIN, cookie);
+  assert.equal(authedAccess.json.allowed, true, "authenticated SAEC user must be allowed");
+  assert.equal(authedAccess.json.authRequired, true, "auth remains required after login");
 
   const pageRes = await fetch(`${ORIGIN}/saec-discovery`, {
     headers: { Cookie: cookie },

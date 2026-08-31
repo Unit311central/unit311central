@@ -8,6 +8,7 @@ import { findWorkspaceBySlug } from "@/lib/workspace-host";
 
 export type SaecDiscoveryAccess = {
   allowed: boolean;
+  authRequired: boolean;
   userId: string | null;
 };
 
@@ -19,22 +20,23 @@ export function isSaecDiscoveryAuthRequired(): boolean {
 }
 
 export async function getSaecDiscoveryAccess(): Promise<SaecDiscoveryAccess> {
-  if (!isSaecDiscoveryAuthRequired()) {
-    return { allowed: true, userId: null };
+  const authRequired = isSaecDiscoveryAuthRequired();
+  if (!authRequired) {
+    return { allowed: true, authRequired: false, userId: null };
   }
 
   const session = await getPlatformSession();
   if (!session?.sub?.trim()) {
-    return { allowed: false, userId: null };
+    return { allowed: false, authRequired: true, userId: null };
   }
 
   if (!isSupabaseConfigured()) {
-    return { allowed: false, userId: null };
+    return { allowed: false, authRequired: true, userId: null };
   }
 
   const workspace = await findWorkspaceBySlug(SAEC_SLUG);
   if (!workspace?.id) {
-    return { allowed: false, userId: null };
+    return { allowed: false, authRequired: true, userId: null };
   }
 
   const decision = await authorizeUserForWorkspace(session.sub, workspace.id, {
@@ -43,8 +45,8 @@ export async function getSaecDiscoveryAccess(): Promise<SaecDiscoveryAccess> {
   });
 
   if (!decision.allowed) {
-    return { allowed: false, userId: null };
+    return { allowed: false, authRequired: true, userId: null };
   }
 
-  return { allowed: true, userId: session.sub };
+  return { allowed: true, authRequired: true, userId: session.sub };
 }
