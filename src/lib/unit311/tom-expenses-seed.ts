@@ -14,9 +14,11 @@ import type { ExpenseCategory } from "@/lib/expense-management/types";
 import { createExpense, listExpenses } from "@/lib/financial-expenses-service";
 import { billingCodeForSemanticCategory } from "@/lib/expenses-data";
 import { createTenancyServerClient } from "@/lib/supabase/tenancy-server";
+import { INTERFACE_WORX_SLUG } from "@/lib/interface-worx-surface";
 import { INTERNAL_WORKSPACE_SLUG } from "@/lib/workspace-host";
 
 export const UNIT311_TOM_EXPENSE_REFERENCE_PREFIX = "UNIT311-TOM-2026-";
+export const INTERFACE_WORX_TOM_EXPENSE_REFERENCE_PREFIX = "IW-TOM-2026-";
 
 export type TomExpenseSeedRow = {
   reference: string;
@@ -30,9 +32,11 @@ export type TomExpenseSeedRow = {
   nonVatReclaimable?: boolean;
 };
 
-export const UNIT311_TOM_EXPENSE_ROWS: TomExpenseSeedRow[] = [
+type TomExpenseRowTemplate = Omit<TomExpenseSeedRow, "reference"> & { seq: string };
+
+const TOM_EXPENSE_ROW_TEMPLATES: TomExpenseRowTemplate[] = [
   {
-    reference: `${UNIT311_TOM_EXPENSE_REFERENCE_PREFIX}01`,
+    seq: "01",
     item: "Bambu Lab H2S Printer",
     description: "FDM Printer for Prototyping Activities",
     amount: 1425.84,
@@ -41,7 +45,7 @@ export const UNIT311_TOM_EXPENSE_ROWS: TomExpenseSeedRow[] = [
     categoryKey: "equipment",
   },
   {
-    reference: `${UNIT311_TOM_EXPENSE_REFERENCE_PREFIX}02`,
+    seq: "02",
     item: "Anycubic Photon P1, Anycubic Wash and Cure 3",
     description: "SLA Printer for Prototyping Activities",
     amount: 927.05,
@@ -50,7 +54,7 @@ export const UNIT311_TOM_EXPENSE_ROWS: TomExpenseSeedRow[] = [
     categoryKey: "equipment",
   },
   {
-    reference: `${UNIT311_TOM_EXPENSE_REFERENCE_PREFIX}03`,
+    seq: "03",
     item: "3D Resyns",
     description: "SLA Resin · Non-VAT reclaimable",
     amount: 323.0,
@@ -60,7 +64,7 @@ export const UNIT311_TOM_EXPENSE_ROWS: TomExpenseSeedRow[] = [
     nonVatReclaimable: true,
   },
   {
-    reference: `${UNIT311_TOM_EXPENSE_REFERENCE_PREFIX}04`,
+    seq: "04",
     item: "interfaceworx.com cloudfare domain registration",
     description: "domain registration 2026 · Recurring — annual",
     amount: 7.7,
@@ -70,7 +74,7 @@ export const UNIT311_TOM_EXPENSE_ROWS: TomExpenseSeedRow[] = [
     recurringAnnual: true,
   },
   {
-    reference: `${UNIT311_TOM_EXPENSE_REFERENCE_PREFIX}05`,
+    seq: "05",
     item: "Zoho Email",
     description: "interfaceworx.com email server (2 x users) · Recurring — annual",
     amount: 28.8,
@@ -80,7 +84,7 @@ export const UNIT311_TOM_EXPENSE_ROWS: TomExpenseSeedRow[] = [
     recurringAnnual: true,
   },
   {
-    reference: `${UNIT311_TOM_EXPENSE_REFERENCE_PREFIX}06`,
+    seq: "06",
     item: "Thermometer, Filament, 3D printer Adhesive Glue",
     description: "Consumable (Prototyping)",
     amount: 56.96,
@@ -89,7 +93,7 @@ export const UNIT311_TOM_EXPENSE_ROWS: TomExpenseSeedRow[] = [
     categoryKey: "consumable_prototyping",
   },
   {
-    reference: `${UNIT311_TOM_EXPENSE_REFERENCE_PREFIX}07`,
+    seq: "07",
     item: "Silicone",
     description: "Consumable (Prototyping)",
     amount: 24.62,
@@ -98,7 +102,7 @@ export const UNIT311_TOM_EXPENSE_ROWS: TomExpenseSeedRow[] = [
     categoryKey: "consumable_prototyping",
   },
   {
-    reference: `${UNIT311_TOM_EXPENSE_REFERENCE_PREFIX}08`,
+    seq: "08",
     item: "Isomalt",
     description: "Consumable (Prototyping)",
     amount: 9.99,
@@ -107,7 +111,7 @@ export const UNIT311_TOM_EXPENSE_ROWS: TomExpenseSeedRow[] = [
     categoryKey: "consumable_prototyping",
   },
   {
-    reference: `${UNIT311_TOM_EXPENSE_REFERENCE_PREFIX}09`,
+    seq: "09",
     item: "IPA, Steel Tube",
     description: "Consumable (Prototyping)",
     amount: 32.95,
@@ -116,7 +120,7 @@ export const UNIT311_TOM_EXPENSE_ROWS: TomExpenseSeedRow[] = [
     categoryKey: "consumable_prototyping",
   },
   {
-    reference: `${UNIT311_TOM_EXPENSE_REFERENCE_PREFIX}10`,
+    seq: "10",
     item: "IPA (5L)",
     description: "Consumable (Prototyping)",
     amount: 23.95,
@@ -125,7 +129,7 @@ export const UNIT311_TOM_EXPENSE_ROWS: TomExpenseSeedRow[] = [
     categoryKey: "consumable_prototyping",
   },
   {
-    reference: `${UNIT311_TOM_EXPENSE_REFERENCE_PREFIX}11`,
+    seq: "11",
     item: "Paint Stirers, Mixing Cups",
     description: "Consumable (Prototyping)",
     amount: 34.98,
@@ -134,7 +138,7 @@ export const UNIT311_TOM_EXPENSE_ROWS: TomExpenseSeedRow[] = [
     categoryKey: "consumable_prototyping",
   },
   {
-    reference: `${UNIT311_TOM_EXPENSE_REFERENCE_PREFIX}12`,
+    seq: "12",
     item: "Silicone, Mould Release Spray, Mixing Cups",
     description: "Consumable (Prototyping)",
     amount: 100.22,
@@ -143,6 +147,18 @@ export const UNIT311_TOM_EXPENSE_ROWS: TomExpenseSeedRow[] = [
     categoryKey: "consumable_prototyping",
   },
 ];
+
+export function buildTomExpenseRows(referencePrefix: string): TomExpenseSeedRow[] {
+  return TOM_EXPENSE_ROW_TEMPLATES.map(({ seq, ...row }) => ({
+    ...row,
+    reference: `${referencePrefix}${seq}`,
+  }));
+}
+
+export const UNIT311_TOM_EXPENSE_ROWS = buildTomExpenseRows(UNIT311_TOM_EXPENSE_REFERENCE_PREFIX);
+export const INTERFACE_WORX_TOM_EXPENSE_ROWS = buildTomExpenseRows(
+  INTERFACE_WORX_TOM_EXPENSE_REFERENCE_PREFIX,
+);
 
 export const UNIT311_TOM_EXPENSE_EXPECTED_TOTAL = UNIT311_TOM_EXPENSE_ROWS.reduce(
   (sum, row) => sum + row.amount,
@@ -179,18 +195,18 @@ function buildPurpose(row: TomExpenseSeedRow) {
   return parts.join(" — ");
 }
 
-async function resolveUnit311WorkspaceId() {
+async function resolveWorkspaceBySlug(workspaceSlug: string) {
   const supabase = createTenancyServerClient();
   const { data, error } = await supabase
     .from("workspaces")
     .select("id, slug")
-    .eq("slug", INTERNAL_WORKSPACE_SLUG)
+    .eq("slug", workspaceSlug)
     .maybeSingle();
   if (error) throw new Error(error.message);
   if (!data?.id) {
-    throw new Error(`Workspace slug=${INTERNAL_WORKSPACE_SLUG} was not found.`);
+    throw new Error(`Workspace slug=${workspaceSlug} was not found.`);
   }
-  return { workspaceId: String(data.id), workspaceSlug: INTERNAL_WORKSPACE_SLUG };
+  return { workspaceId: String(data.id), workspaceSlug };
 }
 
 function isTomIdentity(input: {
@@ -219,7 +235,7 @@ function rankTomMatch(input: { fullName?: string | null; preferredName?: string 
   return 10;
 }
 
-async function resolveTomEmployee(workspaceId: string): Promise<TomEmployee> {
+async function resolveTomEmployee(workspaceId: string, workspaceSlug: string): Promise<TomEmployee> {
   const overrideId = process.env.TOM_EMPLOYEE_ID?.trim();
   const supabase = createTenancyServerClient();
 
@@ -232,7 +248,7 @@ async function resolveTomEmployee(workspaceId: string): Promise<TomEmployee> {
       .maybeSingle();
     if (error) throw new Error(error.message);
     if (!data?.id) {
-      throw new Error(`TOM_EMPLOYEE_ID=${overrideId} was not found in workspace ${INTERNAL_WORKSPACE_SLUG}.`);
+      throw new Error(`TOM_EMPLOYEE_ID=${overrideId} was not found in workspace ${workspaceSlug}.`);
     }
     return {
       id: String(data.id),
@@ -344,7 +360,7 @@ async function resolveTomEmployee(workspaceId: string): Promise<TomEmployee> {
 
   const available = rows.map((row) => row.full_name).slice(0, 12).join(", ");
   throw new Error(
-    `No Tom employee found in workspace ${INTERNAL_WORKSPACE_SLUG}.` +
+    `No Tom employee found in workspace ${workspaceSlug}.` +
       (available ? ` Available HR employees: ${available}.` : "") +
       " Link Tom in HR or set TOM_EMPLOYEE_ID.",
   );
@@ -381,7 +397,7 @@ function resolveSubmitterUserId(tom: TomEmployee) {
   return tom.platformUserId ?? tom.operatorId ?? "user-admin";
 }
 
-export type SeedUnit311TomExpensesResult = {
+export type SeedTomExpensesResult = {
   ok: true;
   workspaceSlug: string;
   workspaceId: string;
@@ -395,9 +411,17 @@ export type SeedUnit311TomExpensesResult = {
   categoriesCreated: string[];
 };
 
-export async function seedUnit311TomExpenses(): Promise<SeedUnit311TomExpensesResult> {
-  const { workspaceId, workspaceSlug } = await resolveUnit311WorkspaceId();
-  const tom = await resolveTomEmployee(workspaceId);
+/** @deprecated Prefer SeedTomExpensesResult */
+export type SeedUnit311TomExpensesResult = SeedTomExpensesResult;
+
+export async function seedTomExpensesForWorkspace(input: {
+  workspaceSlug: string;
+  referencePrefix: string;
+  rows: TomExpenseSeedRow[];
+  expectedTotal: number;
+}): Promise<SeedTomExpensesResult> {
+  const { workspaceId, workspaceSlug } = await resolveWorkspaceBySlug(input.workspaceSlug);
+  const tom = await resolveTomEmployee(workspaceId, workspaceSlug);
   const categoriesBefore = await listExpenseCategories(workspaceId);
   const categoryMap = await ensureCategoryMap(workspaceId);
   const categoriesAfter = await listExpenseCategories(workspaceId);
@@ -409,7 +433,7 @@ export async function seedUnit311TomExpenses(): Promise<SeedUnit311TomExpensesRe
   const existingRefs = new Set(
     existing
       .map((expense) => String(expense.reference ?? "").trim())
-      .filter((ref) => ref.startsWith(UNIT311_TOM_EXPENSE_REFERENCE_PREFIX)),
+      .filter((ref) => ref.startsWith(input.referencePrefix)),
   );
 
   const actor = { userId: "user-admin", displayName: "Unit311 Finance" };
@@ -418,7 +442,7 @@ export async function seedUnit311TomExpenses(): Promise<SeedUnit311TomExpensesRe
   let skipped = 0;
   const references: string[] = [];
 
-  for (const row of UNIT311_TOM_EXPENSE_ROWS) {
+  for (const row of input.rows) {
     if (existingRefs.has(row.reference)) {
       skipped += 1;
       references.push(row.reference);
@@ -483,13 +507,13 @@ export async function seedUnit311TomExpenses(): Promise<SeedUnit311TomExpensesRe
 
   const seeded = await listExpenses({ workspaceId, workspaceSlug });
   const seededRows = seeded.filter((expense) =>
-    String(expense.reference ?? "").startsWith(UNIT311_TOM_EXPENSE_REFERENCE_PREFIX),
+    String(expense.reference ?? "").startsWith(input.referencePrefix),
   );
   const totalAmount = seededRows.reduce((sum, expense) => sum + Number(expense.amount), 0);
 
-  if (Math.abs(totalAmount - UNIT311_TOM_EXPENSE_EXPECTED_TOTAL) > 0.01) {
+  if (Math.abs(totalAmount - input.expectedTotal) > 0.01) {
     throw new Error(
-      `Seeded total ${totalAmount.toFixed(2)} does not match expected ${UNIT311_TOM_EXPENSE_EXPECTED_TOTAL.toFixed(2)}.`,
+      `Seeded total ${totalAmount.toFixed(2)} does not match expected ${input.expectedTotal.toFixed(2)}.`,
     );
   }
 
@@ -502,8 +526,26 @@ export async function seedUnit311TomExpenses(): Promise<SeedUnit311TomExpensesRe
     created,
     skipped,
     totalAmount,
-    expectedTotal: UNIT311_TOM_EXPENSE_EXPECTED_TOTAL,
+    expectedTotal: input.expectedTotal,
     references,
     categoriesCreated,
   };
+}
+
+export async function seedUnit311TomExpenses(): Promise<SeedTomExpensesResult> {
+  return seedTomExpensesForWorkspace({
+    workspaceSlug: INTERNAL_WORKSPACE_SLUG,
+    referencePrefix: UNIT311_TOM_EXPENSE_REFERENCE_PREFIX,
+    rows: UNIT311_TOM_EXPENSE_ROWS,
+    expectedTotal: UNIT311_TOM_EXPENSE_EXPECTED_TOTAL,
+  });
+}
+
+export async function seedInterfaceworxTomExpenses(): Promise<SeedTomExpensesResult> {
+  return seedTomExpensesForWorkspace({
+    workspaceSlug: INTERFACE_WORX_SLUG,
+    referencePrefix: INTERFACE_WORX_TOM_EXPENSE_REFERENCE_PREFIX,
+    rows: INTERFACE_WORX_TOM_EXPENSE_ROWS,
+    expectedTotal: UNIT311_TOM_EXPENSE_EXPECTED_TOTAL,
+  });
 }

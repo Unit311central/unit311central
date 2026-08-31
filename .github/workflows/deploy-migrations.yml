@@ -238,3 +238,23 @@ jobs:
             exit 1
           fi
           jq -e '.ok == true' /tmp/tom-expense-seed.json >/dev/null
+
+      - name: Seed InterfaceWorx Tom expenses (idempotent)
+        env:
+          SETUP_SECRET: ${{ secrets.INTERNAL_FILES_SETUP_SECRET }}
+        run: |
+          set -euo pipefail
+          if [ -z "${SETUP_SECRET:-}" ]; then
+            echo "INTERNAL_FILES_SETUP_SECRET not configured — skipping InterfaceWorx Tom expense seed."
+            exit 0
+          fi
+          http_code=$(curl -sS -o /tmp/iw-tom-expense-seed.json -w "%{http_code}" -X POST \
+            -H "x-setup-secret: ${SETUP_SECRET}" \
+            -H "Content-Type: application/json" \
+            "https://unit311central.com/api/internal/seed-interfaceworx-tom-expenses")
+          cat /tmp/iw-tom-expense-seed.json | jq . || cat /tmp/iw-tom-expense-seed.json
+          if [ "$http_code" != "200" ]; then
+            echo "InterfaceWorx Tom expense seed failed with HTTP ${http_code}"
+            exit 1
+          fi
+          jq -e '.ok == true' /tmp/iw-tom-expense-seed.json >/dev/null
