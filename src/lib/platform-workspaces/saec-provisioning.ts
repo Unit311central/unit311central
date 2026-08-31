@@ -1,3 +1,4 @@
+import { filterFundraisingProvisioningSubModules } from "@/lib/interface-worx-nav";
 import { filterIntelligenceProvisioningSubModules } from "@/lib/intelligence/intelligence-provisioning";
 import {
   BUSINESS_CENTRAL_GRANT_MANAGEMENT_SUBMODULE_KEY,
@@ -18,11 +19,14 @@ export const SAEC_EXCLUDED_SUBMODULE_KEYS = [
 ] as const;
 
 export function saecEnabledSubModules(): string[] {
-  return filterIntelligenceProvisioningSubModules(
+  return filterFundraisingProvisioningSubModules(
     SAEC_SLUG,
-    filterBusinessCentralProvisioningSubModules(
+    filterIntelligenceProvisioningSubModules(
       SAEC_SLUG,
-      defaultEnabledSubModules([...SAEC_ENABLED_MODULES]),
+      filterBusinessCentralProvisioningSubModules(
+        SAEC_SLUG,
+        defaultEnabledSubModules([...SAEC_ENABLED_MODULES]),
+      ),
     ),
   );
 }

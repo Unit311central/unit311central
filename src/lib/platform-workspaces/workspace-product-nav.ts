@@ -12,9 +12,13 @@ import { augmentSaecOperationsNav } from "@/lib/saec/installations-nav";
 import { CLIENT_PLATFORM_ALWAYS_VIEWS } from "@/lib/unit311-support/data";
 import { buildFinancesNavSection } from "@/lib/finances-nav";
 import {
+  augmentInterfaceWorxFundraisingNavItems,
+  filterFundraisingProvisioningSubModules,
   filterInterfaceWorxToolsNavItems,
+  shouldAugmentInterfaceWorxFundraisingNav,
   shouldFilterInterfaceWorxToolsNav,
 } from "@/lib/interface-worx-nav";
+import { isInterfaceWorxSlug } from "@/lib/interface-worx-surface";
 import {
   filterCustomerSupportNavItems,
   isCustomerWorkspaceSlug,
@@ -58,9 +62,12 @@ function filterWorkspaceProvisioningSubModules(
   slug: string,
   subModules: readonly string[],
 ): string[] {
-  return filterIntelligenceProvisioningSubModules(
+  return filterFundraisingProvisioningSubModules(
     slug,
-    filterBusinessCentralProvisioningSubModules(slug, subModules),
+    filterIntelligenceProvisioningSubModules(
+      slug,
+      filterBusinessCentralProvisioningSubModules(slug, subModules),
+    ),
   );
 }
 
@@ -75,6 +82,7 @@ export function isSpecialistWorkspaceSlug(slug: string | null | undefined): bool
 export function repairWorkspaceSubmoduleKeys(
   enabledModules: readonly string[],
   enabledSubModules: readonly string[],
+  workspaceSlug?: string | null,
 ): string[] {
   const subSet = new Set(enabledSubModules);
   for (const moduleId of enabledModules) {
@@ -109,6 +117,10 @@ export function repairWorkspaceSubmoduleKeys(
   const hasBusinessCentralSub = [...subSet].some((key) => key.startsWith(businessCentralPrefix));
   if (enabledModules.includes("business-central") && hasBusinessCentralSub) {
     subSet.add(subModuleKey("business-central", "information-repository"));
+  }
+
+  if (isInterfaceWorxSlug(workspaceSlug) && enabledModules.includes("fundraising")) {
+    subSet.add(subModuleKey("fundraising", "grants"));
   }
 
   return [...subSet];
@@ -157,7 +169,7 @@ export function resolveWorkspaceNavEnablement(input: {
       enabledModules: modules,
       enabledSubModules: filterWorkspaceProvisioningSubModules(
         normalizedSlug,
-        repairWorkspaceSubmoduleKeys(modules, baseSubs),
+        repairWorkspaceSubmoduleKeys(modules, baseSubs, normalizedSlug),
       ),
     };
   }
@@ -319,6 +331,10 @@ export function buildWorkspaceProductNavSections(
 
     if (spec.id === "tools" && shouldFilterInterfaceWorxToolsNav(options.workspaceSlug)) {
       items = filterInterfaceWorxToolsNavItems(items);
+    }
+
+    if (spec.id === "fundraising" && shouldAugmentInterfaceWorxFundraisingNav(options.workspaceSlug)) {
+      items = augmentInterfaceWorxFundraisingNavItems(items);
     }
 
     if (spec.id === "support-desk" && isCustomerWorkspaceSlug(options.workspaceSlug)) {

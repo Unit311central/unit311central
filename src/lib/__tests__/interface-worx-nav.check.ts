@@ -4,12 +4,17 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
+import { DEMO_WORKSPACE_SLUG } from "@/lib/app-domains";
 import { internalSurveyNavSections } from "@/lib/internal-operations-data";
 import { injectQaWorkspaceNav } from "@/lib/qa-workspace/nav";
 import { TEST_WORKSPACE_SLUG } from "@/lib/qa-workspace/constants";
 import {
+  augmentInterfaceWorxFundraisingNavItems,
+  filterFundraisingProvisioningSubModules,
   filterInterfaceWorxToolsNavItems,
+  FUNDRAISING_GRANTS_SUBMODULE_KEY,
   INTERFACE_WORX_EXCLUDED_TOOLS_VIEWS,
+  shouldAugmentInterfaceWorxFundraisingNav,
 } from "@/lib/interface-worx-nav";
 import { INTERFACE_WORX_SLUG } from "@/lib/interface-worx-surface";
 import {
@@ -47,6 +52,47 @@ assert.deepEqual(interfaceworxTools, [
   "Unit311 Support",
   "QA Tasks",
 ]);
+
+const interfaceworxFundraising = interfaceworxNav.find(
+  (section) => section.kind === "workspace" && section.label === "Fundraising",
+);
+assert.ok(interfaceworxFundraising, "InterfaceWorx must include Fundraising section");
+const fundraisingLabels = interfaceworxFundraising!.items.map((item) => item.label);
+assert.ok(fundraisingLabels.includes("Grants"), "InterfaceWorx Fundraising must include Grants");
+assert.ok(
+  interfaceworxFundraising!.items.some((item) => item.view === "grants"),
+  "InterfaceWorx Fundraising must link to grants view",
+);
+
+const demoNavSections = injectQaWorkspaceNav(
+  buildWorkspaceProductNavSections({
+    workspaceSlug: DEMO_WORKSPACE_SLUG,
+    workspaceType: "Demo",
+    enablement: fullEnablement,
+  }),
+  DEMO_WORKSPACE_SLUG,
+);
+const demoFundraising = demoNavSections.find(
+  (section) => section.kind === "workspace" && section.label === "Fundraising",
+);
+assert.ok(demoFundraising, "Demo must include Fundraising section");
+assert.ok(
+  !demoFundraising!.items.some((item) => item.view === "grants"),
+  "Demo Fundraising must not include Grants nav item",
+);
+
+assert.equal(shouldAugmentInterfaceWorxFundraisingNav(INTERFACE_WORX_SLUG), true);
+assert.equal(shouldAugmentInterfaceWorxFundraisingNav(DEMO_WORKSPACE_SLUG), false);
+assert.ok(
+  filterFundraisingProvisioningSubModules(DEMO_WORKSPACE_SLUG, [FUNDRAISING_GRANTS_SUBMODULE_KEY]).length === 0,
+  "Non-InterfaceWorx workspaces must strip fundraising grants submodule",
+);
+assert.ok(
+  filterFundraisingProvisioningSubModules(INTERFACE_WORX_SLUG, [FUNDRAISING_GRANTS_SUBMODULE_KEY]).includes(
+    FUNDRAISING_GRANTS_SUBMODULE_KEY,
+  ),
+  "InterfaceWorx must keep fundraising grants submodule",
+);
 
 const testNav = injectQaWorkspaceNav(internalSurveyNavSections, TEST_WORKSPACE_SLUG);
 const testTools = testNav.find((section) => section.kind === "workspace" && section.label === "Tools");

@@ -210,6 +210,7 @@ export const MODULE_GRANT_GROUPS: ModuleGrantGroup[] = [
       "fundraising-meetings",
       "fundraising-pitch-decks",
       "fundraising-data-rooms",
+      "grants",
     ],
   },
   {

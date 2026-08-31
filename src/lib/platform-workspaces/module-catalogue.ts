@@ -60,7 +60,10 @@ function moduleKeysForView(viewId: string | undefined, moduleId: string): string
 
   if (view === "internal-work-packages") return ["file-explorer", "email-calendar-messaging"];
 
-  if (view === "grants" || view.startsWith("projects")) return ["projects"];
+  if (view === "grants") {
+    return moduleId === "fundraising" ? ["fundraising"] : ["projects"];
+  }
+  if (view.startsWith("projects")) return ["projects"];
 
   if (
     view === "financials" ||
@@ -213,6 +216,27 @@ function moduleKeysForView(viewId: string | undefined, moduleId: string): string
   return moduleFallbacks[moduleId] ?? [];
 }
 
+function augmentFundraisingCatalogueSubModules(
+  entries: WorkspaceModuleCatalogueEntry[],
+): WorkspaceModuleCatalogueEntry[] {
+  return entries.map((entry) => {
+    if (entry.id !== "fundraising") return entry;
+    if (entry.subModules.some((sub) => sub.viewId === "grants")) return entry;
+    return {
+      ...entry,
+      subModules: [
+        ...entry.subModules,
+        {
+          id: "grants",
+          label: "Grant Management",
+          viewId: "grants",
+          moduleKeys: ["fundraising"],
+        },
+      ],
+    };
+  });
+}
+
 function augmentIntelligenceCatalogueSubModules(
   entries: WorkspaceModuleCatalogueEntry[],
 ): WorkspaceModuleCatalogueEntry[] {
@@ -269,7 +293,7 @@ function buildWorkspaceModuleCatalogue(): WorkspaceModuleCatalogueEntry[] {
       moduleKeys: moduleKeysForView(leaf.viewId, spec.id),
     })),
   }));
-  return augmentIntelligenceCatalogueSubModules(base);
+  return augmentIntelligenceCatalogueSubModules(augmentFundraisingCatalogueSubModules(base));
 }
 
 export const WORKSPACE_MODULE_CATALOGUE: readonly WorkspaceModuleCatalogueEntry[] =

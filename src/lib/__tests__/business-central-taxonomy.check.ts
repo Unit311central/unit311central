@@ -71,7 +71,7 @@ assert.equal(bcSubs.length, 8);
 assert.ok(!bcSubs.some((sub) => sub.viewId === "member-intelligence"));
 assert.ok(!bcSubs.some((sub) => sub.viewId === "grants"), "grants must not be a BC catalogue submodule");
 
-assert.equal(defaultEnabledSubModules(WORKSPACE_CORE_MODULE_IDS).length, 162);
+assert.equal(defaultEnabledSubModules(WORKSPACE_CORE_MODULE_IDS).length, 163);
 
 assert.equal(workspaceExcludesBusinessCentralGrantManagement(ABHI_SLUG), true);
 assert.equal(workspaceExcludesBusinessCentralGrantManagement(SAEC_SLUG), true);
@@ -195,7 +195,20 @@ for (const workspace of workspaceCases) {
       workspace.enablement.enabledModules,
       workspace.enablement.enabledSubModules,
     );
-    assert.ok(!views.includes("grants"), `${workspace.name}: grants must not be enabled via BC submodule`);
+    if (workspace.slug === INTERFACE_WORX_SLUG) {
+      assert.ok(
+        views.includes("grants"),
+        "INTERFACEWORX: grants must be enabled via Fundraising submodule",
+      );
+      const fundraising = sections.find((section) => section.label === "Fundraising");
+      assert.ok(fundraising, "INTERFACEWORX: Fundraising section must exist");
+      assert.ok(
+        fundraising!.items.some((item) => item.view === "grants"),
+        "INTERFACEWORX: Grants must appear under Fundraising nav",
+      );
+    } else {
+      assert.ok(!views.includes("grants"), `${workspace.name}: grants must not be enabled via BC submodule`);
+    }
   }
 }
 

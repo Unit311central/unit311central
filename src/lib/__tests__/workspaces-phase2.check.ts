@@ -79,7 +79,7 @@ assert.equal(WORKSPACE_MODULE_CATALOGUE.length, 27);
 assert.equal(WORKSPACE_MODULE_CATALOGUE[0]?.label, "HOME");
 assert.equal(WORKSPACE_MODULE_CATALOGUE[21]?.label, "SETTINGS");
 assert.equal(WORKSPACE_MODULE_CATALOGUE[26]?.id, "wolf-fleet");
-assert.equal(WORKSPACE_PROVISIONING_FUNCTION_COUNT, 162);
+assert.equal(WORKSPACE_PROVISIONING_FUNCTION_COUNT, 168);
 assert.equal(
   WORKSPACE_MODULE_CATALOGUE.find((m) => m.id === "human-resources")?.subModules.length,
   8,

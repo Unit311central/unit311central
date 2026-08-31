@@ -1,7 +1,7 @@
 /**
  * Demo module structure freeze — regression guard.
  *
- * Demo MUST remain on the complete central catalogue (22 modules, 162 submodules).
+ * Demo MUST remain on the complete central catalogue (22 modules, 163 submodules).
  * Fails if demo-provisioning or migration drift from module-catalogue.ts.
  *
  * Run: npm run prove:demo-module-structure
@@ -38,8 +38,8 @@ assert.equal(
 );
 assert.equal(
   DEMO_CATALOGUE_SUBMODULE_COUNT,
-  162,
-  "Central catalogue must expose 162 submodule keys",
+  163,
+  "Central catalogue must expose 163 submodule keys",
 );
 
 assert.deepEqual(
@@ -251,7 +251,7 @@ assert.notEqual(
 );
 assert.notEqual(
   staleEnablement.enabledSubModules.length,
-  162,
+  163,
   "Stale 161 submodule list must be detected as incomplete",
 );
 
