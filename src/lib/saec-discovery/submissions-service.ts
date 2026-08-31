@@ -29,6 +29,9 @@ type DbSubmissionRow = {
   workspaces: { slug: string; name: string } | { slug: string; name: string }[] | null;
 };
 
+const SUBMISSION_SELECT =
+  "id, workspace_id, status, responses, metadata, submitted_by_email, submitted_at, created_at, updated_at, workspaces(slug, name)";
+
 function randomId(prefix: string) {
   return `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
 }
@@ -79,6 +82,8 @@ export async function getSaecDiscoverySubmissionStatus(): Promise<SaecDiscoveryS
     .from("saec_discovery_submissions")
     .select("submitted_at, updated_at")
     .eq("workspace_id", workspace.id)
+    .order("submitted_at", { ascending: false })
+    .limit(1)
     .maybeSingle();
 
   if (error) throw new Error(error.message);
@@ -102,25 +107,12 @@ export async function submitSaecDiscoveryQuestionnaire(input: {
   const responses = normalizeDiscoveryResponses(input.responses);
   const now = new Date().toISOString();
 
-  const { data: existing, error: existingError } = await supabase
-    .from("saec_discovery_submissions")
-    .select(
-      "id, created_at, responses, metadata, submitted_by_email, submitted_at, updated_at, workspaces(slug, name)",
-    )
-    .eq("workspace_id", workspace.id)
-    .maybeSingle();
-
-  if (existingError) throw new Error(existingError.message);
-
-  if (existing && discoveryResponsesAreBlank(responses)) {
-    const prior = normalizeDiscoveryResponses(existing.responses);
-    if (!discoveryResponsesAreBlank(prior)) {
-      return mapSubmissionRow(existing as DbSubmissionRow);
-    }
+  if (discoveryResponsesAreBlank(responses)) {
+    throw new Error("Cannot submit an empty questionnaire.");
   }
 
   const payload = {
-    id: existing?.id ?? randomId("saecdisc"),
+    id: randomId("saecdisc"),
     workspace_id: workspace.id,
     status: "submitted" as const,
     responses,
@@ -128,38 +120,38 @@ export async function submitSaecDiscoveryQuestionnaire(input: {
     submitted_by_email: input.submittedByEmail?.trim() || null,
     submitted_at: now,
     updated_at: now,
-    ...(existing ? {} : { created_at: now }),
+    created_at: now,
   };
 
   const { data, error } = await supabase
     .from("saec_discovery_submissions")
-    .upsert(payload, { onConflict: "workspace_id" })
-    .select(
-      "id, workspace_id, status, responses, metadata, submitted_by_email, submitted_at, created_at, updated_at, workspaces(slug, name)",
-    )
+    .insert(payload)
+    .select(SUBMISSION_SELECT)
     .single();
 
   if (error) throw new Error(error.message);
   const record = mapSubmissionRow(data as DbSubmissionRow);
-  if (!discoveryResponsesAreBlank(record.responses)) {
-    void notifySaecDiscoverySubmitted(record);
-  }
+  void notifySaecDiscoverySubmitted(record);
   return record;
 }
 
-export async function getSaecDiscoverySubmissionForInternal(): Promise<SaecDiscoverySubmissionRecord | null> {
+export async function getSaecDiscoverySubmissionsForInternal(): Promise<SaecDiscoverySubmissionRecord[]> {
   const supabase = requireServiceSupabase();
   const workspace = await resolveSaecWorkspaceId(supabase);
 
   const { data, error } = await supabase
     .from("saec_discovery_submissions")
-    .select(
-      "id, workspace_id, status, responses, metadata, submitted_by_email, submitted_at, created_at, updated_at, workspaces(slug, name)",
-    )
+    .select(SUBMISSION_SELECT)
     .eq("workspace_id", workspace.id)
-    .maybeSingle();
+    .order("submitted_at", { ascending: false });
 
   if (error) throw new Error(error.message);
-  if (!data) return null;
-  return mapSubmissionRow(data as DbSubmissionRow);
+  if (!data?.length) return [];
+  return (data as DbSubmissionRow[]).map(mapSubmissionRow);
+}
+
+/** @deprecated Prefer getSaecDiscoverySubmissionsForInternal — returns latest submission only. */
+export async function getSaecDiscoverySubmissionForInternal(): Promise<SaecDiscoverySubmissionRecord | null> {
+  const submissions = await getSaecDiscoverySubmissionsForInternal();
+  return submissions[0] ?? null;
 }

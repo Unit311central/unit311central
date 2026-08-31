@@ -508,16 +508,6 @@ export default function SaecDiscoveryApp({
   const submitDiscovery = useCallback(async () => {
     if (submitting) return;
 
-    const alreadySubmitted = Boolean(submittedAt);
-    if (
-      alreadySubmitted &&
-      !window.confirm(
-        "SAEC Discovery has already been submitted. Submit again to update the stored response?",
-      )
-    ) {
-      return;
-    }
-
     setSubmitting(true);
     setSubmitError(null);
     setSubmitSuccessMessage(null);
@@ -547,15 +537,13 @@ export default function SaecDiscoveryApp({
       setSubmittedAt(when);
       persistState(snapshot, draftOwnerId, draftSavedAt);
       setStored(snapshot);
-      setSubmitSuccessMessage(
-        alreadySubmitted ? "Questionnaire updated successfully." : "Questionnaire submitted successfully.",
-      );
+      setSubmitSuccessMessage("Questionnaire submitted successfully.");
     } catch (error) {
       setSubmitError(error instanceof Error ? error.message : "Unable to submit SAEC Discovery.");
     } finally {
       setSubmitting(false);
     }
-  }, [draftOwnerId, draftSavedAt, flushDraftToStored, selectedSection, stored, submittedAt, submitting]);
+  }, [draftOwnerId, draftSavedAt, flushDraftToStored, selectedSection, stored, submitting]);
 
   if (!hydrated) {
     return (
@@ -727,7 +715,9 @@ export default function SaecDiscoveryApp({
             <main
               className={cn(
                 "flex min-h-0 min-w-0 flex-1 flex-col px-4 py-3 sm:px-5 sm:py-4",
-                selectedSection?.kind === "general" ? "overflow-y-auto" : "overflow-hidden",
+                selectedSection?.kind === "general" || selectedSection?.kind === "reporting"
+                  ? "overflow-y-auto"
+                  : "overflow-hidden",
               )}
             >
               {selectedSection ? (
@@ -736,7 +726,9 @@ export default function SaecDiscoveryApp({
                   <div
                     className={cn(
                       "flex min-h-0 flex-1 flex-col",
-                      selectedSection.kind === "general" ? "min-h-0" : "overflow-hidden",
+                      selectedSection.kind === "general" || selectedSection.kind === "reporting"
+                        ? "min-h-0"
+                        : "overflow-hidden",
                     )}
                   >
                     {selectedSection.kind === "general" ? (

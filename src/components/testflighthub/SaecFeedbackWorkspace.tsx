@@ -47,10 +47,70 @@ function Section({
   );
 }
 
+function SubmissionResponses({ submission }: { submission: SaecDiscoverySubmissionRecord }) {
+  return (
+    <div className="space-y-4">
+      {SAEC_DISCOVERY_SECTIONS.map((section) => (
+        <Section key={section.id} title={section.title}>
+          {section.kind === "general" || section.kind === "reporting" ? (
+            <div className="space-y-4">
+              {(section.questions ?? []).map((question) => (
+                <div key={question.id}>
+                  <p className="text-sm font-medium text-white/80">{question.label}</p>
+                  <div className="mt-2">
+                    <AnswerText
+                      value={readSectionAnswer(submission.responses, section.id, question.id)}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <>
+              <div className="hidden gap-6 border-b border-white/10 pb-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/35 md:grid md:grid-cols-[minmax(0,280px)_minmax(0,1fr)]">
+                <span>Function</span>
+                <span>Software</span>
+              </div>
+              <div className="mt-3 divide-y divide-white/[0.06]">
+                {(section.functions ?? []).map((entry) => (
+                  <div
+                    key={entry.id}
+                    className="grid gap-2 py-3 md:grid-cols-[minmax(0,280px)_minmax(0,1fr)] md:items-start md:gap-6"
+                  >
+                    <p className="text-sm text-white/80">{entry.label}</p>
+                    <AnswerText
+                      value={readSectionAnswer(submission.responses, section.id, entry.id)}
+                    />
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+
+          {sectionIncludesComments(section) ? (
+            <div className="mt-4 border-t border-white/10 pt-4">
+              <p className="text-sm font-medium text-white/80">{SAEC_DISCOVERY_COMMENTS_KEY}</p>
+              <div className="mt-2">
+                <AnswerText
+                  value={readSectionAnswer(
+                    submission.responses,
+                    section.id,
+                    SAEC_DISCOVERY_COMMENTS_KEY,
+                  )}
+                />
+              </div>
+            </div>
+          ) : null}
+        </Section>
+      ))}
+    </div>
+  );
+}
+
 export default function SaecFeedbackWorkspace() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [submission, setSubmission] = useState<SaecDiscoverySubmissionRecord | null>(null);
+  const [submissions, setSubmissions] = useState<SaecDiscoverySubmissionRecord[]>([]);
 
   const loadSubmission = useCallback(async () => {
     setLoading(true);
@@ -60,16 +120,16 @@ export default function SaecFeedbackWorkspace() {
         cache: "no-store",
       });
       const payload = (await response.json()) as {
-        submission?: SaecDiscoverySubmissionRecord | null;
+        submissions?: SaecDiscoverySubmissionRecord[];
         error?: string;
       };
       if (!response.ok) {
         throw new Error(payload.error ?? "Unable to load SAEC Feedback.");
       }
-      setSubmission(payload.submission ?? null);
+      setSubmissions(payload.submissions ?? []);
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : "Unable to load SAEC Feedback.");
-      setSubmission(null);
+      setSubmissions([]);
     } finally {
       setLoading(false);
     }
@@ -78,6 +138,8 @@ export default function SaecFeedbackWorkspace() {
   useEffect(() => {
     void loadSubmission();
   }, [loadSubmission]);
+
+  const latest = submissions[0] ?? null;
 
   return (
     <div className="space-y-5 pb-8">
@@ -97,21 +159,18 @@ export default function SaecFeedbackWorkspace() {
           <p className="mt-5 rounded-lg border border-rose-400/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-100">
             {error}
           </p>
-        ) : submission ? (
+        ) : latest ? (
           <div className="mt-5 flex flex-wrap items-center gap-3">
             <span className="inline-flex items-center gap-2 rounded-full border border-emerald-400/30 bg-emerald-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.08em] text-emerald-100">
               <CheckCircle2 className="h-3.5 w-3.5" />
-              Submitted
+              {submissions.length} submission{submissions.length === 1 ? "" : "s"}
             </span>
             <div className="text-sm text-white/70">
-              <span className="text-white/45">Submitted:</span> {formatWhen(submission.submittedAt)}
+              <span className="text-white/45">Latest:</span> {formatWhen(latest.submittedAt)}
             </div>
-            <div className="text-sm text-white/70">
-              <span className="text-white/45">Last updated:</span> {formatWhen(submission.updatedAt)}
-            </div>
-            {submission.submittedByEmail ? (
+            {latest.submittedByEmail ? (
               <div className="text-sm text-white/70">
-                <span className="text-white/45">Submitted by:</span> {submission.submittedByEmail}
+                <span className="text-white/45">Submitted by:</span> {latest.submittedByEmail}
               </div>
             ) : null}
           </div>
@@ -123,68 +182,32 @@ export default function SaecFeedbackWorkspace() {
         )}
       </header>
 
-      {!loading && !error && submission ? (
-        <div className="space-y-4">
-          {SAEC_DISCOVERY_SECTIONS.map((section) => (
-            <Section key={section.id} title={section.title}>
-              {section.kind === "general" || section.kind === "reporting" ? (
-                <div className="space-y-4">
-                  {(section.questions ?? []).map((question) => (
-                    <div key={question.id}>
-                      <p className="text-sm font-medium text-white/80">{question.label}</p>
-                      <div className="mt-2">
-                        <AnswerText
-                          value={readSectionAnswer(
-                            submission.responses,
-                            section.id,
-                            question.id,
-                          )}
-                        />
-                      </div>
-                    </div>
-                  ))}
+      {!loading && !error && submissions.length > 0 ? (
+        <div className="space-y-8">
+          {submissions.map((submission, index) => (
+            <div key={submission.id} className="space-y-4">
+              <div className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3">
+                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-sky-200/80">
+                  Submission {submissions.length - index}
+                  {index === 0 ? " (latest)" : ""}
+                </p>
+                <div className="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-sm text-white/70">
+                  <span>
+                    <span className="text-white/45">Submitted:</span>{" "}
+                    {formatWhen(submission.submittedAt)}
+                  </span>
+                  <span>
+                    <span className="text-white/45">ID:</span> {submission.id}
+                  </span>
+                  {submission.submittedByEmail ? (
+                    <span>
+                      <span className="text-white/45">By:</span> {submission.submittedByEmail}
+                    </span>
+                  ) : null}
                 </div>
-              ) : (
-                <>
-                  <div className="hidden gap-6 border-b border-white/10 pb-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/35 md:grid md:grid-cols-[minmax(0,280px)_minmax(0,1fr)]">
-                    <span>Function</span>
-                    <span>Software</span>
-                  </div>
-                  <div className="mt-3 divide-y divide-white/[0.06]">
-                    {(section.functions ?? []).map((entry) => (
-                      <div
-                        key={entry.id}
-                        className="grid gap-2 py-3 md:grid-cols-[minmax(0,280px)_minmax(0,1fr)] md:items-start md:gap-6"
-                      >
-                        <p className="text-sm text-white/80">{entry.label}</p>
-                        <AnswerText
-                          value={readSectionAnswer(
-                            submission.responses,
-                            section.id,
-                            entry.id,
-                          )}
-                        />
-                      </div>
-                    ))}
-                  </div>
-                </>
-              )}
-
-              {sectionIncludesComments(section) ? (
-                <div className="mt-4 border-t border-white/10 pt-4">
-                  <p className="text-sm font-medium text-white/80">{SAEC_DISCOVERY_COMMENTS_KEY}</p>
-                  <div className="mt-2">
-                    <AnswerText
-                      value={readSectionAnswer(
-                        submission.responses,
-                        section.id,
-                        SAEC_DISCOVERY_COMMENTS_KEY,
-                      )}
-                    />
-                  </div>
-                </div>
-              ) : null}
-            </Section>
+              </div>
+              <SubmissionResponses submission={submission} />
+            </div>
           ))}
         </div>
       ) : null}

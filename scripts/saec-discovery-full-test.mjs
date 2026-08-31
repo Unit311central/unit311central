@@ -167,6 +167,30 @@ async function assertReportingLayout(page) {
   assert.equal(result.clipped, false, "Reporting answer fields must not be compressed");
 }
 
+async function assertReportingReachable(page) {
+  await page.getByRole("button", { name: "Reporting", exact: true }).click();
+  await page.waitForSelector("#reporting-regular-reports");
+  await page.locator(".rounded-xl main").evaluate((node) => {
+    node.scrollTop = node.scrollHeight;
+  });
+  const result = await page.evaluate(() => {
+    const fields = [
+      document.querySelector("#reporting-untrusted-reports"),
+      document.querySelector("#reporting-automatic-reports"),
+      document.querySelector("#reporting-comments"),
+    ];
+    const main = document.querySelector(".rounded-xl main");
+    return {
+      allPresent: fields.every(Boolean),
+      allVisible: fields.every((node) => node?.checkVisibility?.() ?? false),
+      mainScrollable: main ? main.scrollHeight > main.clientHeight : false,
+    };
+  });
+  assert.equal(result.allPresent, true, "Reporting Q5, Q6, and comments must exist");
+  assert.equal(result.allVisible, true, "Reporting Q5, Q6, and comments must be visible after scroll");
+  assert.ok(result.mainScrollable, "Reporting content must scroll within the main panel");
+}
+
 async function typeInField(page, selector, value) {
   const field = page.locator(selector);
   await field.waitFor({ state: "visible" });
@@ -234,13 +258,14 @@ try {
       }
 
       await assertNoHorizontalOverflow(page);
-      if (section.kind !== "general") {
+      if (section.kind !== "general" && section.kind !== "reporting") {
         await assertNoPanelOverflow(page);
       }
     }
 
     await assertSoftwareLayoutConsistency(page);
     await assertReportingLayout(page);
+    await assertReportingReachable(page);
     await assertNoHorizontalOverflow(page);
 
     await page.locator('button:has-text("Save Draft")').click();
