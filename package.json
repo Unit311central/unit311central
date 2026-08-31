@@ -76,6 +76,7 @@
     "prove:pailex-workspace": "node --import tsx src/lib/pailex/__tests__/pailex-workspace.check.ts && node --import tsx src/lib/pailex/__tests__/pailex-nav.check.ts && node --import tsx src/lib/wolf/__tests__/wolf-nav.check.ts && node --import tsx src/lib/__tests__/wolf-central.check.ts",
     "audit:demo-saec-parity": "node scripts/audit-demo-saec-parity.mjs",
     "prove:workspaces-nav": "node --require ./scripts/test-server-only-hook.cjs --import tsx src/lib/__tests__/workspaces-nav.check.ts",
+    "prove:realtime-video-pipeline": "node --import tsx src/lib/__tests__/realtime-video-pipeline.check.ts",
     "prove:workspaces-phase2": "node --require ./scripts/test-server-only-hook.cjs --import tsx src/lib/__tests__/workspaces-phase2.check.ts",
     "prove:workspaces-phase3": "node --require ./scripts/test-server-only-hook.cjs --import tsx src/lib/__tests__/workspaces-phase3.check.ts",
     "prove:workspaces-provisioning-final": "node --require ./scripts/test-server-only-hook.cjs --import tsx src/lib/__tests__/workspaces-provisioning-final.check.ts",

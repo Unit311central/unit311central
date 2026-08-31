@@ -23,6 +23,7 @@ export const ALWAYS_ALLOWED_VIEWS: readonly InternalOperationsView[] = [
   "platform-analytics",
   "website-analytics",
   "system-health",
+  "realtime-video-pipeline",
   "saec-feedback",
   "workspaces-overview",
   "workspaces-new",

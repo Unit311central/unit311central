@@ -289,6 +289,7 @@ import {
   PlatformAnalyticsWorkspace,
   WebsiteAnalyticsWorkspace,
   SystemHealthWorkspace,
+  RealtimeVideoPipelineWorkspace,
   SaecFeedbackWorkspace,
   ManagementWorkspace,
   ContentStudioWorkspace,
@@ -1384,6 +1385,12 @@ export default function InternalOperationsDashboard({
             </WorkspaceErrorBoundary>
           )}
 
+          {activeView === "realtime-video-pipeline" && isInternalHost && (
+            <WorkspaceErrorBoundary title="Real-Time Video & AI Pipeline">
+              <RealtimeVideoPipelineWorkspace />
+            </WorkspaceErrorBoundary>
+          )}
+
           {activeView === "saec-feedback" && isInternalHost && (
             <WorkspaceErrorBoundary title="SAEC Feedback">
               <SaecFeedbackWorkspace />
@@ -1732,6 +1739,7 @@ function AccessViewGuard({
       (activeView === "platform-analytics" ||
         activeView === "website-analytics" ||
         activeView === "system-health" ||
+        activeView === "realtime-video-pipeline" ||
         activeView === "workspaces-overview" ||
         activeView === "workspaces-new") &&
       !isInternalHost
