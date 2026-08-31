@@ -7,12 +7,18 @@ import { formatMoney } from "@/lib/accounting/chart-of-accounts";
 import {
   deleteCustomerFundraisingInvestor,
   deleteCustomerFundraisingPipelineDeal,
+  deleteCustomerFundraisingPitchDeck,
+  deleteCustomerFundraisingDataRoom,
   getCustomerFundraisingSnapshot,
   subscribeCustomerFundraising,
   upsertCustomerFundraisingInvestor,
   upsertCustomerFundraisingPipelineDeal,
+  upsertCustomerFundraisingPitchDeck,
+  upsertCustomerFundraisingDataRoom,
   type CustomerFundraisingInvestor,
   type CustomerFundraisingPipelineDeal,
+  type CustomerFundraisingPitchDeck,
+  type CustomerFundraisingDataRoom,
 } from "@/lib/customer-fundraising-store";
 import { resolveSlugReportingCurrency } from "@/lib/financial-reporting-currency";
 import { readBrowserCustomerWorkspaceSlug } from "@/lib/customer-workspace-surface";
@@ -36,6 +42,8 @@ export default function FundraisingCustomerRecordsWorkspace({ title, subtitle, s
   const [editor, setEditor] = useState<
     | { kind: "investor"; row: Partial<CustomerFundraisingInvestor> & { id?: string } }
     | { kind: "pipeline"; row: Partial<CustomerFundraisingPipelineDeal> & { id?: string } }
+    | { kind: "pitch-deck"; row: Partial<CustomerFundraisingPitchDeck> & { id?: string } }
+    | { kind: "data-room"; row: Partial<CustomerFundraisingDataRoom> & { id?: string } }
     | null
   >(null);
 
@@ -60,6 +68,20 @@ export default function FundraisingCustomerRecordsWorkspace({ title, subtitle, s
     });
   }
 
+  function openPitchDeck(row?: CustomerFundraisingPitchDeck) {
+    setEditor({
+      kind: "pitch-deck",
+      row: row ?? { title: "", version: "1.0", url: "", notes: "" },
+    });
+  }
+
+  function openDataRoom(row?: CustomerFundraisingDataRoom) {
+    setEditor({
+      kind: "data-room",
+      row: row ?? { name: "", url: "", investor: "", notes: "" },
+    });
+  }
+
   function saveEditor() {
     if (!editor) return;
     if (editor.kind === "investor") {
@@ -71,6 +93,28 @@ export default function FundraisingCustomerRecordsWorkspace({ title, subtitle, s
           stage: String(editor.row.stage ?? "").trim() || "Prospect",
           amount: Number(editor.row.amount) || 0,
           currency: editor.row.currency ?? currency,
+          notes: String(editor.row.notes ?? ""),
+        },
+        slug,
+      );
+    } else if (editor.kind === "pitch-deck") {
+      upsertCustomerFundraisingPitchDeck(
+        {
+          id: editor.row.id,
+          title: String(editor.row.title ?? "").trim(),
+          version: String(editor.row.version ?? "").trim() || "1.0",
+          url: String(editor.row.url ?? "").trim(),
+          notes: String(editor.row.notes ?? ""),
+        },
+        slug,
+      );
+    } else if (editor.kind === "data-room") {
+      upsertCustomerFundraisingDataRoom(
+        {
+          id: editor.row.id,
+          name: String(editor.row.name ?? "").trim(),
+          url: String(editor.row.url ?? "").trim(),
+          investor: String(editor.row.investor ?? "").trim(),
           notes: String(editor.row.notes ?? ""),
         },
         slug,
@@ -153,7 +197,47 @@ export default function FundraisingCustomerRecordsWorkspace({ title, subtitle, s
         />
       ) : null}
 
-      {section === "meetings" || section === "pitch-decks" || section === "data-rooms" ? (
+      {section === "pitch-decks" ? (
+        <RecordSection
+          title="Pitch decks"
+          addLabel="Add pitch deck"
+          onAdd={() => openPitchDeck()}
+          empty="No pitch decks yet."
+          rows={snapshot.pitchDecks.map((row) => ({
+            id: row.id,
+            primary: row.title,
+            secondary: `v${row.version}${row.url ? ` · ${row.url}` : ""}`,
+            onEdit: () => openPitchDeck(row),
+            onDelete: () => {
+              if (window.confirm(`Delete pitch deck ${row.title}?`)) {
+                deleteCustomerFundraisingPitchDeck(row.id, slug);
+              }
+            },
+          }))}
+        />
+      ) : null}
+
+      {section === "data-rooms" ? (
+        <RecordSection
+          title="Data rooms"
+          addLabel="Add data room"
+          onAdd={() => openDataRoom()}
+          empty="No data rooms yet."
+          rows={snapshot.dataRooms.map((row) => ({
+            id: row.id,
+            primary: row.name,
+            secondary: `${row.investor || "Unassigned"}${row.url ? ` · ${row.url}` : ""}`,
+            onEdit: () => openDataRoom(row),
+            onDelete: () => {
+              if (window.confirm(`Delete data room ${row.name}?`)) {
+                deleteCustomerFundraisingDataRoom(row.id, slug);
+              }
+            },
+          }))}
+        />
+      ) : null}
+
+      {section === "meetings" ? (
         <section className="rounded-2xl border border-dashed border-white/15 bg-white/[0.03] p-8 text-center">
           <p className="text-sm text-white/50">No {title.toLowerCase()} yet. Add records from Investors or Pipeline to start tracking this workspace raise.</p>
         </section>
@@ -162,77 +246,180 @@ export default function FundraisingCustomerRecordsWorkspace({ title, subtitle, s
       {editor ? (
         <section className="rounded-2xl border border-sky-400/25 bg-sky-500/5 p-4">
           <p className="text-sm font-medium text-white">
-            {editor.row.id ? "Edit" : "Add"} {editor.kind === "investor" ? "investor" : "pipeline deal"}
+            {editor.row.id ? "Edit" : "Add"}{" "}
+            {editor.kind === "investor"
+              ? "investor"
+              : editor.kind === "pipeline"
+                ? "pipeline deal"
+                : editor.kind === "pitch-deck"
+                  ? "pitch deck"
+                  : "data room"}
           </p>
           <div className="mt-3 grid gap-3 sm:grid-cols-2">
-            <label className="block text-xs text-white/55">
-              Name
-              <input
-                value={String(editor.row.name ?? "")}
-                onChange={(event) =>
-                  setEditor((current) =>
-                    current ? { ...current, row: { ...current.row, name: event.target.value } } : current,
-                  )
-                }
-                className={inputClass()}
-              />
-            </label>
-            <label className="block text-xs text-white/55">
-              Stage
-              <input
-                value={String(editor.row.stage ?? "")}
-                onChange={(event) =>
-                  setEditor((current) =>
-                    current ? { ...current, row: { ...current.row, stage: event.target.value } } : current,
-                  )
-                }
-                className={inputClass()}
-              />
-            </label>
-            {editor.kind === "investor" ? (
-              <label className="block text-xs text-white/55">
-                Type
-                <input
-                  value={String(editor.row.type ?? "")}
-                  onChange={(event) =>
-                    setEditor((current) =>
-                      current ? { ...current, row: { ...current.row, type: event.target.value } } : current,
-                    )
-                  }
-                  className={inputClass()}
-                />
-              </label>
-            ) : (
-              <label className="block text-xs text-white/55">
-                Expected close
-                <input
-                  type="date"
-                  value={String(editor.row.expectedClose ?? "")}
-                  onChange={(event) =>
-                    setEditor((current) =>
-                      current
-                        ? { ...current, row: { ...current.row, expectedClose: event.target.value } }
-                        : current,
-                    )
-                  }
-                  className={inputClass()}
-                />
-              </label>
-            )}
-            <label className="block text-xs text-white/55">
-              Amount ({currency})
-              <input
-                value={String(editor.row.amount ?? "")}
-                onChange={(event) =>
-                  setEditor((current) =>
-                    current
-                      ? { ...current, row: { ...current.row, amount: Number(event.target.value) || 0 } }
-                      : current,
-                  )
-                }
-                className={inputClass()}
-              />
-            </label>
+            {editor.kind === "investor" || editor.kind === "pipeline" ? (
+              <>
+                <label className="block text-xs text-white/55">
+                  Name
+                  <input
+                    value={String(editor.row.name ?? "")}
+                    onChange={(event) =>
+                      setEditor((current) =>
+                        current ? { ...current, row: { ...current.row, name: event.target.value } } : current,
+                      )
+                    }
+                    className={inputClass()}
+                  />
+                </label>
+                <label className="block text-xs text-white/55">
+                  Stage
+                  <input
+                    value={String(editor.row.stage ?? "")}
+                    onChange={(event) =>
+                      setEditor((current) =>
+                        current ? { ...current, row: { ...current.row, stage: event.target.value } } : current,
+                      )
+                    }
+                    className={inputClass()}
+                  />
+                </label>
+                {editor.kind === "investor" ? (
+                  <label className="block text-xs text-white/55">
+                    Type
+                    <input
+                      value={String(editor.row.type ?? "")}
+                      onChange={(event) =>
+                        setEditor((current) =>
+                          current ? { ...current, row: { ...current.row, type: event.target.value } } : current,
+                        )
+                      }
+                      className={inputClass()}
+                    />
+                  </label>
+                ) : (
+                  <label className="block text-xs text-white/55">
+                    Expected close
+                    <input
+                      type="date"
+                      value={String(editor.row.expectedClose ?? "")}
+                      onChange={(event) =>
+                        setEditor((current) =>
+                          current
+                            ? { ...current, row: { ...current.row, expectedClose: event.target.value } }
+                            : current,
+                        )
+                      }
+                      className={inputClass()}
+                    />
+                  </label>
+                )}
+                <label className="block text-xs text-white/55">
+                  Amount ({currency})
+                  <input
+                    value={String(editor.row.amount ?? "")}
+                    onChange={(event) =>
+                      setEditor((current) =>
+                        current
+                          ? { ...current, row: { ...current.row, amount: Number(event.target.value) || 0 } }
+                          : current,
+                      )
+                    }
+                    className={inputClass()}
+                  />
+                </label>
+              </>
+            ) : null}
+            {editor.kind === "pitch-deck" ? (
+              <>
+                <label className="block text-xs text-white/55">
+                  Title
+                  <input
+                    value={String(editor.row.title ?? "")}
+                    onChange={(event) =>
+                      setEditor((current) =>
+                        current?.kind === "pitch-deck"
+                          ? { ...current, row: { ...current.row, title: event.target.value } }
+                          : current,
+                      )
+                    }
+                    className={inputClass()}
+                  />
+                </label>
+                <label className="block text-xs text-white/55">
+                  Version
+                  <input
+                    value={String(editor.row.version ?? "")}
+                    onChange={(event) =>
+                      setEditor((current) =>
+                        current?.kind === "pitch-deck"
+                          ? { ...current, row: { ...current.row, version: event.target.value } }
+                          : current,
+                      )
+                    }
+                    className={inputClass()}
+                  />
+                </label>
+                <label className="block text-xs text-white/55 sm:col-span-2">
+                  URL
+                  <input
+                    value={String(editor.row.url ?? "")}
+                    onChange={(event) =>
+                      setEditor((current) =>
+                        current?.kind === "pitch-deck"
+                          ? { ...current, row: { ...current.row, url: event.target.value } }
+                          : current,
+                      )
+                    }
+                    className={inputClass()}
+                  />
+                </label>
+              </>
+            ) : null}
+            {editor.kind === "data-room" ? (
+              <>
+                <label className="block text-xs text-white/55">
+                  Name
+                  <input
+                    value={String(editor.row.name ?? "")}
+                    onChange={(event) =>
+                      setEditor((current) =>
+                        current?.kind === "data-room"
+                          ? { ...current, row: { ...current.row, name: event.target.value } }
+                          : current,
+                      )
+                    }
+                    className={inputClass()}
+                  />
+                </label>
+                <label className="block text-xs text-white/55">
+                  Investor
+                  <input
+                    value={String(editor.row.investor ?? "")}
+                    onChange={(event) =>
+                      setEditor((current) =>
+                        current?.kind === "data-room"
+                          ? { ...current, row: { ...current.row, investor: event.target.value } }
+                          : current,
+                      )
+                    }
+                    className={inputClass()}
+                  />
+                </label>
+                <label className="block text-xs text-white/55 sm:col-span-2">
+                  URL
+                  <input
+                    value={String(editor.row.url ?? "")}
+                    onChange={(event) =>
+                      setEditor((current) =>
+                        current?.kind === "data-room"
+                          ? { ...current, row: { ...current.row, url: event.target.value } }
+                          : current,
+                      )
+                    }
+                    className={inputClass()}
+                  />
+                </label>
+              </>
+            ) : null}
             <label className="block text-xs text-white/55 sm:col-span-2">
               Notes
               <input

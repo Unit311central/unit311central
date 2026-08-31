@@ -1,4 +1,5 @@
 import { isBrowserAbhiSurface } from "@/lib/abhi-surface";
+import { isBrowserCustomerWorkspaceSurface } from "@/lib/customer-workspace-surface";
 import { isBrowserDemoSurface } from "@/lib/demo-enterprise";
 import { isBrowserOnwardAirSurface } from "@/lib/onwardair-surface";
 import { isBrowserTalantonImpactSurface } from "@/lib/talanton-surface";
@@ -11,5 +12,6 @@ export function resolveSocialWorkspacePackId(): SocialWorkspacePackId {
   if (isBrowserTalantonImpactSurface()) return "talanton";
   if (isBrowserOnwardAirSurface()) return "onwardair";
   if (isBrowserDemoSurface()) return "demo";
+  if (isBrowserCustomerWorkspaceSurface()) return "customer";
   return "internal";
 }

@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { Eye, Heart, MessageCircle, Repeat2, Share2, ThumbsUp } from "lucide-react";
 
 import { ABHI_LINKEDIN_URL, ABHI_X_URL } from "@/lib/abhi-surface";
+import { INTERFACE_WORX_LINKEDIN_URL } from "@/lib/interface-worx-surface";
 import { resolveSocialWorkspacePackId } from "@/lib/marketing/social/resolve-workspace-pack";
 import type { SocialWorkspacePackId } from "@/lib/marketing/permissions";
 type PostStat = {
@@ -326,12 +327,69 @@ const ONWARDAIR_PLATFORMS: SocialPlatformConfig[] = [
   },
 ];
 
+const CUSTOMER_PLATFORMS: SocialPlatformConfig[] = [
+  {
+    id: "linkedin",
+    name: "LinkedIn",
+    handle: "@interfaceworx",
+    href: INTERFACE_WORX_LINKEDIN_URL,
+    displayName: "Interface Worx",
+    layout: "wide",
+    avatarLabel: "IW",
+    avatarClassName: "rounded-full border border-[#CC5500]/40 bg-[#CC5500]/20 text-xs font-bold text-[#FCBD8F]",
+    accent: "from-[#CC5500]/20 to-[#CC5500]/5",
+    accentBorder: "border-[#CC5500]/35",
+    icon: (
+      <span className="flex h-5 w-5 items-center justify-center rounded-sm bg-[#0A66C2] text-[10px] font-bold text-white">
+        in
+      </span>
+    ),
+    lastPost: {
+      date: "—",
+      preview: "Connect your LinkedIn account to publish updates from this workspace.",
+      stats: [
+        { label: "Impressions", value: "—", icon: <Eye className="h-3.5 w-3.5" /> },
+        { label: "Reactions", value: "—", icon: <ThumbsUp className="h-3.5 w-3.5" /> },
+        { label: "Comments", value: "—", icon: <MessageCircle className="h-3.5 w-3.5" /> },
+        { label: "Reposts", value: "—", icon: <Repeat2 className="h-3.5 w-3.5" /> },
+      ],
+    },
+  },
+  {
+    id: "instagram",
+    name: "Instagram",
+    handle: "@interfaceworx",
+    displayName: "@interfaceworx",
+    layout: "square",
+    avatarLabel: "IG",
+    avatarClassName: "rounded-full bg-gradient-to-br from-[#CC5500] via-[#FCBD8F] to-amber-400 text-[10px] font-bold",
+    accent: "from-[#CC5500]/20 via-[#FCBD8F]/15 to-amber-500/10",
+    accentBorder: "border-[#CC5500]/35",
+    icon: (
+      <span className="flex h-5 w-5 items-center justify-center rounded-md bg-gradient-to-br from-[#CC5500] via-[#FCBD8F] to-amber-400 text-[10px] font-bold text-white">
+        IG
+      </span>
+    ),
+    lastPost: {
+      date: "—",
+      preview: "Connect Instagram to share Interface Worx updates and mission stories.",
+      stats: [
+        { label: "Reach", value: "—", icon: <Eye className="h-3.5 w-3.5" /> },
+        { label: "Likes", value: "—", icon: <Heart className="h-3.5 w-3.5" /> },
+        { label: "Comments", value: "—", icon: <MessageCircle className="h-3.5 w-3.5" /> },
+        { label: "Shares", value: "—", icon: <Share2 className="h-3.5 w-3.5" /> },
+      ],
+    },
+  },
+];
+
 const PACK_PLATFORMS: Record<SocialWorkspacePackId, SocialPlatformConfig[]> = {
   internal: INTERNAL_PLATFORMS,
   demo: DEMO_PLATFORMS,
   onwardair: ONWARDAIR_PLATFORMS,
   talanton: TALANTON_PLATFORMS,
   abhi: ABHI_PLATFORMS,
+  customer: CUSTOMER_PLATFORMS,
 };
 
 export function resolveSocialPlatforms(): SocialPlatformConfig[] {

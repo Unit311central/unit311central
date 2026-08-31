@@ -66,6 +66,7 @@ import {
   toggleIntegration,
   uid,
 } from "@/lib/procurement-mock-store";
+import { isBrowserCustomerWorkspaceSurface } from "@/lib/customer-workspace-surface";
 import { isBrowserOnwardAirSurface } from "@/lib/onwardair-surface";
 import { isBrowserSaecSurface } from "@/lib/saec-surface";
 import { downloadPurchaseOrderPdf } from "@/lib/procurement-pdf-service";
@@ -107,7 +108,8 @@ const AI_KIND_LABELS: Record<string, string> = {
 
 const IS_OA = typeof window !== "undefined" && isBrowserOnwardAirSurface();
 const IS_SAEC = typeof window !== "undefined" && isBrowserSaecSurface();
-const DEFAULT_CURRENCY = IS_OA ? "USD" : IS_SAEC ? "ZAR" : "EUR";
+const IS_CUSTOMER = typeof window !== "undefined" && isBrowserCustomerWorkspaceSurface();
+const DEFAULT_CURRENCY = IS_OA ? "USD" : IS_SAEC ? "ZAR" : IS_CUSTOMER ? "GBP" : "EUR";
 const DEFAULT_TAX_PCT = IS_OA ? 8.25 : 21;
 const DEFAULT_COST_CENTRE = IS_OA ? "OPS-HOU" : "OPS-BCN";
 const DEFAULT_DELIVERY = IS_OA

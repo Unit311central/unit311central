@@ -1207,7 +1207,7 @@ export function createInitialAssetRegistry(): AssetRegistryState {
       if (isBrowserCustomerWorkspaceSurface()) {
         return {
           assets: [],
-          categories: [...DEFAULT_ASSET_CATEGORIES],
+          categories: [...TECHNOLOGY_ASSET_CATEGORIES],
           locations: [],
         };
       }
@@ -1244,8 +1244,8 @@ export function createBlankAsset(
   category?: string,
   location?: string,
 ): ManagedAsset {
-  const resolvedCategory = category ?? categories[0] ?? "Aircraft";
-  const resolvedLocation = location ?? locations[0] ?? "Oxford";
+  const resolvedCategory = category ?? categories[0] ?? "Laptop";
+  const resolvedLocation = location ?? locations[0] ?? "";
   const models = getModelsForCategory(resolvedCategory);
   const code = locationCode(resolvedLocation);
   const prefix = categoryPrefix(resolvedCategory);

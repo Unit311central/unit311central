@@ -1645,6 +1645,28 @@ export function getProcurementMockSnapshot() {
     } catch {
       // Fall through.
     }
+
+    try {
+      const { isBrowserCustomerWorkspaceSurface } =
+        require("@/lib/customer-workspace-surface") as typeof import("@/lib/customer-workspace-surface");
+      if (isBrowserCustomerWorkspaceSurface()) {
+        const hasStaleData =
+          state.suppliers.some(
+            (supplier) =>
+              supplier.id === "sup-dji" ||
+              supplier.currency === "EUR" ||
+              supplier.addresses.some((address) => address.city === "Barcelona"),
+          ) ||
+          state.purchaseOrders.length > 0 ||
+          state.requisitions.length > 0;
+        if (hasStaleData) {
+          state = seedState();
+        }
+        return state;
+      }
+    } catch {
+      // Fall through.
+    }
   }
 
   if (
@@ -1845,14 +1867,35 @@ export function buildDashboardSnapshot(snapshot: ProcurementMockState = state): 
     ["sent", "acknowledged", "partially_received"].includes(po.status),
   ).length;
 
-  const monthlySpend = Array.from({ length: 6 }).map((_, idx) => {
-    const offset = idx - 5;
-    const labelDate = new Date();
-    labelDate.setMonth(labelDate.getMonth() + offset);
-    const month = labelDate.toLocaleString("en-GB", { month: "short" });
-    const base = 28000 + idx * 4200 + (idx % 2 === 0 ? 6000 : 0);
-    return { month, spend: base };
-  });
+  const monthlySpend =
+    snapshot.purchaseOrders.length === 0 && snapshot.suppliers.length === 0
+      ? []
+      : Array.from({ length: 6 }).map((_, idx) => {
+          const offset = idx - 5;
+          const labelDate = new Date();
+          labelDate.setMonth(labelDate.getMonth() + offset);
+          const month = labelDate.toLocaleString("en-GB", { month: "short" });
+          const monthStart = new Date(labelDate.getFullYear(), labelDate.getMonth(), 1)
+            .toISOString()
+            .slice(0, 10);
+          const monthEnd = new Date(labelDate.getFullYear(), labelDate.getMonth() + 1, 0)
+            .toISOString()
+            .slice(0, 10);
+          const spend = snapshot.purchaseOrders
+            .filter(
+              (po) =>
+                po.createdAt >= monthStart &&
+                po.createdAt <= monthEnd &&
+                po.status !== "cancelled",
+            )
+            .reduce((sum, po) => sum + po.grandTotal, 0);
+          return { month, spend };
+        });
+
+  const budgetVsActualPct =
+    snapshot.monthlyBudget <= 0
+      ? 0
+      : Math.round((spendThisMonth / snapshot.monthlyBudget) * 100);
 
   const spendBySupplier = snapshot.suppliers
     .map((s) => ({ name: s.companyName, spend: s.totalSpend }))
@@ -1878,7 +1921,7 @@ export function buildDashboardSnapshot(snapshot: ProcurementMockState = state): 
     ordersReceivedThisMonth: receivedMonth,
     supplierPerformanceAvg: Math.round(perf),
     spendThisMonth,
-    budgetVsActualPct: Math.round((spendThisMonth / snapshot.monthlyBudget) * 100),
+    budgetVsActualPct,
     averageApprovalHours: 18,
     openDeliveries,
     monthlySpend,
@@ -1901,10 +1944,17 @@ export function buildReportingSnapshot(snapshot: ProcurementMockState = state): 
     }, {}),
   ).map(([category, spend]) => ({ category, spend }));
 
+  const hasActivity =
+    snapshot.suppliers.length > 0 ||
+    snapshot.purchaseOrders.length > 0 ||
+    snapshot.requisitions.length > 0;
+
   return {
     totalSpendYtd,
-    savingsAchieved: 18400,
-    budgetUtilisationPct: 74,
+    savingsAchieved: hasActivity ? 18400 : 0,
+    budgetUtilisationPct: hasActivity && snapshot.monthlyBudget > 0
+      ? Math.round((totalSpendYtd / (snapshot.monthlyBudget * 12)) * 100)
+      : 0,
     outstandingPoValue,
     contractsRenewingSoon,
     spendByCategory,

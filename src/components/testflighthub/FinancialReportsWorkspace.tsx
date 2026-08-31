@@ -22,6 +22,7 @@ import {
 import type { FinancialOverviewSnapshot } from "@/lib/accounting/types";
 import { isBrowserDemoSurface } from "@/lib/demo-enterprise/surface";
 import { isBrowserAbhiSurface } from "@/lib/abhi-surface";
+import { isBrowserCustomerWorkspaceSurface } from "@/lib/customer-workspace-surface";
 import { isBrowserTalantonImpactSurface } from "@/lib/talanton-surface";
 import { useWorkspaceReportingCurrency } from "@/lib/workspace-reporting-currency";
 import { formatReportingMoney } from "@/lib/financial-reporting-currency";
@@ -136,6 +137,7 @@ const WIZARD_STEPS = [
 
 export default function FinancialReportsWorkspace() {
   const isDemo = isBrowserDemoSurface();
+  const isCustomer = isBrowserCustomerWorkspaceSurface();
   const isTalanton = isBrowserTalantonImpactSurface();
   const isAbhi = isBrowserAbhiSurface();
   const workspaceCurrency = useWorkspaceReportingCurrency();
@@ -145,12 +147,14 @@ export default function FinancialReportsWorkspace() {
     abhi: isAbhi,
   });
   const [reports, setReports] = useState<FinancialReportRecord[]>(() =>
-    getSeedFinancialReports({ demo: isDemo, talanton: isTalanton, abhi: isAbhi }).map(
-      (report) => ({
-        ...report,
-        currency: workspaceCurrency === "GBP" ? report.currency : workspaceCurrency,
-      }),
-    ),
+    isCustomer
+      ? []
+      : getSeedFinancialReports({ demo: isDemo, talanton: isTalanton, abhi: isAbhi }).map(
+          (report) => ({
+            ...report,
+            currency: workspaceCurrency,
+          }),
+        ),
   );
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [actionMessage, setActionMessage] = useState<string | null>(null);

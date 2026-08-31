@@ -13,6 +13,7 @@ import {
   CORPCENTRE_CASH_BALANCE_AUD,
   isCorpCentreWorkspaceSlug,
 } from "@/lib/corpcentre-financials";
+import { isCustomerWorkspaceSlug } from "@/lib/customer-workspace-surface";
 import {
   ABHI_CASH_BALANCE_GBP,
   ABHI_ACCOUNTS_RECEIVABLE_GBP,
@@ -602,7 +603,8 @@ export async function getFinancialOverview(
 
     const glRevenue = totals.income;
     const glSpend = totals.expenses;
-    const netProfit = roundMoney(glRevenue - glSpend);
+    const isCustomerWorkspace = isCustomerWorkspaceSlug(workspaceSlug);
+    let netProfit = roundMoney(glRevenue - glSpend);
     // Calendar YTD from monthly series when available; else all-time income balance.
     const revenueYtd = isAbhiWorkspaceSlug(workspaceSlug)
       ? ABHI_REVENUE_YTD_GBP
@@ -672,6 +674,10 @@ export async function getFinancialOverview(
       return recent.reduce((sum, value) => sum + value, 0) / recent.length;
     })();
 
+    const customerMonthlyExpenses = roundMoney(
+      vendorExpenseByMonth.get(monthPrefix) ?? vendorExpenseRunRate,
+    );
+
     // Demo: never add padded GL opex journals on top of live payroll (was ~£1m+/mo nonsense).
     // Burn = payroll employment cost + software register + vendor expense run-rate.
     const payrollBurn =
@@ -689,15 +695,17 @@ export async function getFinancialOverview(
     // ABHI / Talanton: burn is staff payroll employment cost (SSOT when HR registers are sparse).
     const monthlyBurn = abhiFixtureBurn
       ? roundMoney(abhiFixtureBurn.monthly)
-      : isTalantonWorkspaceSlug(workspaceSlug)
-        ? roundMoney(payrollBurn)
-        : isDemoTreasury
-          ? roundMoney(payrollBurn + softwareMonthly + vendorExpenseRunRate)
-          : roundMoney(
-              Math.max(0, glBurnBase - glPayrollMonthly - glSoftwareMonthly) +
-                payrollMonthly +
-                softwareMonthly,
-            );
+      : isCustomerWorkspace && payrollEmployees === 0
+        ? roundMoney(vendorExpenseRunRate)
+        : isTalantonWorkspaceSlug(workspaceSlug)
+          ? roundMoney(payrollBurn)
+          : isDemoTreasury
+            ? roundMoney(payrollBurn + softwareMonthly + vendorExpenseRunRate)
+            : roundMoney(
+                Math.max(0, glBurnBase - glPayrollMonthly - glSoftwareMonthly) +
+                  payrollMonthly +
+                  softwareMonthly,
+              );
 
     const priorMonthPrefix = (() => {
       const [year, month] = monthPrefix.split("-").map(Number);
@@ -729,15 +737,17 @@ export async function getFinancialOverview(
 
     const forecastMonthly = isAbhiWorkspaceSlug(workspaceSlug)
       ? monthlyBurn
-      : isDemoTreasury
-        ? monthlyBurn
-        : roundMoney(
-            burnRate.lines.length > 0
-              ? Math.max(0, burnRate.forecastMonthly - glPayrollMonthly - glSoftwareMonthly) +
-                  payrollMonthly +
-                  softwareMonthly
-              : monthlyBurn,
-          );
+      : isCustomerWorkspace && payrollEmployees === 0
+        ? roundMoney(vendorExpenseRunRate)
+        : isDemoTreasury
+          ? monthlyBurn
+          : roundMoney(
+              burnRate.lines.length > 0
+                ? Math.max(0, burnRate.forecastMonthly - glPayrollMonthly - glSoftwareMonthly) +
+                    payrollMonthly +
+                    softwareMonthly
+                : monthlyBurn,
+            );
 
     const payrollTrend =
       burnRate.series.length > 0
@@ -842,6 +852,14 @@ export async function getFinancialOverview(
             ]
         : burnRate.series;
 
+    const resolvedMonthlyExpenses = isCustomerWorkspace
+      ? customerMonthlyExpenses
+      : roundMoney(glSpend + softwareMonthly + Math.max(0, payrollMonthly - glPayrollMonthly));
+
+    if (isCustomerWorkspace) {
+      netProfit = roundMoney(monthlyRevenue - resolvedMonthlyExpenses);
+    }
+
     return {
       revenueYtd,
       cashPosition,
@@ -850,7 +868,7 @@ export async function getFinancialOverview(
       netProfit,
       outstandingInvoices: unpaid.length,
       monthlyRevenue,
-      monthlyExpenses: roundMoney(glSpend + softwareMonthly + Math.max(0, payrollMonthly - glPayrollMonthly)),
+      monthlyExpenses: resolvedMonthlyExpenses,
       annualRevenue,
       annualExpenses: roundMoney(annualExpenses + softwareMonthly * 12),
       burnRate: {

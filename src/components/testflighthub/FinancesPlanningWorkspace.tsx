@@ -4,7 +4,12 @@ import { useCallback, useEffect, useMemo, useState, startTransition } from "reac
 import Link from "next/link";
 import { Loader2, RefreshCw } from "lucide-react";
 
+import {
+  CustomerFinancePlanningPanel,
+  useCustomerBudgetForecastBaseline,
+} from "@/components/testflighthub/CustomerFinancePlanningPanel";
 import { formatReportingMoney } from "@/lib/financial-reporting-currency";
+import { isBrowserCustomerWorkspaceSurface } from "@/lib/customer-workspace-surface";
 import type { FinancialOverviewSnapshot } from "@/lib/accounting/types";
 import { useWorkspaceReportingCurrency } from "@/lib/workspace-reporting-currency";
 import { cn } from "@/lib/utils";
@@ -93,6 +98,11 @@ export default function FinancesPlanningWorkspace({ view }: Props) {
   );
 
   const latestBudgetMonth = budgetSeries[budgetSeries.length - 1];
+  const { budgetTarget, forecastTarget } = useCustomerBudgetForecastBaseline();
+  const isCustomer = isBrowserCustomerWorkspaceSurface();
+  const forecastBaseline =
+    forecastTarget ?? overview?.burnRate.forecastMonthly ?? 0;
+  const budgetBaseline = budgetTarget ?? forecastBaseline;
 
   return (
     <div className="space-y-5">
@@ -150,12 +160,13 @@ export default function FinancesPlanningWorkspace({ view }: Props) {
         <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
           <div className="grid gap-3 sm:grid-cols-3">
             <Metric label="Actual (monthly)" value={money(overview.burnRate.monthly)} />
-            <Metric label="Forecast" value={money(overview.burnRate.forecastMonthly)} />
+            <Metric label="Forecast" value={money(budgetBaseline)} />
             <Metric
               label="Variance"
-              value={money(overview.burnRate.monthly - overview.burnRate.forecastMonthly)}
+              value={money(overview.burnRate.monthly - budgetBaseline)}
             />
           </div>
+          <CustomerFinancePlanningPanel mode="budget" />
         </section>
       ) : null}
 
@@ -177,7 +188,7 @@ export default function FinancesPlanningWorkspace({ view }: Props) {
 
       {overview && view === "finances-planning-forecast" ? (
         <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <Metric label="Forecast burn" value={money(overview.burnRate.forecastMonthly)} />
+          <Metric label="Forecast burn" value={money(forecastBaseline)} />
           <Metric label="Cash balance" value={money(overview.burnRate.cashBalance)} />
           <Metric
             label="Runway (months)"
@@ -191,6 +202,10 @@ export default function FinancesPlanningWorkspace({ view }: Props) {
         </section>
       ) : null}
 
+      {overview && view === "finances-planning-forecast" ? (
+        <CustomerFinancePlanningPanel mode="forecast" />
+      ) : null}
+
       {overview && view === "finances-planning-kpis" ? (
         <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <Metric label="Revenue YTD" value={money(overview.revenueYtd)} />
@@ -198,6 +213,10 @@ export default function FinancesPlanningWorkspace({ view }: Props) {
           <Metric label="Accounts receivable" value={money(overview.accountsReceivable)} />
           <Metric label="Accounts payable" value={money(overview.accountsPayable)} />
         </section>
+      ) : null}
+
+      {overview && view === "finances-planning-kpis" ? (
+        <CustomerFinancePlanningPanel mode="kpis" />
       ) : null}
 
       {overview && view === "finances-planning-management-accounts" ? (
@@ -209,13 +228,23 @@ export default function FinancesPlanningWorkspace({ view }: Props) {
             <Metric label="Outstanding invoices" value={money(overview.outstandingInvoices)} />
           </div>
           <p className="text-sm text-white/50">
-            Published statutory packs remain under{" "}
-            <Link href="?view=financial-reports" className="text-sky-300 hover:text-sky-200">
-              Financial Reports
-            </Link>
-            .
+            {isCustomer
+              ? "Management accounts reflect live expenses and revenue for this workspace."
+              : (
+                  <>
+                    Published statutory packs remain under{" "}
+                    <Link href="?view=financial-reports" className="text-sky-300 hover:text-sky-200">
+                      Financial Reports
+                    </Link>
+                    .
+                  </>
+                )}
           </p>
         </section>
+      ) : null}
+
+      {overview && view === "finances-planning-budget" ? (
+        <CustomerFinancePlanningPanel mode="budget" />
       ) : null}
 
       {overview && latestBudgetMonth && view === "finances-planning-budget" ? (

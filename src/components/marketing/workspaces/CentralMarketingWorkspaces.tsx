@@ -15,6 +15,7 @@ import { WorkspaceSection, WorkspaceKpiTile, WorkspaceModuleHeader } from "@/com
 import { useMarketingData } from "@/lib/marketing/client/use-marketing-data";
 import { resolveMarketingShellChrome } from "@/lib/marketing/marketing-shell-chrome";
 import { resolveBrowserMarketingWorkspaceKey } from "@/lib/marketing/workspace-context";
+import { isBrowserCustomerWorkspaceSurface } from "@/lib/customer-workspace-surface";
 import type {
   Campaign,
   ExternalEvent,
@@ -327,22 +328,6 @@ export function CentralNewsletterWorkspace() {
       }
     >
       {error ? <ErrorState message={error} /> : null}
-      <WorkspaceSection title="Quick compose">
-        <div className="grid gap-3 sm:grid-cols-2">
-          <input
-            className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/35"
-            placeholder="Newsletter title"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-          />
-          <input
-            className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/35"
-            placeholder="Email subject"
-            value={subject}
-            onChange={(e) => setSubject(e.target.value)}
-          />
-        </div>
-      </WorkspaceSection>
       <CentralEntityList title="Issues" emptyMessage="No newsletters yet — create a draft to get started.">
         {loading && !bundle ? (
           <LoadingState label="newsletters" />
@@ -410,10 +395,12 @@ export function CentralMailingWorkspace() {
   const campaigns = bundle?.campaigns ?? [];
 
   async function addContact() {
-    if (!email.trim()) return;
+    const resolvedEmail = email.trim() || window.prompt("Contact email address")?.trim() || "";
+    if (!resolvedEmail) return;
+    const resolvedName = name.trim() || resolvedEmail;
     await save("contacts", {
-      name: name.trim() || email.trim(),
-      email: email.trim(),
+      name: resolvedName,
+      email: resolvedEmail,
       status: "active",
     });
     setEmail("");
@@ -496,10 +483,11 @@ export function CentralExternalEventsWorkspace() {
   const events = bundle?.externalEvents ?? [];
 
   async function addEvent() {
-    if (!name.trim()) return;
+    const resolvedName = name.trim() || window.prompt("Event name")?.trim() || "";
+    if (!resolvedName) return;
     const today = new Date().toISOString().slice(0, 10);
     await save("external-events", {
-      name: name.trim(),
+      name: resolvedName,
       startDate: today,
       endDate: today,
       city: "",
@@ -521,14 +509,6 @@ export function CentralExternalEventsWorkspace() {
       }
     >
       {error ? <ErrorState message={error} /> : null}
-      <WorkspaceSection title="New event">
-        <input
-          className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white"
-          placeholder="Event name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-        />
-      </WorkspaceSection>
       <CentralEntityList title="Calendar" emptyMessage="No external events yet.">
         {loading && !bundle ? (
           <LoadingState label="external events" />
@@ -566,9 +546,10 @@ export function CentralManagedEventsWorkspace() {
   const events = bundle?.managedEvents ?? [];
 
   async function addEvent() {
-    if (!name.trim()) return;
+    const resolvedName = name.trim() || window.prompt("Programme name")?.trim() || "";
+    if (!resolvedName) return;
     await save("managed-events", {
-      name: name.trim(),
+      name: resolvedName,
       venue: "TBC",
       date: new Date().toISOString().slice(0, 10),
       capacity: 100,
@@ -591,14 +572,6 @@ export function CentralManagedEventsWorkspace() {
       }
     >
       {error ? <ErrorState message={error} /> : null}
-      <WorkspaceSection title="New programme">
-        <input
-          className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white"
-          placeholder="Programme name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-        />
-      </WorkspaceSection>
       <CentralEntityList title="Programmes" emptyMessage="No managed events yet.">
         {loading && !bundle ? (
           <LoadingState label="managed events" />
@@ -700,6 +673,7 @@ export function CentralMediaLibraryWorkspace() {
 export function CentralStoriesWorkspace({ storyKind }: { storyKind?: "portfolio" | "journey" | "generic" }) {
   const { bundle, loading, error, save, remove } = useMarketingData();
   const [title, setTitle] = useState("");
+  const isCustomer = isBrowserCustomerWorkspaceSurface();
 
   const stories = useMemo(() => {
     const portfolio = bundle?.portfolioStories ?? [];
@@ -711,15 +685,18 @@ export function CentralStoriesWorkspace({ storyKind }: { storyKind?: "portfolio"
 
   const label =
     storyKind === "portfolio"
-      ? "Portfolio stories"
+      ? isCustomer
+        ? "Client stories"
+        : "Portfolio stories"
       : storyKind === "journey"
         ? "Journey stories"
         : "Stories & content";
 
   async function addStory() {
-    if (!title.trim()) return;
+    const resolvedTitle = title.trim() || window.prompt("Story title")?.trim() || "";
+    if (!resolvedTitle) return;
     await save("stories", {
-      title: title.trim(),
+      title: resolvedTitle,
       storyKind: storyKind ?? "generic",
       summary: "",
       body: "",
@@ -740,14 +717,6 @@ export function CentralStoriesWorkspace({ storyKind }: { storyKind?: "portfolio"
       }
     >
       {error ? <ErrorState message={error} /> : null}
-      <WorkspaceSection title="New story">
-        <input
-          className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white"
-          placeholder="Story title"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-        />
-      </WorkspaceSection>
       <CentralEntityList title="Records" emptyMessage="No stories yet.">
         {loading && !bundle ? (
           <LoadingState label="stories" />
