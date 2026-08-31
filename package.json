@@ -78,6 +78,7 @@
     "prove:workspaces-nav": "node --require ./scripts/test-server-only-hook.cjs --import tsx src/lib/__tests__/workspaces-nav.check.ts",
     "prove:realtime-video-pipeline": "node --import tsx src/lib/__tests__/realtime-video-pipeline.check.ts",
     "prove:realtime-video-workbench": "node --import tsx src/lib/__tests__/realtime-video-workbench.check.ts",
+    "prove:realtime-video-workbench-ui": "node --import tsx src/lib/__tests__/realtime-video-workbench-ui.check.ts",
     "prove:workspaces-phase2": "node --require ./scripts/test-server-only-hook.cjs --import tsx src/lib/__tests__/workspaces-phase2.check.ts",
     "prove:workspaces-phase3": "node --require ./scripts/test-server-only-hook.cjs --import tsx src/lib/__tests__/workspaces-phase3.check.ts",
     "prove:workspaces-provisioning-final": "node --require ./scripts/test-server-only-hook.cjs --import tsx src/lib/__tests__/workspaces-provisioning-final.check.ts",

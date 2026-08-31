@@ -19,24 +19,24 @@ import {
   WsSection,
   WsSlideOver,
 } from "@/components/testflighthub/domain-workspace-ui";
-import { ArchitecturesTab, CompareTab } from "@/components/testflighthub/realtime-video-workbench/ArchitecturesTab";
+import { ArchitectureOptionsTab } from "@/components/testflighthub/realtime-video-workbench/ArchitectureOptionsTab";
+import { ArchitecturesTab } from "@/components/testflighthub/realtime-video-workbench/ArchitecturesTab";
 import { AssumptionsTab } from "@/components/testflighthub/realtime-video-workbench/AssumptionsTab";
-import { CostModelTab } from "@/components/testflighthub/realtime-video-workbench/CostModelTab";
+import { CostCalculatorTab } from "@/components/testflighthub/realtime-video-workbench/CostCalculatorTab";
+import { FailureResilienceTab } from "@/components/testflighthub/realtime-video-workbench/FailureResilienceTab";
 import { FlightScenariosTab } from "@/components/testflighthub/realtime-video-workbench/FlightScenariosTab";
+import { LatencySuccessTab } from "@/components/testflighthub/realtime-video-workbench/LatencySuccessTab";
+import { MissionProfilesTab } from "@/components/testflighthub/realtime-video-workbench/MissionProfilesTab";
 import { OverviewTab } from "@/components/testflighthub/realtime-video-workbench/OverviewTab";
 import {
   LatencyCategoryGuide,
   MilestoneLatencyGuide,
 } from "@/components/testflighthub/realtime-video-workbench/PipelineLatencyGuide";
-import {
-  PerformanceTab,
-  SuccessCriteriaTab,
-} from "@/components/testflighthub/realtime-video-workbench/SuccessCriteriaTab";
 import { StageTechnicalEditor } from "@/components/testflighthub/realtime-video-workbench/StageTechnicalEditor";
-import {
-  WORKBENCH_TABS,
-  type WorkbenchTabId,
-} from "@/components/testflighthub/realtime-video-workbench/shared";
+import { TestRunsTab } from "@/components/testflighthub/realtime-video-workbench/TestRunsTab";
+import { VideoBandwidthTab } from "@/components/testflighthub/realtime-video-workbench/VideoBandwidthTab";
+import { WorkbenchNav } from "@/components/testflighthub/realtime-video-workbench/WorkbenchNav";
+import type { WorkbenchTabId } from "@/components/testflighthub/realtime-video-workbench/shared";
 import { WorkspaceStatusPill } from "@/components/workspace-ui/primitives";
 import { formatLatencyMs } from "@/lib/realtime-video-pipeline/calculations";
 import { computeStageTotals } from "@/lib/realtime-video-pipeline/calculations";
@@ -326,27 +326,15 @@ export default function RealtimeVideoPipelineWorkspace() {
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-1 border-b border-white/10 pb-1">
-        {WORKBENCH_TABS.map((tab) => (
-          <button
-            key={tab.id}
-            type="button"
-            className={cn(
-              "rounded-t-lg px-3 py-2 text-xs font-medium",
-              activeTab === tab.id
-                ? "bg-white/10 text-white"
-                : "text-white/45 hover:text-white/80",
-            )}
-            onClick={() => setActiveTab(tab.id)}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
+      <WorkbenchNav activeTab={activeTab} onTabChange={setActiveTab} />
 
       {error ? (
         <div className="rounded-xl border border-rose-400/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-100">
           {error}
+          <p className="mt-2 text-xs text-rose-200/70">
+            If this persists, confirm migration 194 is applied and you are on the workbench branch
+            (PR #51). Production on main may show the legacy pipeline-only view until merged.
+          </p>
         </div>
       ) : null}
 
@@ -366,28 +354,48 @@ export default function RealtimeVideoPipelineWorkspace() {
           onSave={handleSaveWorkbench}
         />
       ) : null}
+      {!loading && workbench && activeTab === "missions" ? (
+        <MissionProfilesTab
+          model={workbench}
+          saving={workbenchSaving}
+          onSave={handleSaveWorkbench}
+        />
+      ) : null}
+      {!loading && workbench && activeTab === "video" ? (
+        <VideoBandwidthTab
+          model={workbench}
+          saving={workbenchSaving}
+          onSave={handleSaveWorkbench}
+        />
+      ) : null}
       {!loading && workbench && activeTab === "cost" ? (
-        <CostModelTab model={workbench} />
+        <CostCalculatorTab model={workbench} />
       ) : null}
-      {!loading && workbench && activeTab === "performance" ? (
-        <PerformanceTab model={workbench} />
-      ) : null}
-      {!loading && workbench && activeTab === "criteria" ? (
-        <SuccessCriteriaTab model={workbench} onJumpToStage={jumpToStage} />
+      {!loading && workbench && activeTab === "latency" ? (
+        <LatencySuccessTab
+          model={workbench}
+          saving={workbenchSaving}
+          onSave={handleSaveWorkbench}
+          onJumpToStage={jumpToStage}
+        />
       ) : null}
       {!loading && workbench && activeTab === "architectures" ? (
         <ArchitecturesTab model={workbench} />
       ) : null}
-      {!loading && workbench && activeTab === "compare" ? (
-        <CompareTab
+      {!loading && workbench && activeTab === "assumptions" ? (
+        <AssumptionsTab model={workbench} />
+      ) : null}
+      {!loading && activeTab === "test-runs" ? <TestRunsTab /> : null}
+      {!loading && data && activeTab === "failure" ? (
+        <FailureResilienceTab stages={data.stages} onSelectStage={jumpToStage} />
+      ) : null}
+      {!loading && workbench && activeTab === "architecture-options" ? (
+        <ArchitectureOptionsTab
           model={workbench}
           scenarios={scenarios.map((s) => ({ id: s.id, name: s.name }))}
           compareId={compareId}
           onCompareIdChange={setCompareId}
         />
-      ) : null}
-      {!loading && workbench && activeTab === "assumptions" ? (
-        <AssumptionsTab model={workbench} />
       ) : null}
 
       {!loading && activeTab === "pipeline" && data && summary ? (
