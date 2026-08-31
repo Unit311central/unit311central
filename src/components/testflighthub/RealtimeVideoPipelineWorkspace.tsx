@@ -25,9 +25,14 @@ import { CostModelTab } from "@/components/testflighthub/realtime-video-workbenc
 import { FlightScenariosTab } from "@/components/testflighthub/realtime-video-workbench/FlightScenariosTab";
 import { OverviewTab } from "@/components/testflighthub/realtime-video-workbench/OverviewTab";
 import {
+  LatencyCategoryGuide,
+  MilestoneLatencyGuide,
+} from "@/components/testflighthub/realtime-video-workbench/PipelineLatencyGuide";
+import {
   PerformanceTab,
   SuccessCriteriaTab,
 } from "@/components/testflighthub/realtime-video-workbench/SuccessCriteriaTab";
+import { StageTechnicalEditor } from "@/components/testflighthub/realtime-video-workbench/StageTechnicalEditor";
 import {
   WORKBENCH_TABS,
   type WorkbenchTabId,
@@ -57,6 +62,10 @@ import type {
   PipelineStage,
   ScenarioWithSummary,
 } from "@/lib/realtime-video-pipeline/types";
+import {
+  resolveStageLocation,
+  resolveStageProvider,
+} from "@/lib/realtime-video-pipeline/stage-terminology-sync";
 import type { WorkbenchModel } from "@/lib/realtime-video-pipeline/workbench-types";
 import { cn } from "@/lib/utils";
 
@@ -462,6 +471,14 @@ export default function RealtimeVideoPipelineWorkspace() {
           </WsSection>
 
           <WsSection title="Latency breakdown by section">
+            <div className="mb-4">
+              <p className="mb-2 text-xs text-white/45">Latency category definitions</p>
+              <LatencyCategoryGuide compact />
+            </div>
+            <div className="mb-4">
+              <p className="mb-2 text-xs text-white/45">Milestone latency definitions</p>
+              <MilestoneLatencyGuide />
+            </div>
             <div className="space-y-2">
               {SECTION_VISUAL_ORDER.map((section) => {
                 const row = summary.sectionBreakdown.find((r) => r.section === section);
@@ -528,54 +545,88 @@ export default function RealtimeVideoPipelineWorkspace() {
               </button>
             </div>
 
-            <div className="overflow-x-auto rounded-xl border border-white/10">
-              <table className="min-w-[1100px] w-full text-left text-sm">
-                <thead className="bg-white/[0.04] text-xs uppercase tracking-wide text-white/45">
+            <div className="relative overflow-x-auto rounded-xl border border-white/10">
+              <table className="min-w-[1680px] w-full border-separate border-spacing-0 text-left text-sm">
+                <thead className="bg-[#0c1220] text-xs uppercase tracking-wide text-white/45">
                   <tr>
-                    <th className="px-3 py-2">#</th>
-                    <th className="px-3 py-2">Section</th>
-                    <th className="px-3 py-2">Component</th>
-                    <th className="px-3 py-2">Status</th>
-                    <th className="px-3 py-2 text-right">Proc</th>
-                    <th className="px-3 py-2 text-right">Tx</th>
-                    <th className="px-3 py-2 text-right">Buf</th>
-                    <th className="px-3 py-2 text-right">Queue</th>
-                    <th className="px-3 py-2 text-right">AI</th>
-                    <th className="px-3 py-2 text-right">Total</th>
-                    <th className="px-3 py-2">On</th>
-                    <th className="px-3 py-2">Actions</th>
+                    <th className="sticky left-0 z-20 min-w-[2.5rem] border-b border-white/10 bg-[#0c1220] px-3 py-2">
+                      #
+                    </th>
+                    <th className="sticky left-[2.5rem] z-20 min-w-[8.5rem] border-b border-white/10 bg-[#0c1220] px-3 py-2 shadow-[4px_0_12px_rgba(0,0,0,0.35)]">
+                      Section
+                    </th>
+                    <th className="sticky left-[11rem] z-20 min-w-[14rem] border-b border-white/10 bg-[#0c1220] px-3 py-2 shadow-[4px_0_12px_rgba(0,0,0,0.35)]">
+                      Component
+                    </th>
+                    <th className="min-w-[9rem] border-b border-white/10 px-3 py-2">Location</th>
+                    <th className="min-w-[10rem] border-b border-white/10 px-3 py-2">Provider</th>
+                    <th className="min-w-[6rem] border-b border-white/10 px-3 py-2">Status</th>
+                    <th className="min-w-[4.5rem] border-b border-white/10 px-3 py-2 text-right">Proc</th>
+                    <th className="min-w-[4.5rem] border-b border-white/10 px-3 py-2 text-right">Tx</th>
+                    <th className="min-w-[4.5rem] border-b border-white/10 px-3 py-2 text-right">Buf</th>
+                    <th className="min-w-[4.5rem] border-b border-white/10 px-3 py-2 text-right">Queue</th>
+                    <th className="min-w-[4.5rem] border-b border-white/10 px-3 py-2 text-right">AI</th>
+                    <th className="min-w-[5rem] border-b border-white/10 px-3 py-2 text-right">Total</th>
+                    <th className="min-w-[3rem] border-b border-white/10 px-3 py-2">On</th>
+                    <th className="min-w-[8rem] border-b border-white/10 px-3 py-2">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-white/8">
+                <tbody className="divide-y divide-white/8 bg-[#080d18]">
                   {filteredStages.length === 0 ? (
                     <tr>
-                      <td colSpan={12} className="px-3 py-8">
+                      <td colSpan={14} className="px-3 py-8">
                         <WsEmpty message="No stages match filters" />
                       </td>
                     </tr>
                   ) : (
                     filteredStages.map((stage) => {
                       const totals = computeStageTotals(stage);
+                      const rowBg = !stage.enabled ? "bg-[#080d18]/60" : "bg-[#080d18]";
                       return (
                         <tr
                           key={stage.id}
-                          className={cn(
-                            "hover:bg-white/[0.03]",
-                            !stage.enabled && "opacity-45",
-                          )}
+                          className={cn("hover:bg-white/[0.03]", !stage.enabled && "opacity-45")}
                         >
-                          <td className="px-3 py-2 font-mono text-white/70">{stage.stageNumber}</td>
-                          <td className="px-3 py-2 text-white/60">{stage.pipelineSection}</td>
-                          <td className="px-3 py-2">
+                          <td
+                            className={cn(
+                              "sticky left-0 z-10 border-b border-white/5 px-3 py-2 font-mono text-white/70",
+                              rowBg,
+                            )}
+                          >
+                            {stage.stageNumber}
+                          </td>
+                          <td
+                            className={cn(
+                              "sticky left-[2.5rem] z-10 border-b border-white/5 px-3 py-2 text-white/60",
+                              rowBg,
+                            )}
+                          >
+                            {stage.pipelineSection}
+                          </td>
+                          <td
+                            className={cn(
+                              "sticky left-[11rem] z-10 border-b border-white/5 px-3 py-2 shadow-[4px_0_12px_rgba(0,0,0,0.25)]",
+                              rowBg,
+                            )}
+                          >
                             <button
                               type="button"
-                              className="text-left font-medium text-white hover:text-sky-200"
+                              className="max-w-[18rem] text-left font-medium text-white hover:text-sky-200"
                               onClick={() => setEditorStage(stage)}
                             >
                               {stage.component}
                             </button>
+                            <p className="mt-0.5 line-clamp-2 max-w-[18rem] text-[11px] text-white/40">
+                              {stage.whatHappens}
+                            </p>
                           </td>
-                          <td className="px-3 py-2">
+                          <td className="border-b border-white/5 px-3 py-2 text-xs text-white/55">
+                            {resolveStageLocation(stage)}
+                          </td>
+                          <td className="border-b border-white/5 px-3 py-2 text-xs text-white/55">
+                            {resolveStageProvider(stage)}
+                          </td>
+                          <td className="border-b border-white/5 px-3 py-2">
                             <span
                               className={cn(
                                 "inline-flex rounded-full border px-2 py-0.5 text-[11px]",
@@ -585,15 +636,25 @@ export default function RealtimeVideoPipelineWorkspace() {
                               {stage.measurementStatus}
                             </span>
                           </td>
-                          <td className="px-3 py-2 text-right font-mono">{latencyCell(stage.processingMs)}</td>
-                          <td className="px-3 py-2 text-right font-mono">{latencyCell(stage.transmissionMs)}</td>
-                          <td className="px-3 py-2 text-right font-mono">{latencyCell(stage.bufferMs)}</td>
-                          <td className="px-3 py-2 text-right font-mono">{latencyCell(stage.queueMs)}</td>
-                          <td className="px-3 py-2 text-right font-mono">{latencyCell(stage.aiInferenceMs)}</td>
-                          <td className="px-3 py-2 text-right font-mono font-semibold text-white">
+                          <td className="border-b border-white/5 px-3 py-2 text-right font-mono">
+                            {latencyCell(stage.processingMs)}
+                          </td>
+                          <td className="border-b border-white/5 px-3 py-2 text-right font-mono">
+                            {latencyCell(stage.transmissionMs)}
+                          </td>
+                          <td className="border-b border-white/5 px-3 py-2 text-right font-mono">
+                            {latencyCell(stage.bufferMs)}
+                          </td>
+                          <td className="border-b border-white/5 px-3 py-2 text-right font-mono">
+                            {latencyCell(stage.queueMs)}
+                          </td>
+                          <td className="border-b border-white/5 px-3 py-2 text-right font-mono">
+                            {latencyCell(stage.aiInferenceMs)}
+                          </td>
+                          <td className="border-b border-white/5 px-3 py-2 text-right font-mono font-semibold text-white">
                             {latencyCell(totals.totalMs)}
                           </td>
-                          <td className="px-3 py-2">
+                          <td className="border-b border-white/5 px-3 py-2">
                             <input
                               type="checkbox"
                               checked={stage.enabled}
@@ -602,7 +663,7 @@ export default function RealtimeVideoPipelineWorkspace() {
                               }
                             />
                           </td>
-                          <td className="px-3 py-2">
+                          <td className="border-b border-white/5 px-3 py-2">
                             <div className="flex items-center gap-1">
                               <button type="button" className={WsSecondaryButtonClass()} onClick={() => void handleMove(stage, -1)} aria-label="Move up">
                                 <ArrowUp className="h-3.5 w-3.5" />
@@ -625,6 +686,10 @@ export default function RealtimeVideoPipelineWorkspace() {
                 </tbody>
               </table>
             </div>
+            <p className="mt-2 text-xs text-white/40">
+              Scroll horizontally for latency columns — stage number, section, and component remain
+              fixed while reviewing engineering data.
+            </p>
           </WsSection>
         </>
       ) : null}
@@ -764,135 +829,7 @@ export default function RealtimeVideoPipelineWorkspace() {
                 </select>
               </label>
             </div>
-            <details className="rounded-lg border border-white/10 bg-black/20 p-3">
-              <summary className="cursor-pointer text-xs font-semibold uppercase tracking-wide text-white/55">
-                Video &amp; encoding
-              </summary>
-              <div className="mt-3 grid grid-cols-2 gap-3">
-                {(
-                  [
-                    ["resolution", "Resolution"],
-                    ["codec", "Codec"],
-                    ["streamingProtocol", "Streaming protocol"],
-                    ["transportProtocol", "Transport protocol"],
-                  ] as const
-                ).map(([key, label]) => (
-                  <label key={key} className="block space-y-1">
-                    <span className="text-white/50">{label}</span>
-                    <input
-                      className={WsInputClass()}
-                      value={String(editorStage.details[key] ?? "")}
-                      onChange={(e) =>
-                        setEditorStage({
-                          ...editorStage,
-                          details: { ...editorStage.details, [key]: e.target.value || undefined },
-                        })
-                      }
-                    />
-                  </label>
-                ))}
-                {(
-                  [
-                    ["fps", "FPS"],
-                    ["bitrateMbps", "Bitrate Mbps"],
-                  ] as const
-                ).map(([key, label]) => (
-                  <label key={key} className="block space-y-1">
-                    <span className="text-white/50">{label}</span>
-                    <input
-                      className={WsInputClass()}
-                      value={editorStage.details[key] ?? ""}
-                      onChange={(e) =>
-                        setEditorStage({
-                          ...editorStage,
-                          details: {
-                            ...editorStage.details,
-                            [key]: e.target.value === "" ? null : Number(e.target.value),
-                          },
-                        })
-                      }
-                    />
-                  </label>
-                ))}
-              </div>
-            </details>
-            <details className="rounded-lg border border-white/10 bg-black/20 p-3">
-              <summary className="cursor-pointer text-xs font-semibold uppercase tracking-wide text-white/55">
-                Network
-              </summary>
-              <div className="mt-3 grid grid-cols-2 gap-3">
-                {(
-                  [
-                    ["uploadMbps", "Upload Mbps"],
-                    ["downloadMbps", "Download Mbps"],
-                    ["rttMs", "RTT ms"],
-                    ["jitterMs", "Jitter ms"],
-                    ["packetLossPct", "Packet loss %"],
-                  ] as const
-                ).map(([key, label]) => (
-                  <label key={key} className="block space-y-1">
-                    <span className="text-white/50">{label}</span>
-                    <input
-                      className={WsInputClass()}
-                      value={editorStage.details[key] ?? ""}
-                      onChange={(e) =>
-                        setEditorStage({
-                          ...editorStage,
-                          details: {
-                            ...editorStage.details,
-                            [key]: e.target.value === "" ? null : Number(e.target.value),
-                          },
-                        })
-                      }
-                    />
-                  </label>
-                ))}
-              </div>
-            </details>
-            <details className="rounded-lg border border-white/10 bg-black/20 p-3">
-              <summary className="cursor-pointer text-xs font-semibold uppercase tracking-wide text-white/55">
-                Compute &amp; AI
-              </summary>
-              <div className="mt-3 grid grid-cols-2 gap-3">
-                {(
-                  [
-                    ["aiModel", "AI model"],
-                    ["gpuModel", "GPU model"],
-                    ["aiRuntime", "AI runtime"],
-                  ] as const
-                ).map(([key, label]) => (
-                  <label key={key} className="block space-y-1">
-                    <span className="text-white/50">{label}</span>
-                    <input
-                      className={WsInputClass()}
-                      value={String(editorStage.details[key] ?? "")}
-                      onChange={(e) =>
-                        setEditorStage({
-                          ...editorStage,
-                          details: { ...editorStage.details, [key]: e.target.value || undefined },
-                        })
-                      }
-                    />
-                  </label>
-                ))}
-                <label className="block space-y-1">
-                  <span className="text-white/50">GPU VRAM GB</span>
-                  <input
-                    className={WsInputClass()}
-                    value={editorStage.details.gpuVramGb ?? ""}
-                    onChange={(e) =>
-                      setEditorStage({
-                        ...editorStage,
-                        details: {
-                          ...editorStage.details,
-                          gpuVramGb: e.target.value === "" ? null : Number(e.target.value),
-                        },
-                      })
-                    }
-                  />
-                </label>
-              </div>
-            </details>
+            <StageTechnicalEditor stage={editorStage} onChange={setEditorStage} />
             <label className="block space-y-1">
               <span className="text-white/50">Source / evidence</span>
               <input

@@ -82,6 +82,12 @@ export function ArchitecturesTab({ model }: { model: WorkbenchModel }) {
         ))}
       </div>
       {view ? <ArchitectureDiagram view={view} /> : null}
+      {activeView === "failure-resilience" && view && view.nodes.length === 0 ? (
+        <p className="text-sm text-white/45">
+          Add failure impact / fallback fields on pipeline stages to populate this resilience view.
+          Unknown technologies remain TBD — not invented here.
+        </p>
+      ) : null}
       <p className="text-xs text-white/40">
         Values are derived from the master pipeline and flight scenario model — not hard-coded in the
         diagram.

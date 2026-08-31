@@ -313,24 +313,43 @@ function buildArchitectureView(
   return { id, title, nodes, edges };
 }
 
-export function buildArchitectureViews(stages: PipelineStage[]): ArchitectureView[] {
+export function buildArchitectureViews(
+  stages: PipelineStage[],
+  options?: { aircraftName?: string },
+): ArchitectureView[] {
+  const aircraft = options?.aircraftName ?? "Aircraft";
   const enabled = [...stages].filter((s) => s.enabled).sort((a, b) => a.stageOrder - b.stageOrder);
+  const rfLatency = enabled.find((s) => s.component === "RF propagation");
+  const ingest = enabled.find((s) => s.component === "Cloud Video Ingestion Service");
+  const gpu = enabled.find((s) => s.component.includes("GPU"));
+  const rfMs = rfLatency ? computeStageTotals(rfLatency).totalMs : null;
+  const ingestMs = ingest ? computeStageTotals(ingest).totalMs : null;
+  const gpuMs = gpu ? computeStageTotals(gpu).totalMs ?? gpu.aiInferenceMs : null;
+
   return [
     {
       id: "executive",
       title: "Executive / High Level",
       nodes: [
-        node("drone", "Drone", "Drone", null),
-        node("conn", "Connectivity", "Internet", null),
-        node("cloud", "Cloud", "Cloud Video Ingest", null),
-        node("ai", "AI", "AI Infrastructure", null),
-        node("wolf", "WOLF", "WOLF Backend", null),
-        node("op", "Operator", "Browser", null),
+        node("oryx", aircraft, "Drone", null),
+        node("rf", "RF / Communications", "RF Transmission", rfMs),
+        node("ground", "Ground Station", "HQ Ground Station", null),
+        node("park", "Park Network", "HQ Network", null),
+        node("wan", "Internet / WAN", "Internet", null),
+        node("ingest", "Cloud Video Ingestion", "Cloud Video Ingest", ingestMs),
+        node("media", "Video Processing", "Cloud Media Processing", null),
+        node("ai", "AI Processing", "AI Infrastructure", gpuMs),
+        node("wolf", "WOLF Services", "WOLF Backend", null),
+        node("op", "Operator / Browser", "Browser", null),
       ],
       edges: [
-        { from: "drone", to: "conn" },
-        { from: "conn", to: "cloud" },
-        { from: "cloud", to: "ai" },
+        { from: "oryx", to: "rf" },
+        { from: "rf", to: "ground" },
+        { from: "ground", to: "park" },
+        { from: "park", to: "wan" },
+        { from: "wan", to: "ingest" },
+        { from: "ingest", to: "media" },
+        { from: "media", to: "ai" },
         { from: "ai", to: "wolf" },
         { from: "wolf", to: "op" },
       ],
@@ -338,6 +357,11 @@ export function buildArchitectureViews(stages: PipelineStage[]): ArchitectureVie
     buildArchitectureView("infrastructure", "Infrastructure", enabled),
     buildArchitectureView("software", "Software / Services", enabled, (s) =>
       ["WOLF Backend", "Cloud Video Ingest", "Cloud Media Processing", "AI Infrastructure"].includes(
+        s.pipelineSection,
+      ),
+    ),
+    buildArchitectureView("middleware", "Middleware / Data Flow", enabled, (s) =>
+      ["Cloud Video Ingest", "Cloud Media Processing", "WOLF Backend", "Database"].includes(
         s.pipelineSection,
       ),
     ),
@@ -350,6 +374,25 @@ export function buildArchitectureViews(stages: PipelineStage[]): ArchitectureVie
       ),
     ),
     buildArchitectureView("data-flow", "Data Architecture", enabled),
+    {
+      id: "failure-resilience",
+      title: "Failure / Resilience",
+      nodes: enabled
+        .filter((s) => s.details.failureImpact || s.details.failureFallback)
+        .map((s) => {
+          const t = computeStageTotals(s);
+          return {
+            id: s.id,
+            label: s.component,
+            section: s.pipelineSection,
+            valueLabel: s.details.failureImpact?.slice(0, 40) ?? "TBD",
+            latencyMs: t.totalMs,
+            enabled: s.enabled,
+            pathKind: s.pathKind,
+          };
+        }),
+      edges: [],
+    },
   ];
 }
 
@@ -452,7 +495,9 @@ export function buildWorkbenchModel(input: {
     costs,
     criteria,
     latencyContributors,
-    architectureViews: buildArchitectureViews(stages),
+    architectureViews: buildArchitectureViews(stages, {
+      aircraftName: config.videoProfile?.droneModel ?? "Oryx",
+    }),
     overview,
   };
 }

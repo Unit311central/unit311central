@@ -1,9 +1,11 @@
 "use client";
 
 import { formatLatencyMs } from "@/lib/realtime-video-pipeline/calculations";
+import { MILESTONE_LATENCY_DEFINITIONS } from "@/lib/realtime-video-pipeline/pipeline-terminology";
 import type { WorkbenchModel } from "@/lib/realtime-video-pipeline/workbench-types";
 import { cn } from "@/lib/utils";
 
+import { LatencyCategoryGuide } from "./PipelineLatencyGuide";
 import { contentionTone, criterionTone, fmtNum } from "./shared";
 
 type Props = {
@@ -14,6 +16,13 @@ type Props = {
 export function SuccessCriteriaTab({ model, onJumpToStage }: Props) {
   return (
     <div className="space-y-5">
+      <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
+        <h3 className="text-sm font-semibold text-white">Success criteria evaluation</h3>
+        <p className="mt-1 text-xs text-white/45">
+          Targets are engineering requirements. Current values show TBD or calculated results — not
+          fabricated pass states.
+        </p>
+      </div>
       <div className="overflow-x-auto rounded-xl border border-white/10">
         <table className="min-w-[800px] w-full text-left text-sm">
           <thead className="bg-white/[0.04] text-xs uppercase tracking-wide text-white/45">
@@ -105,28 +114,52 @@ export function PerformanceTab({ model }: { model: WorkbenchModel }) {
   if (!s) {
     return <p className="text-sm text-white/50">Link a pipeline scenario to view performance metrics.</p>;
   }
+  const metrics = [
+    ["rawVideoLatencyMs", s.rawVideoLatencyMs],
+    ["aiDetectionLatencyMs", s.aiDetectionLatencyMs],
+    ["aiIdentificationLatencyMs", s.aiIdentificationLatencyMs],
+    ["aiAnnotatedLatencyMs", s.aiAnnotatedLatencyMs],
+    ["totalProcessingMs", s.totalProcessingMs],
+    ["totalTransmissionMs", s.totalTransmissionMs],
+    ["totalBufferMs", s.totalBufferMs],
+    ["totalQueueMs", s.totalQueueMs],
+    ["totalAiInferenceMs", s.totalAiInferenceMs],
+  ] as const;
+
   return (
-    <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-      {[
-        ["Raw video latency", s.rawVideoLatencyMs],
-        ["AI detection latency", s.aiDetectionLatencyMs],
-        ["AI identification latency", s.aiIdentificationLatencyMs],
-        ["AI annotated latency", s.aiAnnotatedLatencyMs],
-        ["Total processing", s.totalProcessingMs],
-        ["Total transmission", s.totalTransmissionMs],
-        ["Total buffering", s.totalBufferMs],
-        ["Total queue", s.totalQueueMs],
-        ["Total AI inference", s.totalAiInferenceMs],
-        ["Known minimum", s.knownMinimumMs],
-        ["Complete latency", s.completeLatencyMs],
-      ].map(([label, value]) => (
-        <div key={label as string} className="rounded-xl border border-white/10 px-4 py-3">
-          <p className="text-[11px] uppercase tracking-wide text-white/40">{label as string}</p>
+    <div className="space-y-5">
+      <div>
+        <p className="mb-2 text-xs text-white/45">Latency category definitions</p>
+        <LatencyCategoryGuide compact />
+      </div>
+      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+        {metrics.map(([key, value]) => {
+          const def = MILESTONE_LATENCY_DEFINITIONS[key as keyof typeof MILESTONE_LATENCY_DEFINITIONS];
+          return (
+            <div
+              key={key}
+              className="rounded-xl border border-white/10 px-4 py-3"
+              title={def?.description}
+            >
+              <p className="text-[11px] uppercase tracking-wide text-white/40">{def?.label ?? key}</p>
+              <p className="mt-1 font-mono text-lg text-white">
+                {value == null ? "TBD" : `${formatLatencyMs(value as number)} ms`}
+              </p>
+              {def ? <p className="mt-1 text-[11px] leading-relaxed text-white/40">{def.description}</p> : null}
+            </div>
+          );
+        })}
+        <div className="rounded-xl border border-white/10 px-4 py-3">
+          <p className="text-[11px] uppercase tracking-wide text-white/40">Known minimum</p>
+          <p className="mt-1 font-mono text-lg text-white">{formatLatencyMs(s.knownMinimumMs)} ms</p>
+        </div>
+        <div className="rounded-xl border border-white/10 px-4 py-3">
+          <p className="text-[11px] uppercase tracking-wide text-white/40">Complete latency</p>
           <p className="mt-1 font-mono text-lg text-white">
-            {value == null ? "TBD" : `${formatLatencyMs(value as number)} ms`}
+            {s.completeLatencyMs == null ? "TBD" : `${formatLatencyMs(s.completeLatencyMs)} ms`}
           </p>
         </div>
-      ))}
+      </div>
     </div>
   );
 }

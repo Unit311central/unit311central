@@ -17,6 +17,9 @@ import type {
   UpdateStageInput,
 } from "@/lib/realtime-video-pipeline/types";
 import { computePipelineSummary } from "@/lib/realtime-video-pipeline/calculations";
+import {
+  applyStageTerminologyPatch,
+} from "@/lib/realtime-video-pipeline/stage-terminology-sync";
 import type { WorkbenchConfig } from "@/lib/realtime-video-pipeline/workbench-types";
 import { buildWorkbenchModel } from "@/lib/realtime-video-pipeline/workbench-engine";
 import {
@@ -178,6 +181,40 @@ function seedToInsert(
   };
 }
 
+async function syncReferenceStageTerminology(scenarioId: string): Promise<void> {
+  const supabase = requireDb();
+  const workspaceId = await resolveUnit311WorkspaceId();
+  const { data: stages, error } = await supabase
+    .from("realtime_video_pipeline_stages")
+    .select("*")
+    .eq("scenario_id", scenarioId)
+    .eq("workspace_id", workspaceId);
+  if (error) throw new Error(error.message);
+
+  for (const row of (stages ?? []) as StageRow[]) {
+    const mapped = mapStage(row, row.stage_order);
+    const patched = applyStageTerminologyPatch(mapped);
+    if (!patched) continue;
+    const changed =
+      patched.component !== mapped.component ||
+      patched.whatHappens !== mapped.whatHappens ||
+      patched.detailedDescription !== mapped.detailedDescription ||
+      JSON.stringify(patched.details) !== JSON.stringify(mapped.details);
+    if (!changed) continue;
+
+    await supabase
+      .from("realtime_video_pipeline_stages")
+      .update({
+        component: patched.component,
+        what_happens: patched.whatHappens,
+        detailed_description: patched.detailedDescription,
+        details: patched.details,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", row.id);
+  }
+}
+
 export async function ensureReferenceScenario(): Promise<PipelineScenario> {
   const supabase = requireDb();
   const workspaceId = await resolveUnit311WorkspaceId();
@@ -189,7 +226,10 @@ export async function ensureReferenceScenario(): Promise<PipelineScenario> {
     .eq("slug", REFERENCE_SCENARIO_SLUG)
     .maybeSingle();
 
-  if (existing) return mapScenario(existing as ScenarioRow);
+  if (existing) {
+    await syncReferenceStageTerminology((existing as ScenarioRow).id);
+    return mapScenario(existing as ScenarioRow);
+  }
 
   const { data: created, error } = await supabase
     .from("realtime_video_scenarios")

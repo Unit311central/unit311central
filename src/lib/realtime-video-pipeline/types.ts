@@ -90,6 +90,17 @@ export type StageDetails = {
   serviceEndpoint?: string;
   managed?: boolean;
   customerManaged?: boolean;
+  /** Explicit location classification (AIRCRAFT, CLOUD, etc.) */
+  location?: string;
+  /** Service/product technology — distinct from provider */
+  technology?: string;
+  architectureStatus?: string;
+  inputDescription?: string;
+  outputDescription?: string;
+  dependencies?: string;
+  failureImpact?: string;
+  failureFallback?: string;
+  failureRecovery?: string;
 };
 
 export type PipelineStage = {

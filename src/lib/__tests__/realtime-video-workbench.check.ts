@@ -20,7 +20,8 @@ import {
   createBcnWorkbenchConfig,
   REFERENCE_MISSION_PROFILES,
 } from "@/lib/realtime-video-pipeline/workbench-reference-data";
-import type { PipelineScenario } from "@/lib/realtime-video-pipeline/types";
+import type { PipelineScenario, PipelineStage } from "@/lib/realtime-video-pipeline/types";
+import { applyStageTerminologyPatch } from "@/lib/realtime-video-pipeline/stage-terminology-sync";
 
 const mockFlightScenario = (): PipelineScenario => ({
   id: "flight-1",
@@ -68,7 +69,41 @@ assert.equal(model.schedule.flightHoursPerDay, 8);
 assert.equal(model.config.videoProfile.droneModel, ORYX_AIRCRAFT_NAME);
 assert.equal(model.overview.flightsPerDay, 4);
 assert.ok(model.criteria.length >= 4);
-assert.ok(model.architectureViews.length >= 5);
+assert.ok(model.architectureViews.length >= 8);
+
+const renamed = applyStageTerminologyPatch({
+  id: "s1",
+  workspaceId: "w1",
+  scenarioId: "pipeline-1",
+  stageOrder: 1,
+  stageNumber: 1,
+  enabled: true,
+  pipelineSection: "Cloud Video Ingest",
+  component: "WOLF cloud ingress",
+  whatHappens: "",
+  detailedDescription: "",
+  processingMs: null,
+  transmissionMs: null,
+  bufferMs: null,
+  queueMs: null,
+  aiInferenceMs: null,
+  processingMinMs: null,
+  processingTypicalMs: null,
+  processingMaxMs: null,
+  measurementStatus: "TBD",
+  source: "",
+  sourceUrl: null,
+  sourceType: "",
+  confidence: "Unknown",
+  parallel: false,
+  branchGroup: null,
+  pathKind: "video",
+  milestone: null,
+  details: {},
+  createdAt: "",
+  updatedAt: "",
+} satisfies PipelineStage);
+assert.equal(renamed?.component, "Cloud Video Ingestion Service");
 assert.equal(model.overview.completeLatencyTbd, true);
 
 // TBD live bitrate change propagates (scales mission profile bitrates like the UI)

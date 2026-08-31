@@ -277,6 +277,7 @@ export function FlightScenariosTab({ model, onSave, saving }: Props) {
                 })
               }
             />
+            <span className="mt-1 block text-[11px] text-amber-200/80">{BCN_VALIDATION_STATUS}</span>
           </label>
           <label className="text-sm">
             <span className="text-white/45">Download Mbps (reference)</span>
@@ -290,6 +291,7 @@ export function FlightScenariosTab({ model, onSave, saving }: Props) {
                 })
               }
             />
+            <span className="mt-1 block text-[11px] text-amber-200/80">{BCN_VALIDATION_STATUS}</span>
           </label>
           <label className="text-sm">
             <span className="text-white/45">Starlink tier</span>
