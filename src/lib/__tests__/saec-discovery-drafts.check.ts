@@ -78,6 +78,21 @@ assert.match(app, /AUTO_SAVE_DEBOUNCE_MS = 750/, "questionnaire must debounce au
 assert.doesNotMatch(app, /Save Draft/, "questionnaire must not expose Save Draft button");
 assert.doesNotMatch(app, />Save</, "questionnaire must not expose section Save button");
 assert.match(app, /\/api\/saec-discovery\/draft/, "questionnaire must persist drafts server-side");
+const shell = fs.readFileSync(
+  path.join(root, "src/components/saec-discovery/SaecDiscoveryShell.tsx"),
+  "utf8",
+);
+assert.match(shell, /\/api\/saec-discovery\/access/, "shell must verify SAEC workspace access");
+
+const accessService = fs.readFileSync(
+  path.join(root, "src/lib/saec-discovery/access-service.ts"),
+  "utf8",
+);
+assert.match(
+  accessService,
+  /authorizeUserForWorkspace/,
+  "SAEC discovery access must require SAEC workspace authorization",
+);
 
 const feedback = fs.readFileSync(
   path.join(root, "src/components/testflighthub/SaecFeedbackWorkspace.tsx"),
