@@ -242,6 +242,7 @@ const DEMO_HIDDEN_VIEWS = new Set<InternalOperationsView>([
   "platform-analytics",
   "website-analytics",
   "system-health",
+  "realtime-video-pipeline",
   "workspaces-overview",
   "workspaces-new",
 ]);
@@ -251,6 +252,7 @@ export const CORPCENTRE_HIDDEN_VIEWS = new Set<InternalOperationsView>([
   "platform-analytics",
   "website-analytics",
   "system-health",
+  "realtime-video-pipeline",
   "workspaces-overview",
   "workspaces-new",
   "unit311-details",
@@ -281,6 +283,7 @@ export const TALANTON_HIDDEN_VIEWS = new Set<InternalOperationsView>([
   "platform-analytics",
   "website-analytics",
   "system-health",
+  "realtime-video-pipeline",
   "workspaces-overview",
   "workspaces-new",
   "unit311-details",
@@ -762,6 +765,7 @@ export const ABHI_HIDDEN_VIEWS = new Set<InternalOperationsView>([
   "platform-analytics",
   "website-analytics",
   "system-health",
+  "realtime-video-pipeline",
   "workspaces-overview",
   "workspaces-new",
   "potential-clients",
@@ -1553,6 +1557,11 @@ const INTERNAL_ANALYTICS_NAV_ITEMS: InternalNavSection["items"] = [
     label: "System Health",
     icon: "Activity",
     view: "system-health",
+  },
+  {
+    label: "Real-Time Video & AI Pipeline",
+    icon: "Video",
+    view: "realtime-video-pipeline",
   },
   {
     label: "SAEC Feedback",

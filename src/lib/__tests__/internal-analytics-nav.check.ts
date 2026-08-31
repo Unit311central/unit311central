@@ -37,6 +37,7 @@ assert.deepEqual(analyticsItemLabels(freshNav), [
   "Platform Analytics",
   "Website Analytics",
   "System Health",
+  "Real-Time Video & AI Pipeline",
   "SAEC Feedback",
 ]);
 
@@ -68,6 +69,7 @@ assert.deepEqual(analyticsItemLabels(mergedNav), [
   "Platform Analytics",
   "Website Analytics",
   "System Health",
+  "Real-Time Video & AI Pipeline",
   "SAEC Feedback",
 ]);
 
