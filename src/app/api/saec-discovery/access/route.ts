@@ -15,6 +15,7 @@ export async function GET() {
     return NextResponse.json(
       {
         allowed: false,
+        authRequired: true,
         userId: null,
         error: error instanceof Error ? error.message : "Unable to verify SAEC Discovery access.",
       },
