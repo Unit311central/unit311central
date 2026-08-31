@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { withSentryConfig } from "@sentry/nextjs";
 
 /**
  * Path aliases for local/dev (host-agnostic).
@@ -144,4 +145,20 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+const sentryUploadEnabled = Boolean(
+  process.env.SENTRY_AUTH_TOKEN?.trim() &&
+    process.env.SENTRY_ORG?.trim() &&
+    process.env.SENTRY_PROJECT?.trim(),
+);
+
+export default withSentryConfig(nextConfig, {
+  org: process.env.SENTRY_ORG,
+  project: process.env.SENTRY_PROJECT,
+  authToken: process.env.SENTRY_AUTH_TOKEN,
+  silent: !process.env.CI,
+  widenClientFileUpload: true,
+  sourcemaps: {
+    disable: !sentryUploadEnabled,
+    deleteSourcemapsAfterUpload: true,
+  },
+});

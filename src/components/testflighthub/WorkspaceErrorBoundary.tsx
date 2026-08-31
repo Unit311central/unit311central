@@ -41,6 +41,23 @@ export class WorkspaceErrorBoundary extends Component<
       error,
       info.componentStack,
     );
+    void import("@sentry/nextjs")
+      .then((Sentry) => {
+        Sentry.captureException(error, {
+          tags: {
+            workspace_error_boundary: "1",
+            workspace_module: this.props.title ?? "workspace",
+          },
+          contexts: {
+            react: {
+              componentStack: info.componentStack,
+            },
+          },
+        });
+      })
+      .catch(() => {
+        // Sentry optional — never break the recovery UI.
+      });
   }
 
   private handleRetry = () => {

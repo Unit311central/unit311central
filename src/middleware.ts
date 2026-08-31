@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { blockDemoProspectApiMutation } from "@/lib/demo/mutation-guard-middleware";
+import { applySentryRequestContext } from "@/lib/sentry/request-context";
 
 import {
   CENTRAL_SITE_URL,
@@ -224,6 +225,11 @@ export async function middleware(request: NextRequest) {
   const host = getRequestHost(request);
   const { pathname, search } = request.nextUrl;
   const normalizedHost = normalizeHost(host);
+
+  applySentryRequestContext({
+    host,
+    workspaceSlug: request.headers.get("x-unit311-workspace-slug"),
+  });
 
   // SAEC Discovery — standalone app chrome on every host (incl. Vercel preview).
   if (pathname === "/saec-discovery" || pathname.startsWith("/saec-discovery/")) {
