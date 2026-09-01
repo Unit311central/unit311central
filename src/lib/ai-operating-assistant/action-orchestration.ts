@@ -62,6 +62,8 @@ import {
   resolveSemanticCapability,
   detectAmbiguousEaQuery,
 } from "@/lib/central-application-model";
+import { DEMO_WORKSPACE_SLUG } from "@/lib/app-domains";
+import { parseScopedPdfRequest } from "@/lib/ai-operating-assistant/scoped-pdf-metrics";
 
 export { formatActionSuccess, formatPlanReadyMessage };
 /** @deprecated Prefer formatActionSuccess */
@@ -107,6 +109,140 @@ function proposeSteps(
   };
 }
 
+function isMutationWriteAsk(message: string): boolean {
+  if (!hasExplicitWriteIntent(message)) return false;
+  return !/\b(pdf|report|pack|chart|graph|plot|export|board\s+deck|board\s+pack)\b/i.test(message);
+}
+
+async function resolveDemoModuleSpineRoute(
+  message: string,
+  business: AssistantBusinessContext,
+): Promise<OrchestrationRoute | null> {
+  if (String(business.workspace.slug ?? "").trim().toLowerCase() !== DEMO_WORKSPACE_SLUG) {
+    return null;
+  }
+  const { resolveDemoEaModuleSpineRoute } = await import("@/lib/demo/demo-ea-orchestration");
+  const spine = resolveDemoEaModuleSpineRoute(message, {
+    workspaceSlug: business.workspace.slug,
+    hasWriteIntent: hasExplicitWriteIntent(message),
+  });
+  if (!spine) return null;
+  return {
+    kind: "tool",
+    intent: {
+      tool: spine.tool as DirectAssistantIntent["tool"],
+      args: spine.args,
+      reason: spine.reason,
+    },
+  };
+}
+
+async function resolveEarlyWriteRoute(
+  message: string,
+  history: AssistantChatMessage[],
+  business: AssistantBusinessContext,
+): Promise<OrchestrationRoute | null> {
+  if (!isMutationWriteAsk(message)) return null;
+
+  const businessIntent = await resolveBusinessActionIntent(message, business, history);
+  if (businessIntent.kind === "need_info") {
+    return {
+      kind: "need_info",
+      message: businessIntent.question,
+      actionId: businessIntent.actionId,
+      missingFields: businessIntent.missingFields,
+      input: businessIntent.input,
+      executionCards: [],
+    };
+  }
+  if (businessIntent.kind === "propose") {
+    const executed = await executeRegisteredActionNow({
+      actionId: businessIntent.actionId,
+      actionInput: businessIntent.input,
+      business,
+    });
+    return { kind: "capability_answer", message: executed.message };
+  }
+  return null;
+}
+
+async function previewDemoModuleSpineRoute(
+  message: string,
+  business: AssistantBusinessContext,
+): Promise<OrchestrationRoute | null> {
+  return resolveDemoModuleSpineRoute(message, business);
+}
+
+function hasNavigationOpenIntent(message: string): boolean {
+  const lower = message.toLowerCase();
+  if (
+    /\b(open rate|open vacancies|open capas?|open projects?|open leads?|open tickets?|open pos?|opening balance)\b/i.test(
+      lower,
+    )
+  ) {
+    return false;
+  }
+  return (
+    /\bhow do i open\b/i.test(lower) ||
+    /\b(open|go to|navigate to|take me to)\s+(the\s+)?[a-z]/i.test(lower)
+  );
+}
+
+function resolveCatalogueNavigationRoute(
+  message: string,
+  business: AssistantBusinessContext,
+): OrchestrationRoute | null {
+  const catalogueOptions = { workspaceSlug: business.workspace.slug };
+  const isNavQuestion =
+    /\b(where|navigate|take\s+me\s+to|go\s+to)\b/i.test(message) ||
+    /\bhow do i open\b/i.test(message) ||
+    hasNavigationOpenIntent(message) ||
+    (/\bwhere\s+is\b/i.test(message) &&
+      /\b(platform|sidebar|application|unit311|unit\s*311)\b/i.test(message)) ||
+    /\b(what\s+(?:apps?|applications|pages)\s+(?:are\s+)?(?:under|in|inside)|applications?\s+(?:are\s+)?(?:under|in))\b/i.test(
+      message,
+    );
+  if (!isNavQuestion) return null;
+
+  const platformPinNav =
+    /\bwhere\s+is\b/i.test(message) &&
+    /\b(platform|sidebar)\b/i.test(message) &&
+    (/\bexecutive\s+assistant\b/i.test(message) || /\bhome\b/i.test(message));
+
+  if (platformPinNav) {
+    return {
+      kind: "platform_answer",
+      message: /\bexecutive\s+assistant\b/i.test(message)
+        ? "Executive Assistant is pinned at the top of the Demo workspace sidebar — select the Executive Assistant pin above the module list."
+        : "Home is pinned at the top of the Demo workspace sidebar — select the Home pin above the module list.",
+    };
+  }
+
+  const navigationAnswer = answerPlatformQuestion(message, catalogueOptions);
+  if (!navigationAnswer) return null;
+
+  if (!navigationAnswer.navigateHref && navigationAnswer.kind !== "module_detail") {
+    return null;
+  }
+
+  const cards: EaExecutionCard[] = [];
+  if (navigationAnswer.navigateHref) {
+    cards.push(
+      buildNavigationCard({
+        title: navigationAnswer.navigateLabel ?? "Open module",
+        body: "Platform navigation — Application Catalogue",
+        href: navigationAnswer.navigateHref,
+        label: navigationAnswer.navigateLabel ?? "Open",
+      }),
+    );
+  }
+  return {
+    kind: "platform_answer",
+    message: navigationAnswer.answer,
+    executionCards: cards.length ? cards : undefined,
+  };
+}
+
 /**
  * Primary orchestration entry: classify knowledge domain, then route.
  */
@@ -138,11 +274,81 @@ export async function resolveOrchestrationRoute(
     }
   }
 
+  {
+    const writeRoute = await resolveEarlyWriteRoute(message, history, business);
+    if (writeRoute) return writeRoute;
+  }
+
+  let demoSpinePreview: OrchestrationRoute | null = null;
+  let orchestrationMessage = message;
+
+  if (String(business.workspace.slug ?? "").trim().toLowerCase() === DEMO_WORKSPACE_SLUG) {
+    const {
+      enrichDemoOrchestrationMessage,
+      resolveDemoMissingEntityRoute,
+      resolveDemoOpenEndedExecutiveRoute,
+      resolveDemoCrossModuleExecutiveRoute,
+      resolveDemoConversationFollowUpRoute,
+      shouldBypassDemoModuleSpine,
+    } = await import("@/lib/demo/demo-ea-routing-guards");
+
+    orchestrationMessage = enrichDemoOrchestrationMessage(message, history);
+
+    const missingEntityRoute = resolveDemoMissingEntityRoute(orchestrationMessage, business);
+    if (missingEntityRoute) {
+      eaStage("Demo missing-entity guard", { kind: missingEntityRoute.kind });
+      return missingEntityRoute;
+    }
+
+    const conversationRoute = resolveDemoConversationFollowUpRoute(orchestrationMessage, history);
+    if (conversationRoute) {
+      eaStage("Demo conversation follow-up", {
+        tool: conversationRoute.kind === "tool" ? conversationRoute.intent.tool : conversationRoute.kind,
+      });
+      return conversationRoute;
+    }
+
+    const openEndedRoute = resolveDemoOpenEndedExecutiveRoute(orchestrationMessage);
+    if (openEndedRoute) {
+      eaStage("Demo open-ended executive route", {
+        tool: openEndedRoute.kind === "tool" ? openEndedRoute.intent.tool : openEndedRoute.kind,
+      });
+      return openEndedRoute;
+    }
+
+    const crossModuleRoute = resolveDemoCrossModuleExecutiveRoute(orchestrationMessage);
+    if (crossModuleRoute) {
+      eaStage("Demo cross-module executive route", {
+        tool: crossModuleRoute.kind === "tool" ? crossModuleRoute.intent.tool : crossModuleRoute.kind,
+      });
+      return crossModuleRoute;
+    }
+
+    const navigationRoute = resolveCatalogueNavigationRoute(orchestrationMessage, business);
+    if (navigationRoute) {
+      eaStage("Platform navigation (catalogue)", { kind: navigationRoute.kind });
+      return navigationRoute;
+    }
+
+    demoSpinePreview = shouldBypassDemoModuleSpine(orchestrationMessage)
+      ? null
+      : await previewDemoModuleSpineRoute(orchestrationMessage, business);
+  } else {
+    demoSpinePreview = await previewDemoModuleSpineRoute(orchestrationMessage, business);
+  }
+
   // General investigation / cross-module evidence — before single-capability routing.
   {
-    const investigationPlan = planInvestigation(message, business);
+    const scopedPdfEarly = parseScopedPdfRequest(orchestrationMessage);
+    const skipInvestigationForPdf =
+      scopedPdfEarly.wantsDocument &&
+      (scopedPdfEarly.useScopedPath || scopedPdfEarly.metrics.length > 0);
+
+    if (!skipInvestigationForPdf) {
+    const investigationPlan = planInvestigation(orchestrationMessage, business);
     if (
       investigationPlan &&
+      !demoSpinePreview &&
       isEaGeneralIntentMode() &&
       (!hasExplicitWriteIntent(message) ||
         investigationPlan.synthesisKind === "investigation" ||
@@ -170,11 +376,15 @@ export async function resolveOrchestrationRoute(
       });
       return { kind: "evidence_gpt", plan: investigationPlan, message };
     }
+    }
   }
 
-  // CENTRAL SEMANTIC MODEL — deterministic-first before workspace packs / GPT.
+  // CENTRAL SEMANTIC MODEL — deterministic-first; defer when Demo module spine already matched.
   {
-    const semantic = resolveSemanticCapability(message, business);
+    const deferForDemoSpine = Boolean(demoSpinePreview);
+
+    if (!deferForDemoSpine) {
+      const semantic = resolveSemanticCapability(orchestrationMessage, business);
     if (semantic && "denied" in semantic) {
       eaStage("Semantic capability denied", {
         reason: semantic.reason,
@@ -183,7 +393,7 @@ export async function resolveOrchestrationRoute(
       return { kind: "capability_answer", message: semantic.message };
     }
     if (semantic) {
-      const crossPlan = planCrossModuleEvidence(message, business);
+      const crossPlan = planCrossModuleEvidence(orchestrationMessage, business);
       const isCompositeMultiTool =
         semantic.binding.executionStrategy === "multi_tool" && semantic.binding.crossModule;
       if (
@@ -239,6 +449,15 @@ export async function resolveOrchestrationRoute(
         };
       }
     }
+    }
+  }
+
+  if (demoSpinePreview) {
+    eaStage("Demo module spine matched", {
+      tool: demoSpinePreview.kind === "tool" ? demoSpinePreview.intent.tool : demoSpinePreview.kind,
+      reason: demoSpinePreview.kind === "tool" ? demoSpinePreview.intent.reason : undefined,
+    });
+    return demoSpinePreview;
   }
 
   {
@@ -260,16 +479,16 @@ export async function resolveOrchestrationRoute(
   }
 
   {
-    const crossPlan = planCrossModuleEvidence(message, business);
-    if (crossPlan && isEaGeneralIntentMode() && !hasExplicitWriteIntent(message)) {
-      return { kind: "evidence_gpt", plan: crossPlan, message };
+    const crossPlan = planCrossModuleEvidence(orchestrationMessage, business);
+    if (crossPlan && isEaGeneralIntentMode() && !hasExplicitWriteIntent(orchestrationMessage)) {
+      return { kind: "evidence_gpt", plan: crossPlan, message: orchestrationMessage };
     }
   }
 
   {
-    const strategicPlan = planEvidenceGathering(message, business);
-    if (strategicPlan && isEaGeneralIntentMode() && !hasExplicitWriteIntent(message)) {
-      return { kind: "evidence_gpt", plan: strategicPlan, message };
+    const strategicPlan = planEvidenceGathering(orchestrationMessage, business);
+    if (strategicPlan && isEaGeneralIntentMode() && !hasExplicitWriteIntent(orchestrationMessage)) {
+      return { kind: "evidence_gpt", plan: strategicPlan, message: orchestrationMessage };
     }
   }
 
@@ -348,18 +567,11 @@ export async function resolveOrchestrationRoute(
 
   const catalogueOptions = { workspaceSlug: business.workspace.slug };
 
-  // Workspace packs (Northstar / ABHI / Talanton / OnwardAir) win before generic routing.
-  const workspacePackRoute = await resolveEaWorkspacePackOrchestration({
-    message,
-    business,
-    history,
-  });
-  if (workspacePackRoute) {
-    return workspacePackRoute;
-  }
-
-  // Navigation — Application Catalogue wins over coarse business "where/find" routing.
-  if (/\b(where|open|navigate|take\s+me\s+to|go\s+to)\b/i.test(message)) {
+  // Navigation — Application Catalogue before workspace keyword resolvers.
+  if (
+    /\b(where|navigate|take\s+me\s+to|go\s+to)\b/i.test(message) ||
+    hasNavigationOpenIntent(message)
+  ) {
     const navigationAnswer = answerPlatformQuestion(message, catalogueOptions);
     if (navigationAnswer?.navigateHref) {
       const cards: EaExecutionCard[] = [
@@ -376,6 +588,16 @@ export async function resolveOrchestrationRoute(
         executionCards: cards,
       };
     }
+  }
+
+  // Workspace packs (Northstar / ABHI / Talanton / OnwardAir) — specials after Demo spine.
+  const workspacePackRoute = await resolveEaWorkspacePackOrchestration({
+    message,
+    business,
+    history,
+  });
+  if (workspacePackRoute) {
+    return workspacePackRoute;
   }
 
   // PLATFORM — Application Catalogue only (never Action Registry).

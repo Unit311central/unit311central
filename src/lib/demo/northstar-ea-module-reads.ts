@@ -52,6 +52,7 @@ import {
 import { getTqmsMockSnapshot } from "@/lib/tqms-mock-store";
 import type { NorthstarModuleQueryResult } from "@/lib/demo/executive-intelligence";
 import type { NorthstarModuleId } from "@/lib/demo/northstar-module-id";
+import { readNorthstarSalesManagementModule } from "@/lib/demo/northstar-sales-ea-data";
 import { northstarDemoAsAtLabel } from "@/lib/demo/northstar-financial-model";
 
 export type NorthstarModuleReadOptions = {
@@ -715,6 +716,14 @@ export function readNorthstarEaModule(
         "Financials → Dashboard",
         { ledger },
       );
+    }
+
+    case "sales-management": {
+      const salesRead = readNorthstarSalesManagementModule(
+        options?.question ?? "",
+        focusKey(options),
+      );
+      return salesRead;
     }
 
     case "fundraising": {

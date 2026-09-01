@@ -109,6 +109,13 @@ export function hasExplicitWriteIntent(message: string): boolean {
   // "Create me a PDF / report / chart / export" is document or visual output, not entity mutation.
   // Do NOT treat preference changes that merely mention PDF as document generation.
   if (
+    /\b(give|get|provide|show|send)\s+(me\s+)?(an?\s+)?executive\s+\w+\s+update\b/i.test(lower) ||
+    /\bexecutive\s+(sales|financial|finance|hr|operations|management)\s+update\b/i.test(lower)
+  ) {
+    return false;
+  }
+
+  if (
     /\b(pdf|report|pack|directory|document|export|graph|chart|plot)\b/i.test(lower) &&
     /\b(create|make|generate|export|produce|build|prepare|give|get|show|plot)\b/i.test(lower) &&
     !/\b(preference|switch|delivery|deactivate|revoke|connect)\b/i.test(lower) &&
@@ -117,6 +124,19 @@ export function hasExplicitWriteIntent(message: string): boolean {
       lower,
     )
   ) {
+    return false;
+  }
+
+  // Module/screen reads — "Risk Register", "Document Control", etc. are not write verbs.
+  if (/\bwhat data is on the\b/i.test(lower)) return false;
+  if (
+    /\b(risk register|asset register|telecom register|company register|client register|share register|equipment register|document control)\b/i.test(
+      lower,
+    )
+  ) {
+    return false;
+  }
+  if (/\b[A-Za-z][\w\s-]{0,32}\sregister\b/i.test(lower) && !/^(register|create|add)\b/i.test(lower)) {
     return false;
   }
 
@@ -365,7 +385,7 @@ export function extractConversationEntityMemory(
 }
 
 function messageNeedsEntityResolution(message: string): boolean {
-  return /\b(them|they|their|that\s+client|this\s+client|the\s+client|that\s+customer|this\s+customer|for\s+them|for\s+that)\b/i.test(
+  return /\b(them|they|their|that\s+client|this\s+client|the\s+client|that\s+customer|this\s+customer|for\s+them|for\s+that|that one|this one|which one|about that|about them|tell me more)\b/i.test(
     message,
   );
 }
@@ -462,6 +482,16 @@ function optionalFieldsFromSchema(descriptor: AssistantActionDescriptor): string
   return Object.keys(props).filter((key) => !required.has(key));
 }
 
+function resolvePrimaryWriteVerb(message: string): keyof typeof GENERIC_VERBS | null {
+  const lower = message.toLowerCase();
+  for (const [verb, aliases] of Object.entries(GENERIC_VERBS)) {
+    if (aliases.some((alias) => new RegExp(`\\b${alias.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i").test(lower))) {
+      return verb as keyof typeof GENERIC_VERBS;
+    }
+  }
+  return null;
+}
+
 function scoreDescriptor(message: string, descriptor: AssistantActionDescriptor): number {
   const lower = message.toLowerCase();
   const tokens = tokenize(message);
@@ -501,6 +531,16 @@ function scoreDescriptor(message: string, descriptor: AssistantActionDescriptor)
       aliases.some((alias) => hay.includes(alias)) ||
       descriptor.id.toLowerCase().includes(verb);
     if (messageHas && actionHas) score += 4;
+  }
+
+  const primaryVerb = resolvePrimaryWriteVerb(message);
+  if (primaryVerb === "archive" || primaryVerb === "restore") {
+    if (!descriptor.id.startsWith("clients.")) score -= 100;
+    if (primaryVerb === "archive" && !descriptor.id.includes("archive")) score -= 40;
+    if (primaryVerb === "restore" && !descriptor.id.includes("restore")) score -= 40;
+  }
+  if (primaryVerb === "create" && /\bclient\b/i.test(lower) && descriptor.module === "finance") {
+    score -= 50;
   }
 
   return score;

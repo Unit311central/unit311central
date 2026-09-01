@@ -42,7 +42,7 @@
     "prove:abhi-ea": "node --import tsx src/lib/abhi/__tests__/ea-test-suite.check.ts",
     "prove:onwardair-ea": "node --import tsx src/lib/onwardair/__tests__/ea-test-suite.check.ts",
     "prove:internal-ea": "node --import tsx src/lib/internal/__tests__/ea-test-suite.check.ts",
-    "prove:demo-ea": "node --import tsx src/lib/demo/__tests__/ea-test-suite.check.ts",
+    "prove:demo-ea": "node --require ./scripts/test-server-only-hook.cjs --import tsx src/lib/demo/__tests__/ea-test-suite.check.ts",
     "prove:track-c": "node --import tsx src/lib/accounting/__tests__/track-c-money-workflow.check.ts && node scripts/prove-track-c.mjs",
     "prove:northstar-demo": "node scripts/prove-northstar-demo.mjs",
     "prove:demo-readonly": "node scripts/prove-demo-readonly.mjs",

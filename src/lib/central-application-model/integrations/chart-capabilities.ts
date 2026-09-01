@@ -18,6 +18,9 @@ export function matchesFinancialChartCapability(
   message: string,
 ): { capabilityId: string; series: FinancialChartSeriesKind } | null {
   const lower = message.trim().toLowerCase();
+  if (/\b(chart of accounts|org chart|organization chart|organisation chart)\b/i.test(lower)) {
+    return null;
+  }
   const wantsVisual =
     /\b(graph|chart|plot|visuali[sz]e|trend line|line chart|bar chart|trend)\b/i.test(lower);
   const wantsTimeSeries =
@@ -25,7 +28,26 @@ export function matchesFinancialChartCapability(
       lower,
     );
 
-  if (!wantsVisual && !wantsTimeSeries) return null;
+  if (!wantsVisual && !wantsTimeSeries) {
+    if (
+      /\b(revenue|sales)\b[\s\S]{0,40}\b(expenses?|costs)\b/i.test(lower) ||
+      /\b(expenses?|costs)\b[\s\S]{0,40}\b(revenue|sales)\b/i.test(lower)
+    ) {
+      return { capabilityId: "financials.chart.revenueVsExpenses.read", series: "revenue_vs_expenses" };
+    }
+    if (/\bactual\s+versus\s+target\b/i.test(lower) || /\bactual\s+vs\s+target\b/i.test(lower)) {
+      return { capabilityId: "financials.chart.revenueVsExpenses.read", series: "revenue_vs_expenses" };
+    }
+    return null;
+  }
+
+  if (/\bactual\s+versus\s+target\b/i.test(lower) || /\bactual\s+vs\s+target\b/i.test(lower)) {
+    return { capabilityId: "financials.chart.revenueVsExpenses.read", series: "revenue_vs_expenses" };
+  }
+
+  if (/\bpie chart\b/i.test(lower) && /\bexpenses?\b/i.test(lower)) {
+    return { capabilityId: "financials.chart.revenueVsExpenses.read", series: "revenue_vs_expenses" };
+  }
 
   if (
     /\b(sales\s+performance|pipeline\s+performance|graph\s+sales|sales\s+pipeline|crm\s+performance|sales\s+chart)\b/i.test(

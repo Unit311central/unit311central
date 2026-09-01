@@ -197,7 +197,7 @@ export function buildNorthstarEaTestBank(): NorthstarEaTestSection[] {
         kind: "pdf",
         moduleId: pin.moduleId,
         moduleLabel: pin.label,
-        expectTool: pin.id === "home" ? "generateScopedBusinessPdf" : "northstar.queryModule",
+        expectTool: pin.id === "home" ? "generateScopedBusinessPdf" : "generateScopedBusinessPdf",
       },
     ];
     for (let i = 0; i < 22; i++) {
@@ -234,7 +234,12 @@ export function buildNorthstarEaTestBank(): NorthstarEaTestSection[] {
         kind: row.kind,
         moduleId,
         moduleLabel: module.displayName,
-        expectTool: row.kind === "pdf" ? "generateScopedBusinessPdf" : "northstar.queryModule",
+        expectTool:
+          row.kind === "pdf"
+            ? "generateScopedBusinessPdf"
+            : row.kind === "data"
+              ? "northstar.queryModule"
+              : undefined,
       });
     }
 
@@ -251,7 +256,7 @@ export function buildNorthstarEaTestBank(): NorthstarEaTestSection[] {
             ? prompt.includes("board deck")
               ? "boardpack.generate"
               : "generateScopedBusinessPdf"
-            : "northstar.queryModule",
+            : undefined,
       });
     }
 
@@ -266,7 +271,7 @@ export function buildNorthstarEaTestBank(): NorthstarEaTestSection[] {
           moduleLabel: module.displayName,
           subModuleLabel: page.label,
           viewId: page.viewId,
-          expectTool: "northstar.queryModule",
+          expectTool: row.kind === "data" ? "northstar.queryModule" : undefined,
         });
       }
     }
