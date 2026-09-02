@@ -49,7 +49,9 @@ assert.equal(
 
 const wolfNav = resolveWorkspaceNavBaseSections({ workspaceSlug: WOLF_CENTRAL_SLUG });
 assert.ok(wolfNav.some((section) => section.label === "Safari Parks"));
-assert.ok(wolfNav.some((section) => section.label === "Administration"));
+assert.ok(wolfNav.some((section) => section.label === "Settings"));
+assert.ok(wolfNav.some((section) => section.label === "Project Management"));
+assert.ok(wolfNav.some((section) => section.label === "Business Productivity"));
 assert.ok(!wolfNav.some((section) => section.label === "Business Central"));
 assert.ok(!wolfNav.some((section) => section.label === "Inventory"));
 
@@ -57,16 +59,21 @@ const wolfModules = wolfCentralEnabledModules();
 assert.ok(wolfModules.includes("wolf-animals"));
 assert.ok(wolfModules.includes("wolf-fleet"));
 assert.ok(wolfModules.includes("wolf-tools"));
+assert.ok(wolfModules.includes("project-management"));
+assert.ok(wolfModules.includes("business-productivity"));
+assert.ok(wolfModules.includes("executive-assistant"));
+assert.ok(wolfModules.includes("support-desk"));
+assert.ok(wolfModules.includes("operations"));
+assert.ok(wolfModules.includes("training"));
+assert.ok(wolfModules.includes("tools"));
 assert.ok(!wolfModules.includes("business-central"));
 
-for (const moduleId of wolfModules) {
-  assert.ok(
-    moduleId === "home" ||
-      moduleId === "settings" ||
-      moduleId.startsWith("wolf-"),
-    `Unexpected WOLF Central module: ${moduleId}`,
-  );
-}
+const wolfSubModules = wolfCentralEnabledSubModules();
+assert.ok(!wolfSubModules.includes("business-productivity:files-client"));
+assert.ok(!wolfSubModules.includes("business-productivity:info-email"));
+assert.ok(!wolfSubModules.includes("business-productivity:social"));
+assert.ok(wolfSubModules.includes("tools:users"));
+assert.ok(!wolfSubModules.includes("settings:users"));
 
 assert.ok(!DEMO_ENABLED_MODULES.includes("wolf-animals"));
 assert.ok(!SAEC_ENABLED_MODULES.includes("wolf-animals"));
