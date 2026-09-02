@@ -24,7 +24,10 @@ import {
   isPailexSlug,
 } from "@/lib/pailex/pailex-surface";
 import { PAILEX_OPERATIONAL_VIEWS } from "@/lib/pailex/pailex-views";
+import { PAILEX_ADMIN_EMAIL } from "@/lib/pailex/reset-pailex-admin-service";
 import { WOLF_CENTRAL_SLUG } from "@/lib/wolf/wolf-surface";
+
+assert.equal(PAILEX_ADMIN_EMAIL, "admin@pailex.unit311central.com");
 
 assert.equal(canonicalizePailexSlug("pailex"), PAILEX_SLUG);
 assert.equal(canonicalizePailexSlug(PAILEX_HOST_ALIAS), PAILEX_SLUG);

@@ -1,0 +1,48 @@
+name: Reset PAILEX admin password
+
+on:
+  workflow_dispatch:
+    inputs:
+      password:
+        description: "New PAILEX admin password (admin@pailex.unit311central.com)"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  reset:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Reset PAILEX admin via production internal API
+        env:
+          SETUP_SECRET: ${{ secrets.INTERNAL_FILES_SETUP_SECRET }}
+          PAILEX_PASSWORD: ${{ inputs.password }}
+        run: |
+          set -euo pipefail
+          if [ -z "${SETUP_SECRET:-}" ]; then
+            echo "INTERNAL_FILES_SETUP_SECRET is not configured on this repo."
+            exit 1
+          fi
+          if [ -z "${PAILEX_PASSWORD:-}" ]; then
+            echo "password input is required."
+            exit 1
+          fi
+          response=$(curl -fsS -X POST \
+            -H "x-setup-secret: ${SETUP_SECRET}" \
+            -H "Content-Type: application/json" \
+            -d "$(jq -n --arg password "$PAILEX_PASSWORD" '{password: $password}')" \
+            "https://unit311central.com/api/internal/reset-pailex-admin")
+          echo "$response" | jq .
+          echo "$response" | jq -e '.ok == true' >/dev/null
+          echo "$response" | jq -e '.adminEmail == "admin@pailex.unit311central.com"' >/dev/null
+          echo "$response" | jq -e '.passwordVerifies == true' >/dev/null
+          login_code=$(curl -sS -o /tmp/pailex-login.json -w "%{http_code}" -X POST \
+            -H "Content-Type: application/json" \
+            -d "$(jq -n --arg u "admin@pailex.unit311central.com" --arg p "$PAILEX_PASSWORD" '{username: $u, password: $p}')" \
+            "https://pailex.unit311central.com/api/auth/login")
+          echo "login probe HTTP ${login_code}"
+          cat /tmp/pailex-login.json | jq . || cat /tmp/pailex-login.json
+          test "$login_code" = "200"
