@@ -7,7 +7,7 @@ import assert from "node:assert/strict";
 
 import { resolveWorkspaceNavBaseSections } from "@/lib/platform-workspaces/workspace-nav-resolver";
 import { canonicalizeWorkspaceHostSubdomain } from "@/lib/platform-workspaces/workspace-host-alias-service";
-import { isCustomerWorkspaceSlug } from "@/lib/customer-workspace-surface";
+import { isCustomerWorkspaceSlug, isWorkspaceTenantAdministratorSurface } from "@/lib/customer-workspace-surface";
 import { isViewAllowedForWorkspaceGrants } from "@/lib/workspace-enabled-views";
 import { DEMO_ENABLED_MODULES } from "@/lib/platform-workspaces/demo-provisioning";
 import { SAEC_ENABLED_MODULES } from "@/lib/platform-workspaces/saec-provisioning";
@@ -18,13 +18,13 @@ import {
   pailexEnabledSubModules,
 } from "@/lib/pailex/pailex-provisioning";
 import {
+  PAILEX_ADMIN_EMAIL,
   PAILEX_HOST_ALIAS,
   PAILEX_SLUG,
   canonicalizePailexSlug,
   isPailexSlug,
 } from "@/lib/pailex/pailex-surface";
 import { PAILEX_OPERATIONAL_VIEWS } from "@/lib/pailex/pailex-views";
-import { PAILEX_ADMIN_EMAIL } from "@/lib/pailex/reset-pailex-admin-service";
 import { WOLF_CENTRAL_SLUG } from "@/lib/wolf/wolf-surface";
 
 assert.equal(PAILEX_ADMIN_EMAIL, "admin@pailex.unit311central.com");
@@ -34,6 +34,8 @@ assert.equal(canonicalizePailexSlug(PAILEX_HOST_ALIAS), PAILEX_SLUG);
 assert.ok(isPailexSlug(PAILEX_SLUG));
 assert.ok(!isCustomerWorkspaceSlug(PAILEX_SLUG));
 assert.ok(!isCustomerWorkspaceSlug(PAILEX_HOST_ALIAS));
+assert.ok(isWorkspaceTenantAdministratorSurface(PAILEX_SLUG));
+assert.ok(isWorkspaceTenantAdministratorSurface(PAILEX_HOST_ALIAS));
 
 assert.equal(canonicalizeWorkspaceHostSubdomain(PAILEX_HOST_ALIAS, null), PAILEX_SLUG);
 
@@ -70,7 +72,7 @@ assert.ok(pailexEnabledSubModules().includes("wolf-animals:pailex-animals-monito
 
 assert.ok(!DEMO_ENABLED_MODULES.includes("wolf-animals"));
 assert.ok(!SAEC_ENABLED_MODULES.includes("wolf-animals"));
-assert.ok(!wolfCentralEnabledModules().includes("support-desk"));
+assert.ok(wolfCentralEnabledModules().includes("support-desk"));
 
 for (const view of PAILEX_OPERATIONAL_VIEWS) {
   assert.ok(

@@ -11,7 +11,10 @@ import {
 import { createTenancyServerClient } from "@/lib/supabase/tenancy-server";
 import { userHasRole } from "@/lib/user-management-data";
 import { isDemoWorkspaceSlug, isUnit311GlobalAdminUsername } from "@/lib/demo/read-only";
-import { isCustomerWorkspaceSlug } from "@/lib/customer-workspace-surface";
+import {
+  isCustomerWorkspaceSlug,
+  isWorkspaceTenantAdministratorSurface,
+} from "@/lib/customer-workspace-surface";
 import {
   WorkspaceAccessError,
   requireCurrentWorkspace,
@@ -93,7 +96,7 @@ export async function requireInternalWorkspaceSession(): Promise<
     // Customer workspace operators: trust live DB when the session cookie is stale
     // (e.g. user_type flipped external→internal) or when an owner/admin was
     // mis-provisioned as external — otherwise Clients Dashboard hides portal metrics.
-    if (isCustomerWorkspaceSlug(workspace.slug) && isSupabaseConfigured()) {
+    if (isWorkspaceTenantAdministratorSurface(workspace.slug) && isSupabaseConfigured()) {
       const supabase = isSupabaseServiceRoleConfigured()
         ? createSupabaseServiceRoleClient()
         : createSupabaseServerClient();
@@ -198,7 +201,7 @@ export async function requireUsersModuleAdministratorSession(): Promise<
     return { error: NextResponse.json({ error: message }, { status: 401 }) };
   }
 
-  if (!isCustomerWorkspaceSlug(workspace.slug)) {
+  if (!isWorkspaceTenantAdministratorSurface(workspace.slug)) {
     return requireInternalAdministratorWorkspaceSession();
   }
 

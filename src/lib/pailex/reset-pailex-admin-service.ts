@@ -9,13 +9,15 @@ import {
 import { validatePlatformSignupPassword } from "@/lib/platform-password-validation";
 import { provisionInitialWorkspaceAdministrator } from "@/lib/platform-workspaces/initial-admin-provisioning-adapter";
 import {
+  PAILEX_ADMIN_EMAIL,
   PAILEX_DISPLAY_NAME,
   PAILEX_SLUG,
 } from "@/lib/pailex/pailex-surface";
+import { ensurePailexAdministratorInternalOperator } from "@/lib/pailex/pailex-admin-operator";
 import { findWorkspaceBySlug } from "@/lib/workspace-host";
 import { createTenancyServerClient } from "@/lib/supabase/tenancy-server";
 
-export const PAILEX_ADMIN_EMAIL = "admin@pailex.unit311central.com";
+export { PAILEX_ADMIN_EMAIL } from "@/lib/pailex/pailex-surface";
 
 export type ResetPailexAdminResult = {
   ok: true;
@@ -72,6 +74,12 @@ export async function resetPailexAdminPassword(password: string): Promise<ResetP
   if (!admin.userId) {
     throw new Error("PAILEX administrator reset did not return a user id.");
   }
+
+  await ensurePailexAdministratorInternalOperator({
+    userId: admin.userId,
+    email: PAILEX_ADMIN_EMAIL,
+    displayName: "PAILEX Administrator",
+  });
 
   const supabase = createTenancyServerClient();
   const { data: userRow, error } = await supabase

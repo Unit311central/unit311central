@@ -18,19 +18,19 @@ assert.match(
 
 assert.match(
   route,
-  /isCustomerWorkspaceSlug\(auth\.workspace\.slug\)[\s\S]*updateWorkspaceTenantUser\(/,
+  /isWorkspaceTenantAdministratorSurface\(auth\.workspace\.slug\)[\s\S]*updateWorkspaceTenantUser\(/,
   "PATCH must route customer workspaces to updateWorkspaceTenantUser",
 );
 
 assert.match(
   route,
-  /isCustomerWorkspaceSlug\(auth\.workspace\.slug\)[\s\S]*removeWorkspaceTenantUser\(/,
+  /isWorkspaceTenantAdministratorSurface\(auth\.workspace\.slug\)[\s\S]*removeWorkspaceTenantUser\(/,
   "DELETE must route customer workspaces to removeWorkspaceTenantUser",
 );
 
 assert.match(
   route,
-  /isCustomerWorkspaceSlug\(auth\.workspace\.slug\)[\s\S]*setWorkspaceTenantUserPassword\(/,
+  /isWorkspaceTenantAdministratorSurface\(auth\.workspace\.slug\)[\s\S]*setWorkspaceTenantUserPassword\(/,
   "POST password actions must route customer workspaces to setWorkspaceTenantUserPassword",
 );
 

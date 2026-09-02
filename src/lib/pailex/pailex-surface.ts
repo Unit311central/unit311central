@@ -21,6 +21,8 @@ export const PAILEX_TIMEZONE = "Africa/Johannesburg";
 
 export const PAILEX_ORIGIN = `https://${PAILEX_HOST_ALIAS}.unit311central.com`;
 
+export const PAILEX_ADMIN_EMAIL = "admin@pailex.unit311central.com";
+
 export function canonicalizePailexSlug(
   slug: string | null | undefined,
 ): typeof PAILEX_SLUG | null {

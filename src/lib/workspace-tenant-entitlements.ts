@@ -1,7 +1,7 @@
 import "server-only";
 
 import { defaultHomeTilesForRoles } from "@/lib/access-presets";
-import { isCustomerWorkspaceSlug } from "@/lib/customer-workspace-surface";
+import { isWorkspaceTenantAdministratorSurface } from "@/lib/customer-workspace-surface";
 import { getInternalOperatorByUsername } from "@/lib/internal-operators-service";
 import {
   resolveOperatorEntitlementsFromOperatorRow,
@@ -34,7 +34,7 @@ export async function resolveWorkspaceTenantEntitlements(input: {
   workspace: CurrentWorkspace | null;
 }): Promise<ResolvedOperatorEntitlements | null> {
   const workspace = input.workspace;
-  if (!workspace?.id || !isCustomerWorkspaceSlug(workspace.slug)) {
+  if (!workspace?.id || !isWorkspaceTenantAdministratorSurface(workspace.slug)) {
     return null;
   }
   if (!isSupabaseConfigured()) return null;

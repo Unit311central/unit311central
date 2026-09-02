@@ -24,18 +24,9 @@ import { isSupabaseConfigured } from "@/lib/supabase/server";
 import { isDemoApiRequest } from "@/lib/demo/demo-request";
 import { listDemoWorkspaceUsers } from "@/lib/demo/demo-users-service";
 import { isDemoWorkspaceSlug } from "@/lib/demo/read-only";
+import { isWorkspaceTenantAdministratorSurface } from "@/lib/customer-workspace-surface";
 
 export const dynamic = "force-dynamic";
-
-function isCustomerWorkspaceSlug(slug: string) {
-  const normalized = slug.trim().toLowerCase();
-  return (
-    normalized.length > 0 &&
-    normalized !== "unit311" &&
-    normalized !== "internal" &&
-    normalized !== "demo"
-  );
-}
 
 export async function GET() {
   if (await isDemoApiRequest()) {
@@ -54,7 +45,7 @@ export async function GET() {
       return NextResponse.json({ users: await listDemoWorkspaceUsers() });
     }
 
-    if (isCustomerWorkspaceSlug(auth.workspace.slug)) {
+    if (isWorkspaceTenantAdministratorSurface(auth.workspace.slug)) {
       const users = isTalantonImpactSlug(auth.workspace.slug)
         ? listTalantonTenantUsers()
         : isAbhiSlug(auth.workspace.slug)
@@ -110,7 +101,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (isCustomerWorkspaceSlug(auth.workspace.slug)) {
+    if (isWorkspaceTenantAdministratorSurface(auth.workspace.slug)) {
       const result = await createWorkspaceTenantUser(
         auth.workspace.id,
         auth.workspace.name,

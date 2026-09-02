@@ -25,20 +25,11 @@ import {
   updateWorkspaceTenantUser,
   WorkspaceTenantUserError,
 } from "@/lib/workspace-tenant-users-service";
+import { isWorkspaceTenantAdministratorSurface } from "@/lib/customer-workspace-surface";
 
 export const dynamic = "force-dynamic";
 
 type RouteContext = { params: Promise<{ id: string }> };
-
-function isCustomerWorkspaceSlug(slug: string) {
-  const normalized = slug.trim().toLowerCase();
-  return (
-    normalized.length > 0 &&
-    normalized !== "unit311" &&
-    normalized !== "internal" &&
-    normalized !== "demo"
-  );
-}
 
 type UserMutationBody = {
   operatorLabel?: string;
@@ -81,7 +72,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     const { id } = await context.params;
     const body = (await request.json()) as UserMutationBody;
 
-    if (isCustomerWorkspaceSlug(auth.workspace.slug)) {
+    if (isWorkspaceTenantAdministratorSurface(auth.workspace.slug)) {
       const user = await updateWorkspaceTenantUser(
         auth.workspace.id,
         auth.workspace.name,
@@ -116,7 +107,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
     const { id } = await context.params;
     const body = (await request.json()) as { action?: string; password?: string };
 
-    if (isCustomerWorkspaceSlug(auth.workspace.slug)) {
+    if (isWorkspaceTenantAdministratorSurface(auth.workspace.slug)) {
       if (body.action === "reset-password") {
         const result = await setWorkspaceTenantUserPassword(auth.workspace.id, id);
         return NextResponse.json({ temporaryPassword: result.password });
@@ -167,7 +158,7 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
   try {
     const { id } = await context.params;
 
-    if (isCustomerWorkspaceSlug(auth.workspace.slug)) {
+    if (isWorkspaceTenantAdministratorSurface(auth.workspace.slug)) {
       await removeWorkspaceTenantUser(auth.workspace.id, id, auth.session.sub);
       return NextResponse.json({ ok: true });
     }

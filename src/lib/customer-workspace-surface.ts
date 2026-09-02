@@ -17,6 +17,16 @@ import { isPailexSlug } from "@/lib/pailex/pailex-surface";
 import { isWolfCentralSlug } from "@/lib/wolf/wolf-surface";
 import { INTERNAL_WORKSPACE_SLUG } from "@/lib/workspace-host";
 
+/**
+ * Tenant workspaces where owner/admin manage users via workspace tenant APIs
+ * (corpcentre-style customers plus PAILEX specialist deployment).
+ */
+export function isWorkspaceTenantAdministratorSurface(
+  slug: string | null | undefined,
+): boolean {
+  return isCustomerWorkspaceSlug(slug) || isPailexSlug(slug);
+}
+
 export function isCustomerWorkspaceSlug(slug: string | null | undefined): boolean {
   const normalized = String(slug ?? "").trim().toLowerCase();
   if (!normalized) return false;
