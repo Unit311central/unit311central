@@ -13,6 +13,7 @@ import {
   listPortalWorkspacePacks,
 } from "@/lib/portals/registry";
 import { canonicalizeSaecWorkspaceSlug } from "@/lib/saec-surface";
+import { canonicalizeWolfCentralSlug } from "@/lib/wolf/wolf-surface";
 import type { PortalRouteDefinition } from "@/lib/portals/types";
 
 function extractPathCandidate(value: string | null | undefined): string | null {
@@ -136,6 +137,7 @@ export function resolveAnyPortalPostLoginUrl(options: {
 
   const hostSlug = parseClientPlatformSubdomainSafe(options.requestHost);
   const preferredSlug =
+    canonicalizeWolfCentralSlug(hostSlug) ??
     canonicalizeSaecWorkspaceSlug(hostSlug) ??
     (hostSlug ? getPortalPackBySlug(hostSlug)?.slug : null);
   if (preferredSlug) {

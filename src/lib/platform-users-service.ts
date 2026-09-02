@@ -161,6 +161,11 @@ export async function resolveSubscriptionRedirectForUser(
     return null;
   }
 
+  // WOLF Central PAILEX programme portal — never force /payment.
+  if (String(user.redirect_path ?? "").match(/^\/pailex(\/|$)/i)) {
+    return null;
+  }
+
   // OmniTransit external portal demo — never force /payment.
   if (String(user.redirect_path ?? "").match(/^\/(board|hyprop)(\/|$)/i)) {
     return null;

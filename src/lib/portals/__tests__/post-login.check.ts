@@ -30,6 +30,14 @@ const onwardSession = resolvePortalSessionRedirect({
 });
 assert.equal(onwardSession, "/overview");
 
+const wolfSession = resolvePortalSessionRedirect({
+  workspaceSlug: "wolf-central",
+  redirectPath: "/pailex",
+  nextRaw: "/pailex",
+  username: "pailex@wolf.unit311central.com",
+});
+assert.equal(wolfSession, "/pailex");
+
 const anySession = resolveAnyPortalSessionRedirect({
   redirectPath: "/board",
   nextRaw: null,
@@ -43,6 +51,15 @@ const postLogin = resolveAnyPortalPostLoginUrl({
   username: "demo@centrak.com",
 });
 assert.ok(postLogin?.includes("abhi.unit311central.com/centrak"));
+
+const wolfPostLogin = resolveAnyPortalPostLoginUrl({
+  redirectPath: "/pailex",
+  nextRaw: "/pailex",
+  username: "pailex@wolf.unit311central.com",
+  requestHost: "wolf.unit311central.com",
+  returnToRaw: "https://wolf.unit311central.com",
+});
+assert.equal(wolfPostLogin, "https://wolf.unit311central.com/pailex");
 
 const internalDashboard = resolveAnyPortalPostLoginUrl({
   redirectPath: "/dashboard",
