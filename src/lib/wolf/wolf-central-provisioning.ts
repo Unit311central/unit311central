@@ -23,6 +23,7 @@ export const WOLF_CENTRAL_ENABLED_MODULES = [
   "training",
   "project-management",
   "engineering",
+  "analytics",
   "tools",
   "settings",
 ] as const;
@@ -47,13 +48,22 @@ export const WOLF_CENTRAL_NATIVE_SUBMODULES = [
   "wolf-tools:wolf-ai-wildlife-vision",
 ] as const;
 
+export const WOLF_CENTRAL_ANALYTICS_NATIVE_SUBMODULES = [
+  "analytics:platform-analytics",
+  "analytics:system-health",
+  "analytics:realtime-video-pipeline",
+] as const;
+
 export function wolfCentralEnabledModules(): string[] {
   return [...WOLF_CENTRAL_ENABLED_MODULES];
 }
 
 export function wolfCentralEnabledSubModules(): string[] {
   const catalogueKeys = defaultEnabledSubModules(wolfCentralEnabledModules());
-  const keys = new Set<string>([...WOLF_CENTRAL_NATIVE_SUBMODULES]);
+  const keys = new Set<string>([
+    ...WOLF_CENTRAL_NATIVE_SUBMODULES,
+    ...WOLF_CENTRAL_ANALYTICS_NATIVE_SUBMODULES,
+  ]);
 
   for (const key of catalogueKeys) {
     if (WOLF_CENTRAL_EXCLUDED_SUBMODULE_SET.has(key)) continue;

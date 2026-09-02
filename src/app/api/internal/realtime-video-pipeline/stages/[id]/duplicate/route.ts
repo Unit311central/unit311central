@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import {
+  executeWithPipelineAuth,
   pipelineErrorResponse,
-  requireRealtimeVideoPipelineSession,
 } from "@/lib/realtime-video-pipeline/api-helpers";
 import { duplicateStage, getScenarioWithStages } from "@/lib/realtime-video-pipeline/service";
 import { isSupabaseServiceRoleConfigured } from "@/lib/supabase/server";
@@ -16,11 +16,12 @@ export async function POST(request: NextRequest, context: RouteContext) {
     return NextResponse.json({ error: "Supabase is not configured." }, { status: 503 });
   }
   try {
-    await requireRealtimeVideoPipelineSession(request);
-    const { id } = await context.params;
-    const created = await duplicateStage(id);
-    const scenario = await getScenarioWithStages(created.scenarioId);
-    return NextResponse.json({ scenario });
+    return await executeWithPipelineAuth(request, async () => {
+      const { id } = await context.params;
+      const created = await duplicateStage(id);
+      const scenario = await getScenarioWithStages(created.scenarioId);
+      return NextResponse.json({ scenario });
+    });
   } catch (error) {
     return pipelineErrorResponse(error, "Failed to duplicate stage.");
   }

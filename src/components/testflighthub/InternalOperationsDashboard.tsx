@@ -17,6 +17,7 @@ import {
 } from "@/lib/representatives-data";
 import { isEngineeringSopView } from "@/lib/engineering-nav";
 import { isDemoDomainHost, isInternalDomainHost } from "@/lib/app-domains";
+import { isWolfClonedAnalyticsHost } from "@/lib/wolf/wolf-analytics-access";
 import { EXECUTIVE_ASSISTANT_VISIBLE } from "@/lib/product-surface-flags";
 import {
   INTERNAL_OPERATIONS_BASE_PATH,
@@ -532,6 +533,10 @@ export default function InternalOperationsDashboard({
     }
     return resolvedBasePath === "/" || resolvedBasePath === INTERNAL_OPERATIONS_BASE_PATH;
   });
+  const [canAccessClonedAnalytics] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return isWolfClonedAnalyticsHost(window.location.hostname);
+  });
   const [activeView, setActiveView] = useState<InternalOperationsView>(() =>
     readInitialView(searchParams, pathname, initialView),
   );
@@ -857,6 +862,7 @@ export default function InternalOperationsDashboard({
           activeView={activeView}
           onRedirect={handleViewChange}
           isInternalHost={isInternalHost}
+          canAccessClonedAnalytics={canAccessClonedAnalytics}
         />
         <PlatformAnalyticsBeacon pageKey={activeView} />
         <GuidedTutorialProvider activeView={activeView} tabKey={tutorialTabKey}>
@@ -1369,7 +1375,7 @@ export default function InternalOperationsDashboard({
             </WorkspaceErrorBoundary>
           )}
 
-          {activeView === "platform-analytics" && isInternalHost && (
+          {activeView === "platform-analytics" && canAccessClonedAnalytics && (
             <WorkspaceErrorBoundary title="Platform Analytics">
               <PlatformAnalyticsWorkspace />
             </WorkspaceErrorBoundary>
@@ -1381,13 +1387,13 @@ export default function InternalOperationsDashboard({
             </WorkspaceErrorBoundary>
           )}
 
-          {activeView === "system-health" && isInternalHost && (
+          {activeView === "system-health" && canAccessClonedAnalytics && (
             <WorkspaceErrorBoundary title="System Health">
               <SystemHealthWorkspace />
             </WorkspaceErrorBoundary>
           )}
 
-          {activeView === "realtime-video-pipeline" && isInternalHost && (
+          {activeView === "realtime-video-pipeline" && canAccessClonedAnalytics && (
             <WorkspaceErrorBoundary title="Real-Time Video & AI Pipeline">
               <RealtimeVideoPipelineWorkspace />
             </WorkspaceErrorBoundary>
@@ -1715,10 +1721,12 @@ function AccessViewGuard({
   activeView,
   onRedirect,
   isInternalHost,
+  canAccessClonedAnalytics,
 }: {
   activeView: InternalOperationsView;
   onRedirect: (view: InternalOperationsView) => void;
   isInternalHost: boolean;
+  canAccessClonedAnalytics: boolean;
 }) {
   const { allowedViews, ready, workspaceSlug, workspaceType, enabledModules, enabledSubModules } =
     useOperatorEntitlements();
@@ -1738,13 +1746,20 @@ function AccessViewGuard({
   useEffect(() => {
     if (!ready) return;
     if (
-      (activeView === "platform-analytics" ||
-        activeView === "website-analytics" ||
-        activeView === "system-health" ||
-        activeView === "realtime-video-pipeline" ||
+      (activeView === "website-analytics" ||
+        activeView === "saec-feedback" ||
         activeView === "workspaces-overview" ||
         activeView === "workspaces-new") &&
       !isInternalHost
+    ) {
+      onRedirect("home");
+      return;
+    }
+    if (
+      (activeView === "platform-analytics" ||
+        activeView === "system-health" ||
+        activeView === "realtime-video-pipeline") &&
+      !canAccessClonedAnalytics
     ) {
       onRedirect("home");
       return;
@@ -1773,6 +1788,7 @@ function AccessViewGuard({
   }, [
     activeView,
     allowedViews,
+    canAccessClonedAnalytics,
     enabledModules,
     enabledSubModules,
     isInternalHost,

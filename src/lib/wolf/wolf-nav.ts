@@ -14,6 +14,7 @@ import {
   buildCentralEngineeringNavSection,
 } from "@/lib/platform-workspaces/central-product-nav";
 import { buildProjectManagementNavSection } from "@/lib/project-management-nav";
+import { buildWolfAnalyticsNavSection } from "@/lib/wolf/wolf-analytics-nav";
 
 const WOLF_GREEN = "#1a4d3a";
 const WOLF_RUST = "#8b4513";
@@ -147,6 +148,7 @@ export function buildWolfCentralNavSections(): readonly InternalNavSection[] {
       includeGrants: false,
     }),
     buildCentralEngineeringNavSection(),
+    buildWolfAnalyticsNavSection(),
     {
       kind: "workspace",
       label: "Tools",

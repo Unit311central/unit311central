@@ -97,8 +97,14 @@ function assertWolfNav() {
   if (!views.includes("users")) {
     throw new Error("WOLF nav must include users under Tools.");
   }
-  if (views.includes("files-client") || views.includes("info-email") || views.includes("social")) {
-    throw new Error("WOLF nav must not include Client Explorer, Email, or Social.");
+  if (!views.includes("engineering-sops-dashboard")) {
+    throw new Error("WOLF nav must include engineering SOPs.");
+  }
+  if (!views.includes("platform-analytics") || !views.includes("realtime-video-pipeline")) {
+    throw new Error("WOLF nav must include cloned Analytics views.");
+  }
+  if (views.includes("website-analytics")) {
+    throw new Error("WOLF nav must not include Website Analytics.");
   }
   const requiredModules = [
     "project-management",
@@ -107,6 +113,8 @@ function assertWolfNav() {
     "support-desk",
     "operations",
     "training",
+    "engineering",
+    "analytics",
     "tools",
     "settings",
   ];

@@ -27,7 +27,7 @@ const allLabels = wolfNav.flatMap((section) => collectLabels(section.items));
 
 assert.ok(!allLabels.some((label) => /coming soon/i.test(label)), "nav must not expose Coming soon items");
 assert.equal(wolfNav.filter((section) => section.kind === "pin").length, 2);
-assert.equal(wolfNav.filter((section) => section.kind === "workspace").length, 14);
+assert.equal(wolfNav.filter((section) => section.kind === "workspace").length, 15);
 
 const sectionTitles = wolfNav
   .filter((section) => section.kind === "workspace")
@@ -39,6 +39,7 @@ assert.ok(sectionTitles.includes("Operations"));
 assert.ok(sectionTitles.includes("Training"));
 assert.ok(sectionTitles.includes("Project Management"));
 assert.ok(sectionTitles.includes("Engineering"));
+assert.ok(sectionTitles.includes("Analytics"));
 assert.ok(sectionTitles.includes("Tools"));
 assert.ok(sectionTitles.includes("Settings"));
 assert.ok(!sectionTitles.includes("Administration"));
@@ -58,6 +59,10 @@ assert.ok(views.includes("training-dashboard"));
 assert.ok(views.includes("engineering-dashboard"));
 assert.ok(views.includes("engineering-sops-dashboard"));
 assert.ok(views.includes("engineering-sops-library"));
+assert.ok(views.includes("platform-analytics"));
+assert.ok(views.includes("system-health"));
+assert.ok(views.includes("realtime-video-pipeline"));
+assert.ok(!views.includes("website-analytics"));
 assert.ok(!views.includes("files-client"));
 assert.ok(!views.includes("info-email"));
 assert.ok(!views.includes("social"));
@@ -84,6 +89,7 @@ assert.ok(resolvedWolf.some((section) => section.label === "Tools"));
 assert.ok(resolvedWolf.some((section) => section.label === "Settings"));
 assert.ok(resolvedWolf.some((section) => section.label === "Project Management"));
 assert.ok(resolvedWolf.some((section) => section.label === "Engineering"));
+assert.ok(resolvedWolf.some((section) => section.label === "Analytics"));
 
 const saecNav = resolveWorkspaceNavBaseSections({
   workspaceSlug: SAEC_SLUG,

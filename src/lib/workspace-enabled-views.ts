@@ -5,6 +5,8 @@ import { isInternalOperationsView } from "@/lib/internal-operations-data";
 import { isViewAllowedForGrants } from "@/lib/internal-role-views";
 import { isPailexSlug } from "@/lib/pailex/pailex-surface";
 import { isPailexWorkspaceView } from "@/lib/pailex/pailex-views";
+import { WOLF_CENTRAL_ANALYTICS_VIEWS } from "@/lib/wolf/wolf-analytics-nav";
+import { isWolfCentralSlug } from "@/lib/wolf/wolf-surface";
 import {
   getWorkspaceModuleEntry,
   type WorkspaceModuleCatalogueEntry,
@@ -88,6 +90,10 @@ export function isViewAllowedForWorkspaceGrants(
     .trim()
     .toLowerCase();
   if (isPailexSlug(slug) && isPailexWorkspaceView(view)) return true;
+
+  if (isWolfCentralSlug(slug)) {
+    if ((WOLF_CENTRAL_ANALYTICS_VIEWS as readonly string[]).includes(view)) return true;
+  }
 
   if (slug !== DEMO_WORKSPACE_SLUG && slug !== "demo") return false;
 

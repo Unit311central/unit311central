@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { getRequestHost, isInternalDomainHost } from "@/lib/app-domains";
+import { getRequestHost } from "@/lib/app-domains";
+import { isWolfClonedAnalyticsHost } from "@/lib/wolf/wolf-analytics-access";
 import { getPlatformSession } from "@/lib/platform-session";
 import { buildSystemHealthReport } from "@/lib/system-health/service";
 
@@ -11,7 +12,7 @@ export const dynamic = "force-dynamic";
  */
 export async function GET(request: NextRequest) {
   const host = getRequestHost(request);
-  if (!isInternalDomainHost(host)) {
+  if (!isWolfClonedAnalyticsHost(host)) {
     return NextResponse.json({ error: "Not available on this host." }, { status: 403 });
   }
 

@@ -31,7 +31,11 @@ import {
   resolveWorkbenchConfig,
 } from "@/lib/realtime-video-pipeline/workbench-reference-data";
 import { createSupabaseServiceRoleClient, isSupabaseServiceRoleConfigured } from "@/lib/supabase/server";
-import { findWorkspaceBySlug, INTERNAL_WORKSPACE_SLUG } from "@/lib/workspace-host";
+import {
+  getPipelineWorkspaceSlug,
+  shouldAutoSeedPipelineScenarios,
+} from "@/lib/realtime-video-pipeline/workspace-context";
+import { findWorkspaceBySlug } from "@/lib/workspace-host";
 
 type ScenarioRow = {
   id: string;
@@ -143,9 +147,9 @@ function mapStage(row: StageRow, stageNumber: number): PipelineStage {
   };
 }
 
-async function resolveUnit311WorkspaceId(): Promise<string> {
-  const workspace = await findWorkspaceBySlug(INTERNAL_WORKSPACE_SLUG);
-  if (!workspace?.id) throw new Error("Unit311 internal workspace not found.");
+async function resolvePipelineWorkspaceId(): Promise<string> {
+  const workspace = await findWorkspaceBySlug(getPipelineWorkspaceSlug());
+  if (!workspace?.id) throw new Error("Pipeline workspace not found.");
   return workspace.id;
 }
 
@@ -183,7 +187,7 @@ function seedToInsert(
 
 async function syncReferenceStageTerminology(scenarioId: string): Promise<void> {
   const supabase = requireDb();
-  const workspaceId = await resolveUnit311WorkspaceId();
+  const workspaceId = await resolvePipelineWorkspaceId();
   const { data: stages, error } = await supabase
     .from("realtime_video_pipeline_stages")
     .select("*")
@@ -217,7 +221,7 @@ async function syncReferenceStageTerminology(scenarioId: string): Promise<void> 
 
 export async function ensureReferenceScenario(): Promise<PipelineScenario> {
   const supabase = requireDb();
-  const workspaceId = await resolveUnit311WorkspaceId();
+  const workspaceId = await resolvePipelineWorkspaceId();
 
   const { data: existing } = await supabase
     .from("realtime_video_scenarios")
@@ -260,10 +264,12 @@ export async function ensureReferenceScenario(): Promise<PipelineScenario> {
 }
 
 export async function listScenarios(): Promise<PipelineScenario[]> {
-  await ensureReferenceScenario();
-  await ensureBcnFlightScenario();
+  if (shouldAutoSeedPipelineScenarios()) {
+    await ensureReferenceScenario();
+    await ensureBcnFlightScenario();
+  }
   const supabase = requireDb();
-  const workspaceId = await resolveUnit311WorkspaceId();
+  const workspaceId = await resolvePipelineWorkspaceId();
   const { data, error } = await supabase
     .from("realtime_video_scenarios")
     .select("*")
@@ -276,7 +282,7 @@ export async function listScenarios(): Promise<PipelineScenario[]> {
 
 export async function getScenarioWithStages(scenarioId: string): Promise<ScenarioWithSummary> {
   const supabase = requireDb();
-  const workspaceId = await resolveUnit311WorkspaceId();
+  const workspaceId = await resolvePipelineWorkspaceId();
 
   const { data: scenario, error } = await supabase
     .from("realtime_video_scenarios")
@@ -308,7 +314,7 @@ export async function createScenario(input: {
   config?: ScenarioConfig;
 }): Promise<PipelineScenario> {
   const supabase = requireDb();
-  const workspaceId = await resolveUnit311WorkspaceId();
+  const workspaceId = await resolvePipelineWorkspaceId();
   const slug = input.name
     .trim()
     .toLowerCase()
@@ -343,7 +349,7 @@ export async function updateScenario(
   }>,
 ): Promise<PipelineScenario> {
   const supabase = requireDb();
-  const workspaceId = await resolveUnit311WorkspaceId();
+  const workspaceId = await resolvePipelineWorkspaceId();
   const payload: Record<string, unknown> = { updated_at: new Date().toISOString() };
   if (updates.name != null) payload.name = updates.name.trim();
   if (updates.description != null) payload.description = updates.description;
@@ -363,7 +369,7 @@ export async function updateScenario(
 
 export async function deleteScenario(scenarioId: string): Promise<void> {
   const supabase = requireDb();
-  const workspaceId = await resolveUnit311WorkspaceId();
+  const workspaceId = await resolvePipelineWorkspaceId();
   const { data: row } = await supabase
     .from("realtime_video_scenarios")
     .select("is_default")
@@ -421,7 +427,7 @@ export async function createStage(
   input: CreateStageInput,
 ): Promise<PipelineStage> {
   const supabase = requireDb();
-  const workspaceId = await resolveUnit311WorkspaceId();
+  const workspaceId = await resolvePipelineWorkspaceId();
 
   const { data: maxRow } = await supabase
     .from("realtime_video_pipeline_stages")
@@ -444,7 +450,7 @@ export async function createStage(
 
 export async function updateStage(stageId: string, input: UpdateStageInput): Promise<PipelineStage> {
   const supabase = requireDb();
-  const workspaceId = await resolveUnit311WorkspaceId();
+  const workspaceId = await resolvePipelineWorkspaceId();
 
   const { data: existing, error: loadError } = await supabase
     .from("realtime_video_pipeline_stages")
@@ -476,7 +482,7 @@ export async function updateStage(stageId: string, input: UpdateStageInput): Pro
 
 export async function deleteStage(stageId: string): Promise<void> {
   const supabase = requireDb();
-  const workspaceId = await resolveUnit311WorkspaceId();
+  const workspaceId = await resolvePipelineWorkspaceId();
 
   const { data: stage } = await supabase
     .from("realtime_video_pipeline_stages")
@@ -508,7 +514,7 @@ export async function deleteStage(stageId: string): Promise<void> {
 
 export async function duplicateStage(stageId: string): Promise<PipelineStage> {
   const supabase = requireDb();
-  const workspaceId = await resolveUnit311WorkspaceId();
+  const workspaceId = await resolvePipelineWorkspaceId();
   const { data: existing, error } = await supabase
     .from("realtime_video_pipeline_stages")
     .select("*")
@@ -528,7 +534,7 @@ export async function duplicateStage(stageId: string): Promise<PipelineStage> {
 
 export async function reorderStages(scenarioId: string, orderedStageIds: string[]): Promise<void> {
   const supabase = requireDb();
-  const workspaceId = await resolveUnit311WorkspaceId();
+  const workspaceId = await resolvePipelineWorkspaceId();
 
   for (let i = 0; i < orderedStageIds.length; i++) {
     const { error } = await supabase
@@ -544,7 +550,7 @@ export async function reorderStages(scenarioId: string, orderedStageIds: string[
 export async function ensureBcnFlightScenario(): Promise<PipelineScenario> {
   const pipeline = await ensureReferenceScenario();
   const supabase = requireDb();
-  const workspaceId = await resolveUnit311WorkspaceId();
+  const workspaceId = await resolvePipelineWorkspaceId();
 
   const { data: existing } = await supabase
     .from("realtime_video_scenarios")
@@ -605,10 +611,12 @@ export async function ensureBcnFlightScenario(): Promise<PipelineScenario> {
 }
 
 export async function getWorkbenchModelForScenario(flightScenarioId: string) {
-  await ensureReferenceScenario();
-  await ensureBcnFlightScenario();
+  if (shouldAutoSeedPipelineScenarios()) {
+    await ensureReferenceScenario();
+    await ensureBcnFlightScenario();
+  }
   const supabase = requireDb();
-  const workspaceId = await resolveUnit311WorkspaceId();
+  const workspaceId = await resolvePipelineWorkspaceId();
 
   const { data: flightRow, error } = await supabase
     .from("realtime_video_scenarios")
@@ -644,7 +652,7 @@ export async function updateWorkbenchConfig(
   workbenchConfig: WorkbenchConfig,
 ): Promise<PipelineScenario> {
   const supabase = requireDb();
-  const workspaceId = await resolveUnit311WorkspaceId();
+  const workspaceId = await resolvePipelineWorkspaceId();
   const { data, error } = await supabase
     .from("realtime_video_scenarios")
     .update({
@@ -664,7 +672,7 @@ export async function duplicateScenarioVersion(
   newName: string,
 ): Promise<PipelineScenario> {
   const supabase = requireDb();
-  const workspaceId = await resolveUnit311WorkspaceId();
+  const workspaceId = await resolvePipelineWorkspaceId();
   const { data: source, error } = await supabase
     .from("realtime_video_scenarios")
     .select("*")

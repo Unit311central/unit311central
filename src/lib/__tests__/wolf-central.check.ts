@@ -52,6 +52,7 @@ assert.ok(wolfNav.some((section) => section.label === "Safari Parks"));
 assert.ok(wolfNav.some((section) => section.label === "Settings"));
 assert.ok(wolfNav.some((section) => section.label === "Project Management"));
 assert.ok(wolfNav.some((section) => section.label === "Business Productivity"));
+assert.ok(wolfNav.some((section) => section.label === "Analytics"));
 assert.ok(!wolfNav.some((section) => section.label === "Business Central"));
 assert.ok(!wolfNav.some((section) => section.label === "Inventory"));
 
@@ -66,6 +67,7 @@ assert.ok(wolfModules.includes("support-desk"));
 assert.ok(wolfModules.includes("operations"));
 assert.ok(wolfModules.includes("training"));
 assert.ok(wolfModules.includes("engineering"));
+assert.ok(wolfModules.includes("analytics"));
 assert.ok(wolfModules.includes("tools"));
 assert.ok(!wolfModules.includes("business-central"));
 
@@ -77,6 +79,10 @@ assert.ok(wolfSubModules.includes("tools:users"));
 assert.ok(!wolfSubModules.includes("settings:users"));
 assert.ok(wolfSubModules.includes("engineering:engineering-sops-dashboard"));
 assert.ok(wolfSubModules.includes("engineering:engineering-sops-library"));
+assert.ok(wolfSubModules.includes("analytics:platform-analytics"));
+assert.ok(wolfSubModules.includes("analytics:system-health"));
+assert.ok(wolfSubModules.includes("analytics:realtime-video-pipeline"));
+assert.ok(!wolfSubModules.includes("analytics:website-analytics"));
 
 assert.ok(!DEMO_ENABLED_MODULES.includes("wolf-animals"));
 assert.ok(!SAEC_ENABLED_MODULES.includes("wolf-animals"));

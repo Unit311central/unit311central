@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import {
+  executeWithPipelineAuth,
   pipelineErrorResponse,
-  requireRealtimeVideoPipelineSession,
 } from "@/lib/realtime-video-pipeline/api-helpers";
 import { deleteStage, getScenarioWithStages, updateStage } from "@/lib/realtime-video-pipeline/service";
 import type { UpdateStageInput } from "@/lib/realtime-video-pipeline/types";
@@ -46,12 +46,13 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     return NextResponse.json({ error: "Supabase is not configured." }, { status: 503 });
   }
   try {
-    await requireRealtimeVideoPipelineSession(request);
-    const { id } = await context.params;
-    const body = (await request.json()) as Record<string, unknown>;
-    const updated = await updateStage(id, parseStagePatch(body));
-    const scenario = await getScenarioWithStages(updated.scenarioId);
-    return NextResponse.json({ scenario });
+    return await executeWithPipelineAuth(request, async () => {
+      const { id } = await context.params;
+      const body = (await request.json()) as Record<string, unknown>;
+      const updated = await updateStage(id, parseStagePatch(body));
+      const scenario = await getScenarioWithStages(updated.scenarioId);
+      return NextResponse.json({ scenario });
+    });
   } catch (error) {
     return pipelineErrorResponse(error, "Failed to update stage.");
   }
@@ -62,18 +63,19 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
     return NextResponse.json({ error: "Supabase is not configured." }, { status: 503 });
   }
   try {
-    await requireRealtimeVideoPipelineSession(request);
-    const { id } = await context.params;
-    const supabase = createSupabaseServiceRoleClient();
-    const { data: row } = await supabase
-      .from("realtime_video_pipeline_stages")
-      .select("scenario_id")
-      .eq("id", id)
-      .maybeSingle();
-    if (!row?.scenario_id) throw new Error("Stage not found.");
-    await deleteStage(id);
-    const scenario = await getScenarioWithStages(row.scenario_id as string);
-    return NextResponse.json({ scenario });
+    return await executeWithPipelineAuth(request, async () => {
+      const { id } = await context.params;
+      const supabase = createSupabaseServiceRoleClient();
+      const { data: row } = await supabase
+        .from("realtime_video_pipeline_stages")
+        .select("scenario_id")
+        .eq("id", id)
+        .maybeSingle();
+      if (!row?.scenario_id) throw new Error("Stage not found.");
+      await deleteStage(id);
+      const scenario = await getScenarioWithStages(row.scenario_id as string);
+      return NextResponse.json({ scenario });
+    });
   } catch (error) {
     return pipelineErrorResponse(error, "Failed to delete stage.");
   }
