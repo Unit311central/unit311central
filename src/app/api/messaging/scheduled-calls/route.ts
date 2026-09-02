@@ -6,16 +6,31 @@ import { getNorthstarScheduledCalls } from "@/lib/demo/northstar-messaging-fixtu
 import { createScheduledCall, listScheduledCalls } from "@/lib/internal-messaging-service";
 import { localListScheduledCalls } from "@/lib/internal-messaging-local-store";
 import { INTERNAL_MESSAGING_ROOM } from "@/lib/internal-messaging-data";
+import { ensureInternalOperatorsTable } from "@/lib/internal-db-migrations";
+import { listInternalOperators } from "@/lib/internal-operators-service";
+import { listWorkspaceTenantUsers } from "@/lib/platform-users-service";
 import { requirePlatformSession } from "@/lib/platform-session";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
+import {
+  applyWolfMessagingOperatorIdPolicy,
+  assertWolfMessagingOperatorIdAllowed,
+} from "@/lib/wolf/wolf-messaging-operators";
+import { isWolfCentralSlug } from "@/lib/wolf/wolf-surface";
 import { requireCurrentWorkspace } from "@/lib/workspace-context";
 
 export const dynamic = "force-dynamic";
 
 function authErrorStatus(message: string) {
-  return message.includes("Authentication required") || message.includes("Workspace context")
-    ? 401
-    : 500;
+  if (
+    message.includes("Authentication required") ||
+    message.includes("Workspace context")
+  ) {
+    return 401;
+  }
+  if (message.includes("not available for Messaging in WOLF Central")) {
+    return 403;
+  }
+  return 500;
 }
 
 export async function GET(request: NextRequest) {
@@ -77,12 +92,29 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Scheduled call details are incomplete." }, { status: 400 });
     }
 
+    const messagingOperators = isWolfCentralSlug(workspace.slug)
+      ? (await listWorkspaceTenantUsers(workspace.id)).filter((user) => user.status === "Active")
+      : await (async () => {
+          await ensureInternalOperatorsTable();
+          return (await listInternalOperators()).filter((user) => user.status === "Active");
+        })();
+    assertWolfMessagingOperatorIdAllowed(
+      workspace.slug,
+      messagingOperators,
+      body.createdByOperatorId,
+    );
+    const participantOperatorIds = applyWolfMessagingOperatorIdPolicy(
+      workspace.slug,
+      messagingOperators,
+      body.participantOperatorIds ?? [],
+    );
+
     const scheduledCall = await createScheduledCall(
       {
         room: body.room ?? INTERNAL_MESSAGING_ROOM,
         title: body.title,
         scheduledAt: body.scheduledAt,
-        participantOperatorIds: body.participantOperatorIds ?? [],
+        participantOperatorIds,
         callLink: body.callLink,
         callType: body.callType ?? "video",
         createdByOperatorId: body.createdByOperatorId,

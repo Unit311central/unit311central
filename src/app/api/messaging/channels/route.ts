@@ -18,18 +18,42 @@ import {
   localMarkChannelRead,
   localUpdateChannelMembers,
 } from "@/lib/internal-messaging-local-store";
+import { ensureInternalOperatorsTable } from "@/lib/internal-db-migrations";
+import { listInternalOperators } from "@/lib/internal-operators-service";
+import { listWorkspaceTenantUsers } from "@/lib/platform-users-service";
 import { requirePlatformSession } from "@/lib/platform-session";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
 import { requireCurrentWorkspace } from "@/lib/workspace-context";
 import { isTalantonImpactSlug } from "@/lib/talanton-surface";
 import { ensureTalantonMessagingChannelsSeeded } from "@/lib/talanton/messaging-seed";
+import {
+  applyWolfMessagingOperatorIdPolicy,
+  assertWolfMessagingOperatorIdAllowed,
+} from "@/lib/wolf/wolf-messaging-operators";
+import { isWolfCentralSlug } from "@/lib/wolf/wolf-surface";
 
 export const dynamic = "force-dynamic";
 
 function authErrorStatus(message: string) {
-  return message.includes("Authentication required") || message.includes("Workspace context")
-    ? 401
-    : 500;
+  if (
+    message.includes("Authentication required") ||
+    message.includes("Workspace context")
+  ) {
+    return 401;
+  }
+  if (message.includes("not available for Messaging in WOLF Central")) {
+    return 403;
+  }
+  return 500;
+}
+
+async function resolveMessagingOperatorsForPolicy(workspace: { id: string; slug: string }) {
+  if (isWolfCentralSlug(workspace.slug)) {
+    return (await listWorkspaceTenantUsers(workspace.id)).filter((user) => user.status === "Active");
+  }
+  if (!isSupabaseConfigured()) return [];
+  await ensureInternalOperatorsTable();
+  return (await listInternalOperators()).filter((user) => user.status === "Active");
 }
 
 export async function GET(request: NextRequest) {
@@ -172,6 +196,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Channel name and creator are required." }, { status: 400 });
     }
 
+    const messagingOperators = await resolveMessagingOperatorsForPolicy(workspace);
+    assertWolfMessagingOperatorIdAllowed(
+      workspace.slug,
+      messagingOperators,
+      body.createdByOperatorId,
+    );
+    const memberOperatorIds = applyWolfMessagingOperatorIdPolicy(
+      workspace.slug,
+      messagingOperators,
+      body.memberOperatorIds ?? [],
+    );
+
     const channel = isSupabaseConfigured()
       ? await createChannel(
           {
@@ -180,7 +216,7 @@ export async function POST(request: NextRequest) {
             clientKey: body.clientKey ?? null,
             createdByOperatorId: body.createdByOperatorId,
             createdByOperatorName: body.createdByOperatorName,
-            memberOperatorIds: body.memberOperatorIds ?? [],
+            memberOperatorIds,
             memberClientUsernames: body.memberClientUsernames,
             description: body.description,
             isPrivate: body.isPrivate,
@@ -193,7 +229,7 @@ export async function POST(request: NextRequest) {
           clientKey: body.clientKey ?? null,
           createdByOperatorId: body.createdByOperatorId,
           createdByOperatorName: body.createdByOperatorName,
-          memberOperatorIds: body.memberOperatorIds ?? [],
+          memberOperatorIds,
           memberClientUsernames: body.memberClientUsernames,
           description: body.description,
           isPrivate: body.isPrivate,
@@ -236,9 +272,16 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: "Channel ID and members are required." }, { status: 400 });
     }
 
+    const messagingOperators = await resolveMessagingOperatorsForPolicy(workspace);
+    const memberOperatorIds = applyWolfMessagingOperatorIdPolicy(
+      workspace.slug,
+      messagingOperators,
+      body.memberOperatorIds,
+    );
+
     const channel = isSupabaseConfigured()
-      ? await updateChannelMembers(body.channelId, body.memberOperatorIds, scope)
-      : localUpdateChannelMembers(body.channelId, body.memberOperatorIds);
+      ? await updateChannelMembers(body.channelId, memberOperatorIds, scope)
+      : localUpdateChannelMembers(body.channelId, memberOperatorIds);
     return NextResponse.json({ channel });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to update channel";

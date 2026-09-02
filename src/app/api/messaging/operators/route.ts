@@ -5,8 +5,14 @@ import { getNorthstarMessagingOperators } from "@/lib/demo/northstar-messaging-f
 import { ensureInternalOperatorsTable } from "@/lib/internal-db-migrations";
 import { listInternalOperators } from "@/lib/internal-operators-service";
 import { requirePlatformSession } from "@/lib/platform-session";
+import { listWorkspaceTenantUsers } from "@/lib/platform-users-service";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
 import { createInitialUsers } from "@/lib/user-management-data";
+import {
+  applyWolfMessagingOperatorPolicy,
+  filterWolfMessagingOperators,
+} from "@/lib/wolf/wolf-messaging-operators";
+import { isWolfCentralSlug } from "@/lib/wolf/wolf-surface";
 import { requireCurrentWorkspace } from "@/lib/workspace-context";
 
 export const dynamic = "force-dynamic";
@@ -25,23 +31,39 @@ export async function GET() {
 
   try {
     await requirePlatformSession();
-    await requireCurrentWorkspace();
+    const workspace = await requireCurrentWorkspace();
 
     if (!isSupabaseConfigured()) {
+      const users = applyWolfMessagingOperatorPolicy(
+        workspace.slug,
+        createInitialUsers().filter((user) => user.status === "Active"),
+      );
       return NextResponse.json({
-        users: createInitialUsers().filter((user) => user.status === "Active"),
+        users,
         source: "seed",
       });
     }
 
     await ensureInternalOperatorsTable();
+
+    if (isWolfCentralSlug(workspace.slug)) {
+      const users = (await listWorkspaceTenantUsers(workspace.id)).filter(
+        (user) => user.status === "Active",
+      );
+      return NextResponse.json({
+        users: filterWolfMessagingOperators(users),
+      });
+    }
+
     const users = (await listInternalOperators()).filter((user) => user.status === "Active");
     const withFallback =
       users.length > 0
         ? users
         : createInitialUsers().filter((user) => user.status === "Active");
 
-    return NextResponse.json({ users: withFallback });
+    return NextResponse.json({
+      users: applyWolfMessagingOperatorPolicy(workspace.slug, withFallback),
+    });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to load messaging operators";
     const status =
