@@ -53,7 +53,8 @@ assert.ok(wolfNav.some((section) => section.label === "Settings"));
 assert.ok(wolfNav.some((section) => section.label === "Project Management"));
 assert.ok(wolfNav.some((section) => section.label === "Business Productivity"));
 assert.ok(wolfNav.some((section) => section.label === "Analytics"));
-assert.ok(!wolfNav.some((section) => section.label === "Business Central"));
+assert.ok(wolfNav.some((section) => section.label === "Business Central"));
+assert.ok(wolfNav.some((section) => section.label === "External Client Access"));
 assert.ok(!wolfNav.some((section) => section.label === "Inventory"));
 
 const wolfModules = wolfCentralEnabledModules();
@@ -69,7 +70,9 @@ assert.ok(wolfModules.includes("training"));
 assert.ok(wolfModules.includes("engineering"));
 assert.ok(wolfModules.includes("analytics"));
 assert.ok(wolfModules.includes("tools"));
-assert.ok(!wolfModules.includes("business-central"));
+assert.ok(wolfModules.includes("business-central"));
+assert.ok(wolfModules.includes("external-client-access"));
+assert.ok(!wolfModules.includes("inventory"));
 
 const wolfSubModules = wolfCentralEnabledSubModules();
 assert.ok(!wolfSubModules.includes("business-productivity:files-client"));

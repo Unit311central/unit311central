@@ -25,6 +25,7 @@ import { isBrowserDemoSurface } from "@/lib/demo-enterprise";
 import { isBrowserSaecSurface } from "@/lib/saec-surface";
 import { isBrowserOnwardAirSurface } from "@/lib/onwardair-surface";
 import { isBrowserTalantonImpactSurface } from "@/lib/talanton-surface";
+import { isBrowserWolfCentralSurface } from "@/lib/wolf/wolf-surface";
 import { createInitialUsers } from "@/lib/user-management-data";
 import { cn } from "@/lib/utils";
 import { FolderKanban, Loader2, Plus, Trash2, X } from "lucide-react";
@@ -189,6 +190,10 @@ export default function ProjectsWorkspace({
     typeof window !== "undefined" ? isBrowserDemoSurface() : false;
   const isSaecSurface =
     typeof window !== "undefined" ? isBrowserSaecSurface() : false;
+  const isWolfSurface =
+    typeof window !== "undefined" ? isBrowserWolfCentralSurface() : false;
+  const projectCreateRequiresClient =
+    scope !== "internal" && !isWolfSurface;
   const usePmFocusDashboard = isNorthstarDemo || isSaecSurface;
   const { showDetail, openDetail, closeDetail } = useMobileDetailPanel(false);
 
@@ -339,7 +344,7 @@ export default function ProjectsWorkspace({
       setError("Project name is required");
       return;
     }
-    if (scope !== "internal" && !draft.clientName.trim()) {
+    if (projectCreateRequiresClient && !draft.clientName.trim()) {
       setError("Project name and client are required");
       return;
     }
@@ -353,9 +358,12 @@ export default function ProjectsWorkspace({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: draft.name.trim(),
-          clientId: scope === "internal" ? undefined : draft.clientId || undefined,
+          clientId:
+            scope === "internal" || isWolfSurface
+              ? undefined
+              : draft.clientId || undefined,
           clientName:
-            scope === "internal"
+            scope === "internal" || isWolfSurface
               ? draft.region.trim() || draft.clientName.trim() || "Internal programme"
               : draft.clientName.trim(),
           site: draft.site.trim() || undefined,
@@ -922,19 +930,34 @@ export default function ProjectsWorkspace({
               />
             </div>
             <div>
-              <FieldLabel>Client</FieldLabel>
-              <select
-                value={draft.clientId}
-                onChange={(event) => handleClientChange(event.target.value)}
-                className={inputClassName()}
-              >
-                <option value="">Select client…</option>
-                {clients.map((client) => (
-                  <option key={client.id} value={client.id}>
-                    {client.companyName}
-                  </option>
-                ))}
-              </select>
+              <FieldLabel>{isWolfSurface ? "Sponsoring department" : "Client"}</FieldLabel>
+              {isWolfSurface ? (
+                <input
+                  value={draft.region}
+                  onChange={(event) =>
+                    setDraft((current) => ({
+                      ...current,
+                      region: event.target.value,
+                      clientName: event.target.value,
+                    }))
+                  }
+                  placeholder="e.g. Programme delivery"
+                  className={inputClassName()}
+                />
+              ) : (
+                <select
+                  value={draft.clientId}
+                  onChange={(event) => handleClientChange(event.target.value)}
+                  className={inputClassName()}
+                >
+                  <option value="">Select client…</option>
+                  {clients.map((client) => (
+                    <option key={client.id} value={client.id}>
+                      {client.companyName}
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
             <div>
               <FieldLabel>Phase</FieldLabel>

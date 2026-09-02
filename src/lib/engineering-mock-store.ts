@@ -47,6 +47,25 @@ function buildInitialEngineeringState(): EngineeringMockState {
     }
 
     try {
+      const { isBrowserWolfCentralSurface } =
+        require("@/lib/wolf/wolf-surface") as typeof import("@/lib/wolf/wolf-surface");
+      if (isBrowserWolfCentralSurface()) {
+        return {
+          engineers: [],
+          projects: [],
+          activity: [],
+          incidents: [],
+          debt: [],
+          currentSprint: "—",
+          upcomingReleases: [],
+          infraStatus: "Not configured",
+        };
+      }
+    } catch {
+      // Fall through.
+    }
+
+    try {
       const { isBrowserSaecSurface } =
         require("@/lib/saec-surface") as typeof import("@/lib/saec-surface");
       if (isBrowserSaecSurface()) {

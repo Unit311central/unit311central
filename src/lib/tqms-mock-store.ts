@@ -86,6 +86,16 @@ function createInitialTqmsState(): TqmsMockState {
     } catch {
       // Fall through.
     }
+
+    try {
+      const { isBrowserWolfCentralSurface } =
+        require("@/lib/wolf/wolf-surface") as typeof import("@/lib/wolf/wolf-surface");
+      if (isBrowserWolfCentralSurface()) {
+        return createEmptyTqmsState();
+      }
+    } catch {
+      // Fall through.
+    }
   }
 
   const fixtures = tryGetDemoFixtures();
@@ -632,7 +642,11 @@ export function computeTrainingDashboardKpis(snapshot: TqmsMockState = state) {
   const mandatory = snapshot.assignments.filter((a) => a.mandatory);
   const mandatoryDone = mandatory.filter((a) => a.status === "Completed").length;
   const complianceScore =
-    mandatory.length === 0 ? 100 : Math.round((mandatoryDone / mandatory.length) * 100);
+    snapshot.assignments.length === 0
+      ? 0
+      : mandatory.length === 0
+        ? 100
+        : Math.round((mandatoryDone / mandatory.length) * 100);
   const avgCompletion =
     snapshot.assignments.length === 0
       ? 0

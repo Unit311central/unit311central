@@ -45,6 +45,7 @@ import {
   clearPortalsBriefingCookies,
 } from "@/lib/portals/briefing/cookies";
 import { getOnwardAirClientPortalByPath } from "@/lib/onwardair/client-portal-routes";
+import { getWolfPailexPortalByPath } from "@/lib/wolf/wolf-pailex-portal-routes";
 import { getOmnitransitPortalByPath } from "@/lib/saec/client-portal-routes";
 import { isOverviewPortalAccessAllowed, isFreshOverviewDocumentNavigation, isOverviewAuthBypassEnabled } from "@/lib/onwardair/overview-gate";
 import { isOnwardAirSlug } from "@/lib/onwardair-surface";
@@ -354,6 +355,20 @@ export async function middleware(request: NextRequest) {
     ) {
       const parts = pathname.split("/").filter(Boolean);
       const route = getOnwardAirClientPortalByPath(parts[1] ?? "");
+      if (route) {
+        const rest = parts.length > 2 ? `/${parts.slice(2).join("/")}` : "";
+        return redirectExternal(`${workspaceOrigin}/${route.path}${rest}${search}`);
+      }
+      return redirectExternal(`${workspaceOrigin}/login${search}`);
+    }
+
+    // WOLF Central: never expose /wolf-client-portal/* implementation URLs on wolf.* host.
+    if (
+      canonicalizeWolfCentralSlug(workspaceSlug) &&
+      (pathname === "/wolf-client-portal" || pathname.startsWith("/wolf-client-portal/"))
+    ) {
+      const parts = pathname.split("/").filter(Boolean);
+      const route = getWolfPailexPortalByPath(parts[1] ?? "");
       if (route) {
         const rest = parts.length > 2 ? `/${parts.slice(2).join("/")}` : "";
         return redirectExternal(`${workspaceOrigin}/${route.path}${rest}${search}`);

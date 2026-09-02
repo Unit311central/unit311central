@@ -18,6 +18,9 @@ export const WOLF_TAGLINE = "WILDLIFE | OPERATIONS | LIVE | FLIGHT";
 
 export const WOLF_CENTRAL_ORIGIN = `https://${WOLF_CENTRAL_HOST_ALIAS}.unit311central.com`;
 
+/** WOLF Central operational reporting currency (USD). */
+export const WOLF_REPORTING_CURRENCY = "USD";
+
 export function canonicalizeWolfCentralSlug(
   slug: string | null | undefined,
 ): typeof WOLF_CENTRAL_SLUG | null {

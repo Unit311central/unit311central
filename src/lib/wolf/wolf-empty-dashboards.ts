@@ -1,5 +1,9 @@
 /** Zero-state dashboard snapshots for WOLF Central (no legacy seed data). */
 
+import type { DashboardTileDefinition } from "@/lib/dashboard-view-tiles";
+import { formatMoney } from "@/lib/accounting/chart-of-accounts";
+import { WOLF_REPORTING_CURRENCY } from "@/lib/wolf/wolf-surface";
+
 export type WolfProductivitySnapshot = {
   summary: {
     attention: number;
@@ -37,3 +41,42 @@ export const WOLF_EMPTY_PRODUCTIVITY_SNAPSHOT: WolfProductivitySnapshot = {
   social: [],
   approvals: [],
 };
+
+export const WOLF_EMPTY_OPERATIONS_TILES: DashboardTileDefinition[] = [
+  {
+    id: "assets",
+    label: "Assets",
+    value: "0",
+    hint: "0 in service · 0 maintenance",
+  },
+  {
+    id: "inventory",
+    label: "Inventory",
+    value: "0",
+    hint: "0 operational · 0 reorder watch",
+  },
+  {
+    id: "open-pos",
+    label: "Open POs",
+    value: "0",
+    hint: "0 awaiting approval · 0 suppliers",
+  },
+  {
+    id: "procurement-spend",
+    label: "Procurement spend",
+    value: formatMoney(0, WOLF_REPORTING_CURRENCY),
+    hint: `Budget ${formatMoney(0, WOLF_REPORTING_CURRENCY)} · ${WOLF_REPORTING_CURRENCY}`,
+  },
+  {
+    id: "shipments",
+    label: "Active shipments",
+    value: "0",
+    hint: "0 in · 0 out",
+  },
+  {
+    id: "international",
+    label: "International",
+    value: "0",
+    hint: "No active international lanes",
+  },
+];

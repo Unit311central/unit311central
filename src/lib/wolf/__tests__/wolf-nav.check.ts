@@ -27,12 +27,14 @@ const allLabels = wolfNav.flatMap((section) => collectLabels(section.items));
 
 assert.ok(!allLabels.some((label) => /coming soon/i.test(label)), "nav must not expose Coming soon items");
 assert.equal(wolfNav.filter((section) => section.kind === "pin").length, 2);
-assert.equal(wolfNav.filter((section) => section.kind === "workspace").length, 15);
+assert.equal(wolfNav.filter((section) => section.kind === "workspace").length, 17);
 
 const sectionTitles = wolfNav
   .filter((section) => section.kind === "workspace")
   .map((section) => section.label);
 
+assert.ok(sectionTitles.includes("Business Central"));
+assert.ok(sectionTitles.includes("External Client Access"));
 assert.ok(sectionTitles.includes("Business Productivity"));
 assert.ok(sectionTitles.includes("Support Desk"));
 assert.ok(sectionTitles.includes("Operations"));

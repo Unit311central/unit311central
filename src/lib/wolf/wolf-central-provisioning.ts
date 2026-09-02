@@ -17,6 +17,7 @@ export const WOLF_CENTRAL_ENABLED_MODULES = [
   "wolf-fleet",
   "wolf-tools",
   "executive-assistant",
+  "business-central",
   "business-productivity",
   "support-desk",
   "operations",
@@ -24,6 +25,7 @@ export const WOLF_CENTRAL_ENABLED_MODULES = [
   "project-management",
   "engineering",
   "analytics",
+  "external-client-access",
   "tools",
   "settings",
 ] as const;

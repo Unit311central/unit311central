@@ -10,6 +10,7 @@ import type {
 } from "@/lib/internal-operations-data";
 import { internalSurveyNavSections } from "@/lib/internal-operations-data";
 import {
+  buildCentralBusinessCentralNavSection,
   buildCentralBusinessProductivityNavSection,
   buildCentralEngineeringNavSection,
 } from "@/lib/platform-workspaces/central-product-nav";
@@ -97,6 +98,7 @@ export function buildWolfCentralNavSections(): readonly InternalNavSection[] {
       color: "#12B886",
       items: [{ label: "EXECUTIVE ASSISTANT", icon: "Bot", view: "executive-assistant" }],
     },
+    buildCentralBusinessCentralNavSection(),
     {
       kind: "workspace",
       label: "Safari Parks",
@@ -149,6 +151,16 @@ export function buildWolfCentralNavSections(): readonly InternalNavSection[] {
     }),
     buildCentralEngineeringNavSection(),
     buildWolfAnalyticsNavSection(),
+    {
+      kind: "workspace",
+      label: "External Client Access",
+      icon: "KeyRound",
+      color: "#0F766E",
+      items: [
+        { label: "Dashboard", icon: "LayoutDashboard", view: "external-client-access" },
+        { label: "External Users", icon: "Users", view: "users-external" },
+      ],
+    },
     {
       kind: "workspace",
       label: "Tools",

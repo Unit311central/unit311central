@@ -35,6 +35,11 @@ const BCN_ADMIN_EMAIL = "bcn@wolf.unit311central.com";
 const BCN_ADMIN_PASSWORD = "Catalonia 1999$";
 const BCN_ADMIN_DISPLAY_NAME = "WOLF BCN Administrator";
 
+const PAILEX_PORTAL_EMAIL = "pailex@wolf.unit311central.com";
+const PAILEX_PORTAL_PASSWORD = "Eland1999$";
+const PAILEX_PORTAL_DISPLAY_NAME = "PAILEX Programme User";
+const PAILEX_PORTAL_REDIRECT = "/pailex";
+
 async function fetchSupabaseCredentials(): Promise<{
   url: string;
   anonKey: string;
@@ -110,6 +115,7 @@ function assertWolfNav() {
     throw new Error("WOLF nav must not include Client Explorer, Email, or Social.");
   }
   const requiredModules = [
+    "business-central",
     "project-management",
     "business-productivity",
     "executive-assistant",
@@ -118,9 +124,16 @@ function assertWolfNav() {
     "training",
     "engineering",
     "analytics",
+    "external-client-access",
     "tools",
     "settings",
   ];
+  if (!views.includes("business-central-dashboard")) {
+    throw new Error("WOLF nav must include business-central-dashboard.");
+  }
+  if (!views.includes("external-client-access")) {
+    throw new Error("WOLF nav must include external-client-access.");
+  }
   const enabled = wolfCentralEnabledModules();
   for (const moduleId of requiredModules) {
     if (!enabled.includes(moduleId)) {
@@ -261,6 +274,81 @@ async function provisionBcnAdmin(workspaceId: string): Promise<{ userId: string;
   };
 }
 
+async function provisionPailexPortalUser(workspaceId: string): Promise<{
+  userId: string;
+  passwordVerifies: boolean;
+}> {
+  const passwordError = validatePlatformSignupPassword(PAILEX_PORTAL_PASSWORD);
+  if (passwordError) throw new Error(passwordError);
+
+  const username = normalizePlatformUsername(PAILEX_PORTAL_EMAIL);
+  const passwordHash = hashPlatformPasswordForUser(username, PAILEX_PORTAL_PASSWORD);
+  const now = new Date().toISOString();
+  const supabase = createTenancyServerClient();
+
+  const { data: existing } = await supabase
+    .from("platform_users")
+    .select("id, workspace_id")
+    .eq("username", username)
+    .maybeSingle();
+
+  let userId: string;
+  if (existing?.id) {
+    userId = String(existing.id);
+    const { error } = await supabase
+      .from("platform_users")
+      .update({
+        workspace_id: workspaceId,
+        email: PAILEX_PORTAL_EMAIL,
+        display_name: PAILEX_PORTAL_DISPLAY_NAME,
+        password_hash: passwordHash,
+        user_type: "external",
+        is_active: true,
+        email_verified_at: now,
+        redirect_path: PAILEX_PORTAL_REDIRECT,
+        client_name: "PAILEX",
+        updated_at: now,
+      })
+      .eq("id", userId);
+    if (error) throw new Error(error.message);
+  } else {
+    const { data: created, error } = await supabase
+      .from("platform_users")
+      .insert({
+        workspace_id: workspaceId,
+        username,
+        email: PAILEX_PORTAL_EMAIL,
+        display_name: PAILEX_PORTAL_DISPLAY_NAME,
+        password_hash: passwordHash,
+        user_type: "external",
+        is_active: true,
+        email_verified_at: now,
+        redirect_path: PAILEX_PORTAL_REDIRECT,
+        client_name: "PAILEX",
+        created_at: now,
+        updated_at: now,
+      })
+      .select("id")
+      .single();
+    if (error || !created?.id) {
+      throw new Error(error?.message || "Failed to create PAILEX portal platform user.");
+    }
+    userId = String(created.id);
+  }
+
+  const { data: userRow, error: readError } = await supabase
+    .from("platform_users")
+    .select("password_hash")
+    .eq("id", userId)
+    .single();
+  if (readError) throw new Error(readError.message);
+
+  return {
+    userId,
+    passwordVerifies: verifyPassword(PAILEX_PORTAL_PASSWORD, String(userRow?.password_hash ?? "")),
+  };
+}
+
 async function main() {
   assertWolfNav();
 
@@ -300,6 +388,27 @@ async function main() {
   console.log("Provisioning BCN admin user...");
   const admin = await provisionBcnAdmin(workspaceId);
 
+  console.log("Provisioning PAILEX external portal user...");
+  const pailex = await provisionPailexPortalUser(workspaceId);
+
+  await runSql(
+    `insert into public.internal_clients (
+       id, workspace_id, company_name, industry, primary_contact, email, phone, region,
+       account_status, contract_type, tax_id, billing_address, active_projects, notes, created_at, updated_at
+     ) values (
+       'wolf-cli-pailex', '${workspaceId}', 'PAILEX', 'Wildlife Operations', '', 'pailex@wolf.unit311central.com', '',
+       'South Africa', 'Active', 'Client', '', '', 0, 'PAILEX programme portal client', now(), now()
+     )
+     on conflict (id) do update set
+       workspace_id = excluded.workspace_id,
+       company_name = excluded.company_name,
+       region = excluded.region,
+       account_status = excluded.account_status,
+       email = excluded.email,
+       notes = excluded.notes,
+       updated_at = now()`,
+  );
+
   console.log(
     JSON.stringify(
       {
@@ -309,7 +418,11 @@ async function main() {
         enabledSubModules: updated.enabledSubModules.length,
         bcnAdminEmail: BCN_ADMIN_EMAIL,
         bcnAdminUserId: admin.userId,
-        passwordVerifies: admin.passwordVerifies,
+        bcnPasswordVerifies: admin.passwordVerifies,
+        pailexPortalEmail: PAILEX_PORTAL_EMAIL,
+        pailexPortalUserId: pailex.userId,
+        pailexPasswordVerifies: pailex.passwordVerifies,
+        pailexPortalUrl: "https://wolf.unit311central.com/pailex",
         bpExcluded: [
           "business-productivity:files-client",
           "business-productivity:info-email",

@@ -308,6 +308,23 @@ export function createSeedEngDebt(): EngDebtItem[] {
 }
 
 export function computeEngKpis(engineers: EngEngineer[], projects: EngProject[], incidents: EngIncident[], debt: EngDebtItem[]) {
+  if (engineers.length === 0 && projects.length === 0 && incidents.length === 0 && debt.length === 0) {
+    return {
+      engineers: 0,
+      activeInternal: 0,
+      activeClient: 0,
+      sprintVelocity: 0,
+      deploymentsThisWeek: 0,
+      openBugs: 0,
+      codeReviewsPending: 0,
+      productionIncidents: 0,
+      averageLeadTime: "—",
+      utilisation: "0%",
+      technicalDebtItems: 0,
+      releaseReadiness: "—",
+    };
+  }
+
   const activeInternal = projects.filter((p) => p.kind === "Internal" && p.progress < 100).length;
   const activeClient = projects.filter((p) => p.kind === "Client" && p.progress < 100).length;
   const utilisation = Math.round(

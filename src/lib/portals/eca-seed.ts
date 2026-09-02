@@ -52,6 +52,7 @@ function routeIdPrefix(workspaceSlug: string): string {
   if (workspaceSlug === "onwardair") return "portal-oa";
   if (workspaceSlug === "talantonimpact") return "portal-ti";
   if (workspaceSlug === "abhi") return "portal-abhi";
+  if (workspaceSlug === "wolf-central") return "portal-wolf";
   return `portal-${workspaceSlug}`;
 }
 
@@ -130,6 +131,31 @@ export function buildEcaPortalConfigsForWorkspace(workspaceSlug: string): EcaPor
       lockedAccounts: 0,
       storageGb: 4.8,
       lastLogin: "2026-08-04T18:22:00Z",
+      portalAccessEnabled: true,
+      portalUrl: `${origin}/${route.path}`,
+    }));
+  }
+
+  if (workspaceSlug === "wolf-central") {
+    return routes.map((route) => ({
+      id: `${routeIdPrefix(workspaceSlug)}-${route.path}`,
+      clientId: route.clientId,
+      clientName: route.displayName,
+      portalName: `${route.displayName} Programme Portal`,
+      logoLabel: "PX",
+      brandPrimary: "#1a4d3a",
+      brandAccent: "#047857",
+      modules: ["Projects", "Files", "Support", "Communications", "Tasks", "Documents"],
+      landingPage: "Projects",
+      supportContact: route.username,
+      notificationsEnabled: true,
+      documentBranding: "WOLF programme letterhead",
+      users: 1,
+      activeSessions: 0,
+      pendingInvites: 0,
+      lockedAccounts: 0,
+      storageGb: 0,
+      lastLogin: "—",
       portalAccessEnabled: true,
       portalUrl: `${origin}/${route.path}`,
     }));
