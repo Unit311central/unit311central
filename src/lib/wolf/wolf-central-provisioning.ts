@@ -22,6 +22,7 @@ export const WOLF_CENTRAL_ENABLED_MODULES = [
   "operations",
   "training",
   "project-management",
+  "engineering",
   "tools",
   "settings",
 ] as const;

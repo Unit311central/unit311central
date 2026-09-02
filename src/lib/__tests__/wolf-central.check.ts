@@ -65,6 +65,7 @@ assert.ok(wolfModules.includes("executive-assistant"));
 assert.ok(wolfModules.includes("support-desk"));
 assert.ok(wolfModules.includes("operations"));
 assert.ok(wolfModules.includes("training"));
+assert.ok(wolfModules.includes("engineering"));
 assert.ok(wolfModules.includes("tools"));
 assert.ok(!wolfModules.includes("business-central"));
 
@@ -74,6 +75,8 @@ assert.ok(!wolfSubModules.includes("business-productivity:info-email"));
 assert.ok(!wolfSubModules.includes("business-productivity:social"));
 assert.ok(wolfSubModules.includes("tools:users"));
 assert.ok(!wolfSubModules.includes("settings:users"));
+assert.ok(wolfSubModules.includes("engineering:engineering-sops-dashboard"));
+assert.ok(wolfSubModules.includes("engineering:engineering-sops-library"));
 
 assert.ok(!DEMO_ENABLED_MODULES.includes("wolf-animals"));
 assert.ok(!SAEC_ENABLED_MODULES.includes("wolf-animals"));

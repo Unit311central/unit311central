@@ -2,6 +2,7 @@ import { buildRunStepRows, mapDbSop, sopToDbInsert } from "@/lib/engineering-sop
 import { buildNorthstarEngineeringSopCatalogue } from "@/lib/engineering-sop/northstar-seed";
 import { canRunEngSop } from "@/lib/engineering-sop-data";
 import { createTenancyServerClient } from "@/lib/supabase/tenancy-server";
+import { isWolfCentralSlug } from "@/lib/wolf/wolf-surface";
 
 export type EngineeringSopStarterCatalogueResult = {
   workspaceId: string;
@@ -18,6 +19,17 @@ export async function ensureEngineeringSopStarterCatalogue(
   workspaceId: string,
 ): Promise<EngineeringSopStarterCatalogueResult> {
   const db = createTenancyServerClient();
+
+  const { data: workspace, error: workspaceError } = await db
+    .from("workspaces")
+    .select("slug")
+    .eq("id", workspaceId)
+    .maybeSingle();
+  if (workspaceError) throw new Error(workspaceError.message);
+  if (isWolfCentralSlug(workspace?.slug)) {
+    return { workspaceId, inserted: 0, skipped: true, runsCreated: 0 };
+  }
+
   const { count, error: countError } = await db
     .from("engineering_sops")
     .select("id", { count: "exact", head: true })

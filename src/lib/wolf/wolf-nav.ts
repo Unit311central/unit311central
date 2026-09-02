@@ -9,7 +9,10 @@ import type {
   InternalNavSection,
 } from "@/lib/internal-operations-data";
 import { internalSurveyNavSections } from "@/lib/internal-operations-data";
-import { buildCentralBusinessProductivityNavSection } from "@/lib/platform-workspaces/central-product-nav";
+import {
+  buildCentralBusinessProductivityNavSection,
+  buildCentralEngineeringNavSection,
+} from "@/lib/platform-workspaces/central-product-nav";
 import { buildProjectManagementNavSection } from "@/lib/project-management-nav";
 
 const WOLF_GREEN = "#1a4d3a";
@@ -143,6 +146,7 @@ export function buildWolfCentralNavSections(): readonly InternalNavSection[] {
       color: WOLF_DRONE,
       includeGrants: false,
     }),
+    buildCentralEngineeringNavSection(),
     {
       kind: "workspace",
       label: "Tools",
