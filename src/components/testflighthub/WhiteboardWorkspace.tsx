@@ -6,6 +6,7 @@ import type { AppState, BinaryFiles } from "@excalidraw/excalidraw/types";
 import { Check, Link2, Loader2, Plus, Save, Share2, X } from "lucide-react";
 
 import { createInitialUsers, type ManagedUser } from "@/lib/user-management-data";
+import { fetchCachedJson } from "@/lib/platform-fetch-cache";
 
 import {
   EMPTY_WHITEBOARD_SCENE,
@@ -53,8 +54,6 @@ function buildShareUrl(projectId: string | null) {
   return url.toString();
 }
 
-const MOCK_USERS = createInitialUsers();
-
 export default function WhiteboardWorkspace() {
   const [projects, setProjects] = useState<WhiteboardProjectSummary[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
@@ -70,6 +69,8 @@ export default function WhiteboardWorkspace() {
   const [error, setError] = useState<string | null>(null);
   const [collaboratorsByProject, setCollaboratorsByProject] = useState<Record<string, string[]>>({});
   const [collaboratorPickerOpen, setCollaboratorPickerOpen] = useState(false);
+  const [collaboratorOptions, setCollaboratorOptions] = useState<ManagedUser[]>([]);
+  const [collaboratorsLoading, setCollaboratorsLoading] = useState(true);
   const [linkCopied, setLinkCopied] = useState(false);
   const { showDetail, openDetail, closeDetail } = useMobileDetailPanel();
 
@@ -133,10 +134,56 @@ export default function WhiteboardWorkspace() {
     : [];
 
   const selectedCollaborators = useMemo(
-    () =>
-      MOCK_USERS.filter((user) => selectedCollaboratorIds.includes(user.id)),
-    [selectedCollaboratorIds],
+    () => collaboratorOptions.filter((user) => selectedCollaboratorIds.includes(user.id)),
+    [collaboratorOptions, selectedCollaboratorIds],
   );
+
+  const loadCollaboratorOptions = useCallback(async () => {
+    setCollaboratorsLoading(true);
+    try {
+      let nextUsers: ManagedUser[] = [];
+      try {
+        const messagingUsers = await fetchCachedJson<{ users?: ManagedUser[] }>(
+          "whiteboard-collaborators",
+          "/api/messaging/operators",
+          { ttlMs: 60_000 },
+        );
+        nextUsers = messagingUsers.users ?? [];
+      } catch {
+        const response = await fetch("/api/messaging/operators", { cache: "no-store" });
+        const data = await readApiJson<{ users?: ManagedUser[] }>(response);
+        if (!response.ok) throw new Error("Failed to load collaborators");
+        nextUsers = data.users ?? [];
+      }
+
+      if (nextUsers.length === 0) {
+        nextUsers = createInitialUsers().filter((user) => user.status === "Active");
+      }
+
+      setCollaboratorOptions(nextUsers.filter((user) => user.status === "Active"));
+    } catch {
+      setCollaboratorOptions(
+        createInitialUsers().filter((user) => user.status === "Active"),
+      );
+    } finally {
+      setCollaboratorsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadCollaboratorOptions();
+  }, [loadCollaboratorOptions]);
+
+  useEffect(() => {
+    if (!selectedProjectId || collaboratorOptions.length === 0) return;
+    const allowedIds = new Set(collaboratorOptions.map((user) => user.id));
+    setCollaboratorsByProject((current) => {
+      const existing = current[selectedProjectId] ?? [];
+      const next = existing.filter((id) => allowedIds.has(id));
+      if (next.length === existing.length) return current;
+      return { ...current, [selectedProjectId]: next };
+    });
+  }, [collaboratorOptions, selectedProjectId]);
 
   useEffect(() => {
     void (async () => {
@@ -481,34 +528,40 @@ export default function WhiteboardWorkspace() {
 
                 {collaboratorPickerOpen && (
                   <ul className="absolute left-0 right-0 z-20 mt-1 max-h-48 overflow-y-auto rounded-xl border border-white/15 bg-[#0b1524] py-1 shadow-xl">
-                    {MOCK_USERS.map((user: ManagedUser) => {
-                      const selected = selectedCollaboratorIds.includes(user.id);
-                      return (
-                        <li key={user.id}>
-                          <button
-                            type="button"
-                            onClick={() => toggleCollaborator(user.id)}
-                            className={cn(
-                              "flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-white/5",
-                              selected ? "text-sky-300" : "text-white/75",
-                            )}
-                          >
-                            <span
+                    {collaboratorsLoading ? (
+                      <li className="px-3 py-2 text-sm text-white/45">Loading collaborators…</li>
+                    ) : collaboratorOptions.length === 0 ? (
+                      <li className="px-3 py-2 text-sm text-white/45">No collaborators available</li>
+                    ) : (
+                      collaboratorOptions.map((user: ManagedUser) => {
+                        const selected = selectedCollaboratorIds.includes(user.id);
+                        return (
+                          <li key={user.id}>
+                            <button
+                              type="button"
+                              onClick={() => toggleCollaborator(user.id)}
                               className={cn(
-                                "flex h-4 w-4 shrink-0 items-center justify-center rounded border",
-                                selected
-                                  ? "border-sky-400/60 bg-sky-500/20"
-                                  : "border-white/20 bg-transparent",
+                                "flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-white/5",
+                                selected ? "text-sky-300" : "text-white/75",
                               )}
                             >
-                              {selected && <Check className="h-3 w-3" />}
-                            </span>
-                            <span className="min-w-0 flex-1 truncate">{user.fullName}</span>
-                            <span className="truncate text-xs text-white/40">{user.email}</span>
-                          </button>
-                        </li>
-                      );
-                    })}
+                              <span
+                                className={cn(
+                                  "flex h-4 w-4 shrink-0 items-center justify-center rounded border",
+                                  selected
+                                    ? "border-sky-400/60 bg-sky-500/20"
+                                    : "border-white/20 bg-transparent",
+                                )}
+                              >
+                                {selected && <Check className="h-3 w-3" />}
+                              </span>
+                              <span className="min-w-0 flex-1 truncate">{user.fullName}</span>
+                              <span className="truncate text-xs text-white/40">{user.email}</span>
+                            </button>
+                          </li>
+                        );
+                      })
+                    )}
                   </ul>
                 )}
 

@@ -10,6 +10,7 @@ import {
   filterWolfMessagingOperatorIds,
   filterWolfMessagingOperators,
   isWolfMessagingAllowedOperator,
+  WOLF_CENTRAL_OPERATOR_ALLOWLIST,
 } from "@/lib/wolf/wolf-messaging-operators";
 
 function fixture(partial: Partial<ManagedUser> & Pick<ManagedUser, "id" | "username" | "email">): ManagedUser {
@@ -55,6 +56,7 @@ const blockedUser = fixture({
   email: "other@wolf.unit311central.com",
 });
 
+assert.equal(WOLF_CENTRAL_OPERATOR_ALLOWLIST.length, 5);
 assert.equal(filterWolfMessagingOperators([...allowedUsers, blockedUser]).length, 5);
 assert.ok(isWolfMessagingAllowedOperator({ username: "bcn@wolf.unit311central.com", email: "bcn@wolf.unit311central.com" }));
 assert.ok(

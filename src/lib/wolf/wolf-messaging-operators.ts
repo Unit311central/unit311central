@@ -2,16 +2,21 @@ import { normalizePlatformUsername } from "@/lib/platform-auth";
 import type { ManagedUser } from "@/lib/user-management-data";
 import { isWolfCentralSlug } from "@/lib/wolf/wolf-surface";
 
-/** Exact admin account allowed in WOLF Messaging join / participant pickers. */
-export const WOLF_MESSAGING_ALLOWED_ADMIN_EMAIL = "admin@wolf.unit311central.com";
-
-/** Email/username prefixes allowed in WOLF Messaging (any domain). */
-export const WOLF_MESSAGING_ALLOWED_EMAIL_PREFIXES = [
-  "alex@",
-  "jordi@",
-  "bcn@",
-  "bcnengineer@",
+/** WOLF Central operators allowed in Messaging and Whiteboard collaborator pickers. */
+export const WOLF_CENTRAL_OPERATOR_ALLOWLIST = [
+  "admin@wolf.unit311central.com",
+  "alex@wolf.unit311central.com",
+  "jordi@wolf.unit311central.com",
+  "bcn@wolf.unit311central.com",
+  "bcnengineer@wolf.unit311central.com",
 ] as const;
+
+const WOLF_CENTRAL_OPERATOR_ALLOWLIST_SET = new Set<string>(
+  WOLF_CENTRAL_OPERATOR_ALLOWLIST.map((email) => email.toLowerCase()),
+);
+
+/** @deprecated Use WOLF_CENTRAL_OPERATOR_ALLOWLIST */
+export const WOLF_MESSAGING_ALLOWED_ADMIN_EMAIL = WOLF_CENTRAL_OPERATOR_ALLOWLIST[0];
 
 export function wolfMessagingOperatorAddresses(
   user: Pick<ManagedUser, "username" | "email">,
@@ -25,13 +30,7 @@ export function isWolfMessagingAllowedOperator(
   user: Pick<ManagedUser, "username" | "email">,
 ): boolean {
   const addresses = wolfMessagingOperatorAddresses(user);
-  for (const address of addresses) {
-    if (address === WOLF_MESSAGING_ALLOWED_ADMIN_EMAIL) return true;
-    for (const prefix of WOLF_MESSAGING_ALLOWED_EMAIL_PREFIXES) {
-      if (address.startsWith(prefix)) return true;
-    }
-  }
-  return false;
+  return addresses.some((address) => WOLF_CENTRAL_OPERATOR_ALLOWLIST_SET.has(address));
 }
 
 export function filterWolfMessagingOperators(users: readonly ManagedUser[]): ManagedUser[] {
