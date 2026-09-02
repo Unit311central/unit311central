@@ -680,8 +680,8 @@ export default function SettingsWorkspace() {
   // list, which used to shrink/overwrite a full custom order on refresh.
   useEffect(() => {
     if (!hydrated || !entitlementsReady) return;
-    setNavCustom(loadSidebarNavCustom(liveSections));
-  }, [hydrated, entitlementsReady, liveSections]);
+    setNavCustom(loadSidebarNavCustom(liveSections, workspaceSlug));
+  }, [hydrated, entitlementsReady, liveSections, workspaceSlug]);
 
   const [financeProvider, setFinanceProvider] = useState<FinanceProvider | "">("");
   const [logisticsProvider, setLogisticsProvider] = useState<LogisticsProvider | "">("");
@@ -875,8 +875,8 @@ export default function SettingsWorkspace() {
 
   const persistNavCustom = useCallback((next: NavCustomStorage) => {
     setNavCustom(next);
-    saveSidebarNavCustom(next);
-  }, []);
+    saveSidebarNavCustom(next, workspaceSlug);
+  }, [workspaceSlug]);
 
   function toggleModuleExpanded(sectionKey: string) {
     setExpandedModules((current) => ({ ...current, [sectionKey]: !current[sectionKey] }));

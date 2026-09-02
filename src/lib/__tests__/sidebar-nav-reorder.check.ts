@@ -4,7 +4,11 @@
  */
 import assert from "node:assert/strict";
 
-import { moveSectionKey, reorderSectionKeys } from "@/lib/sidebar-nav-custom";
+import { moveSectionKey, reorderSectionKeys, sidebarNavCustomStorageKey } from "@/lib/sidebar-nav-custom";
+import { WOLF_CENTRAL_SLUG } from "@/lib/wolf/wolf-surface";
+
+assert.equal(sidebarNavCustomStorageKey("wolf"), `unit311-nav-custom:${WOLF_CENTRAL_SLUG}`);
+assert.equal(sidebarNavCustomStorageKey(WOLF_CENTRAL_SLUG), `unit311-nav-custom:${WOLF_CENTRAL_SLUG}`);
 
 const keys = ["a", "b", "c", "d", "e"];
 

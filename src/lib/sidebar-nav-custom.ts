@@ -24,6 +24,7 @@ import {
   TALANTON_SIDEBAR_FACTORY_REVISION,
 } from "@/lib/talanton-nav-order";
 import { canonicalizeTalantonImpactSlug } from "@/lib/talanton-surface";
+import { canonicalizeWolfCentralSlug, WOLF_CENTRAL_SLUG } from "@/lib/wolf/wolf-surface";
 
 export const SIDEBAR_NAV_CUSTOM_STORAGE_KEY = "unit311-nav-custom";
 export const SIDEBAR_NAV_CUSTOM_EVENT = "unit311-nav-custom-changed";
@@ -93,17 +94,28 @@ function talantonFactoryNavCustom(
   };
 }
 
+/** Normalize host/subdomain aliases to workspace tenancy slugs for sidebar storage. */
+export function canonicalizeSidebarNavWorkspaceSlug(slug: string | null | undefined): string {
+  const normalized = String(slug ?? "").trim().toLowerCase();
+  if (!normalized) return "";
+  return (
+    canonicalizeWolfCentralSlug(normalized) ??
+    canonicalizeTalantonImpactSlug(normalized) ??
+    normalized
+  );
+}
+
 /** Host slug for per-workspace sidebar order (Talanton vs OnwardAir vs internal). */
 export function resolveSidebarNavWorkspaceSlug(): string {
   if (typeof window === "undefined") return "";
   const host = window.location.hostname.toLowerCase();
   const match = host.match(/^([a-z0-9-]+)\.unit311central\.com$/i);
   if (match?.[1] && !["www", "app", "login"].includes(match[1])) {
-    return canonicalizeTalantonImpactSlug(match[1]) ?? match[1];
+    return canonicalizeSidebarNavWorkspaceSlug(match[1]);
   }
   if (host.endsWith(".localhost") && host !== "localhost") {
     const slug = host.split(".")[0] || "";
-    return canonicalizeTalantonImpactSlug(slug) ?? slug;
+    return canonicalizeSidebarNavWorkspaceSlug(slug);
   }
   if (host === "internal.unit311central.com" || host === "internal.localhost") return "internal";
   if (host === "demo.unit311central.com" || host === "demo.localhost") return DEMO_WORKSPACE_SLUG;
@@ -111,14 +123,32 @@ export function resolveSidebarNavWorkspaceSlug(): string {
 }
 
 export function sidebarNavCustomStorageKey(workspaceSlug?: string | null): string {
-  const slug = (workspaceSlug ?? resolveSidebarNavWorkspaceSlug()).trim().toLowerCase();
+  const slug = canonicalizeSidebarNavWorkspaceSlug(
+    workspaceSlug ?? resolveSidebarNavWorkspaceSlug(),
+  );
   return slug ? `${SIDEBAR_NAV_CUSTOM_STORAGE_KEY}:${slug}` : LEGACY_SIDEBAR_NAV_CUSTOM_STORAGE_KEY;
 }
 
 function readSidebarNavCustomRaw(workspaceSlug?: string | null): string | null {
   if (typeof window === "undefined") return null;
-  const scopedKey = sidebarNavCustomStorageKey(workspaceSlug);
-  return window.localStorage.getItem(scopedKey);
+  const slug = canonicalizeSidebarNavWorkspaceSlug(
+    workspaceSlug ?? resolveSidebarNavWorkspaceSlug(),
+  );
+  const scopedKey = sidebarNavCustomStorageKey(slug);
+  const scoped = window.localStorage.getItem(scopedKey);
+  if (scoped) return scoped;
+
+  if (slug === WOLF_CENTRAL_SLUG) {
+    const aliasKey = `${SIDEBAR_NAV_CUSTOM_STORAGE_KEY}:wolf`;
+    const alias = window.localStorage.getItem(aliasKey);
+    if (alias) {
+      window.localStorage.setItem(scopedKey, alias);
+      window.localStorage.removeItem(aliasKey);
+      return alias;
+    }
+  }
+
+  return null;
 }
 
 function migrateLegacySidebarNavCustom(
@@ -126,7 +156,7 @@ function migrateLegacySidebarNavCustom(
   workspaceSlug?: string | null,
 ): string | null {
   if (typeof window === "undefined") return null;
-  const slug = (workspaceSlug ?? resolveSidebarNavWorkspaceSlug()).trim().toLowerCase();
+  const slug = canonicalizeSidebarNavWorkspaceSlug(workspaceSlug ?? resolveSidebarNavWorkspaceSlug());
   if (!slug) return readSidebarNavCustomRaw();
 
   const scopedKey = sidebarNavCustomStorageKey(slug);
@@ -518,6 +548,7 @@ export function saveUserSidebarSectionOrder(
   sections: readonly InternalNavSection[],
   sectionOrder: readonly string[],
   current: Pick<SidebarNavCustomStorage, "hidden" | "customItems">,
+  workspaceSlug?: string | null,
 ): SidebarNavCustomStorage {
   const payload: SidebarNavCustomStorage = {
     version: targetStorageVersion(sections),
@@ -526,7 +557,7 @@ export function saveUserSidebarSectionOrder(
     hidden: current.hidden,
     customItems: current.customItems,
   };
-  saveSidebarNavCustom(payload);
+  saveSidebarNavCustom(payload, workspaceSlug);
   return payload;
 }
 
