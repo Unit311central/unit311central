@@ -115,8 +115,7 @@ export function WolfPailexPortalLogin({
 
   return (
     <MarketingPageShell
-      className={MARKETING_CONTENT_CLASS}
-      mainClassName="flex min-h-[100dvh] items-center justify-center px-4 py-10"
+      contentClassName={`${MARKETING_CONTENT_CLASS} flex min-h-[100dvh] items-center justify-center px-4 py-10`}
     >
       {formCard}
     </MarketingPageShell>

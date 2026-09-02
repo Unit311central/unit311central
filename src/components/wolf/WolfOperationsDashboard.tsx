@@ -49,7 +49,7 @@ export default function WolfOperationsDashboard() {
     return {
       label: tile.label,
       value: tile.value,
-      hint: tile.hint,
+      hint: tile.hint ?? "",
       href: href(viewMap[tile.id] ?? "operations-dashboard"),
       icon: TILE_ICONS[index] ?? Package,
     };
