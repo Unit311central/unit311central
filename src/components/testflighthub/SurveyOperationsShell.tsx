@@ -12,6 +12,7 @@ import {
   type InternalOperationsView,
 } from "@/lib/internal-operations-data";
 import { isDemoDomainHost, isInternalDomainHost } from "@/lib/app-domains";
+import { isBrowserWolfCentralSurface } from "@/lib/wolf/wolf-surface";
 import { isBrowserCorpCentreSurface } from "@/lib/corpcentre-surface";
 import {
   isBrowserOnwardAirSurface,
@@ -276,7 +277,7 @@ export default function SurveyOperationsShell({
               {showPlatformAi ? (
                 <>
                   {isDemoHost && activeView === "home" ? <DemoWorkspacePreviewSwitcher /> : null}
-                  <TutorialShellButton />
+                  {!isBrowserWolfCentralSurface() ? <TutorialShellButton /> : null}
                   <button
                     type="button"
                     data-ai-target="ai-assistant"

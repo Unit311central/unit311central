@@ -19,6 +19,19 @@ export async function listScenariosApi(): Promise<PipelineScenario[]> {
   return data.scenarios;
 }
 
+export async function createScenarioApi(
+  name: string,
+  description?: string,
+): Promise<PipelineScenario> {
+  const res = await fetch("/api/internal/realtime-video-pipeline/scenarios", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name, description }),
+  });
+  const data = await readJson<{ scenario: PipelineScenario }>(res);
+  return data.scenario;
+}
+
 export async function getScenarioApi(id: string): Promise<ScenarioWithSummary> {
   const res = await fetch(`/api/internal/realtime-video-pipeline/scenarios/${id}`, {
     cache: "no-store",

@@ -27,6 +27,8 @@ import { useInternalOperationsBasePath } from "@/components/testflighthub/Intern
 import { getInternalNavHref, type InternalOperationsView } from "@/lib/internal-operations-data";
 import { buildOaProductivitySnapshot } from "@/lib/onwardair/productivity-fake-data";
 import { isBrowserOnwardAirSurface } from "@/lib/onwardair-surface";
+import { isBrowserWolfCentralSurface } from "@/lib/wolf/wolf-surface";
+import { WOLF_EMPTY_PRODUCTIVITY_SNAPSHOT } from "@/lib/wolf/wolf-empty-dashboards";
 import type { SupportTicket } from "@/lib/support-data";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
@@ -226,6 +228,9 @@ function resolveProductivitySnapshot(displayName?: string | null): ProductivityS
       social: fixtures.productivity.social,
       approvals: fixtures.productivity.approvals,
     };
+  }
+  if (typeof window !== "undefined" && isBrowserWolfCentralSurface()) {
+    return WOLF_EMPTY_PRODUCTIVITY_SNAPSHOT;
   }
   if (typeof window !== "undefined") {
     try {
@@ -583,7 +588,7 @@ export default function ProductivityDashboardWorkspace() {
   }, [isOa]);
 
   useEffect(() => {
-    if (isAbhi) return;
+    if (isAbhi || isBrowserWolfCentralSurface()) return;
     let cancelled = false;
     void fetch("/api/support/tickets?includeArchived=false", { cache: "no-store" })
       .then(async (response) => {

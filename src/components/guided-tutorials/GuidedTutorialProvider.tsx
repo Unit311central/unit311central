@@ -25,6 +25,7 @@ import { stepUsesDomHighlight } from "@/lib/guided-tutorials/step-presentation";
 import { measureTutorialTarget } from "@/lib/guided-tutorials/targets";
 import type { TutorialDefinition, TutorialResolution, TutorialStep } from "@/lib/guided-tutorials/types";
 import { resolveBrowserTutorialWorkspaceSlug } from "@/lib/guided-tutorials/workspace-slug";
+import { isBrowserWolfCentralSurface } from "@/lib/wolf/wolf-surface";
 import { INTERNAL_WORKSPACE_SLUG } from "@/lib/workspace-host";
 
 export type GuidedTutorialPhase = "idle" | "active" | "complete";
@@ -255,7 +256,9 @@ export function GuidedTutorialProvider({
   );
 
   return (
-    <GuidedTutorialContext.Provider value={value}>{children}</GuidedTutorialContext.Provider>
+    typeof window !== "undefined" && isBrowserWolfCentralSurface()
+      ? children
+      : <GuidedTutorialContext.Provider value={value}>{children}</GuidedTutorialContext.Provider>
   );
 }
 

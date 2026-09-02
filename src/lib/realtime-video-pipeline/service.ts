@@ -33,6 +33,7 @@ import {
 import { createSupabaseServiceRoleClient, isSupabaseServiceRoleConfigured } from "@/lib/supabase/server";
 import {
   getPipelineWorkspaceSlug,
+  isWolfCentralPipelineContext,
   shouldAutoSeedPipelineScenarios,
 } from "@/lib/realtime-video-pipeline/workspace-context";
 import { findWorkspaceBySlug } from "@/lib/workspace-host";
@@ -330,8 +331,10 @@ export async function createScenario(input: {
       name: input.name.trim(),
       description: input.description?.trim() ?? "",
       is_default: false,
+      scenario_kind: isWolfCentralPipelineContext() ? "flight" : "pipeline",
       config: input.config ?? {},
       sync_config: {},
+      workbench_config: isWolfCentralPipelineContext() ? createBcnWorkbenchConfig() : {},
     })
     .select("*")
     .single();

@@ -6,6 +6,7 @@ import OmniTransitOperationsDashboard from "@/components/saec/OmniTransitOperati
 import { isBrowserCustomerWorkspaceSurface } from "@/lib/customer-workspace-surface";
 import { isBrowserDemoSurface } from "@/lib/demo-enterprise";
 import { isBrowserSaecSurface } from "@/lib/saec-surface";
+import { isBrowserWolfCentralSurface } from "@/lib/wolf/wolf-surface";
 
 export function OperationsDashboardWorkspace() {
   if (typeof window !== "undefined" && isBrowserDemoSurface()) {
@@ -14,7 +15,10 @@ export function OperationsDashboardWorkspace() {
   if (typeof window !== "undefined" && isBrowserSaecSurface()) {
     return <OmniTransitOperationsDashboard />;
   }
-  if (typeof window !== "undefined" && isBrowserCustomerWorkspaceSurface()) {
+  if (
+    typeof window !== "undefined" &&
+    (isBrowserCustomerWorkspaceSurface() || isBrowserWolfCentralSurface())
+  ) {
     return <CustomerOperationsDashboard />;
   }
   const OnwardAirOperationsDashboard =

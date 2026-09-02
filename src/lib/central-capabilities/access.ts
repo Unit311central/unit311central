@@ -1,6 +1,8 @@
 import type { InternalRoleView } from "@/lib/internal-role-views";
 import type { UserDepartment, UserRole } from "@/lib/user-management-data";
 
+import { isWolfCentralSlug, isBrowserWolfCentralSurface } from "@/lib/wolf/wolf-surface";
+import { filterWolfContentStudioFunctions } from "@/lib/wolf/wolf-content-studio";
 import type {
   CentralCapabilityAccessContext,
   ContentStudioFunctionId,
@@ -105,13 +107,20 @@ export function filterVisibleManagementFunctionPacks(
 
 export function getVisibleContentStudioFunctions(
   access: CentralCapabilityAccessContext,
+  options?: { workspaceSlug?: string | null },
 ): ContentStudioFunctionId[] {
+  let ids: ContentStudioFunctionId[];
   if (isExecutive(access) || isPlatformAdmin(access)) {
-    return CONTENT_STUDIO_FUNCTIONS.map((node) => node.id);
+    ids = CONTENT_STUDIO_FUNCTIONS.map((node) => node.id);
+  } else {
+    ids = CONTENT_STUDIO_FUNCTIONS.filter((node) =>
+      CONTENT_STUDIO_ACCESS[node.id](access),
+    ).map((node) => node.id);
   }
-  return CONTENT_STUDIO_FUNCTIONS.filter((node) =>
-    CONTENT_STUDIO_ACCESS[node.id](access),
-  ).map((node) => node.id);
+  if (isWolfCentralSlug(options?.workspaceSlug) || isBrowserWolfCentralSurface()) {
+    return filterWolfContentStudioFunctions(ids);
+  }
+  return ids;
 }
 
 export function canEditContentStudioTemplates(access: CentralCapabilityAccessContext): boolean {

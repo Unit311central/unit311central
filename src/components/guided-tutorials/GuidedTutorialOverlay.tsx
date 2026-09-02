@@ -4,6 +4,7 @@ import { CheckCircle2, X } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { stepRequiresWidePanel, stepUsesDomHighlight } from "@/lib/guided-tutorials/step-presentation";
+import { isBrowserWolfCentralSurface } from "@/lib/wolf/wolf-surface";
 
 import TutorialStepBody from "./TutorialStepBody";
 import { useOptionalGuidedTutorial } from "./GuidedTutorialProvider";
@@ -26,6 +27,7 @@ function CalloutArrow({ side }: { side: "top" | "left" }) {
 }
 
 export default function GuidedTutorialOverlay() {
+  if (typeof window !== "undefined" && isBrowserWolfCentralSurface()) return null;
   const guided = useOptionalGuidedTutorial();
   if (!guided || guided.phase === "idle") return null;
 

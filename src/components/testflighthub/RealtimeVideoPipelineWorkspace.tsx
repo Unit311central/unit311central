@@ -52,6 +52,7 @@ import {
 } from "@/lib/realtime-video-pipeline/constants";
 import {
   createStageApi,
+  createScenarioApi,
   deleteStageApi,
   duplicateScenarioApi,
   duplicateStageApi,
@@ -148,7 +149,13 @@ export default function RealtimeVideoPipelineWorkspace() {
     const rows = await listScenariosApi();
     setScenarios(rows);
     const flight = rows.find((s) => s.scenarioKind === "flight") ?? rows[0];
-    if (!scenarioId && flight) setScenarioId(flight.id);
+    if (!scenarioId && flight) {
+      setScenarioId(flight.id);
+    } else if (!flight) {
+      setLoading(false);
+      setWorkbench(null);
+      setData(null);
+    }
   }, [scenarioId]);
 
   const loadWorkbench = useCallback(async (id: string) => {
@@ -182,9 +189,10 @@ export default function RealtimeVideoPipelineWorkspace() {
   );
 
   useEffect(() => {
-    void loadScenarios().catch((err) =>
-      setError(err instanceof Error ? err.message : "Failed to load scenarios."),
-    );
+    void loadScenarios().catch((err) => {
+      setLoading(false);
+      setError(err instanceof Error ? err.message : "Failed to load scenarios.");
+    });
   }, [loadScenarios]);
 
   useEffect(() => {
@@ -316,6 +324,19 @@ export default function RealtimeVideoPipelineWorkspace() {
     }
   }
 
+  async function handleCreateFirstScenario() {
+    setError(null);
+    setLoading(true);
+    try {
+      const scenario = await createScenarioApi("WOLF flight scenario", "WOLF Central pipeline");
+      await loadScenarios();
+      setScenarioId(scenario.id);
+    } catch (err) {
+      setLoading(false);
+      setError(err instanceof Error ? err.message : "Failed to create scenario.");
+    }
+  }
+
   const annotatedDisplay =
     summary?.aiAnnotatedLatencyMs != null
       ? `${formatLatencyMs(summary.aiAnnotatedLatencyMs)} ms`
@@ -323,6 +344,7 @@ export default function RealtimeVideoPipelineWorkspace() {
 
   return (
     <div className="space-y-5 pb-10">
+      {scenarios.length > 0 ? (
       <div className="flex flex-wrap items-center justify-end gap-2">
         <label className="text-xs text-white/45">Flight scenario</label>
         <select
@@ -340,6 +362,7 @@ export default function RealtimeVideoPipelineWorkspace() {
           Duplicate version
         </button>
       </div>
+      ) : null}
 
       {error ? (
         <div className="rounded-xl border border-rose-400/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-100">
@@ -347,7 +370,28 @@ export default function RealtimeVideoPipelineWorkspace() {
         </div>
       ) : null}
 
-      {loading ? (
+      {!loading && scenarios.length === 0 ? (
+        <WsSection
+          title="No pipeline scenarios yet"
+          subtitle="Create a flight scenario to model latency, bandwidth, and architecture options."
+        >
+          <div className="flex flex-col items-center justify-center gap-4 py-10 text-center">
+            <p className="max-w-md text-sm text-white/55">
+              WOLF Central starts with an empty pipeline. Add your first scenario to use the
+              Real-Time Video & AI workbench.
+            </p>
+            <button
+              type="button"
+              className={WsPrimaryButtonClass()}
+              onClick={() => void handleCreateFirstScenario()}
+            >
+              Create first scenario
+            </button>
+          </div>
+        </WsSection>
+      ) : null}
+
+      {loading && scenarios.length > 0 ? (
         <div className="flex min-h-[16rem] items-center justify-center text-white/50">
           <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Loading workbench…
         </div>

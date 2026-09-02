@@ -79,9 +79,9 @@ assert.ok(wolfSubModules.includes("tools:users"));
 assert.ok(!wolfSubModules.includes("settings:users"));
 assert.ok(wolfSubModules.includes("engineering:engineering-sops-dashboard"));
 assert.ok(wolfSubModules.includes("engineering:engineering-sops-library"));
-assert.ok(wolfSubModules.includes("analytics:platform-analytics"));
 assert.ok(wolfSubModules.includes("analytics:system-health"));
 assert.ok(wolfSubModules.includes("analytics:realtime-video-pipeline"));
+assert.ok(!wolfSubModules.includes("analytics:platform-analytics"));
 assert.ok(!wolfSubModules.includes("analytics:website-analytics"));
 
 assert.ok(!DEMO_ENABLED_MODULES.includes("wolf-animals"));

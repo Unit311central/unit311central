@@ -100,11 +100,14 @@ function assertWolfNav() {
   if (!views.includes("engineering-sops-dashboard")) {
     throw new Error("WOLF nav must include engineering SOPs.");
   }
-  if (!views.includes("platform-analytics") || !views.includes("realtime-video-pipeline")) {
-    throw new Error("WOLF nav must include cloned Analytics views.");
+  if (!views.includes("system-health") || !views.includes("realtime-video-pipeline")) {
+    throw new Error("WOLF nav must include cloned Analytics views (System Health, RT Video).");
   }
-  if (views.includes("website-analytics")) {
-    throw new Error("WOLF nav must not include Website Analytics.");
+  if (views.includes("website-analytics") || views.includes("platform-analytics")) {
+    throw new Error("WOLF nav must not include Website or Platform Analytics.");
+  }
+  if (views.includes("files-client") || views.includes("info-email") || views.includes("social")) {
+    throw new Error("WOLF nav must not include Client Explorer, Email, or Social.");
   }
   const requiredModules = [
     "project-management",

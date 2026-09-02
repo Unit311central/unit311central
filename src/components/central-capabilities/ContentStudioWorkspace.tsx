@@ -208,7 +208,11 @@ export default function ContentStudioWorkspace() {
   );
 
   const { state, duplicateContent, archiveContent, deleteContent } = useContentStudioStore();
-  const visibleFunctionIds = useMemo(() => getVisibleContentStudioFunctions(access), [access]);
+  const visibleFunctionIds = useMemo(
+    () =>
+      getVisibleContentStudioFunctions(access, { workspaceSlug: entitlements.workspaceSlug }),
+    [access, entitlements.workspaceSlug],
+  );
   const visibleFunctions = useMemo(
     () => CONTENT_STUDIO_FUNCTIONS.filter((node) => visibleFunctionIds.includes(node.id)),
     [visibleFunctionIds],

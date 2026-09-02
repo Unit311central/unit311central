@@ -49,7 +49,6 @@ export const WOLF_CENTRAL_NATIVE_SUBMODULES = [
 ] as const;
 
 export const WOLF_CENTRAL_ANALYTICS_NATIVE_SUBMODULES = [
-  "analytics:platform-analytics",
   "analytics:system-health",
   "analytics:realtime-video-pipeline",
 ] as const;

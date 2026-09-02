@@ -1,4 +1,5 @@
 import { isCustomerWorkspaceSlug } from "@/lib/customer-workspace-surface";
+import { isWolfCentralSlug } from "@/lib/wolf/wolf-surface";
 import { getNorthstarDemoProjects } from "@/lib/demo/northstar-projects-data";
 import { getSaecFixtureProjects } from "@/lib/saec/business-central-data";
 import { isSaecSlug } from "@/lib/saec-surface";
@@ -31,6 +32,10 @@ export async function ensureInternalProjectsStarterCatalogue(
 
   // Generic customer workspaces (Interface Worx, etc.) start with zero projects.
   if (isCustomerWorkspaceSlug(workspaceSlug)) {
+    return { workspaceId, inserted: 0, skipped: true };
+  }
+
+  if (isWolfCentralSlug(workspaceSlug)) {
     return { workspaceId, inserted: 0, skipped: true };
   }
 
