@@ -16,7 +16,8 @@ import {
 } from "lucide-react";
 
 import { isBrowserDemoSurface } from "@/lib/demo-enterprise";
-import { isBrowserGreenDesertSurface } from "@/lib/greendesert-surface";
+import { isBrowserGreenDesertSurface, isGreenDesertSlug } from "@/lib/greendesert-surface";
+import { useOperatorEntitlements } from "./OperatorEntitlementsProvider";
 import {
   applyNorthstarOrgChartManagers,
   resetNorthstarOrgChartManagers,
@@ -231,6 +232,7 @@ function collectAllWithChildren(nodes: OrgChartNode[]): string[] {
 
 export default function OrgChartWorkspace() {
   const basePath = useInternalOperationsBasePath();
+  const { workspaceSlug } = useOperatorEntitlements();
   const [employees, setEmployees] = useState<HrEmployee[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -239,13 +241,13 @@ export default function OrgChartWorkspace() {
   const [editMode, setEditMode] = useState(false);
   const [orgChartRevision, setOrgChartRevision] = useState(0);
   const [isNorthstarDemo, setIsNorthstarDemo] = useState(false);
-  const [isGreenDesert, setIsGreenDesert] = useState(
-    () => typeof window !== "undefined" && isBrowserGreenDesertSurface(),
-  );
+
+  const isGreenDesert =
+    isGreenDesertSlug(workspaceSlug) ||
+    (typeof window !== "undefined" && isBrowserGreenDesertSurface());
 
   useEffect(() => {
     setIsNorthstarDemo(isBrowserDemoSurface());
-    setIsGreenDesert(isBrowserGreenDesertSurface());
   }, []);
 
   useEffect(() => {
@@ -413,7 +415,7 @@ export default function OrgChartWorkspace() {
           </div>
         ) : isGreenDesert ? (
           <div className="overflow-x-auto pb-4">
-            <div className="flex min-w-max flex-nowrap items-start justify-center gap-4 px-2">
+            <div className="inline-flex w-max max-w-none flex-nowrap items-start justify-center gap-4 px-2">
               {forest.roots.map((root) => (
                 <PersonCard
                   key={root.id}

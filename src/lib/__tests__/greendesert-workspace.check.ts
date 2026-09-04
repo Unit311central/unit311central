@@ -180,6 +180,21 @@ const irWorkspace = readFileSync(
   "utf8",
 );
 assert.match(irWorkspace, /GreenDesertInformationRepositoryArchitectureWorkspace/);
+assert.match(irWorkspace, /isBrowserGreenDesertSurface\(\) \? "architecture" : "sections"/);
+
+const techArchitecture = readFileSync(
+  join(repoRoot, "src/components/testflighthub/TechnologyArchitectureWorkspace.tsx"),
+  "utf8",
+);
+assert.match(techArchitecture, /isBrowserGreenDesertSurface\(\)/);
+assert.match(techArchitecture, /GreenDesertInformationRepositoryArchitectureWorkspace/);
+
+const orgChart = readFileSync(
+  join(repoRoot, "src/components/testflighthub/OrgChartWorkspace.tsx"),
+  "utf8",
+);
+assert.match(orgChart, /isGreenDesertSlug\(workspaceSlug\)/);
+assert.match(orgChart, /inline-flex w-max max-w-none flex-nowrap/);
 
 const loginRoute = readFileSync(join(repoRoot, "src/app/api/auth/login/route.ts"), "utf8");
 assert.match(loginRoute, /createGreenDesertClientPortalLoginResponse/);

@@ -5,8 +5,10 @@ import { ListTree, Loader2, Network } from "lucide-react";
 
 import ArchitectureViewer from "@/components/architecture/ArchitectureViewer";
 import ArchitectureHierarchyViewer from "@/components/architecture/ArchitectureHierarchyViewer";
+import GreenDesertInformationRepositoryArchitectureWorkspace from "@/components/greendesert/GreenDesertInformationRepositoryArchitectureWorkspace";
 import CustomerArchitectureWorkspace from "@/components/testflighthub/CustomerArchitectureWorkspace";
 import { isBrowserCustomerWorkspaceSurface } from "@/lib/customer-workspace-surface";
+import { isBrowserGreenDesertSurface } from "@/lib/greendesert-surface";
 import {
   ARCHITECTURE_DIAGRAM_CATALOG,
   type ArchitectureCatalogEntry,
@@ -54,6 +56,9 @@ async function readApiJson<T>(response: Response): Promise<T> {
 }
 
 export default function TechnologyArchitectureWorkspace() {
+  if (isBrowserGreenDesertSurface()) {
+    return <GreenDesertInformationRepositoryArchitectureWorkspace />;
+  }
   if (isBrowserCustomerWorkspaceSurface()) {
     return <CustomerArchitectureWorkspace />;
   }

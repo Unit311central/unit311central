@@ -19,13 +19,28 @@ import { cn } from "@/lib/utils";
 
 type WolfRepositoryView = "sections" | "architecture";
 
+function resolveInformationRepositoryConfig(): InformationRepositoryWorkspaceConfig {
+  if (typeof window === "undefined") {
+    return INTERFACE_WORX_INFORMATION_REPOSITORY_WORKSPACE_CONFIG;
+  }
+  if (isBrowserWolfCentralSurface()) return WOLF_INFORMATION_REPOSITORY_WORKSPACE_CONFIG;
+  if (isBrowserGreenDesertSurface()) return GREENDESERT_INFORMATION_REPOSITORY_WORKSPACE_CONFIG;
+  return INTERFACE_WORX_INFORMATION_REPOSITORY_WORKSPACE_CONFIG;
+}
+
 export default function InterfaceWorxInformationRepositoryWorkspace() {
   const [config, setConfig] = useState<InformationRepositoryWorkspaceConfig>(
-    INTERFACE_WORX_INFORMATION_REPOSITORY_WORKSPACE_CONFIG,
+    resolveInformationRepositoryConfig,
   );
-  const [wolfView, setWolfView] = useState<WolfRepositoryView>("sections");
-  const [isWolfSurface, setIsWolfSurface] = useState(false);
-  const [isGreenDesertSurface, setIsGreenDesertSurface] = useState(false);
+  const [wolfView, setWolfView] = useState<WolfRepositoryView>(() =>
+    typeof window !== "undefined" && isBrowserGreenDesertSurface() ? "architecture" : "sections",
+  );
+  const [isWolfSurface, setIsWolfSurface] = useState(
+    () => typeof window !== "undefined" && isBrowserWolfCentralSurface(),
+  );
+  const [isGreenDesertSurface, setIsGreenDesertSurface] = useState(
+    () => typeof window !== "undefined" && isBrowserGreenDesertSurface(),
+  );
 
   useEffect(() => {
     const wolf = isBrowserWolfCentralSurface();
@@ -36,6 +51,7 @@ export default function InterfaceWorxInformationRepositoryWorkspace() {
       setConfig(WOLF_INFORMATION_REPOSITORY_WORKSPACE_CONFIG);
     } else if (greenDesert) {
       setConfig(GREENDESERT_INFORMATION_REPOSITORY_WORKSPACE_CONFIG);
+      setWolfView("architecture");
     }
   }, []);
 
