@@ -5,7 +5,7 @@ import { FileText, Network } from "lucide-react";
 
 import Unit311DetailsWorkspace from "./Unit311DetailsWorkspace";
 import WolfInformationRepositoryArchitectureWorkspace from "./WolfInformationRepositoryArchitectureWorkspace";
-import CustomerArchitectureWorkspace from "./CustomerArchitectureWorkspace";
+import GreenDesertInformationRepositoryArchitectureWorkspace from "@/components/greendesert/GreenDesertInformationRepositoryArchitectureWorkspace";
 import {
   InformationRepositoryWorkspaceConfigProvider,
   INTERFACE_WORX_INFORMATION_REPOSITORY_WORKSPACE_CONFIG,
@@ -79,7 +79,7 @@ export default function InterfaceWorxInformationRepositoryWorkspace() {
 
           {wolfView === "architecture" ? (
             isGreenDesertSurface ? (
-              <CustomerArchitectureWorkspace />
+              <GreenDesertInformationRepositoryArchitectureWorkspace />
             ) : (
               <WolfInformationRepositoryArchitectureWorkspace />
             )

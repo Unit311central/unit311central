@@ -239,7 +239,9 @@ export default function OrgChartWorkspace() {
   const [editMode, setEditMode] = useState(false);
   const [orgChartRevision, setOrgChartRevision] = useState(0);
   const [isNorthstarDemo, setIsNorthstarDemo] = useState(false);
-  const [isGreenDesert, setIsGreenDesert] = useState(false);
+  const [isGreenDesert, setIsGreenDesert] = useState(
+    () => typeof window !== "undefined" && isBrowserGreenDesertSurface(),
+  );
 
   useEffect(() => {
     setIsNorthstarDemo(isBrowserDemoSurface());
@@ -408,6 +410,23 @@ export default function OrgChartWorkspace() {
           <div className="flex flex-col items-center gap-3 py-16 text-center">
             <Network className="h-8 w-8 text-white/30" />
             <p className="text-sm text-white/50">No active employees to chart yet.</p>
+          </div>
+        ) : isGreenDesert ? (
+          <div className="overflow-x-auto pb-4">
+            <div className="flex min-w-max flex-nowrap items-start justify-center gap-4 px-2">
+              {forest.roots.map((root) => (
+                <PersonCard
+                  key={root.id}
+                  node={root}
+                  expanded={false}
+                  onToggle={() => undefined}
+                  basePath={basePath}
+                  editMode={false}
+                  managerOptionsFor={managerOptionsFor}
+                  onManagerChange={handleManagerChange}
+                />
+              ))}
+            </div>
           </div>
         ) : (
           <div className="overflow-x-auto pb-4">

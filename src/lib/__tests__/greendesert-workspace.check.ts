@@ -19,6 +19,7 @@ import {
 import { GREENDESERT_LOGISTICS_SHIPMENTS } from "@/lib/greendesert/greendesert-logistics-data";
 import { FEATURED_RIYADH_JEDDAH_ROUTE } from "@/lib/greendesert/greendesert-logistics-data";
 import { GREENDESERT_ARCHITECTURE_DIAGRAMS } from "@/lib/greendesert/greendesert-architecture-diagrams-data";
+import { GREENDESERT_IR_ARCHITECTURE_SLUGS } from "@/lib/greendesert/greendesert-information-repository-architecture-data";
 import { buildGreenDesertEcaState } from "@/lib/greendesert/greendesert-eca-state";
 import { GREENDESERT_HR_TEAM_EMPLOYEES } from "@/lib/greendesert/greendesert-hr-team-data";
 import { GREENDESERT_COMPANY_INTELLIGENCE } from "@/lib/greendesert/greendesert-intelligence-data";
@@ -89,6 +90,8 @@ assert.equal(GREENDESERT_HR_TEAM_EMPLOYEES.length, 4);
 assert.equal(GREENDESERT_HR_TEAM_EMPLOYEES[0]?.fullName, "Ashley Pursglove");
 assert.equal(GREENDESERT_HR_TEAM_EMPLOYEES[1]?.role, "Chief Executive Officer");
 assert.ok(GREENDESERT_ARCHITECTURE_DIAGRAMS.some((row) => row.slug === "algae-cultivation-overview"));
+assert.ok(GREENDESERT_IR_ARCHITECTURE_SLUGS.length === 4);
+
 assert.ok(GREENDESERT_COMPANY_INTELLIGENCE.length >= 3);
 assert.equal(buildGreenDesertEcaState().portals.length, 2);
 assert.match(buildGreenDesertEcaState().portals[0]?.clientName ?? "", /Board|Jeddah/);
@@ -176,7 +179,7 @@ const irWorkspace = readFileSync(
   join(repoRoot, "src/components/testflighthub/InterfaceWorxInformationRepositoryWorkspace.tsx"),
   "utf8",
 );
-assert.match(irWorkspace, /CustomerArchitectureWorkspace/);
+assert.match(irWorkspace, /GreenDesertInformationRepositoryArchitectureWorkspace/);
 
 const loginRoute = readFileSync(join(repoRoot, "src/app/api/auth/login/route.ts"), "utf8");
 assert.match(loginRoute, /createGreenDesertClientPortalLoginResponse/);
