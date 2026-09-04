@@ -58,7 +58,9 @@ export function GreenDesertBoardPortalShell({ displayName, children }: Props) {
   const nav = (
     <>
       <div className="mb-6 space-y-3">
-        <GreenDesertLogoMark height={40} maxWidth={200} />
+        <div className="inline-flex rounded-xl bg-white px-3 py-2">
+          <GreenDesertLogoMark height={56} maxWidth={120} />
+        </div>
         <div>
           <p className="inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/40">
             <Shield className="h-3 w-3" />

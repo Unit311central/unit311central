@@ -112,11 +112,36 @@ const AU_LABELS: PayrollUiLabels = {
   bankSecondaryLabel: "BSB",
 };
 
+const SA_LABELS: PayrollUiLabels = {
+  countryCode: "SA",
+  countryLabel: "Saudi Arabia",
+  currencyHint: "USD",
+  settingsBlurb:
+    "Applies to all employees unless overridden on the employee Payroll tab. V1: Saudi Arabia — GOSI contributions, monthly, USD salaries.",
+  taxRegionLabel: "GOSI region",
+  employeeTaxRegionLabel: "GOSI region",
+  employeeTaxTotal: "Employee GOSI",
+  employerTaxTotal: "Employer GOSI",
+  calculation: {
+    federalTax: "Income tax (Zakat / withholding)",
+    stateTax: "Regional levy",
+    socialSecurity: "Employee GOSI",
+    medicare: "Other deduction",
+    employerTax: "Employer GOSI",
+  },
+  rateFields: [
+    { key: "socialSecurityPct", label: "Employee GOSI %" },
+    { key: "employerPayrollPct", label: "Employer GOSI %" },
+  ],
+  bankSecondaryLabel: "IBAN",
+};
+
 const BY_COUNTRY: Record<string, PayrollUiLabels> = {
   US: US_LABELS,
   GB: GB_LABELS,
   UK: GB_LABELS,
   AU: AU_LABELS,
+  SA: SA_LABELS,
 };
 
 /** Resolve UI country from settings — also infer GB from GBP / ENG / UK tax regions. */
@@ -141,6 +166,8 @@ export function resolvePayrollUiCountry(input?: {
   if (["ENG", "SCT", "WLS", "NIR", "UK", "GB"].includes(region)) return "GB";
 
   if (currency === "AUD") return "AU";
+  if (currency === "USD" && ["SA", "KSA", "SAU"].includes(region)) return "SA";
+  if (["SA", "KSA", "SAU"].includes(code)) return "SA";
   return code || "US";
 }
 

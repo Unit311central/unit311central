@@ -676,6 +676,18 @@ export function getLogisticsMockShipments(): LogisticsShipment[] {
     }
 
     try {
+      const { isBrowserGreenDesertSurface } =
+        require("@/lib/greendesert-surface") as typeof import("@/lib/greendesert-surface");
+      if (isBrowserGreenDesertSurface()) {
+        const { GREENDESERT_LOGISTICS_SHIPMENTS } =
+          require("@/lib/greendesert/greendesert-logistics-data") as typeof import("@/lib/greendesert/greendesert-logistics-data");
+        return GREENDESERT_LOGISTICS_SHIPMENTS;
+      }
+    } catch {
+      // Fall through.
+    }
+
+    try {
       const { isBrowserCustomerWorkspaceSurface } =
         require("@/lib/customer-workspace-surface") as typeof import("@/lib/customer-workspace-surface");
       if (isBrowserCustomerWorkspaceSurface()) {

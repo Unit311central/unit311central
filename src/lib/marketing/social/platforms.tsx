@@ -5,6 +5,10 @@ import { Eye, Heart, MessageCircle, Repeat2, Share2, ThumbsUp } from "lucide-rea
 
 import { ABHI_LINKEDIN_URL, ABHI_X_URL } from "@/lib/abhi-surface";
 import { INTERFACE_WORX_LINKEDIN_URL } from "@/lib/interface-worx-surface";
+import {
+  GREENDESERT_INSTAGRAM_URL,
+  GREENDESERT_LINKEDIN_URL,
+} from "@/lib/greendesert/greendesert-social-config";
 import { resolveSocialWorkspacePackId } from "@/lib/marketing/social/resolve-workspace-pack";
 import type { SocialWorkspacePackId } from "@/lib/marketing/permissions";
 type PostStat = {
@@ -327,6 +331,65 @@ const ONWARDAIR_PLATFORMS: SocialPlatformConfig[] = [
   },
 ];
 
+const GREENDESERT_PLATFORMS: SocialPlatformConfig[] = [
+  {
+    id: "linkedin",
+    name: "LinkedIn",
+    handle: "Green Desert Technology",
+    href: GREENDESERT_LINKEDIN_URL,
+    displayName: "Green Desert Technology",
+    layout: "wide",
+    avatarLabel: "GD",
+    avatarClassName: "rounded-full border border-emerald-400/40 bg-emerald-700/80 text-xs font-bold",
+    accent: "from-emerald-600/20 to-emerald-900/5",
+    accentBorder: "border-emerald-400/35",
+    icon: (
+      <span className="flex h-5 w-5 items-center justify-center rounded-sm bg-[#0A66C2] text-[10px] font-bold text-white">
+        in
+      </span>
+    ),
+    lastPost: {
+      date: "—",
+      preview:
+        "Follow Green Desert Technology on LinkedIn for reactor engineering updates and deployment milestones.",
+      stats: [
+        { label: "Impressions", value: "—", icon: <Eye className="h-3.5 w-3.5" /> },
+        { label: "Reactions", value: "—", icon: <ThumbsUp className="h-3.5 w-3.5" /> },
+        { label: "Comments", value: "—", icon: <MessageCircle className="h-3.5 w-3.5" /> },
+        { label: "Reposts", value: "—", icon: <Repeat2 className="h-3.5 w-3.5" /> },
+      ],
+    },
+  },
+  {
+    id: "instagram",
+    name: "Instagram",
+    handle: "@greendesert.sa",
+    href: GREENDESERT_INSTAGRAM_URL,
+    displayName: "@greendesert.sa",
+    layout: "square",
+    avatarLabel: "IG",
+    avatarClassName:
+      "rounded-full bg-gradient-to-br from-emerald-500 via-lime-500 to-amber-400 text-[10px] font-bold",
+    accent: "from-emerald-500/20 via-lime-500/15 to-amber-500/10",
+    accentBorder: "border-emerald-400/35",
+    icon: (
+      <span className="flex h-5 w-5 items-center justify-center rounded-md bg-gradient-to-br from-emerald-500 via-lime-500 to-amber-400 text-[10px] font-bold text-white">
+        IG
+      </span>
+    ),
+    lastPost: {
+      date: "—",
+      preview: "Connect Instagram to share Green Desert field operations and technology stories.",
+      stats: [
+        { label: "Reach", value: "—", icon: <Eye className="h-3.5 w-3.5" /> },
+        { label: "Likes", value: "—", icon: <Heart className="h-3.5 w-3.5" /> },
+        { label: "Comments", value: "—", icon: <MessageCircle className="h-3.5 w-3.5" /> },
+        { label: "Saves", value: "—", icon: <Share2 className="h-3.5 w-3.5" /> },
+      ],
+    },
+  },
+];
+
 const CUSTOMER_PLATFORMS: SocialPlatformConfig[] = [
   {
     id: "linkedin",
@@ -389,6 +452,7 @@ const PACK_PLATFORMS: Record<SocialWorkspacePackId, SocialPlatformConfig[]> = {
   onwardair: ONWARDAIR_PLATFORMS,
   talanton: TALANTON_PLATFORMS,
   abhi: ABHI_PLATFORMS,
+  greendesert: GREENDESERT_PLATFORMS,
   customer: CUSTOMER_PLATFORMS,
 };
 

@@ -134,7 +134,14 @@ export const ONWARDAIR_REPRESENTATIVES_DASHBOARD_TILES: DashboardTileDefinition[
   { id: "new-leads", label: "Rep-sourced leads", value: "11", hint: "This quarter" },
 ];
 
-/** Northstar demo partners — GBP commissions. */
+/** Green Desert partners — empty tiles, USD. */
+export const GREENDESERT_REPRESENTATIVES_DASHBOARD_TILES: DashboardTileDefinition[] = [
+  { id: "active-reps", label: "Active reps", value: "0", hint: "No partners yet" },
+  { id: "commission-due", label: "Commission due", value: "$0", hint: "Outstanding USD" },
+  { id: "territories", label: "Territories", value: "0", hint: "No coverage yet" },
+  { id: "new-leads", label: "Rep-sourced leads", value: "0", hint: "This quarter" },
+];
+
 export const NORTHSTAR_REPRESENTATIVES_DASHBOARD_TILES: DashboardTileDefinition[] = [
   { id: "active-reps", label: "Active partners", value: "4", hint: "Channel & integrators" },
   { id: "commission-due", label: "Commission due", value: "£18.4k", hint: "Outstanding GBP" },

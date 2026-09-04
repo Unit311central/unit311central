@@ -5,6 +5,7 @@ import { abhiPortalPack } from "@/lib/portals/workspace-packs/abhi";
 import { omnitransitPortalPack } from "@/lib/portals/workspace-packs/omnitransit";
 import { onwardAirPortalPack } from "@/lib/portals/workspace-packs/onwardair";
 import { talantonPortalPack } from "@/lib/portals/workspace-packs/talanton";
+import { greendesertPortalPack } from "@/lib/portals/workspace-packs/greendesert";
 import { wolfCentralPortalPack } from "@/lib/portals/workspace-packs/wolf-central";
 
 /**
@@ -14,6 +15,7 @@ import { wolfCentralPortalPack } from "@/lib/portals/workspace-packs/wolf-centra
  */
 const PORTAL_WORKSPACE_PACKS: readonly PortalWorkspacePack[] = [
   abhiPortalPack,
+  greendesertPortalPack,
   omnitransitPortalPack,
   onwardAirPortalPack,
   talantonPortalPack,
@@ -37,6 +39,7 @@ export function resetPortalWorkspacePackBootstrapForTests(): void {
 
 export {
   abhiPortalPack,
+  greendesertPortalPack,
   omnitransitPortalPack,
   onwardAirPortalPack,
   talantonPortalPack,

@@ -1,6 +1,7 @@
 import { isDemoDomainHost, isInternalDomainHost } from "@/lib/app-domains";
 import { isAbhiSlug } from "@/lib/abhi-surface";
 import { isCustomerWorkspaceSlug } from "@/lib/customer-workspace-surface";
+import { isGreenDesertSlug } from "@/lib/greendesert-surface";
 import { isSaecSlug } from "@/lib/saec-surface";
 import { isOnwardAirSlug } from "@/lib/onwardair-surface";
 import { isTalantonImpactSlug } from "@/lib/talanton-surface";
@@ -14,6 +15,7 @@ export type MarketingWorkspaceKey =
   | "talanton"
   | "abhi"
   | "saec"
+  | "greendesert"
   | "customer"
   | "unknown";
 
@@ -32,6 +34,7 @@ export function resolveMarketingWorkspaceKey(
     if (isTalantonImpactSlug(normalizedSlug)) return "talanton";
     if (isAbhiSlug(normalizedSlug)) return "abhi";
     if (isSaecSlug(normalizedSlug)) return "saec";
+    if (isGreenDesertSlug(normalizedSlug)) return "greendesert";
     if (isCustomerWorkspaceSlug(normalizedSlug)) return "customer";
   }
 
@@ -54,6 +57,7 @@ export function resolveMarketingWorkspaceKey(
     if (isTalantonImpactSlug(subdomain)) return "talanton";
     if (isAbhiSlug(subdomain)) return "abhi";
     if (isSaecSlug(subdomain)) return "saec";
+    if (isGreenDesertSlug(subdomain)) return "greendesert";
     if (isCustomerWorkspaceSlug(subdomain)) return "customer";
   }
 

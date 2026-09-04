@@ -5,6 +5,7 @@ import {
   abhiMarketingPack,
   customerMarketingPack,
   demoMarketingPack,
+  greendesertMarketingPack,
   internalMarketingPack,
   onwardAirMarketingPack,
   saecMarketingPack,
@@ -36,6 +37,7 @@ export function ensureMarketingWorkspacePacksRegistered(): boolean {
     registerMarketingWorkspacePack(demoMarketingPack);
     registerMarketingWorkspacePack(onwardAirMarketingPack);
     registerMarketingWorkspacePack(talantonMarketingPack);
+    registerMarketingWorkspacePack(greendesertMarketingPack);
     registerMarketingWorkspacePack(abhiMarketingPack);
     registerMarketingWorkspacePack(saecMarketingPack);
     registerMarketingWorkspacePack(customerMarketingPack);

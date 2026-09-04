@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import {
   createHrEmployee,
+  ensureGreenDesertHrEmployeesSeeded,
   ensureOnwardAirHrEmployeesSeeded,
   ensureSaecHrEmployeesSeeded,
   ensureTalantonHrEmployeesSeeded,
@@ -12,6 +13,7 @@ import type { HrEmployee } from "@/lib/hr-data";
 import { isDemoApiRequest } from "@/lib/demo/demo-request";
 import { getNorthstarEmployees } from "@/lib/demo/northstar-api-fixtures";
 import { ensureHrEmployeesTable } from "@/lib/internal-db-migrations";
+import { isGreenDesertSlug } from "@/lib/greendesert-surface";
 import { isOnwardAirSlug } from "@/lib/onwardair-surface";
 import { isSaecSlug } from "@/lib/saec-surface";
 import { isTalantonImpactSlug } from "@/lib/talanton-surface";
@@ -57,6 +59,13 @@ export async function GET(request: NextRequest) {
         await ensureSaecHrEmployeesSeeded(workspace.id);
       } catch (seedError) {
         console.error("[hr/employees] SAEC team seed failed:", seedError);
+      }
+    }
+    if (isGreenDesertSlug(workspace.slug)) {
+      try {
+        await ensureGreenDesertHrEmployeesSeeded(workspace.id);
+      } catch (seedError) {
+        console.error("[hr/employees] Green Desert team seed failed:", seedError);
       }
     }
     const includeArchived = request.nextUrl.searchParams.get("includeArchived") === "true";

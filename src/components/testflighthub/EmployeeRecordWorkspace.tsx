@@ -37,6 +37,11 @@ import {
 import { cn } from "@/lib/utils";
 import { isBrowserDemoSurface } from "@/lib/demo-enterprise";
 import { isBrowserSaecSurface } from "@/lib/saec-surface";
+import { isBrowserGreenDesertSurface } from "@/lib/greendesert-surface";
+import {
+  GREENDESERT_DEFAULT_HR_LOCATION,
+  GREENDESERT_HR_LOCATIONS,
+} from "@/lib/greendesert/greendesert-hr-config";
 import ResponsiveMasterDetail, { useMobileDetailPanel } from "@/components/ui/ResponsiveMasterDetail";
 import EmployeePerformancePanel from "./EmployeePerformancePanel";
 import EmployeePayrollPanel from "./EmployeePayrollPanel";
@@ -122,13 +127,22 @@ export default function EmployeeRecordWorkspace() {
   const [deleting, setDeleting] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
   const [isNorthstarDemo, setIsNorthstarDemo] = useState(false);
+  const [isGreenDesert, setIsGreenDesert] = useState(false);
+  const [customHrLocations, setCustomHrLocations] = useState<string[]>([]);
+  const [newHrLocation, setNewHrLocation] = useState("");
   const [listVisibleCount, setListVisibleCount] = useState(5);
   const [newEmployee, setNewEmployee] = useState(createBlankEmployeeInput());
   const { showDetail, openDetail, closeDetail } = useMobileDetailPanel();
 
   useEffect(() => {
     setIsNorthstarDemo(isBrowserDemoSurface());
+    setIsGreenDesert(isBrowserGreenDesertSurface());
   }, []);
+
+  const hrLocationOptions = useMemo(() => {
+    if (!isGreenDesert) return [...HR_LOCATIONS];
+    return Array.from(new Set([...GREENDESERT_HR_LOCATIONS, ...customHrLocations]));
+  }, [isGreenDesert, customHrLocations]);
 
   useEffect(() => {
     const fromUrl = searchParams.get("employeeId");
@@ -1052,22 +1066,46 @@ export default function EmployeeRecordWorkspace() {
                 <select
                   className={inputClass()}
                   value={
-                    (HR_LOCATIONS as readonly string[]).includes(draft.location)
+                    hrLocationOptions.includes(draft.location)
                       ? draft.location
-                      : draft.location || "Sydney"
+                      : draft.location || (isGreenDesert ? GREENDESERT_DEFAULT_HR_LOCATION : "Sydney")
                   }
                   onChange={(event) => setDraft({ ...draft, location: event.target.value })}
                 >
-                  {!(HR_LOCATIONS as readonly string[]).includes(draft.location) &&
-                  draft.location ? (
+                  {!hrLocationOptions.includes(draft.location) && draft.location ? (
                     <option value={draft.location}>{draft.location}</option>
                   ) : null}
-                  {HR_LOCATIONS.map((location) => (
+                  {hrLocationOptions.map((location) => (
                     <option key={location} value={location}>
                       {location}
                     </option>
                   ))}
                 </select>
+                {isGreenDesert ? (
+                  <div className="mt-2 flex gap-2">
+                    <input
+                      className={inputClass()}
+                      placeholder="Add new location"
+                      value={newHrLocation}
+                      onChange={(event) => setNewHrLocation(event.target.value)}
+                    />
+                    <button
+                      type="button"
+                      className="mt-1.5 rounded-xl border border-white/10 px-3 py-2 text-xs text-white/70 hover:bg-white/5"
+                      onClick={() => {
+                        const next = newHrLocation.trim();
+                        if (!next) return;
+                        setCustomHrLocations((current) =>
+                          current.includes(next) ? current : [...current, next],
+                        );
+                        setDraft({ ...draft, location: next });
+                        setNewHrLocation("");
+                      }}
+                    >
+                      Add
+                    </button>
+                  </div>
+                ) : null}
               </div>
               <div>
                 <FieldLabel>Manager</FieldLabel>

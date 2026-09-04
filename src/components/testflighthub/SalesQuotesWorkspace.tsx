@@ -5,6 +5,7 @@ import { Copy, FileText, Link2, Loader2, Mail, Plus, RefreshCw } from "lucide-re
 
 import type { SalesQuote } from "@/lib/accounting/types";
 import { resolveBrowserReportingCurrency, type ReportingCurrency } from "@/lib/financial-reporting-currency";
+import { isBrowserGreenDesertSurface } from "@/lib/greendesert-surface";
 import { cn } from "@/lib/utils";
 
 function statusClass(status: SalesQuote["status"]) {
@@ -172,7 +173,7 @@ export default function SalesQuotesWorkspace({
           contactName: "Marcus Reed",
           contactEmail: "m.reed@peakbrew.demo",
           title: "Condition monitoring rollout — Phase 1",
-          currency: "GBP",
+          currency: isBrowserGreenDesertSurface() ? "USD" : resolveBrowserReportingCurrency(),
           lineItems: [
             { description: "Sensor kit (48 units)", quantity: 1, unitPrice: 24_000 },
             { description: "Installation services", quantity: 1, unitPrice: 6_500 },

@@ -21,6 +21,7 @@ import { getOwnerUserIdForRegion, type ManagedUser } from "@/lib/user-management
 import { cn } from "@/lib/utils";
 import ResponsiveMasterDetail, { useMobileDetailPanel } from "@/components/ui/ResponsiveMasterDetail";
 import { Search } from "lucide-react";
+import { isBrowserGreenDesertSurface } from "@/lib/greendesert-surface";
 
 type AssetManagementWorkspaceProps = {
   assets: ManagedAsset[];
@@ -61,8 +62,12 @@ export default function AssetManagementWorkspace({
   const [assetSearchQuery, setAssetSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("All");
   const [locationFilter, setLocationFilter] = useState<string>("All");
-  const [addCategory, setAddCategory] = useState(categories[0] ?? "Aircraft");
-  const [addLocation, setAddLocation] = useState(locations[0] ?? "Oxford");
+  const isGreenDesert =
+    typeof window !== "undefined" && isBrowserGreenDesertSurface();
+  const [addCategory, setAddCategory] = useState(
+    isGreenDesert ? "Equipment" : categories[0] ?? "Aircraft",
+  );
+  const [addLocation, setAddLocation] = useState(isGreenDesert ? "" : locations[0] ?? "Oxford");
 
   const selectedAsset = useMemo(
     () => assets.find((asset) => asset.id === selectedAssetId) ?? assets[0],
@@ -92,7 +97,19 @@ export default function AssetManagementWorkspace({
   }
 
   function handleAddAsset() {
-    const next = createBlankAsset(categories, locations, addCategory, addLocation);
+    const next = createBlankAsset(
+      categories,
+      locations,
+      addCategory,
+      addLocation || (isGreenDesert ? "" : undefined),
+    );
+    if (isGreenDesert) {
+      next.assetTag = "";
+      next.model = "";
+      next.serialNumber = "";
+      next.notes = "";
+      next.location = addLocation;
+    }
     onAssetsChange([next, ...assets]);
     onSelectAsset(next.id);
     openDetail();

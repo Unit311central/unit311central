@@ -47,6 +47,7 @@ import {
   type ExternalUserRole,
 } from "@/lib/external-users-portal-profile";
 import { getInternalNavHref } from "@/lib/internal-operations-data";
+import { isBrowserGreenDesertSurface } from "@/lib/greendesert-surface";
 import { cn } from "@/lib/utils";
 
 async function readApiJson<T>(response: Response): Promise<T> {
@@ -177,6 +178,18 @@ export default function ExternalUsersWorkspace() {
   const [filterRole, setFilterRole] = useState<"all" | ExternalUserRole>("all");
   const [filterLogin, setFilterLogin] = useState<LoginFilter>("all");
   const [inviteOpen, setInviteOpen] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [createDraft, setCreateDraft] = useState({
+    clientId: "",
+    name: "",
+    email: "",
+    username: "",
+    password: "",
+    role: "Contributor" as ExternalUserRole,
+    phone: "",
+    modules: defaultModulesForRole("Contributor"),
+  });
+  const [isGreenDesert, setIsGreenDesert] = useState(false);
   const [bulkOpen, setBulkOpen] = useState(false);
   const [bulkText, setBulkText] = useState("");
   const [deleteConfirm, setDeleteConfirm] = useState(false);
@@ -242,6 +255,7 @@ export default function ExternalUsersWorkspace() {
 
   useEffect(() => {
     void load();
+    setIsGreenDesert(isBrowserGreenDesertSurface());
   }, [load]);
 
   const selected = useMemo(
@@ -461,6 +475,63 @@ export default function ExternalUsersWorkspace() {
     }
   }
 
+  async function createUser() {
+    if (!createDraft.clientId || !createDraft.name.trim() || !createDraft.username.trim()) {
+      setError("Client, name, and username are required.");
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      const response = await fetch("/api/external-users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: createDraft.name.trim(),
+          email: createDraft.email.trim() || createDraft.username.trim(),
+          username: createDraft.username.trim(),
+          clientId: createDraft.clientId,
+          password: createDraft.password.trim() || undefined,
+        }),
+      });
+      const data = await readApiJson<{
+        user?: ExternalUser;
+        temporaryPassword?: string;
+        error?: string;
+      }>(response);
+      if (!response.ok || !data.user) throw new Error(data.error ?? "Create user failed");
+
+      saveExternalUserPortalProfile(data.user.id, {
+        role: createDraft.role,
+        phone: createDraft.phone,
+        modules: createDraft.modules,
+        invitationStatus: "Accepted",
+      });
+      appendExternalUserActivity(data.user.id, "Accepted", "Portal account created directly");
+      setUsers((current) => [data.user!, ...current]);
+      setSelectedId(data.user.id);
+      setCreateOpen(false);
+      setCreateDraft({
+        clientId: "",
+        name: "",
+        email: "",
+        username: "",
+        password: "",
+        role: "Contributor",
+        phone: "",
+        modules: defaultModulesForRole("Contributor"),
+      });
+      setProfileTick((n) => n + 1);
+      setNotice(
+        `User created for ${data.user.name}. Password: ${createDraft.password.trim() || data.temporaryPassword || "—"}`,
+      );
+    } catch (createError) {
+      setError(createError instanceof Error ? createError.message : "Create user failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function sendInvite() {
     if (!invite.clientId || !invite.name.trim() || !invite.email.trim()) {
       setError("Client, name, and email are required.");
@@ -581,6 +652,22 @@ export default function ExternalUsersWorkspace() {
     <div className="space-y-3">
       <div className="flex flex-wrap items-end justify-end gap-3">
         <div className="flex flex-wrap gap-2">
+          {isGreenDesert ? (
+            <button
+              type="button"
+              className={WsSecondaryButtonClass(busy)}
+              onClick={() => {
+                setCreateOpen(true);
+                setCreateDraft((current) => ({
+                  ...current,
+                  clientId: current.clientId || clients[0]?.id || "",
+                }));
+              }}
+            >
+              <Plus className="h-3.5 w-3.5" />
+              Create User
+            </button>
+          ) : null}
           <button type="button" className={WsPrimaryButtonClass(busy)} onClick={() => setInviteOpen(true)}>
             <UserPlus className="h-3.5 w-3.5" />
             Invite User
@@ -1291,6 +1378,82 @@ export default function ExternalUsersWorkspace() {
                 <span className="text-[10px] text-white/40">{client.accountStatus}</span>
               </button>
             ))}
+          </div>
+        </Modal>
+      ) : null}
+
+      {createOpen ? (
+        <Modal title="Create portal user" onClose={() => setCreateOpen(false)}>
+          <div className="space-y-3">
+            <label className="block">
+              <span className={WsLabelClass()}>Client</span>
+              <select
+                className={WsInputClass()}
+                value={createDraft.clientId}
+                onChange={(e) => setCreateDraft({ ...createDraft, clientId: e.target.value })}
+              >
+                <option value="">Select client…</option>
+                {clients.map((client) => (
+                  <option key={client.id} value={client.id}>
+                    {client.companyName}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <Field
+              label="Full name"
+              value={createDraft.name}
+              onChange={(value) => setCreateDraft({ ...createDraft, name: value })}
+            />
+            <Field
+              label="Username"
+              value={createDraft.username}
+              onChange={(value) => setCreateDraft({ ...createDraft, username: value })}
+            />
+            <Field
+              label="Email"
+              value={createDraft.email}
+              onChange={(value) => setCreateDraft({ ...createDraft, email: value })}
+            />
+            <Field
+              label="Password"
+              value={createDraft.password}
+              onChange={(value) => setCreateDraft({ ...createDraft, password: value })}
+            />
+            <label>
+              <span className={WsLabelClass()}>Role</span>
+              <select
+                className={WsInputClass()}
+                value={createDraft.role}
+                onChange={(e) => {
+                  const role = e.target.value as ExternalUserRole;
+                  setCreateDraft({
+                    ...createDraft,
+                    role,
+                    modules: defaultModulesForRole(role),
+                  });
+                }}
+              >
+                {EXTERNAL_USER_ROLES.map((role) => (
+                  <option key={role} value={role}>
+                    {role}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <Field
+              label="Phone"
+              value={createDraft.phone}
+              onChange={(value) => setCreateDraft({ ...createDraft, phone: value })}
+            />
+            <div className="flex justify-end gap-2 pt-2">
+              <button type="button" className={WsSecondaryButtonClass()} onClick={() => setCreateOpen(false)}>
+                Cancel
+              </button>
+              <button type="button" className={WsPrimaryButtonClass(busy)} onClick={() => void createUser()}>
+                Create user
+              </button>
+            </div>
           </div>
         </Modal>
       ) : null}

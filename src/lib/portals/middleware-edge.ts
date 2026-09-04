@@ -17,7 +17,16 @@ import { isTalantonPortalsAllowedUsername } from "@/lib/talanton/portals-auth";
 import { isTalantonImpactSlug, TALANTON_IMPACT_SLUG } from "@/lib/talanton-surface";
 import { matchWolfPailexPortalPathname } from "@/lib/wolf/wolf-pailex-portal-routes";
 import { isWolfPortalsAllowedUsername } from "@/lib/wolf/wolf-portals-auth";
+import { matchGreenDesertClientPortalPathname } from "@/lib/greendesert/client-portal-routes";
+import { isGreenDesertSlug, GREENDESERT_SLUG } from "@/lib/greendesert-surface";
 import { isWolfCentralSlug, WOLF_CENTRAL_SLUG } from "@/lib/wolf/wolf-surface";
+
+function isGreenDesertClientPortalUsername(username: string | null | undefined): boolean {
+  const normalized = String(username ?? "")
+    .trim()
+    .toLowerCase();
+  return normalized === "jeddahtechnologies@greendesert.unit311central.com";
+}
 
 type EdgePortalPack = {
   slug: string;
@@ -75,6 +84,15 @@ const EDGE_PORTAL_PACKS: readonly EdgePortalPack[] = [
     briefingLoginPath: "/pailex/login",
     usesDedicatedPortalsLogin: true,
   },
+  {
+    slug: GREENDESERT_SLUG,
+    aliases: [],
+    implBase: "/greendesert-portal",
+    matchPathname: matchGreenDesertClientPortalPathname,
+    isAllowedUsername: isGreenDesertClientPortalUsername,
+    briefingLoginPath: "/login",
+    usesDedicatedPortalsLogin: false,
+  },
 ];
 
 const packsBySlug = new Map<string, EdgePortalPack>();
@@ -105,7 +123,8 @@ export function isPortalWorkspaceSlug(workspaceSlug: string | null | undefined):
     isTalantonImpactSlug(normalized) ||
     isSaecSlug(normalized) ||
     normalized === ABHI_SLUG ||
-    isWolfCentralSlug(normalized)
+    isWolfCentralSlug(normalized) ||
+    isGreenDesertSlug(normalized)
   );
 }
 

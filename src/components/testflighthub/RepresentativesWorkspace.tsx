@@ -23,12 +23,14 @@ import { isBrowserAbhiSurface } from "@/lib/abhi-surface";
 import { isNorthstarDemoBrowser } from "@/lib/demo/module-fixtures";
 import { isBrowserOnwardAirSurface } from "@/lib/onwardair-surface";
 import { isBrowserSaecSurface } from "@/lib/saec-surface";
+import { isBrowserGreenDesertSurface } from "@/lib/greendesert-surface";
 import {
   ABHI_REPRESENTATIVES_DASHBOARD_TILES,
   DEFAULT_NORTHSTAR_REPRESENTATIVES_TILE_LAYOUT,
   DEFAULT_REPRESENTATIVES_TILE_LAYOUT,
   NORTHSTAR_REPRESENTATIVES_DASHBOARD_TILES,
   ONWARDAIR_REPRESENTATIVES_DASHBOARD_TILES,
+  GREENDESERT_REPRESENTATIVES_DASHBOARD_TILES,
   REPRESENTATIVES_DASHBOARD_TILES,
 } from "@/lib/view-dashboard-tile-catalogs";
 import { FileText, Plus, Trash2, Upload, X } from "lucide-react";
@@ -92,7 +94,8 @@ export default function RepresentativesWorkspace({
   const isOnwardAir = isBrowserOnwardAirSurface();
   const isNorthstar = isNorthstarDemoBrowser();
   const isOmniTransit = isBrowserSaecSurface();
-  const commissionCurrency: CommissionCurrency = isOnwardAir
+  const isGreenDesert = isBrowserGreenDesertSurface();
+  const commissionCurrency: CommissionCurrency = isOnwardAir || isGreenDesert
     ? "USD"
     : isOmniTransit
       ? "ZAR"
@@ -100,7 +103,9 @@ export default function RepresentativesWorkspace({
       ? "GBP"
       : "EUR";
   const currencySymbol = commissionCurrencySymbol(commissionCurrency);
-  const dashboardTiles = isOnwardAir
+  const dashboardTiles = isGreenDesert
+    ? GREENDESERT_REPRESENTATIVES_DASHBOARD_TILES
+    : isOnwardAir
     ? ONWARDAIR_REPRESENTATIVES_DASHBOARD_TILES
     : isAbhi
       ? ABHI_REPRESENTATIVES_DASHBOARD_TILES

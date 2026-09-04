@@ -159,6 +159,13 @@ function activeRepCommissions(): RepCommissionRow[] {
     } catch {
       // Fall through.
     }
+    try {
+      const { isBrowserGreenDesertSurface } =
+        require("@/lib/greendesert-surface") as typeof import("@/lib/greendesert-surface");
+      if (isBrowserGreenDesertSurface()) return [];
+    } catch {
+      // Fall through.
+    }
   }
   return REP_COMMISSIONS;
 }

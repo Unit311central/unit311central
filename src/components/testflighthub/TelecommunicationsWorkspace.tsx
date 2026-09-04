@@ -5,6 +5,8 @@ import { Building2, Loader2, Pencil, Plus, Radio, Smartphone, Trash2 } from "luc
 
 import { formatReportingMoney } from "@/lib/financial-reporting-currency";
 import { isBrowserSaecSurface } from "@/lib/saec-surface";
+import { isBrowserGreenDesertSurface } from "@/lib/greendesert-surface";
+import { GREENDESERT_TELECOM_SERVICE_OPTIONS } from "@/lib/greendesert/greendesert-telecom-config";
 import {
   isMobileTelecomService,
   type TechnologyTelecomService,
@@ -27,7 +29,12 @@ const EMPTY_FORM: TechnologyTelecomServiceInput & { location: string } = {
   carrier: "",
   numberOrCircuit: "",
   assignedTo: "",
-  location: typeof window !== "undefined" && isBrowserSaecSurface() ? "Pretoria" : "Manchester",
+  location:
+    typeof window !== "undefined" && isBrowserGreenDesertSurface()
+      ? ""
+      : typeof window !== "undefined" && isBrowserSaecSurface()
+        ? "Pretoria"
+        : "Manchester",
   monthlyCostMinor: 0,
   status: "Active",
   manufacturer: "",
@@ -42,6 +49,8 @@ async function readApiJson<T>(response: Response): Promise<T> {
 
 export default function TelecommunicationsWorkspace() {
   const currency = useWorkspaceReportingCurrency();
+  const isGreenDesert =
+    typeof window !== "undefined" && isBrowserGreenDesertSurface();
   const [rows, setRows] = useState<TechnologyTelecomService[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -295,11 +304,27 @@ export default function TelecommunicationsWorkspace() {
             <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               <label className="space-y-1 text-xs text-white/50">
                 Service
-                <input
-                  value={form.service}
-                  onChange={(event) => setForm((prev) => ({ ...prev, service: event.target.value }))}
-                  className="h-9 w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 text-sm text-white outline-none focus:border-sky-400/40"
-                />
+                {isGreenDesert ? (
+                  <select
+                    value={form.service}
+                    onChange={(event) =>
+                      setForm((prev) => ({ ...prev, service: event.target.value }))
+                    }
+                    className="h-9 w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 text-sm text-white outline-none focus:border-sky-400/40"
+                  >
+                    {GREENDESERT_TELECOM_SERVICE_OPTIONS.map((option) => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <input
+                    value={form.service}
+                    onChange={(event) => setForm((prev) => ({ ...prev, service: event.target.value }))}
+                    className="h-9 w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 text-sm text-white outline-none focus:border-sky-400/40"
+                  />
+                )}
               </label>
               <label className="space-y-1 text-xs text-white/50">
                 Carrier

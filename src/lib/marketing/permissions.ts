@@ -7,6 +7,7 @@ export const SOCIAL_WORKSPACE_PACK_IDS = [
   "onwardair",
   "talanton",
   "abhi",
+  "greendesert",
   "customer",
 ] as const satisfies readonly MarketingWorkspaceKey[];
 

@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 
 import { isBrowserDemoSurface } from "@/lib/demo-enterprise";
+import { isBrowserGreenDesertSurface } from "@/lib/greendesert-surface";
 import {
   applyNorthstarOrgChartManagers,
   resetNorthstarOrgChartManagers,
@@ -238,9 +239,11 @@ export default function OrgChartWorkspace() {
   const [editMode, setEditMode] = useState(false);
   const [orgChartRevision, setOrgChartRevision] = useState(0);
   const [isNorthstarDemo, setIsNorthstarDemo] = useState(false);
+  const [isGreenDesert, setIsGreenDesert] = useState(false);
 
   useEffect(() => {
     setIsNorthstarDemo(isBrowserDemoSurface());
+    setIsGreenDesert(isBrowserGreenDesertSurface());
   }, []);
 
   useEffect(() => {
@@ -275,7 +278,20 @@ export default function OrgChartWorkspace() {
     return applyNorthstarOrgChartManagers(employees);
   }, [employees, isNorthstarDemo, orgChartRevision]);
 
-  const forest = useMemo(() => buildOrgChartForest(chartEmployees), [chartEmployees]);
+  const forest = useMemo(() => {
+    if (isGreenDesert) {
+      const active = chartEmployees.filter((employee) => employee.employmentStatus !== "archived");
+      return {
+        roots: active.map((employee) => ({
+          id: employee.id,
+          employee,
+          children: [] as OrgChartNode[],
+        })),
+        activeCount: active.length,
+      };
+    }
+    return buildOrgChartForest(chartEmployees);
+  }, [chartEmployees, isGreenDesert]);
 
   const managerOptionsFor = useCallback(
     (employeeId: string) =>

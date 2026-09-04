@@ -165,7 +165,9 @@ export default function WorkspaceSidebarBrand({
     ) : brand === "wolf" ? (
       <WolfLogoMark size="sm" />
     ) : brand === "greendesert" ? (
-      <GreenDesertLogoMark height={32} maxWidth={180} />
+      <span className="inline-flex items-center rounded-xl bg-white px-3 py-1.5 shadow-sm">
+        <GreenDesertLogoMark height={32} maxWidth={160} />
+      </span>
     ) : brand === "pailex" ? (
       <span className="flex flex-col leading-tight">
         <span className="text-[15px] font-semibold tracking-tight text-white">PAILEX</span>

@@ -5,6 +5,7 @@ import { FileText, Network } from "lucide-react";
 
 import Unit311DetailsWorkspace from "./Unit311DetailsWorkspace";
 import WolfInformationRepositoryArchitectureWorkspace from "./WolfInformationRepositoryArchitectureWorkspace";
+import CustomerArchitectureWorkspace from "./CustomerArchitectureWorkspace";
 import {
   InformationRepositoryWorkspaceConfigProvider,
   INTERFACE_WORX_INFORMATION_REPOSITORY_WORKSPACE_CONFIG,
@@ -24,11 +25,13 @@ export default function InterfaceWorxInformationRepositoryWorkspace() {
   );
   const [wolfView, setWolfView] = useState<WolfRepositoryView>("sections");
   const [isWolfSurface, setIsWolfSurface] = useState(false);
+  const [isGreenDesertSurface, setIsGreenDesertSurface] = useState(false);
 
   useEffect(() => {
     const wolf = isBrowserWolfCentralSurface();
     const greenDesert = isBrowserGreenDesertSurface();
     setIsWolfSurface(wolf);
+    setIsGreenDesertSurface(greenDesert);
     if (wolf) {
       setConfig(WOLF_INFORMATION_REPOSITORY_WORKSPACE_CONFIG);
     } else if (greenDesert) {
@@ -36,7 +39,8 @@ export default function InterfaceWorxInformationRepositoryWorkspace() {
     }
   }, []);
 
-  const showArchitectureTab = isWolfSurface && config.features.architectureDiagrams;
+  const showArchitectureTab =
+    config.features.architectureDiagrams && (isWolfSurface || isGreenDesertSurface);
 
   return (
     <InformationRepositoryWorkspaceConfigProvider config={config}>
@@ -74,7 +78,11 @@ export default function InterfaceWorxInformationRepositoryWorkspace() {
           </nav>
 
           {wolfView === "architecture" ? (
-            <WolfInformationRepositoryArchitectureWorkspace />
+            isGreenDesertSurface ? (
+              <CustomerArchitectureWorkspace />
+            ) : (
+              <WolfInformationRepositoryArchitectureWorkspace />
+            )
           ) : (
             <Unit311DetailsWorkspace />
           )}

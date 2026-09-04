@@ -564,7 +564,7 @@ export async function middleware(request: NextRequest) {
       return response;
     }
 
-    // Green Desert board portal externals — /board only; never admin shell.
+    // Green Desert board portal externals — /board only when assigned to board home.
     if (isGreenDesertSlug(workspaceSlug)) {
       const externalGate = await evaluateCustomerHostSessionGate(request, resolvedWorkspaceSlug);
       if (externalGate.status === "ok" && externalGate.session.userType === "external") {
@@ -580,7 +580,8 @@ export async function middleware(request: NextRequest) {
           return clear;
         }
 
-        if (!isBoardPath && !isAllowedUtility) {
+        const isBoardHome = portalHome === "/board";
+        if (isBoardHome && !isBoardPath && !isAllowedUtility) {
           const bounce = redirectExternal(`${workspaceOrigin}${portalHome}`);
           return applyCustomerHostRebindIfNeeded({
             request,

@@ -84,6 +84,14 @@ import {
   isGreenDesertBoardPortalUsername,
   verifyGreenDesertBoardPortalPassword,
 } from "@/lib/greendesert/greendesert-board-portal-auth-server";
+import {
+  greenDesertClientPortalAbsoluteUrl,
+  type GreenDesertClientPortalRoute,
+} from "@/lib/greendesert/client-portal-routes";
+import {
+  isGreenDesertClientPortalUsername,
+  verifyGreenDesertClientPortalPassword,
+} from "@/lib/greendesert/greendesert-portal-auth-server";
 import { GREENDESERT_SLUG, isGreenDesertSlug } from "@/lib/greendesert-surface";
 import { canonicalizeWolfCentralSlug, isWolfCentralSlug } from "@/lib/wolf/wolf-surface";
 import {
@@ -732,6 +740,68 @@ async function createGreenDesertBoardPortalLoginResponse(
   return response;
 }
 
+async function createGreenDesertClientPortalLoginResponse(
+  request: NextRequest,
+  usernameRaw: string,
+  password: string,
+  returnToRaw: string | null,
+  nextRaw: string | null,
+  workspaceSlug: string | null,
+) {
+  const username = normalizePlatformUsername(usernameRaw);
+  if (!isGreenDesertSlug(workspaceSlug) || !isGreenDesertClientPortalUsername(username)) {
+    return null;
+  }
+  if (!verifyGreenDesertClientPortalPassword(password)) {
+    return null;
+  }
+
+  const pack = getPortalPackBySlug(GREENDESERT_SLUG);
+  if (!pack) return null;
+
+  const nextPath = String(nextRaw ?? "")
+    .trim()
+    .split("?")[0];
+  const nextMatch = pack.matcher.matchPathname(nextPath.startsWith("/") ? nextPath : `/${nextPath}`);
+  if (!nextMatch) return null;
+
+  const sessionRedirectPath = `/${nextMatch.route.path}`;
+
+  const workspace = await resolveWorkspaceBinding({
+    workspaceSlug: GREENDESERT_SLUG,
+    fallbackInternal: false,
+  });
+
+  const session: PlatformSession = withSessionWorkspace(
+    {
+      sub: "00000000-0000-4000-8000-00000000gd02",
+      username,
+      displayName: "Jeddah Technologies Portal User",
+      userType: "external",
+      redirectPath: sessionRedirectPath,
+      exp: Date.now() + PLATFORM_SESSION_MAX_AGE_SECONDS * 1000,
+    },
+    workspace,
+  );
+
+  const portalUrl = greenDesertClientPortalAbsoluteUrl(
+    nextMatch.route as GreenDesertClientPortalRoute,
+  );
+  if (!portalUrl) return null;
+
+  const response = NextResponse.json({
+    redirectPath: portalUrl,
+    userType: session.userType,
+    displayName: session.displayName,
+    workspace: workspace
+      ? { id: workspace.id, slug: workspace.slug, name: workspace.name }
+      : null,
+  });
+
+  applyPlatformSessionCookie(response, await createPlatformSessionToken(session), request);
+  return response;
+}
+
 async function createOmnitransitPortalsExternalLoginResponse(
   request: NextRequest,
   usernameRaw: string,
@@ -1106,6 +1176,16 @@ export async function POST(request: NextRequest) {
       workspaceSlug,
     );
     if (greendesertBoardLogin) return greendesertBoardLogin;
+
+    const greendesertClientLogin = await createGreenDesertClientPortalLoginResponse(
+      request,
+      body.username,
+      body.password,
+      returnToRaw,
+      nextRaw,
+      workspaceSlug,
+    );
+    if (greendesertClientLogin) return greendesertClientLogin;
 
     const omnitransitPortalLogin = await createOmnitransitPortalsExternalLoginResponse(
       request,

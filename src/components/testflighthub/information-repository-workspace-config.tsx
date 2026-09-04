@@ -93,7 +93,7 @@ export const GREENDESERT_INFORMATION_REPOSITORY_WORKSPACE_CONFIG: InformationRep
     features: {
       docPacks: false,
       architectureHub: false,
-      architectureDiagrams: false,
+      architectureDiagrams: true,
       builtinIntegrations: false,
       recordAttachments: true,
     },

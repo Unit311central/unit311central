@@ -5,6 +5,12 @@
  */
 
 import { TALANTON_PORTFOLIO_COMPANIES } from "@/lib/talanton/portfolio-data";
+import {
+  emptyGreenDesertMarketingState,
+  isGreenDesertMarketingSurface,
+  loadGreenDesertMarketingState,
+  persistGreenDesertMarketingState,
+} from "@/lib/greendesert/greendesert-marketing-persistence";
 
 type Listener = () => void;
 
@@ -615,6 +621,9 @@ function seedCampaigns(): MailingCampaign[] {
 }
 
 function createInitialState(): MarketingStoriesState {
+  if (typeof window !== "undefined" && isGreenDesertMarketingSurface()) {
+    return loadGreenDesertMarketingState() ?? emptyGreenDesertMarketingState();
+  }
   const stories = SEED_STORIES.map((s) => ({ ...s }));
   return {
     stories,
@@ -633,6 +642,9 @@ let state: MarketingStoriesState = createInitialState();
 const listeners = new Set<Listener>();
 
 function emit() {
+  if (isGreenDesertMarketingSurface()) {
+    persistGreenDesertMarketingState(state);
+  }
   for (const listener of listeners) listener();
 }
 
@@ -659,6 +671,11 @@ export function replaceTalantonMarketingStoriesState(next: MarketingStoriesState
 
 export async function hydrateTalantonMarketingStoriesFromCentralApi(): Promise<boolean> {
   if (typeof window === "undefined") return false;
+  if (isGreenDesertMarketingSurface()) {
+    state = loadGreenDesertMarketingState() ?? emptyGreenDesertMarketingState();
+    emit();
+    return true;
+  }
   const { fetchMarketingBundle } = await import("@/lib/marketing/client/marketing-api");
   const { mapBundleToTalantonMarketingStoriesState } = await import(
     "@/lib/marketing/client/store-hydration"

@@ -1368,3 +1368,59 @@ export async function addTimelineManualEvent(
     return mapTimeline(data as Record<string, unknown>);
   });
 }
+
+/**
+ * Seed Green Desert workforce into hr_employees (greendesert workspace only).
+ */
+export async function ensureGreenDesertHrEmployeesSeeded(
+  workspaceId: string,
+): Promise<HrEmployee[]> {
+  const { GREENDESERT_HR_TEAM_EMPLOYEES } =
+    await import("@/lib/greendesert/greendesert-hr-team-data");
+
+  const existing = await listHrEmployees({ workspaceId, includeArchived: true });
+  const byEmail = new Set(
+    existing.map((employee) => employee.email.trim().toLowerCase()).filter(Boolean),
+  );
+
+  for (const member of GREENDESERT_HR_TEAM_EMPLOYEES) {
+    const email = member.email.trim().toLowerCase();
+    if (byEmail.has(email)) continue;
+    try {
+      await createHrEmployee(
+        {
+          fullName: member.fullName,
+          preferredName: member.preferredName,
+          email: member.email,
+          phone: member.phone,
+          employmentStatus: member.employmentStatus,
+          employmentType: member.employmentType,
+          dateJoined: member.dateJoined,
+          location: member.location,
+          role: member.role,
+          department: member.department,
+          manager: member.manager ?? "",
+          currency: member.currency ?? "USD",
+          payFrequency: member.payFrequency ?? "monthly",
+          salaryCurrent: member.salaryCurrent ?? 100_000,
+          salaryPrevious: member.salaryPrevious ?? 100_000,
+          bonus: member.bonus ?? 0,
+          holidayCalendar: member.holidayCalendar,
+          vacationDaysPerYear: member.vacationDaysPerYear,
+          vacationDaysTaken: member.vacationDaysTaken ?? 0,
+        },
+        { workspaceId },
+      );
+      byEmail.add(email);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      if (/duplicate key|unique constraint/i.test(message)) {
+        byEmail.add(email);
+        continue;
+      }
+      throw error;
+    }
+  }
+
+  return listHrEmployees({ workspaceId });
+}

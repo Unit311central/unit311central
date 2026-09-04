@@ -166,6 +166,16 @@ export function createInitialRepresentatives(): Representative[] {
       // Fall through.
     }
     try {
+      const { isBrowserGreenDesertSurface } =
+        require("@/lib/greendesert-surface") as typeof import("@/lib/greendesert-surface");
+      if (isBrowserGreenDesertSurface()) {
+        return [];
+      }
+    } catch {
+      // Fall through.
+    }
+
+    try {
       const { isBrowserCustomerWorkspaceSurface } =
         require("@/lib/customer-workspace-surface") as typeof import("@/lib/customer-workspace-surface");
       if (isBrowserCustomerWorkspaceSurface()) {

@@ -187,3 +187,30 @@ export const talantonMarketingPack: MarketingWorkspacePack = {
     }
   },
 };
+
+/** Green Desert — Talanton-style stories/mailing with local empty store. */
+export const greendesertMarketingPack: MarketingWorkspacePack = {
+  id: "greendesert",
+  label: "Green Desert",
+  workspaceKeys: ["greendesert"],
+  resolveView(view) {
+    switch (view) {
+      case "social":
+        return { rendererId: MARKETING_RENDERER_IDS.SOCIAL };
+      case "portfolio-stories":
+        return { rendererId: MARKETING_RENDERER_IDS.TALANTON_PORTFOLIO_STORIES };
+      case "journey-stories":
+        return { rendererId: MARKETING_RENDERER_IDS.TALANTON_JOURNEY_STORIES };
+      case "stories-newsletter":
+        return { rendererId: MARKETING_RENDERER_IDS.TALANTON_STORIES_NEWSLETTER };
+      case "stories-media-library":
+        return { rendererId: MARKETING_RENDERER_IDS.TALANTON_MEDIA_LIBRARY };
+      case "stories-mailing-list":
+        return { rendererId: MARKETING_RENDERER_IDS.TALANTON_STORIES_MAILING_LIST };
+      case "marketing-training":
+        return { rendererId: MARKETING_RENDERER_IDS.STAFF_TRAINING };
+      default:
+        return null;
+    }
+  },
+};

@@ -14,8 +14,8 @@ export const GREENDESERT_REPORTING_CURRENCY = "USD";
 
 export const GREENDESERT_WORKSPACE_LOGO_SRC = "/images/workspaces/greendesert/logo.png";
 
-export const GREENDESERT_WORKSPACE_LOGO_INTRINSIC_WIDTH = 326;
-export const GREENDESERT_WORKSPACE_LOGO_INTRINSIC_HEIGHT = 388;
+export const GREENDESERT_WORKSPACE_LOGO_INTRINSIC_WIDTH = 336;
+export const GREENDESERT_WORKSPACE_LOGO_INTRINSIC_HEIGHT = 382;
 
 export function isGreenDesertSlug(slug: string | null | undefined): boolean {
   return String(slug ?? "").trim().toLowerCase() === GREENDESERT_SLUG;
