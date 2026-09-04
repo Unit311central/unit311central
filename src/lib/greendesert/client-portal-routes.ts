@@ -15,7 +15,7 @@ export type GreenDesertClientPortalRoute = {
 
 export const GREENDESERT_CLIENT_PORTAL_ORIGIN = GREENDESERT_BOARD_PORTAL_ORIGIN;
 
-export const GREENDESERT_CLIENT_PORTAL_ROUTES = [
+export const GREENDESERT_CLIENT_PORTAL_ROUTES: readonly GreenDesertClientPortalRoute[] = [
   {
     path: "jeddahtechnologies",
     displayName: "Jeddah Technologies",
@@ -24,7 +24,7 @@ export const GREENDESERT_CLIENT_PORTAL_ROUTES = [
     redirectPath: "/jeddahtechnologies",
     portalKind: "client",
   },
-] as const;
+];
 
 const BY_PATH = new Map<string, GreenDesertClientPortalRoute>(
   GREENDESERT_CLIENT_PORTAL_ROUTES.map((r) => [r.path, r]),
