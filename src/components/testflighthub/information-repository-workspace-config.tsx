@@ -19,6 +19,7 @@ export type InformationRepositoryWorkspaceConfig = {
   features: {
     docPacks: boolean;
     architectureHub: boolean;
+    architectureDiagrams: boolean;
     builtinIntegrations: boolean;
     recordAttachments: boolean;
   };
@@ -35,6 +36,7 @@ export const UNIT311_DETAILS_WORKSPACE_CONFIG: InformationRepositoryWorkspaceCon
   features: {
     docPacks: true,
     architectureHub: true,
+    architectureDiagrams: false,
     builtinIntegrations: true,
     recordAttachments: false,
   },
@@ -53,6 +55,7 @@ export const INTERFACE_WORX_INFORMATION_REPOSITORY_WORKSPACE_CONFIG: Information
     features: {
       docPacks: false,
       architectureHub: false,
+      architectureDiagrams: false,
       builtinIntegrations: false,
       recordAttachments: false,
     },
@@ -71,6 +74,7 @@ export const WOLF_INFORMATION_REPOSITORY_WORKSPACE_CONFIG: InformationRepository
     features: {
       docPacks: false,
       architectureHub: false,
+      architectureDiagrams: true,
       builtinIntegrations: false,
       recordAttachments: true,
     },

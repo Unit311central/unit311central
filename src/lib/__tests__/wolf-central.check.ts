@@ -122,6 +122,7 @@ assert.equal(WOLF_EMPTY_FLEET_METRICS.docks, 0);
 assert.equal(WOLF_EMPTY_FLEET_METRICS.batteries, 0);
 
 assert.equal(WOLF_INFORMATION_REPOSITORY_WORKSPACE_CONFIG.features.recordAttachments, true);
+assert.equal(WOLF_INFORMATION_REPOSITORY_WORKSPACE_CONFIG.features.architectureDiagrams, true);
 assert.equal(
   WOLF_INFORMATION_REPOSITORY_WORKSPACE_CONFIG.apiBasePath,
   "/api/information-repository",
