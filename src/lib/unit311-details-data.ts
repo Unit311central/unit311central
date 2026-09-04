@@ -168,6 +168,71 @@ export function detailTasksFileName(label: string) {
   return `${label} tasks.json`;
 }
 
+export const DETAIL_RECORD_ATTACHMENTS_FOLDER_NAME = "Record attachments";
+
+export function detailAttachmentsMetaFileName(label: string) {
+  return `${label} record-attachments.json`;
+}
+
+export type InformationRepositoryRecordAttachmentMeta = {
+  fileId: string;
+  caption: string;
+  displayName: string;
+  sortOrder: number;
+};
+
+export type InformationRepositoryRecordAttachmentsManifest = {
+  version: 1;
+  items: InformationRepositoryRecordAttachmentMeta[];
+};
+
+export type InformationRepositoryRecordAttachment = {
+  id: string;
+  name: string;
+  caption: string;
+  mimeType: string | null;
+  sizeBytes: number;
+  uploadedAt: string;
+  url: string;
+};
+
+export function parseRecordAttachmentsManifest(raw: string): InformationRepositoryRecordAttachmentsManifest {
+  if (!raw.trim()) {
+    return { version: 1, items: [] };
+  }
+  try {
+    const parsed = JSON.parse(raw) as Partial<InformationRepositoryRecordAttachmentsManifest>;
+    if (!parsed || !Array.isArray(parsed.items)) {
+      return { version: 1, items: [] };
+    }
+    const items = parsed.items
+      .filter(
+        (item): item is InformationRepositoryRecordAttachmentMeta =>
+          typeof item === "object" &&
+          item !== null &&
+          typeof item.fileId === "string" &&
+          typeof item.caption === "string" &&
+          typeof item.displayName === "string" &&
+          typeof item.sortOrder === "number",
+      )
+      .map((item) => ({
+        fileId: item.fileId,
+        caption: item.caption.trim(),
+        displayName: item.displayName.trim(),
+        sortOrder: item.sortOrder,
+      }));
+    return { version: 1, items };
+  } catch {
+    return { version: 1, items: [] };
+  }
+}
+
+export function serializeRecordAttachmentsManifest(
+  manifest: InformationRepositoryRecordAttachmentsManifest,
+) {
+  return JSON.stringify(manifest, null, 2);
+}
+
 export type Unit311DetailTask = {
   id: string;
   title: string;

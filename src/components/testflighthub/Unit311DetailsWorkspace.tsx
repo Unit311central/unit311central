@@ -15,6 +15,7 @@ import {
 
 import ArchitectureViewer from "@/components/architecture/ArchitectureViewer";
 import Unit311DetailMarkdownViewer from "@/components/testflighthub/Unit311DetailMarkdownViewer";
+import InformationRepositoryAttachmentsPanel from "@/components/testflighthub/InformationRepositoryAttachmentsPanel";
 import { useInternalOperationsBasePath } from "./InternalOperationsBasePathContext";
 import WorkspaceArchitectureDiagramModal from "./WorkspaceArchitectureDiagramModal";
 import type {
@@ -44,7 +45,7 @@ const EA_ARCHITECTURE_MD_HREF = "/architecture/executive-assistant/Architecture_
 const EA_ARCHITECTURE_DIAGRAMS_HREF = "/architecture/executive-assistant/diagrams/";
 
 type SectionView = "documentation" | "architecture" | "history";
-type DetailTab = "details" | "tasks" | "documents";
+type DetailTab = "details" | "tasks" | "documents" | "attachments";
 
 type OverviewResponse = {
   rootFolderId: string;
@@ -1095,6 +1096,9 @@ export default function Unit311DetailsWorkspace() {
                       ...(isDocPackSection
                         ? ([{ id: "documents", label: "Documents" }] as const)
                         : []),
+                      ...(features.recordAttachments
+                        ? ([{ id: "attachments", label: "Files" }] as const)
+                        : []),
                       { id: "details", label: isDocPackSection ? "Index notes" : "details" },
                       { id: "tasks", label: "tasks" },
                     ] as const
@@ -1202,6 +1206,11 @@ export default function Unit311DetailsWorkspace() {
                       )}
                     </div>
                   </div>
+                ) : activeTab === "attachments" && features.recordAttachments && selectedCategoryId ? (
+                  <InformationRepositoryAttachmentsPanel
+                    categoryId={selectedCategoryId}
+                    apiBasePath={config.apiBasePath}
+                  />
                 ) : activeTab === "details" ? (
                   <textarea
                     value={draft}
@@ -1284,7 +1293,7 @@ export default function Unit311DetailsWorkspace() {
                 )}
 
                 <div className="mt-4 flex flex-wrap items-center gap-3">
-                  {activeTab !== "documents" ? (
+                  {activeTab !== "documents" && activeTab !== "attachments" ? (
                   <button
                     type="button"
                     onClick={() => void handleSave()}

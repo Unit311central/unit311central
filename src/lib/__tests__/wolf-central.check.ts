@@ -26,6 +26,7 @@ import {
 import { isCustomerWorkspaceSlug } from "@/lib/customer-workspace-surface";
 import { DEMO_ENABLED_MODULES } from "@/lib/platform-workspaces/demo-provisioning";
 import { SAEC_ENABLED_MODULES } from "@/lib/platform-workspaces/saec-provisioning";
+import { WOLF_INFORMATION_REPOSITORY_WORKSPACE_CONFIG } from "@/components/testflighthub/information-repository-workspace-config";
 import { computeWolfEstateMetrics } from "@/lib/wolf/central/estate-metrics";
 import { WOLF_DEMO_RESERVE_SEEDS } from "@/lib/wolf/central/demo-seed";
 import { WOLF_EMPTY_FLEET_METRICS } from "@/lib/wolf/wolf-empty-dashboards";
@@ -119,5 +120,11 @@ assert.equal(WOLF_EMPTY_FLEET_METRICS.largeDrones, 0);
 assert.equal(WOLF_EMPTY_FLEET_METRICS.smallDrones, 0);
 assert.equal(WOLF_EMPTY_FLEET_METRICS.docks, 0);
 assert.equal(WOLF_EMPTY_FLEET_METRICS.batteries, 0);
+
+assert.equal(WOLF_INFORMATION_REPOSITORY_WORKSPACE_CONFIG.features.recordAttachments, true);
+assert.equal(
+  WOLF_INFORMATION_REPOSITORY_WORKSPACE_CONFIG.apiBasePath,
+  "/api/information-repository",
+);
 
 console.log("wolf-central.check.ts — all assertions passed.");

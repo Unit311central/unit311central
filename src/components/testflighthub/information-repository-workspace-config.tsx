@@ -20,6 +20,7 @@ export type InformationRepositoryWorkspaceConfig = {
     docPacks: boolean;
     architectureHub: boolean;
     builtinIntegrations: boolean;
+    recordAttachments: boolean;
   };
 };
 
@@ -35,6 +36,7 @@ export const UNIT311_DETAILS_WORKSPACE_CONFIG: InformationRepositoryWorkspaceCon
     docPacks: true,
     architectureHub: true,
     builtinIntegrations: true,
+    recordAttachments: false,
   },
 };
 
@@ -52,6 +54,25 @@ export const INTERFACE_WORX_INFORMATION_REPOSITORY_WORKSPACE_CONFIG: Information
       docPacks: false,
       architectureHub: false,
       builtinIntegrations: false,
+      recordAttachments: false,
+    },
+  };
+
+export const WOLF_INFORMATION_REPOSITORY_WORKSPACE_CONFIG: InformationRepositoryWorkspaceConfig =
+  {
+    profile: INTERFACE_WORX_INFORMATION_REPOSITORY_PROFILE,
+    apiBasePath: "/api/information-repository",
+    loadErrorLabel: "Information Repository",
+    selectPrompt: "Select a section above to view and edit its information.",
+    emptyStateTitle: "No information has been added yet.",
+    emptyStateBody:
+      "Create sections and tiles to build the WOLF information repository.",
+    addSectionPlaceholder: "Section name, e.g. Company Structure, Technology Stack…",
+    features: {
+      docPacks: false,
+      architectureHub: false,
+      builtinIntegrations: false,
+      recordAttachments: true,
     },
   };
 

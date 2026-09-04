@@ -4,12 +4,19 @@ import { join } from "node:path";
 
 import {
   customDetailCategoryId,
+  detailAttachmentsMetaFileName,
   detailDocxFileName,
   detailTasksFileName,
   detailTxtFileName,
+  DETAIL_RECORD_ATTACHMENTS_FOLDER_NAME,
   getBuiltinDetailCategory,
+  parseRecordAttachmentsManifest,
   parseUnit311DetailTasks,
+  serializeRecordAttachmentsManifest,
   serializeUnit311DetailTasks,
+  type InformationRepositoryRecordAttachment,
+  type InformationRepositoryRecordAttachmentMeta,
+  type InformationRepositoryRecordAttachmentsManifest,
   type Unit311DetailCategory,
   type Unit311DetailCategoryId,
   type Unit311DetailTask,
@@ -23,8 +30,11 @@ import { DOMAIN_GO_LIVE_STORAGE_CATEGORY_ID } from "@/lib/domain-go-live-data";
 import { MODULE_GO_LIVE_STORAGE_CATEGORY_ID } from "@/lib/module-go-live-data";
 import {
   browseFolder,
+  completeFileUpload,
   createFolder,
   deleteFile,
+  getFileDownloadUrl,
+  prepareFileUpload,
   requireFilesSupabase,
   uploadFile,
 } from "@/lib/internal-files-service";
@@ -738,4 +748,223 @@ export async function listUnit311DetailsRootEntries(
 ) {
   const { rootFolderId } = await ensureUnit311DetailsFolders(scope, profile);
   return browseFolder({ folderId: rootFolderId }, scope);
+}
+
+async function resolveCategoryContext(
+  categoryId: string,
+  scope?: FilesWorkspaceScope,
+  profile: InformationRepositoryProfile = UNIT311_DETAILS_REPOSITORY_PROFILE,
+) {
+  const bootstrap = await ensureUnit311DetailsFolders(scope, profile);
+  const category = await resolveCategory(categoryId, bootstrap.rootFolderId, scope, profile);
+  if (!category) {
+    throw new Error("Unknown category.");
+  }
+  const folderId = bootstrap.folders[categoryId];
+  if (!folderId) {
+    throw new Error("Category folder not found.");
+  }
+  return { category, folderId };
+}
+
+async function loadAttachmentsManifest(
+  sectionFolderId: string,
+  label: string,
+  scope?: FilesWorkspaceScope,
+): Promise<InformationRepositoryRecordAttachmentsManifest> {
+  const metaFile = await findFileInFolder(
+    sectionFolderId,
+    detailAttachmentsMetaFileName(label),
+    scope,
+  );
+  if (!metaFile) return { version: 1, items: [] };
+  const raw = await readStorageText(metaFile.storage_path);
+  return parseRecordAttachmentsManifest(raw);
+}
+
+async function saveAttachmentsManifest(
+  sectionFolderId: string,
+  label: string,
+  manifest: InformationRepositoryRecordAttachmentsManifest,
+  scope?: FilesWorkspaceScope,
+) {
+  const metaName = detailAttachmentsMetaFileName(label);
+  await deleteNamedFilesInFolder(sectionFolderId, [metaName], scope);
+  if (manifest.items.length === 0) return;
+  const buffer = Buffer.from(serializeRecordAttachmentsManifest(manifest), "utf8");
+  await uploadFile(
+    {
+      file: toUploadFile(metaName, buffer, "application/json"),
+      folderId: sectionFolderId,
+      categoryId: null,
+    },
+    scope,
+  );
+}
+
+async function ensureRecordAttachmentsFolder(
+  sectionFolderId: string,
+  scope?: FilesWorkspaceScope,
+) {
+  return ensureFolder(DETAIL_RECORD_ATTACHMENTS_FOLDER_NAME, sectionFolderId, scope);
+}
+
+export async function listInformationRepositoryRecordAttachments(
+  categoryId: string,
+  scope?: FilesWorkspaceScope,
+  profile: InformationRepositoryProfile = UNIT311_DETAILS_REPOSITORY_PROFILE,
+): Promise<{ attachmentsFolderId: string; attachments: InformationRepositoryRecordAttachment[] }> {
+  const { category, folderId } = await resolveCategoryContext(categoryId, scope, profile);
+  const attachmentsFolder = await ensureRecordAttachmentsFolder(folderId, scope);
+  const manifest = await loadAttachmentsManifest(folderId, category.label, scope);
+  const manifestById = new Map(manifest.items.map((item) => [item.fileId, item]));
+  const { entries } = await browseFolder({ folderId: attachmentsFolder.id }, scope);
+  const files = entries.filter((entry) => entry.kind === "file").map((entry) => entry.item);
+
+  const attachments = await Promise.all(
+    files.map(async (file) => {
+      const meta = manifestById.get(file.id);
+      const download = await getFileDownloadUrl(file.id, scope);
+      return {
+        id: file.id,
+        name: meta?.displayName || file.name,
+        caption: meta?.caption ?? "",
+        mimeType: file.mimeType,
+        sizeBytes: file.sizeBytes,
+        uploadedAt: file.createdAt,
+        url: download.url,
+      } satisfies InformationRepositoryRecordAttachment;
+    }),
+  );
+
+  attachments.sort((left, right) => {
+    const leftOrder = manifestById.get(left.id)?.sortOrder ?? Number.MAX_SAFE_INTEGER;
+    const rightOrder = manifestById.get(right.id)?.sortOrder ?? Number.MAX_SAFE_INTEGER;
+    if (leftOrder !== rightOrder) return leftOrder - rightOrder;
+    return right.uploadedAt.localeCompare(left.uploadedAt);
+  });
+
+  return {
+    attachmentsFolderId: attachmentsFolder.id,
+    attachments,
+  };
+}
+
+export async function prepareInformationRepositoryRecordAttachmentUpload(
+  categoryId: string,
+  name: string,
+  size: number,
+  scope?: FilesWorkspaceScope,
+  profile: InformationRepositoryProfile = UNIT311_DETAILS_REPOSITORY_PROFILE,
+) {
+  const { folderId } = await resolveCategoryContext(categoryId, scope, profile);
+  const attachmentsFolder = await ensureRecordAttachmentsFolder(folderId, scope);
+  return prepareFileUpload(
+    {
+      name,
+      size,
+      folderId: attachmentsFolder.id,
+    },
+    scope,
+  );
+}
+
+export async function completeInformationRepositoryRecordAttachmentUpload(
+  categoryId: string,
+  input: {
+    name: string;
+    storagePath: string;
+    mimeType: string | null;
+    size: number;
+    caption?: string;
+  },
+  scope?: FilesWorkspaceScope,
+  profile: InformationRepositoryProfile = UNIT311_DETAILS_REPOSITORY_PROFILE,
+) {
+  const { category, folderId } = await resolveCategoryContext(categoryId, scope, profile);
+  const attachmentsFolder = await ensureRecordAttachmentsFolder(folderId, scope);
+  const file = await completeFileUpload(
+    {
+      name: input.name,
+      storagePath: input.storagePath,
+      folderId: attachmentsFolder.id,
+      categoryId: null,
+      mimeType: input.mimeType,
+      size: input.size,
+    },
+    scope,
+  );
+
+  const manifest = await loadAttachmentsManifest(folderId, category.label, scope);
+  const nextOrder =
+    manifest.items.reduce((max, item) => Math.max(max, item.sortOrder), -1) + 1;
+  const nextItem: InformationRepositoryRecordAttachmentMeta = {
+    fileId: file.id,
+    caption: input.caption?.trim() ?? "",
+    displayName: input.name.trim(),
+    sortOrder: nextOrder,
+  };
+  await saveAttachmentsManifest(
+    folderId,
+    category.label,
+    { version: 1, items: [...manifest.items, nextItem] },
+    scope,
+  );
+
+  const download = await getFileDownloadUrl(file.id, scope);
+  return {
+    id: file.id,
+    name: nextItem.displayName,
+    caption: nextItem.caption,
+    mimeType: file.mimeType,
+    sizeBytes: file.sizeBytes,
+    uploadedAt: file.createdAt,
+    url: download.url,
+  } satisfies InformationRepositoryRecordAttachment;
+}
+
+export async function updateInformationRepositoryRecordAttachment(
+  categoryId: string,
+  fileId: string,
+  patch: { caption?: string; displayName?: string },
+  scope?: FilesWorkspaceScope,
+  profile: InformationRepositoryProfile = UNIT311_DETAILS_REPOSITORY_PROFILE,
+) {
+  const { category, folderId } = await resolveCategoryContext(categoryId, scope, profile);
+  const manifest = await loadAttachmentsManifest(folderId, category.label, scope);
+  const index = manifest.items.findIndex((item) => item.fileId === fileId);
+  if (index < 0) {
+    throw new Error("Attachment not found.");
+  }
+  const current = manifest.items[index];
+  const nextItems = [...manifest.items];
+  nextItems[index] = {
+    ...current,
+    caption: patch.caption !== undefined ? patch.caption.trim() : current.caption,
+    displayName:
+      patch.displayName !== undefined ? patch.displayName.trim() || current.displayName : current.displayName,
+  };
+  await saveAttachmentsManifest(folderId, category.label, { version: 1, items: nextItems }, scope);
+  const listed = await listInformationRepositoryRecordAttachments(categoryId, scope, profile);
+  const attachment = listed.attachments.find((item) => item.id === fileId);
+  if (!attachment) throw new Error("Attachment not found.");
+  return attachment;
+}
+
+export async function deleteInformationRepositoryRecordAttachment(
+  categoryId: string,
+  fileId: string,
+  scope?: FilesWorkspaceScope,
+  profile: InformationRepositoryProfile = UNIT311_DETAILS_REPOSITORY_PROFILE,
+) {
+  const { category, folderId } = await resolveCategoryContext(categoryId, scope, profile);
+  await deleteFile(fileId, scope);
+  const manifest = await loadAttachmentsManifest(folderId, category.label, scope);
+  await saveAttachmentsManifest(
+    folderId,
+    category.label,
+    { version: 1, items: manifest.items.filter((item) => item.fileId !== fileId) },
+    scope,
+  );
+  return { deleted: true, fileId };
 }
