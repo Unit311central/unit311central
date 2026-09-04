@@ -19,9 +19,25 @@ let state: EcaMockState = buildInitialEcaState();
 function buildInitialEcaState(): EcaMockState {
   if (typeof window !== "undefined") {
     try {
+      const { isBrowserGreenDesertSurface } =
+        require("@/lib/greendesert-surface") as typeof import("@/lib/greendesert-surface");
+      if (isBrowserGreenDesertSurface()) {
+        const { buildGreenDesertEcaState } =
+          require("@/lib/greendesert/greendesert-eca-state") as typeof import("@/lib/greendesert/greendesert-eca-state");
+        return buildGreenDesertEcaState();
+      }
+    } catch {
+      // Fall through.
+    }
+    try {
       const { isBrowserCustomerWorkspaceSurface } =
         require("@/lib/customer-workspace-surface") as typeof import("@/lib/customer-workspace-surface");
-      if (isBrowserCustomerWorkspaceSurface()) {
+      const { isGreenDesertSlug } =
+        require("@/lib/greendesert-surface") as typeof import("@/lib/greendesert-surface");
+      const { readBrowserCustomerWorkspaceSlug } =
+        require("@/lib/customer-workspace-surface") as typeof import("@/lib/customer-workspace-surface");
+      const slug = readBrowserCustomerWorkspaceSlug();
+      if (isBrowserCustomerWorkspaceSurface() && !isGreenDesertSlug(slug)) {
         return { portals: [], audit: [], invitations: [] };
       }
     } catch {
@@ -105,6 +121,20 @@ export function getEcaMockSnapshot() {
         const { buildSaecEcaState } =
           require("@/lib/saec/demo/eca-state") as typeof import("@/lib/saec/demo/eca-state");
         state = buildSaecEcaState();
+      }
+    } catch {
+      // Fall through.
+    }
+    try {
+      const { isBrowserGreenDesertSurface } =
+        require("@/lib/greendesert-surface") as typeof import("@/lib/greendesert-surface");
+      if (
+        isBrowserGreenDesertSurface() &&
+        !state.portals.every((portal) => portal.id.startsWith("portal-gd-"))
+      ) {
+        const { buildGreenDesertEcaState } =
+          require("@/lib/greendesert/greendesert-eca-state") as typeof import("@/lib/greendesert/greendesert-eca-state");
+        state = buildGreenDesertEcaState();
       }
     } catch {
       // Fall through.

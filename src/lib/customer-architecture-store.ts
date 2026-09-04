@@ -46,7 +46,16 @@ function persist(slug: string, rows: CustomerArchitectureDiagram[]) {
 }
 
 function seedGreenDesertArchitectureIfNeeded(slug: string, rows: CustomerArchitectureDiagram[]) {
-  if (slug !== GREENDESERT_SLUG || rows.length > 0) return rows;
+  if (slug !== GREENDESERT_SLUG) return rows;
+
+  const canonicalSlugs = new Set(
+    GREENDESERT_ARCHITECTURE_DIAGRAMS.map((diagram) => diagram.slug),
+  );
+  const hasCanonical =
+    rows.length > 0 && rows.every((row) => canonicalSlugs.has(row.slug));
+
+  if (hasCanonical) return rows;
+
   const seeded = GREENDESERT_ARCHITECTURE_DIAGRAMS.map((diagram, index) => ({
     id: `gd-arch-${index + 1}`,
     title: diagram.title,

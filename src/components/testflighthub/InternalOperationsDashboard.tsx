@@ -53,6 +53,7 @@ import { isBrowserPailexSurface } from "@/lib/pailex/pailex-surface";
 import { isPailexWorkspaceView } from "@/lib/pailex/pailex-views";
 import NorthstarCorporateDashboard from "@/components/demo/NorthstarCorporateDashboard";
 import { isBrowserDemoSurface } from "@/lib/demo-enterprise";
+import { isBrowserGreenDesertSurface } from "@/lib/greendesert-surface";
 import type { ReportingCurrency } from "@/lib/financial-reporting-currency";
 import {
   NorthstarBoardMeetingsWorkspace,
@@ -359,6 +360,11 @@ import {
   NorthstarEngineeringProgramsWorkspace,
   NorthstarEngineeringRisksWorkspace,
 } from "@/components/demo/NorthstarEngineeringWorkspaces";
+import {
+  GreenDesertEngineeringCapacityWorkspace,
+  GreenDesertEngineeringProgramsWorkspace,
+  GreenDesertEngineeringRisksWorkspace,
+} from "@/components/greendesert/GreenDesertEngineeringWorkspaces";
 import WorkspaceBusinessCentralDashboard from "@/components/business-central/WorkspaceBusinessCentralDashboard";
 import OnwardAirBusinessCentralDashboard from "@/components/onwardair/OnwardAirBusinessCentralDashboard";
 import SaecBusinessCentralDashboard from "@/components/saec/SaecBusinessCentralDashboard";
@@ -571,11 +577,13 @@ export default function InternalOperationsDashboard({
   const clientsLoadedRef = useRef(false);
   const usersLoadedRef = useRef(false);
   const [isDemoSurface, setIsDemoSurface] = useState(false);
+  const [isGreenDesertSurface, setIsGreenDesertSurface] = useState(false);
 
   useInfoEmailWhatsAppPoller(true);
 
   useEffect(() => {
     setIsDemoSurface(isBrowserDemoSurface());
+    setIsGreenDesertSurface(isBrowserGreenDesertSurface());
   }, []);
 
   useEffect(() => {
@@ -1427,6 +1435,8 @@ export default function InternalOperationsDashboard({
           {activeView === "engineering-programs" &&
             (isDemoSurface ? (
               <NorthstarEngineeringProgramsWorkspace />
+            ) : isGreenDesertSurface ? (
+              <GreenDesertEngineeringProgramsWorkspace />
             ) : (
               <EngineeringResourcesWorkspace />
             ))}
@@ -1436,6 +1446,8 @@ export default function InternalOperationsDashboard({
           {activeView === "engineering-capacity" &&
             (isDemoSurface ? (
               <NorthstarEngineeringCapacityWorkspace />
+            ) : isGreenDesertSurface ? (
+              <GreenDesertEngineeringCapacityWorkspace />
             ) : (
               <EngineeringCapacityWorkspace />
             ))}
@@ -1443,6 +1455,8 @@ export default function InternalOperationsDashboard({
           {activeView === "engineering-risks" &&
             (isDemoSurface ? (
               <NorthstarEngineeringRisksWorkspace />
+            ) : isGreenDesertSurface ? (
+              <GreenDesertEngineeringRisksWorkspace />
             ) : isBrowserSaecSurface() ? (
               <SaecEngineeringRisksWorkspace />
             ) : (

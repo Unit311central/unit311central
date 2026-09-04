@@ -9,12 +9,21 @@ export function buildProjectManagementNavSection(options?: {
   color?: string;
   icon?: string;
   includeGrants?: boolean;
+  includeWorkPackages?: boolean;
 }): InternalNavSection {
   const items: InternalNavItem[] = [
     { label: "Dashboard", icon: "LayoutDashboard", view: "projects-dashboard" },
     { label: "Internal Projects", icon: "FolderKanban", view: "projects-internal" },
     { label: "External Projects", icon: "FolderOpen", view: "projects-external" },
   ];
+
+  if (options?.includeWorkPackages) {
+    items.push({
+      label: "Work Packages",
+      icon: "ClipboardList",
+      view: "internal-work-packages",
+    });
+  }
 
   if (options?.includeGrants) {
     items.push({ label: "Grants", icon: "ScrollText", view: "grants" });

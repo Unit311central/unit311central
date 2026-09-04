@@ -4,6 +4,11 @@
 
 import { readBrowserCustomerWorkspaceSlug } from "@/lib/customer-workspace-surface";
 import { resolveSlugReportingCurrency } from "@/lib/financial-reporting-currency";
+import {
+  GREENDESERT_FUNDRAISING_INVESTORS,
+  GREENDESERT_FUNDRAISING_PIPELINE,
+} from "@/lib/greendesert/greendesert-fundraising-data";
+import { GREENDESERT_SLUG } from "@/lib/greendesert-surface";
 
 export type CustomerFundraisingInvestor = {
   id: string;
@@ -121,7 +126,19 @@ function getState(slug?: string | null): CustomerFundraisingState {
   const key = resolveSlug(slug);
   const cached = buckets.get(key);
   if (cached) return cached;
-  const initial = clone(readPersisted(key) ?? emptyState());
+  const persisted = readPersisted(key);
+  const initial = clone(
+    persisted ??
+      (key === GREENDESERT_SLUG
+        ? {
+            investors: GREENDESERT_FUNDRAISING_INVESTORS.map((row) => ({ ...row })),
+            pipeline: GREENDESERT_FUNDRAISING_PIPELINE.map((row) => ({ ...row })),
+            pitchDecks: [],
+            dataRooms: [],
+            meetings: [],
+          }
+        : emptyState()),
+  );
   buckets.set(key, initial);
   return initial;
 }

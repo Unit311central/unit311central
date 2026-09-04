@@ -25,6 +25,8 @@ import {
 } from "@/lib/customer-fundraising-store";
 import { resolveSlugReportingCurrency } from "@/lib/financial-reporting-currency";
 import { readBrowserCustomerWorkspaceSlug } from "@/lib/customer-workspace-surface";
+import { GREENDESERT_FUNDRAISING_ROUND_SUMMARY } from "@/lib/greendesert/greendesert-fundraising-data";
+import { isGreenDesertSlug } from "@/lib/greendesert-surface";
 
 type Section = "dashboard" | "investors" | "pipeline" | "meetings" | "pitch-decks" | "data-rooms";
 
@@ -57,6 +59,11 @@ export default function FundraisingCustomerRecordsWorkspace({ title, subtitle, s
     () => snapshot.pipeline.reduce((sum, row) => sum + row.amount, 0),
     [snapshot.pipeline],
   );
+  const investorTotal = useMemo(
+    () => snapshot.investors.reduce((sum, row) => sum + row.amount, 0),
+    [snapshot.investors],
+  );
+  const roundSummary = isGreenDesertSlug(slug) ? GREENDESERT_FUNDRAISING_ROUND_SUMMARY : null;
 
   function openInvestor(row?: CustomerFundraisingInvestor) {
     setEditor({
@@ -179,6 +186,35 @@ export default function FundraisingCustomerRecordsWorkspace({ title, subtitle, s
           <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
             <p className="text-[10px] uppercase tracking-[0.12em] text-white/45">Pipeline value</p>
             <p className="mt-1 text-2xl font-semibold text-white">{formatMoney(pipelineTotal, currency)}</p>
+          </div>
+        </section>
+      ) : null}
+
+      {section === "investors" && roundSummary ? (
+        <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="rounded-xl border border-emerald-400/20 bg-emerald-500/10 p-4">
+            <p className="text-[10px] uppercase tracking-[0.12em] text-emerald-100/70">Active round</p>
+            <p className="mt-1 text-xl font-semibold text-white">{roundSummary.activeRound}</p>
+            <p className="mt-1 text-xs text-white/50">{roundSummary.roundType}</p>
+          </div>
+          <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
+            <p className="text-[10px] uppercase tracking-[0.12em] text-white/45">Target raise</p>
+            <p className="mt-1 text-xl font-semibold text-white">
+              {formatMoney(roundSummary.targetAmount, roundSummary.currency)}
+            </p>
+          </div>
+          <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
+            <p className="text-[10px] uppercase tracking-[0.12em] text-white/45">Committed</p>
+            <p className="mt-1 text-xl font-semibold text-white">
+              {formatMoney(roundSummary.committedAmount, roundSummary.currency)}
+            </p>
+          </div>
+          <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
+            <p className="text-[10px] uppercase tracking-[0.12em] text-white/45">Investor pipeline</p>
+            <p className="mt-1 text-xl font-semibold text-white">
+              {formatMoney(investorTotal, roundSummary.currency)}
+            </p>
+            <p className="mt-1 text-xs text-white/50">{snapshot.investors.length} investors tracked</p>
           </div>
         </section>
       ) : null}

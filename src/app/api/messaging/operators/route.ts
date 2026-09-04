@@ -1,7 +1,13 @@
 import { NextResponse } from "next/server";
 
+import { apiErrorStatus } from "@/lib/api-error-status";
 import { isDemoApiRequest } from "@/lib/demo/demo-request";
 import { getNorthstarMessagingOperators } from "@/lib/demo/northstar-messaging-fixtures";
+import {
+  applyGreenDesertMessagingOperatorPolicy,
+  filterGreenDesertMessagingOperators,
+} from "@/lib/greendesert/greendesert-messaging-operators";
+import { isGreenDesertSlug } from "@/lib/greendesert-surface";
 import { ensureInternalOperatorsTable } from "@/lib/internal-db-migrations";
 import { listInternalOperators } from "@/lib/internal-operators-service";
 import { requirePlatformSession } from "@/lib/platform-session";
@@ -34,9 +40,12 @@ export async function GET() {
     const workspace = await requireCurrentWorkspace();
 
     if (!isSupabaseConfigured()) {
-      const users = applyWolfMessagingOperatorPolicy(
+      const users = applyGreenDesertMessagingOperatorPolicy(
         workspace.slug,
-        createInitialUsers().filter((user) => user.status === "Active"),
+        applyWolfMessagingOperatorPolicy(
+          workspace.slug,
+          createInitialUsers().filter((user) => user.status === "Active"),
+        ),
       );
       return NextResponse.json({
         users,
@@ -55,6 +64,18 @@ export async function GET() {
       });
     }
 
+    if (isGreenDesertSlug(workspace.slug)) {
+      const users = (await listWorkspaceTenantUsers(workspace.id)).filter(
+        (user) => user.status === "Active",
+      );
+      const filtered = filterGreenDesertMessagingOperators(
+        users.length > 0
+          ? users
+          : createInitialUsers().filter((user) => user.status === "Active"),
+      );
+      return NextResponse.json({ users: filtered, source: "greendesert" });
+    }
+
     const users = (await listInternalOperators()).filter((user) => user.status === "Active");
     const withFallback =
       users.length > 0
@@ -62,14 +83,13 @@ export async function GET() {
         : createInitialUsers().filter((user) => user.status === "Active");
 
     return NextResponse.json({
-      users: applyWolfMessagingOperatorPolicy(workspace.slug, withFallback),
+      users: applyGreenDesertMessagingOperatorPolicy(
+        workspace.slug,
+        applyWolfMessagingOperatorPolicy(workspace.slug, withFallback),
+      ),
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to load messaging operators";
-    const status =
-      message.includes("Authentication required") || message.includes("Workspace context")
-        ? 401
-        : 500;
-    return NextResponse.json({ error: message }, { status });
+    return NextResponse.json({ error: message }, { status: apiErrorStatus(error, 500) });
   }
 }

@@ -30,7 +30,12 @@ export default function CustomerArchitectureWorkspace() {
   useEffect(() => {
     if (!isBrowserGreenDesertSurface()) return;
     const current = getCustomerArchitectureSnapshot();
-    if (current.length > 0) return;
+    const canonicalSlugs = new Set(
+      GREENDESERT_ARCHITECTURE_DIAGRAMS.map((diagram) => diagram.slug),
+    );
+    const hasCanonical =
+      current.length > 0 && current.every((row) => canonicalSlugs.has(row.slug));
+    if (hasCanonical) return;
     for (const diagram of GREENDESERT_ARCHITECTURE_DIAGRAMS) {
       upsertCustomerArchitectureDiagram(diagram);
     }

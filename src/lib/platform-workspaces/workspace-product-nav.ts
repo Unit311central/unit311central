@@ -12,6 +12,7 @@ import {
   greendesertEnabledSubModules,
   GREENDESERT_ENABLED_MODULES,
 } from "@/lib/greendesert/greendesert-provisioning";
+import { GREENDESERT_EXCLUDED_TOOLS_VIEWS } from "@/lib/greendesert/greendesert-nav-config";
 import { isGreenDesertSlug } from "@/lib/greendesert-surface";
 import { augmentSaecOperationsNav } from "@/lib/saec/installations-nav";
 import { CLIENT_PLATFORM_ALWAYS_VIEWS } from "@/lib/unit311-support/data";
@@ -348,6 +349,24 @@ export function buildWorkspaceProductNavSections(
 
     if (spec.id === "tools" && shouldFilterInterfaceWorxToolsNav(options.workspaceSlug)) {
       items = filterInterfaceWorxToolsNavItems(items);
+    }
+
+    if (spec.id === "tools" && isGreenDesertSlug(options.workspaceSlug)) {
+      items = items.filter((item) => !item.view || !GREENDESERT_EXCLUDED_TOOLS_VIEWS.has(item.view));
+    }
+
+    if (spec.id === "project-management" && isGreenDesertSlug(options.workspaceSlug)) {
+      const hasWorkPackages = items.some((item) => item.view === "internal-work-packages");
+      if (!hasWorkPackages) {
+        items = [
+          ...items,
+          {
+            label: "Work Packages",
+            icon: "ClipboardList",
+            view: "internal-work-packages" as const,
+          },
+        ];
+      }
     }
 
     if (spec.id === "fundraising" && shouldAugmentInterfaceWorxFundraisingNav(options.workspaceSlug)) {

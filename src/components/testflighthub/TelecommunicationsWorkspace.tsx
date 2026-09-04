@@ -318,10 +318,10 @@ export default function TelecommunicationsWorkspace() {
                     onChange={(event) =>
                       setForm((prev) => ({ ...prev, service: event.target.value }))
                     }
-                    className="h-9 w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 text-sm text-white outline-none focus:border-sky-400/40"
+                    className="h-9 w-full rounded-lg border border-white/10 bg-white px-3 text-sm text-[#0b1524] outline-none focus:border-sky-400/40"
                   >
                     {GREENDESERT_TELECOM_SERVICE_OPTIONS.map((option) => (
-                      <option key={option} value={option}>
+                      <option key={option} value={option} className="text-[#0b1524]">
                         {option}
                       </option>
                     ))}
@@ -370,10 +370,10 @@ export default function TelecommunicationsWorkspace() {
                     onChange={(event) =>
                       setForm((prev) => ({ ...prev, location: event.target.value }))
                     }
-                    className="h-9 w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 text-sm text-white outline-none focus:border-sky-400/40"
+                    className="h-9 w-full rounded-lg border border-white/10 bg-white px-3 text-sm text-[#0b1524] outline-none focus:border-sky-400/40"
                   >
                     {GREENDESERT_TELECOM_LOCATION_OPTIONS.map((option) => (
-                      <option key={option} value={option}>
+                      <option key={option} value={option} className="text-[#0b1524]">
                         {option}
                       </option>
                     ))}

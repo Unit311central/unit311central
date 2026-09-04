@@ -19,6 +19,10 @@ import {
 import { GREENDESERT_LOGISTICS_SHIPMENTS } from "@/lib/greendesert/greendesert-logistics-data";
 import { FEATURED_RIYADH_JEDDAH_ROUTE } from "@/lib/greendesert/greendesert-logistics-data";
 import { GREENDESERT_ARCHITECTURE_DIAGRAMS } from "@/lib/greendesert/greendesert-architecture-diagrams-data";
+import { buildGreenDesertEcaState } from "@/lib/greendesert/greendesert-eca-state";
+import { GREENDESERT_HR_TEAM_EMPLOYEES } from "@/lib/greendesert/greendesert-hr-team-data";
+import { GREENDESERT_COMPANY_INTELLIGENCE } from "@/lib/greendesert/greendesert-intelligence-data";
+import { filterGreenDesertMessagingOperators } from "@/lib/greendesert/greendesert-messaging-operators";
 import {
   GREENDESERT_REPORTING_CURRENCY,
   GREENDESERT_SLUG,
@@ -81,7 +85,14 @@ assert.equal(GREENDESERT_LOGISTICS_SHIPMENTS.length, 1);
 assert.match(GREENDESERT_LOGISTICS_SHIPMENTS[0]?.origin ?? "", /Riyadh/i);
 assert.match(GREENDESERT_LOGISTICS_SHIPMENTS[0]?.destination ?? "", /Jeddah/i);
 assert.equal(FEATURED_RIYADH_JEDDAH_ROUTE.shipmentId, "gd-shp-jeddah-001");
-assert.ok(GREENDESERT_ARCHITECTURE_DIAGRAMS.length >= 3);
+assert.equal(GREENDESERT_HR_TEAM_EMPLOYEES.length, 4);
+assert.equal(GREENDESERT_HR_TEAM_EMPLOYEES[0]?.fullName, "Ashley Pursglove");
+assert.equal(GREENDESERT_HR_TEAM_EMPLOYEES[1]?.role, "Chief Executive Officer");
+assert.ok(GREENDESERT_ARCHITECTURE_DIAGRAMS.some((row) => row.slug === "algae-cultivation-overview"));
+assert.ok(GREENDESERT_COMPANY_INTELLIGENCE.length >= 3);
+assert.equal(buildGreenDesertEcaState().portals.length, 2);
+assert.match(buildGreenDesertEcaState().portals[0]?.clientName ?? "", /Board|Jeddah/);
+assert.ok(filterGreenDesertMessagingOperators([]).length >= 4);
 
 ensureMarketingWorkspacePacksRegistered();
 assert.ok(getMarketingWorkspacePack("greendesert"));

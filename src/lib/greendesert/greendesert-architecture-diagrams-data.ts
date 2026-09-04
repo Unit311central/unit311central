@@ -1,35 +1,39 @@
 import type { CustomerArchitectureDiagram } from "@/lib/customer-architecture-store";
 
-/** Starter architecture diagrams for Green Desert Information Repository. */
+/** Architecture diagrams for Green Desert algae cultivation platform. */
 export const GREENDESERT_ARCHITECTURE_DIAGRAMS: Array<
   Omit<CustomerArchitectureDiagram, "id">
 > = [
   {
-    title: "Reactor deployment — site overview",
-    slug: "reactor-site-overview",
+    title: "Algae cultivation platform overview",
+    slug: "algae-cultivation-overview",
     description:
-      "High-level layout of the modular reactor campus, cooling loops, and grid interconnection at the Jeddah site.",
-    notes: "Reference: Phase 1 deployment for Jeddah Technologies.",
+      "End-to-end photobioreactor layout, nutrient dosing, harvest, and powder production for the Jeddah pilot site.",
+    notes: "Source: greendesert.tech — innovative algae production technology.",
   },
   {
-    title: "Control & safety architecture",
-    slug: "control-safety-architecture",
+    title: "IoT monitoring & control layer",
+    slug: "iot-monitoring-control",
     description:
-      "SCADA, safety instrumented systems, and operator HMI layers for reactor monitoring and emergency shutdown.",
-    notes: "Includes redundant PLC paths and alarm escalation to operations.",
+      "Sensor mesh, edge controllers, and ML-driven growth optimisation across cultivation tanks.",
+    notes: "Chemical engineering, IoT, and machine learning integration.",
   },
   {
-    title: "Logistics & module delivery",
-    slug: "logistics-module-delivery",
+    title: "Water efficiency closed loop",
+    slug: "water-efficiency-loop",
     description:
-      "Riyadh assembly to Jeddah site transport, receiving yard, and crane lift sequence for reactor modules.",
-    notes: "Aligned with active Riyadh → Jeddah shipment tracking.",
+      "Recirculation, quality sensors, and recovery systems — 10× less water than comparable protein sources.",
+    notes: "Critical for Saudi Arabia water-scarce operations.",
   },
   {
-    title: "Client integration boundary",
-    slug: "client-integration-boundary",
+    title: "Client integration — Jeddah Technologies",
+    slug: "jeddah-client-integration",
     description:
-      "APIs and secure data exchange between Green Desert operations and Jeddah Technologies client systems.",
-    notes: "Covers telemetry export, billing interfaces, and support ticketing.",
+      "Secure APIs and telemetry export between Green Desert operations and Jeddah Technologies client systems.",
+    notes: "Board and client portal access boundaries.",
   },
 ];
+
+export const GREENDESERT_ARCHITECTURE_DIAGRAM_SLUGS = GREENDESERT_ARCHITECTURE_DIAGRAMS.map(
+  (diagram) => diagram.slug,
+);
