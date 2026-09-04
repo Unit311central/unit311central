@@ -55,7 +55,7 @@ export const WOLF_IR_BUILTIN_DIAGRAM_DESCRIPTIONS: Record<WolfIrBuiltinDiagramSl
   "wolf-architecture":
     "Living workspace diagram — wolf.unit311central.com, custom modules, PAILEX portal, and tenancy.",
   "wolf-pailex-infrastructure":
-    "Placeholder for PAILEX reserve operations, portal routing, and infrastructure dependencies.",
+    "Live PAILEX reserve stack — drone video ingest, satellite uplink, RunPod AI inference, and WOLF workspace delivery.",
   "wolf-ai-models":
     "Placeholder for WOLF AI wildlife vision models, inference pipelines, and training data flows.",
 };
@@ -76,6 +76,7 @@ export const WOLF_IR_WOLF_CATALOG: readonly ArchitectureCatalogEntry[] = [
     title: WOLF_IR_BUILTIN_DIAGRAM_LABELS["wolf-pailex-infrastructure"],
     description: WOLF_IR_BUILTIN_DIAGRAM_DESCRIPTIONS["wolf-pailex-infrastructure"],
     navOrder: 20,
+    liveRefresh: true,
     seedTemplate: "blank",
   },
   {
@@ -153,6 +154,145 @@ function architectureNode(
       nodeKind: kind,
       ...data,
     },
+  };
+}
+
+/** PAILEX seed version — bump to refresh existing placeholder diagrams in production. */
+export const WOLF_PAILEX_INFRASTRUCTURE_SEED_VERSION = 1;
+
+/** Living PAILEX infrastructure diagram — drone → satellite → RunPod AI → WOLF workspace. */
+export function createPailexInfrastructureDiagram(): ArchitectureDiagramDocument {
+  return {
+    version: 1,
+    viewport: { x: 0, y: 0, zoom: 0.72 },
+    meta: {
+      generator: "wolf-information-repository",
+      title: WOLF_IR_BUILTIN_DIAGRAM_LABELS["wolf-pailex-infrastructure"],
+      seedVersion: WOLF_PAILEX_INFRASTRUCTURE_SEED_VERSION,
+      generatedAt: new Date().toISOString(),
+      liveRefresh: true,
+    },
+    nodes: [
+      architectureNode("group-field", "Field operations (BCN)", "group", 20, 20, {
+        style: { width: 300, height: 420 },
+      }),
+      architectureNode("drone", "Drone", "frontend", 70, 40, {
+        parentId: "group-field",
+        description:
+          "Camera sensor · image processing · video encoder H.264/H.265 ~20Mbps · radio transmitter",
+        icon: "zap",
+        status: "live",
+        badges: [{ label: "UAV", tone: "sky" }],
+      }),
+      architectureNode("bcn-radio", "BCN Radio Trans Base station", "service", 50, 130, {
+        parentId: "group-field",
+        description: "Receives compressed + thermal streams · relays control actions to drone",
+        icon: "server",
+        status: "live",
+      }),
+      architectureNode("bcn-switch", "BCN Switch / router", "service", 50, 220, {
+        parentId: "group-field",
+        description: "Ethernet backhaul between base station and field laptops",
+        icon: "link",
+        status: "live",
+      }),
+      architectureNode("bcn-laptops", "BCN Laptops (Wi‑Fi)", "frontend", 40, 300, {
+        parentId: "group-field",
+        description: "Mission Planner · QGroundControl · local live video monitoring",
+        icon: "layout-dashboard",
+        status: "live",
+      }),
+
+      architectureNode("group-connectivity", "Satellite uplink", "group", 360, 120, {
+        style: { width: 260, height: 260 },
+      }),
+      architectureNode("sat-connection", "New sat Connection", "integration", 40, 40, {
+        parentId: "group-connectivity",
+        description: "Satellite backhaul hub · routes video to cloud AI and client laptops",
+        icon: "globe",
+        status: "live",
+        badges: [{ label: "Satellite", tone: "amber" }],
+      }),
+      architectureNode("wifi-router", "Wi‑Fi router", "service", 40, 140, {
+        parentId: "group-connectivity",
+        description: "To internet / satellite · local Pailex client access",
+        icon: "link",
+        status: "live",
+      }),
+
+      architectureNode("pailex-laptops", "Pailex Laptops", "frontend", 680, 180, {
+        description: "React.js · WOLF workspace client · live video + AI results",
+        icon: "layout-dashboard",
+        status: "live",
+        badges: [{ label: "Client", tone: "emerald" }],
+      }),
+
+      architectureNode("group-cloud", "Application cloud", "group", 960, 20, {
+        style: { width: 340, height: 300 },
+      }),
+      architectureNode("vercel", "VERCEL", "frontend", 40, 40, {
+        parentId: "group-cloud",
+        description: "WOLF Workspace · Next.js · wolf.unit311central.com",
+        icon: "globe",
+        status: "live",
+        badges: [{ label: "Edge", tone: "emerald" }],
+      }),
+      architectureNode("supabase", "SUPABASE", "database", 40, 140, {
+        parentId: "group-cloud",
+        description: "Postgres SQL · reserve telemetry · AI metadata persistence",
+        icon: "database",
+        status: "live",
+      }),
+      architectureNode("github-web", "GitHub Repo", "storage", 40, 240, {
+        parentId: "group-cloud",
+        description: "Unit311 · TypeScript monorepo · deploys to Vercel",
+        icon: "folder-open",
+        status: "live",
+      }),
+
+      architectureNode("group-ai", "AI inference (RunPod)", "group", 960, 360, {
+        style: { width: 340, height: 320 },
+      }),
+      architectureNode("runpod", "RUNPOD", "service", 40, 40, {
+        parentId: "group-ai",
+        description:
+          "WOLF AI Python + GPU · FFmpeg CPU decode (video frames) · GPU model inference",
+        icon: "server",
+        status: "live",
+        badges: [{ label: "GPU", tone: "violet" }],
+      }),
+      architectureNode("runpod-models", "Detection models", "integration", 40, 140, {
+        parentId: "group-ai",
+        description: "Fence · Animal · Injury · Fire · Flood · Poaching",
+        icon: "bot",
+        status: "live",
+      }),
+      architectureNode("github-ai", "GitHub Repo", "storage", 40, 240, {
+        parentId: "group-ai",
+        description: "WOLF AI · Python inference pipelines · model weights",
+        icon: "folder-open",
+        status: "live",
+      }),
+    ],
+    edges: [
+      { id: "e-drone-compressed", source: "drone", target: "bcn-radio", label: "Compressed video", animated: true },
+      { id: "e-drone-thermal", source: "drone", target: "bcn-radio", label: "Thermal video" },
+      { id: "e-drone-control", source: "bcn-radio", target: "drone", label: "Control actions" },
+      { id: "e-radio-switch", source: "bcn-radio", target: "bcn-switch", animated: true },
+      { id: "e-switch-laptops", source: "bcn-switch", target: "bcn-laptops", label: "Live video" },
+      { id: "e-radio-sat", source: "bcn-radio", target: "sat-connection", animated: true },
+      { id: "e-sat-wifi", source: "sat-connection", target: "wifi-router" },
+      { id: "e-sat-pailex", source: "sat-connection", target: "pailex-laptops", label: "Live video", animated: true },
+      { id: "e-sat-runpod-live", source: "sat-connection", target: "runpod", label: "Live / telemetry video", animated: true },
+      { id: "e-sat-runpod-thermal", source: "sat-connection", target: "runpod", label: "Thermal video" },
+      { id: "e-runpod-models", source: "runpod", target: "runpod-models" },
+      { id: "e-runpod-vercel", source: "runpod", target: "vercel", label: "AI results / metadata", animated: true },
+      { id: "e-vercel-supabase", source: "vercel", target: "supabase", animated: true },
+      { id: "e-github-vercel", source: "github-web", target: "vercel", label: "deploy" },
+      { id: "e-github-runpod", source: "github-ai", target: "runpod", label: "deploy" },
+      { id: "e-vercel-pailex", source: "vercel", target: "pailex-laptops", label: "WOLF app", animated: true },
+      { id: "e-pailex-vercel", source: "pailex-laptops", target: "vercel" },
+    ],
   };
 }
 
@@ -272,8 +412,24 @@ export function resolveWolfIrSeedDiagram(sectionSlug: string): ArchitectureDiagr
   if (sectionSlug === "wolf-architecture") {
     return createWolfArchitectureDiagram();
   }
+  if (sectionSlug === "wolf-pailex-infrastructure") {
+    return createPailexInfrastructureDiagram();
+  }
   if (isWolfIrBuiltinDiagramSlug(sectionSlug)) {
     return createWolfPlaceholderDiagram(sectionSlug);
   }
   return createBlankArchitectureDiagram(sectionSlug);
+}
+
+export function shouldRefreshWolfIrBuiltinDiagram(
+  sectionSlug: string,
+  diagramJson: ArchitectureDiagramDocument | undefined,
+): boolean {
+  if (sectionSlug === "wolf-pailex-infrastructure") {
+    const seedVersion = Number(diagramJson?.meta?.seedVersion ?? 0);
+    if (seedVersion < WOLF_PAILEX_INFRASTRUCTURE_SEED_VERSION) return true;
+    if (diagramJson?.meta?.placeholder === true) return true;
+    if (diagramJson?.meta?.generator === "wolf-information-repository-placeholder") return true;
+  }
+  return false;
 }

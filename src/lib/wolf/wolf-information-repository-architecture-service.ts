@@ -24,6 +24,7 @@ import {
   isWolfIrCustomDiagramSlug,
   isWolfIrManagedDiagramSlug,
   resolveWolfIrSeedDiagram,
+  shouldRefreshWolfIrBuiltinDiagram,
 } from "@/lib/wolf/wolf-information-repository-architecture-data";
 
 function requireSupabase() {
@@ -82,7 +83,18 @@ export async function getWolfIrDiagramBySection(
   if (!isWolfIrManagedDiagramSlug(slug)) return null;
 
   const existing = await getArchitectureDiagramBySection(slug);
-  if (existing) return existing;
+  if (existing) {
+    if (shouldRefreshWolfIrBuiltinDiagram(slug, existing.diagramJson)) {
+      const catalog = WOLF_IR_WOLF_CATALOG.find((entry) => entry.sectionSlug === slug);
+      const diagramJson = resolveWolfIrSeedDiagram(slug);
+      return upsertArchitectureDiagram({
+        sectionSlug: slug,
+        title: catalog?.title ?? existing.title,
+        diagramJson,
+      });
+    }
+    return existing;
+  }
 
   if (isWolfIrBuiltinDiagramSlug(slug)) {
     const catalog = WOLF_IR_WOLF_CATALOG.find((entry) => entry.sectionSlug === slug);
@@ -100,15 +112,11 @@ export async function getWolfIrDiagramBySection(
 export async function ensureWolfIrBuiltinSeeds(): Promise<SystemArchitectureDiagram[]> {
   const diagrams = await Promise.all(
     WOLF_IR_BUILTIN_DIAGRAM_SLUGS.map(async (slug) => {
-      const existing = await getArchitectureDiagramBySection(slug);
-      if (existing) return existing;
-
-      const catalog = WOLF_IR_WOLF_CATALOG.find((entry) => entry.sectionSlug === slug);
-      return upsertArchitectureDiagram({
-        sectionSlug: slug,
-        title: catalog?.title ?? slug,
-        diagramJson: resolveWolfIrSeedDiagram(slug),
-      });
+      const diagram = await getWolfIrDiagramBySection(slug);
+      if (!diagram) {
+        throw new Error(`Failed to seed WOLF architecture diagram: ${slug}`);
+      }
+      return diagram;
     }),
   );
   return diagrams;

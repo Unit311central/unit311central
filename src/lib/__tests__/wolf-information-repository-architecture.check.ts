@@ -11,6 +11,8 @@ import { WOLF_INFORMATION_REPOSITORY_WORKSPACE_CONFIG } from "@/components/testf
 import {
   WOLF_IR_BUILTIN_DIAGRAM_SLUGS,
   WOLF_IR_UNIT311_CANVAS_SLUGS,
+  WOLF_IR_WOLF_CATALOG,
+  createPailexInfrastructureDiagram,
   createWolfArchitectureDiagram,
   createWolfIrCustomDiagramSlug,
   isWolfIrCustomDiagramSlug,
@@ -37,6 +39,14 @@ const wolfDiagram = createWolfArchitectureDiagram();
 assert.equal(wolfDiagram.version, 1);
 assert.ok(wolfDiagram.nodes.length >= 8);
 assert.ok(wolfDiagram.edges.length >= 5);
+
+const pailexDiagram = createPailexInfrastructureDiagram();
+assert.equal(pailexDiagram.version, 1);
+assert.ok(pailexDiagram.nodes.length >= 12);
+assert.ok(pailexDiagram.edges.length >= 10);
+assert.ok(pailexDiagram.nodes.some((node) => node.id === "drone"));
+assert.ok(pailexDiagram.nodes.some((node) => node.id === "runpod"));
+assert.ok(pailexDiagram.nodes.some((node) => node.id === "vercel"));
 
 const apiRoute = readFileSync(
   join(process.cwd(), "src/app/api/information-repository/architecture-diagrams/route.ts"),
