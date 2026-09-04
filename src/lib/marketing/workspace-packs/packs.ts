@@ -188,7 +188,7 @@ export const talantonMarketingPack: MarketingWorkspacePack = {
   },
 };
 
-/** Green Desert — Talanton-style stories/mailing with local empty store. */
+/** Green Desert — local empty marketing surfaces with Green Desert branding. */
 export const greendesertMarketingPack: MarketingWorkspacePack = {
   id: "greendesert",
   label: "Green Desert",
@@ -197,18 +197,24 @@ export const greendesertMarketingPack: MarketingWorkspacePack = {
     switch (view) {
       case "social":
         return { rendererId: MARKETING_RENDERER_IDS.SOCIAL };
-      case "portfolio-stories":
-        return { rendererId: MARKETING_RENDERER_IDS.TALANTON_PORTFOLIO_STORIES };
-      case "journey-stories":
-        return { rendererId: MARKETING_RENDERER_IDS.TALANTON_JOURNEY_STORIES };
+      case "oa-marketing-dashboard":
+        return { rendererId: MARKETING_RENDERER_IDS.GREENDESERT_MARKETING_DASHBOARD };
       case "marketing-newsletter":
       case "stories-newsletter":
-        return { rendererId: MARKETING_RENDERER_IDS.TALANTON_STORIES_NEWSLETTER };
-      case "stories-media-library":
-        return { rendererId: MARKETING_RENDERER_IDS.TALANTON_MEDIA_LIBRARY };
+        return { rendererId: MARKETING_RENDERER_IDS.GREENDESERT_NEWSLETTER };
+      case "marketing-events":
+        return { rendererId: MARKETING_RENDERER_IDS.GREENDESERT_EXTERNAL_EVENTS };
+      case "marketing-event-management":
+        return { rendererId: MARKETING_RENDERER_IDS.GREENDESERT_EVENT_MANAGEMENT };
       case "marketing-mailing-list":
       case "stories-mailing-list":
-        return { rendererId: MARKETING_RENDERER_IDS.TALANTON_STORIES_MAILING_LIST };
+        return { rendererId: MARKETING_RENDERER_IDS.GREENDESERT_MAILING_LIST };
+      case "portfolio-stories":
+        return { rendererId: MARKETING_RENDERER_IDS.GREENDESERT_CLIENT_STORIES };
+      case "journey-stories":
+        return { rendererId: MARKETING_RENDERER_IDS.GREENDESERT_CLIENT_STORIES };
+      case "stories-media-library":
+        return { rendererId: MARKETING_RENDERER_IDS.GREENDESERT_CLIENT_STORIES };
       case "marketing-training":
         return { rendererId: MARKETING_RENDERER_IDS.STAFF_TRAINING };
       default:

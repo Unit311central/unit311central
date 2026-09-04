@@ -25,6 +25,12 @@ export const MARKETING_RENDERER_IDS = {
   TALANTON_STORIES_NEWSLETTER: "talanton-stories-newsletter",
   TALANTON_MEDIA_LIBRARY: "talanton-media-library",
   TALANTON_STORIES_MAILING_LIST: "talanton-stories-mailing-list",
+  GREENDESERT_MARKETING_DASHBOARD: "greendesert-marketing-dashboard",
+  GREENDESERT_EXTERNAL_EVENTS: "greendesert-external-events",
+  GREENDESERT_EVENT_MANAGEMENT: "greendesert-event-management",
+  GREENDESERT_NEWSLETTER: "greendesert-newsletter",
+  GREENDESERT_MAILING_LIST: "greendesert-mailing-list",
+  GREENDESERT_CLIENT_STORIES: "greendesert-client-stories",
   UNAVAILABLE: "unavailable",
 } as const;
 

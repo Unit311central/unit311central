@@ -115,13 +115,25 @@ const mailingResolution = resolveMarketingView({
   workspaceKey: "greendesert",
   workspaceSlug: GREENDESERT_SLUG,
 });
-assert.equal(mailingResolution?.rendererId, MARKETING_RENDERER_IDS.TALANTON_STORIES_MAILING_LIST);
+assert.equal(mailingResolution?.rendererId, MARKETING_RENDERER_IDS.GREENDESERT_MAILING_LIST);
 const storiesResolution = resolveMarketingView({
   view: "portfolio-stories",
   workspaceKey: "greendesert",
   workspaceSlug: GREENDESERT_SLUG,
 });
-assert.equal(storiesResolution?.rendererId, MARKETING_RENDERER_IDS.TALANTON_PORTFOLIO_STORIES);
+assert.equal(storiesResolution?.rendererId, MARKETING_RENDERER_IDS.GREENDESERT_CLIENT_STORIES);
+const dashboardResolution = resolveMarketingView({
+  view: "oa-marketing-dashboard",
+  workspaceKey: "greendesert",
+  workspaceSlug: GREENDESERT_SLUG,
+});
+assert.equal(dashboardResolution?.rendererId, MARKETING_RENDERER_IDS.GREENDESERT_MARKETING_DASHBOARD);
+const eventsResolution = resolveMarketingView({
+  view: "marketing-events",
+  workspaceKey: "greendesert",
+  workspaceSlug: GREENDESERT_SLUG,
+});
+assert.equal(eventsResolution?.rendererId, MARKETING_RENDERER_IDS.GREENDESERT_EXTERNAL_EVENTS);
 
 const saLabels = getPayrollUiLabels({ countryCode: "SA", defaultCurrency: "USD" });
 assert.equal(saLabels.countryCode, "SA");

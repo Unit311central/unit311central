@@ -35,6 +35,12 @@ export function resolveMarketingShellChrome(
         moduleLabel: "Marketing & Events",
         orgName: "OmniTransit",
       };
+    case "greendesert":
+      return {
+        brandLabel: "Green Desert",
+        moduleLabel: "Marketing & Events",
+        orgName: "Green Desert",
+      };
     default:
       return { orgName: "Workspace" };
   }

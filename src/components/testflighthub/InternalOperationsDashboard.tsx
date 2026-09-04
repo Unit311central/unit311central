@@ -366,6 +366,7 @@ import {
   GreenDesertEngineeringRisksWorkspace,
 } from "@/components/greendesert/GreenDesertEngineeringWorkspaces";
 import GreenDesertBoardPacksWorkspace from "@/components/greendesert/GreenDesertBoardPacksWorkspace";
+import GreenDesertFileExplorerWorkspace from "@/components/greendesert/GreenDesertFileExplorerWorkspace";
 import WorkspaceBusinessCentralDashboard from "@/components/business-central/WorkspaceBusinessCentralDashboard";
 import OnwardAirBusinessCentralDashboard from "@/components/onwardair/OnwardAirBusinessCentralDashboard";
 import SaecBusinessCentralDashboard from "@/components/saec/SaecBusinessCentralDashboard";
@@ -1321,12 +1322,15 @@ export default function InternalOperationsDashboard({
             </WorkspacePane>
           )}
 
-          {activeView === "files-internal" && (
-            <FileRepositoryWorkspace
-              scope="internal"
-              initialFolderId={searchParams.get("folderId")}
-            />
-          )}
+          {activeView === "files-internal" &&
+            (isGreenDesertSurface ? (
+              <GreenDesertFileExplorerWorkspace />
+            ) : (
+              <FileRepositoryWorkspace
+                scope="internal"
+                initialFolderId={searchParams.get("folderId")}
+              />
+            ))}
 
           {activeView === "unit311-details" && <Unit311DetailsWorkspace />}
           {activeView === "information-repository" && <InterfaceWorxInformationRepositoryWorkspace />}

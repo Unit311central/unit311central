@@ -22,6 +22,7 @@ import type {
 } from "@/lib/intelligence/types";
 import { resolveIntelligenceDomainForView } from "@/lib/intelligence/views";
 import { resolveIntelligenceWorkspaceSlugFromBrowser } from "@/lib/intelligence/workspace-context";
+import { isGreenDesertSlug } from "@/lib/greendesert-surface";
 import { cn } from "@/lib/utils";
 
 const SEVERITIES: IntelligenceSeverity[] = ["critical", "high", "medium", "low", "info"];
@@ -51,6 +52,7 @@ export default function IntelligenceCentralWorkspace({
 }: IntelligenceCentralWorkspaceProps) {
   const workspaceSlug =
     workspaceSlugProp ?? resolveIntelligenceWorkspaceSlugFromBrowser() ?? "";
+  const isGreenDesertWorkspace = isGreenDesertSlug(workspaceSlug);
 
   const initialDomain = useMemo(
     () => resolveIntelligenceDomainForView(workspaceSlug, activeView),
@@ -182,7 +184,7 @@ export default function IntelligenceCentralWorkspace({
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-violet-300/90">
-            Unit311 Intelligence
+            {isGreenDesertWorkspace ? packLabel : "Unit311 Intelligence"}
           </p>
           <h1 className="mt-1 flex items-center gap-2 text-2xl font-semibold tracking-tight text-white">
             <Brain className="h-6 w-6 text-violet-300" />

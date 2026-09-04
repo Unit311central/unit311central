@@ -3,6 +3,12 @@
  * Not a blog CMS: field insights → AI content packs → Marketing / Board / Newsletter / investors.
  */
 
+import {
+  emptyGreenDesertJourneyStoriesState,
+  isGreenDesertJourneyStoriesSurface,
+  loadGreenDesertJourneyStoriesState,
+  persistGreenDesertJourneyStoriesState,
+} from "@/lib/greendesert/greendesert-journey-stories-persistence";
 import { TALANTON_PORTFOLIO_COMPANIES } from "@/lib/talanton/portfolio-data";
 
 type Listener = () => void;
@@ -605,9 +611,15 @@ const SEED_RAW = [
 const SEED: JourneyStory[] = SEED_RAW;
 
 const listeners = new Set<Listener>();
-let state: JourneyStoriesState = { stories: SEED.map((s) => ({ ...s })) };
+let state: JourneyStoriesState =
+  typeof window !== "undefined" && isGreenDesertJourneyStoriesSurface()
+    ? loadGreenDesertJourneyStoriesState() ?? emptyGreenDesertJourneyStoriesState()
+    : { stories: SEED.map((s) => ({ ...s })) };
 
 function emit() {
+  if (isGreenDesertJourneyStoriesSurface()) {
+    persistGreenDesertJourneyStoriesState(state);
+  }
   for (const l of listeners) l();
 }
 
@@ -631,6 +643,11 @@ export function replaceTalantonJourneyStoriesState(next: JourneyStoriesState) {
 
 export async function hydrateTalantonJourneyStoriesFromCentralApi(): Promise<boolean> {
   if (typeof window === "undefined") return false;
+  if (isGreenDesertJourneyStoriesSurface()) {
+    state = loadGreenDesertJourneyStoriesState() ?? emptyGreenDesertJourneyStoriesState();
+    emit();
+    return true;
+  }
   const { fetchMarketingBundle } = await import("@/lib/marketing/client/marketing-api");
   const { mapBundleToJourneyStoriesState } = await import("@/lib/marketing/client/store-hydration");
   const bundle = await fetchMarketingBundle();
@@ -696,6 +713,7 @@ export function listJourneyStoriesForCompanyPortal(): JourneyStory[] {
 }
 
 export function listJourneyStoriesForNewsletter(): JourneyStory[] {
+  if (isGreenDesertJourneyStoriesSurface()) return [];
   return listJourneyStories().filter(
     (s) =>
       (s.status === "Published" || s.status === "Approved") &&

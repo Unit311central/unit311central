@@ -23,6 +23,11 @@ import {
   TALANTON_LOCKED_SECTION_ORDER_KEYS,
   TALANTON_SIDEBAR_FACTORY_REVISION,
 } from "@/lib/talanton-nav-order";
+import {
+  isGreenDesertLockedSectionBundle,
+  GREENDESERT_LOCKED_SECTION_ORDER_KEYS,
+  GREENDESERT_SIDEBAR_FACTORY_REVISION,
+} from "@/lib/greendesert/greendesert-nav-order";
 import { canonicalizeTalantonImpactSlug } from "@/lib/talanton-surface";
 import { canonicalizeWolfCentralSlug, WOLF_CENTRAL_SLUG } from "@/lib/wolf/wolf-surface";
 
@@ -37,11 +42,13 @@ function isLockedHostSectionBundle(
   return (
     isTalantonLockedSectionBundle(sections) ||
     isOnwardAirLockedSectionBundle(sections) ||
-    isAbhiLockedSectionBundle(sections)
+    isAbhiLockedSectionBundle(sections) ||
+    isGreenDesertLockedSectionBundle(sections)
   );
 }
 
-function targetStorageVersion(sections: readonly InternalNavSection[]): 4 | 6 | 7 | 8 | 9 {
+function targetStorageVersion(sections: readonly InternalNavSection[]): 4 | 6 | 7 | 8 | 9 | 10 {
+  if (isGreenDesertLockedSectionBundle(sections)) return GREENDESERT_SIDEBAR_FACTORY_REVISION;
   if (isTalantonLockedSectionBundle(sections)) return TALANTON_SIDEBAR_FACTORY_REVISION;
   if (isAbhiLockedSectionBundle(sections)) return ABHI_SIDEBAR_FACTORY_REVISION;
   if (isOnwardAirLockedSectionBundle(sections)) return 6;
@@ -213,7 +220,7 @@ export type SidebarNavCustomStorage = {
    * v7: Talanton owner factory order reset (Aug 2026).
    * v8: ABHI locked factory order + Settings-owned reorder persistence.
    */
-  version: 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
+  version: 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
   /** Ordered workspace section keys (excludes fixed pins + Settings). */
   sectionOrder: string[];
   /** User explicitly reordered in Settings → General → Sidebar. */
@@ -252,9 +259,35 @@ export function isMovableWorkspaceSection(section: InternalNavSection): boolean 
   return section.kind !== "pin" && !isSettingsSection(section);
 }
 
+function greendesertFactorySectionOrder(sections: readonly InternalNavSection[]): string[] {
+  const movable = sections.filter(isMovableWorkspaceSection).map(getNavSectionKey);
+  const known = new Set(movable);
+  const locked = GREENDESERT_LOCKED_SECTION_ORDER_KEYS.filter((key) => known.has(key));
+  const extras = movable.filter((key) => !locked.includes(key));
+  return [...locked, ...extras];
+}
+
+/** Owner factory order — wipes polluted localStorage on Green Desert when revision bumps. */
+function greendesertFactoryNavCustom(
+  sections: readonly InternalNavSection[],
+  parsed: Partial<SidebarNavCustomStorage>,
+): SidebarNavCustomStorage {
+  return {
+    version: GREENDESERT_SIDEBAR_FACTORY_REVISION,
+    customized: false,
+    sectionOrder: greendesertFactorySectionOrder(sections),
+    hidden: parsed.hidden ?? {},
+    customItems: parsed.customItems ?? [],
+    order: parsed.order,
+  };
+}
+
 /** Factory default order for Talanton / OnwardAir (used until user customizes in Settings). */
 export function defaultSectionOrder(sections: readonly InternalNavSection[]): string[] {
   const movable = sections.filter(isMovableWorkspaceSection).map(getNavSectionKey);
+  if (isGreenDesertLockedSectionBundle(sections)) {
+    return greendesertFactorySectionOrder(sections);
+  }
   if (isOnwardAirLockedSectionBundle(sections)) {
     const known = new Set(movable);
     const locked = ONWARDAIR_LOCKED_SECTION_ORDER_KEYS.filter((key) => known.has(key));
@@ -378,6 +411,9 @@ function resolveEffectiveSectionOrder(
   sectionOrder: readonly string[],
   customized: boolean,
 ): string[] {
+  if (isGreenDesertLockedSectionBundle(sections) && !customized) {
+    return greendesertFactorySectionOrder(sections);
+  }
   if (isTalantonLockedSectionBundle(sections) && !customized) {
     return talantonFactorySectionOrder(sections);
   }
@@ -422,6 +458,10 @@ export function loadSidebarNavCustom(
     const storedVersion = Number(parsed.version ?? 1);
     const targetVersion = targetStorageVersion(sections);
     const lockedHost = isLockedHostSectionBundle(sections);
+
+    if (isGreenDesertLockedSectionBundle(sections) && storedVersion < GREENDESERT_SIDEBAR_FACTORY_REVISION) {
+      return greendesertFactoryNavCustom(sections, parsed);
+    }
 
     if (isTalantonLockedSectionBundle(sections) && storedVersion < TALANTON_SIDEBAR_FACTORY_REVISION) {
       return talantonFactoryNavCustom(sections, parsed);
@@ -488,6 +528,9 @@ export function reconcileSidebarNavCustom(
 
     if (
       (storedVersion < 4 && parsed.customized !== true) ||
+      (isGreenDesertLockedSectionBundle(sections) &&
+        storedVersion < GREENDESERT_SIDEBAR_FACTORY_REVISION &&
+        parsed.customized !== true) ||
       (isTalantonLockedSectionBundle(sections) && storedVersion < TALANTON_SIDEBAR_FACTORY_REVISION) ||
       (isAbhiLockedSectionBundle(sections) &&
         storedVersion < ABHI_SIDEBAR_FACTORY_REVISION &&

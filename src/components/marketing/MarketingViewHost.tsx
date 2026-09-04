@@ -40,6 +40,14 @@ import {
   CentralNewsletterWorkspace,
   CentralStoriesWorkspace,
 } from "./workspaces/CentralMarketingWorkspaces";
+import {
+  GreenDesertClientStoriesWorkspace,
+  GreenDesertDigitalNewsletterWorkspace,
+  GreenDesertEventManagementWorkspace,
+  GreenDesertExternalEventsWorkspace,
+  GreenDesertMailingListWorkspace,
+  GreenDesertMarketingDashboardWorkspace,
+} from "@/components/greendesert/marketing/GreenDesertMarketingWorkspaces";
 
 const PortfolioStoriesWorkspace = dynamic(
   () => import("@/components/testflighthub/talanton/PortfolioStoriesWorkspace"),
@@ -208,6 +216,36 @@ function MarketingRenderer({
       return (
         <WorkspaceErrorBoundary title="Mailing List Management">
           <StoriesMailingListWorkspace />
+        </WorkspaceErrorBoundary>
+      );
+
+    case MARKETING_RENDERER_IDS.GREENDESERT_MARKETING_DASHBOARD:
+      return <GreenDesertMarketingDashboardWorkspace />;
+
+    case MARKETING_RENDERER_IDS.GREENDESERT_EXTERNAL_EVENTS:
+      return <GreenDesertExternalEventsWorkspace />;
+
+    case MARKETING_RENDERER_IDS.GREENDESERT_EVENT_MANAGEMENT:
+      return <GreenDesertEventManagementWorkspace />;
+
+    case MARKETING_RENDERER_IDS.GREENDESERT_NEWSLETTER:
+      return (
+        <WorkspaceErrorBoundary title="Digital Newsletter">
+          <GreenDesertDigitalNewsletterWorkspace />
+        </WorkspaceErrorBoundary>
+      );
+
+    case MARKETING_RENDERER_IDS.GREENDESERT_MAILING_LIST:
+      return (
+        <WorkspaceErrorBoundary title="Mailing List Management">
+          <GreenDesertMailingListWorkspace />
+        </WorkspaceErrorBoundary>
+      );
+
+    case MARKETING_RENDERER_IDS.GREENDESERT_CLIENT_STORIES:
+      return (
+        <WorkspaceErrorBoundary title="Client Stories">
+          <GreenDesertClientStoriesWorkspace />
         </WorkspaceErrorBoundary>
       );
 
