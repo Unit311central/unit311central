@@ -66,6 +66,7 @@ import {
 } from "@/lib/demo/demo-client-portal-routes";
 import { matchNorthstarDemoClientPortalPathname } from "@/lib/demo/northstar-client-portal-routes";
 import { ABHI_SLUG } from "@/lib/abhi-surface";
+import { isGreenDesertSlug } from "@/lib/greendesert-surface";
 import {
   applyOverviewViewCookie,
   clearOverviewGateCookie,
@@ -563,6 +564,33 @@ export async function middleware(request: NextRequest) {
       return response;
     }
 
+    // Green Desert board portal externals — /board only; never admin shell.
+    if (isGreenDesertSlug(workspaceSlug)) {
+      const externalGate = await evaluateCustomerHostSessionGate(request, resolvedWorkspaceSlug);
+      if (externalGate.status === "ok" && externalGate.session.userType === "external") {
+        const portalHome = canonicalizePortalRedirect(externalGate.session.redirectPath);
+        const isBoardPath = pathname === "/board" || pathname.startsWith("/board/");
+        const isOrgEntry = pathname === "/login" || pathname.startsWith("/login/");
+        const isAllowedUtility =
+          isOrgEntry || pathname.startsWith("/api/") || pathname.startsWith("/_next/");
+
+        if (!portalHome) {
+          const clear = redirectExternal(`${workspaceOrigin}/login`);
+          clearPlatformSessionCookie(clear, request);
+          return clear;
+        }
+
+        if (!isBoardPath && !isAllowedUtility) {
+          const bounce = redirectExternal(`${workspaceOrigin}${portalHome}`);
+          return applyCustomerHostRebindIfNeeded({
+            request,
+            response: bounce,
+            gate: externalGate,
+          });
+        }
+      }
+    }
+
     // Talanton / ABHI externals may only use login/api/static + their assigned portal.
     // Apex `/` and `/login` are the organisation entry — never hijack into /{company}.
     if (isPortalWorkspaceSlug(workspaceSlug)) {
@@ -741,6 +769,69 @@ export async function middleware(request: NextRequest) {
         response: rewriteTo(request, "/testing", headers, workspaceResponseHeaders),
         gate,
       });
+    }
+
+    // Green Desert board portal — /board on greendesert host (external board members only).
+    if (
+      isGreenDesertSlug(workspaceSlug) &&
+      (pathname === "/board" || pathname.startsWith("/board/"))
+    ) {
+      const isLoginRest = pathname === "/board/login" || pathname.startsWith("/board/login/");
+      const gate = await evaluateCustomerHostSessionGate(request, resolvedWorkspaceSlug);
+
+      const boardLoginGate = (clearSession = false) => {
+        if (!isLoginRest) {
+          const response = redirectExternal(`${workspaceOrigin}/board/login${search}`);
+          if (clearSession) clearPlatformSessionCookie(response, request);
+          return response;
+        }
+        const response = NextResponse.next({ request: { headers } });
+        for (const [key, value] of Object.entries(workspaceResponseHeaders)) {
+          response.headers.set(key, value);
+        }
+        response.headers.set(
+          "Cache-Control",
+          "private, no-cache, no-store, max-age=0, must-revalidate",
+        );
+        if (clearSession) clearPlatformSessionCookie(response, request);
+        return response;
+      };
+
+      if (gate.status === "anonymous") {
+        return boardLoginGate();
+      }
+
+      if (
+        gate.status === "invalid" ||
+        gate.status === "forbidden" ||
+        gate.status === "workspace_missing"
+      ) {
+        return boardLoginGate(true);
+      }
+
+      if (gate.session.userType !== "external") {
+        return boardLoginGate();
+      }
+
+      const allowed = canonicalizePortalRedirect(gate.session.redirectPath);
+      if (allowed !== "/board") {
+        return boardLoginGate(true);
+      }
+
+      if (isLoginRest) {
+        const bounce = redirectExternal(`${workspaceOrigin}/board${search}`);
+        return applyCustomerHostRebindIfNeeded({ request, response: bounce, gate });
+      }
+
+      const response = NextResponse.next({ request: { headers } });
+      for (const [key, value] of Object.entries(workspaceResponseHeaders)) {
+        response.headers.set(key, value);
+      }
+      response.headers.set(
+        "Cache-Control",
+        "private, no-cache, no-store, max-age=0, must-revalidate",
+      );
+      return applyCustomerHostRebindIfNeeded({ request, response, gate });
     }
 
     const requiresAuthenticatedApp =
