@@ -2,6 +2,8 @@ import type {
   WorkPackageDetail,
   WorkPackageListItem,
   WorkPackagePriority,
+  WorkPackageQuestion,
+  WorkPackageQuestionAnswerLogEntry,
   WorkPackageStatus,
   WorkPackageTask,
   WorkPackageTaskStatus,
@@ -168,4 +170,30 @@ export async function deleteWorkPackageTaskApi(packageId: string, taskId: string
     const payload = (await response.json()) as { error?: string };
     throw new Error(payload.error ?? "Delete failed.");
   }
+}
+
+export async function answerWorkPackageQuestionApi(
+  packageId: string,
+  questionId: string,
+  answerText: string,
+) {
+  const response = await fetch(
+    `/api/internal-work-packages/${packageId}/questions/${questionId}`,
+    {
+      method: "PATCH",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ answerText }),
+    },
+  );
+  const payload = await parseJson<{ question: WorkPackageQuestion }>(response);
+  return payload.question;
+}
+
+export async function listWorkPackageQuestionAnswerLogApi(packageId: string) {
+  const response = await fetch(`/api/internal-work-packages/${packageId}/questions/answer-log`, {
+    credentials: "include",
+  });
+  const payload = await parseJson<{ entries: WorkPackageQuestionAnswerLogEntry[] }>(response);
+  return payload.entries;
 }

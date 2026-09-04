@@ -3,13 +3,21 @@ import type {
   WorkPackageListItem,
   WorkPackageMember,
   WorkPackagePriority,
+  WorkPackageQuestion,
+  WorkPackageQuestionAnswerLogEntry,
   WorkPackageStatus,
   WorkPackageTask,
   WorkPackageTaskStatus,
 } from "@/lib/internal-work-packages/types";
+import {
+  WOLF_BCN_VIDEO_HANDLING_CATEGORY,
+  WOLF_BCN_VIDEO_HANDLING_QUESTIONS,
+  WOLF_BCN_QUESTIONS_WORK_PACKAGE,
+} from "@/lib/internal-work-packages/bcn-questions-seed";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
 import { createTenancyServerClient } from "@/lib/supabase/tenancy-server";
 import { requireCurrentWorkspace } from "@/lib/workspace-context";
+import { isWolfCentralSlug } from "@/lib/wolf/wolf-surface";
 
 export type WorkPackageActor = { userId?: string | null; displayName: string };
 export type WorkPackageWorkspaceScope = { workspaceId?: string };
@@ -22,6 +30,51 @@ function db() {
 async function workspaceId(scope?: WorkPackageWorkspaceScope) {
   if (scope?.workspaceId?.trim()) return scope.workspaceId.trim();
   return (await requireCurrentWorkspace()).id;
+}
+
+function mapQuestion(row: Record<string, unknown>): WorkPackageQuestion {
+  return {
+    id: String(row.id),
+    category: String(row.category ?? ""),
+    questionText: String(row.question_text ?? ""),
+    sortOrder: Number(row.sort_order ?? 0),
+    currentAnswer: String(row.current_answer ?? ""),
+    answeredAt: row.answered_at ? String(row.answered_at) : null,
+    answeredByUserId: row.answered_by_user_id ? String(row.answered_by_user_id) : null,
+    answeredByName: String(row.answered_by_name ?? ""),
+  };
+}
+
+function mapAnswerLog(
+  row: Record<string, unknown>,
+  question?: WorkPackageQuestion,
+): WorkPackageQuestionAnswerLogEntry {
+  return {
+    id: String(row.id),
+    questionId: String(row.question_id),
+    questionText: question?.questionText ?? String(row.question_text ?? ""),
+    category: question?.category ?? String(row.category ?? ""),
+    answerText: String(row.answer_text ?? ""),
+    answeredAt: String(row.answered_at),
+    answeredByUserId: row.answered_by_user_id ? String(row.answered_by_user_id) : null,
+    answeredByName: String(row.answered_by_name ?? ""),
+  };
+}
+
+async function loadWorkPackageQuestions(ws: string, packageId: string) {
+  const { data, error } = await db()
+    .from("internal_work_package_questions")
+    .select("*")
+    .eq("workspace_id", ws)
+    .eq("work_package_id", packageId)
+    .order("sort_order", { ascending: true });
+  if (error) {
+    if (error.message.includes("does not exist") || error.message.includes("schema cache")) {
+      return [];
+    }
+    throw new Error(error.message);
+  }
+  return (data ?? []).map(mapQuestion);
 }
 
 function mapMember(row: Record<string, unknown>): WorkPackageMember {
@@ -148,6 +201,10 @@ export async function listWorkPackages(
   },
 ) {
   const ws = await workspaceId(scope);
+  const workspace = await requireCurrentWorkspace().catch(() => null);
+  if (workspace && isWolfCentralSlug(workspace.slug)) {
+    await ensureWolfBcnQuestionsWorkPackage(ws).catch(() => undefined);
+  }
   const { data, error } = await db()
     .from("internal_work_packages")
     .select("*")
@@ -275,6 +332,7 @@ export async function getWorkPackageById(id: string, scope?: WorkPackageWorkspac
     notes: String(data.notes ?? ""),
     members: (members ?? []).map(mapMember),
     tasks: taskRows.map(mapTask),
+    questions: await loadWorkPackageQuestions(ws, id),
   } satisfies WorkPackageDetail;
 }
 
@@ -545,4 +603,150 @@ export async function deleteWorkPackageTask(
     .eq("id", taskId);
   if (error) throw new Error(error.message);
   await recalculateProgress(ws, packageId);
+}
+
+export async function ensureWolfBcnQuestionsWorkPackage(ws: string) {
+  const { data: existing } = await db()
+    .from("internal_work_packages")
+    .select("id")
+    .eq("workspace_id", ws)
+    .eq("package_code", WOLF_BCN_QUESTIONS_WORK_PACKAGE.packageCode)
+    .maybeSingle();
+
+  let packageId = existing?.id ? String(existing.id) : null;
+  const now = new Date().toISOString();
+
+  if (!packageId) {
+    const { data, error } = await db()
+      .from("internal_work_packages")
+      .insert({
+        workspace_id: ws,
+        package_code: WOLF_BCN_QUESTIONS_WORK_PACKAGE.packageCode,
+        name: WOLF_BCN_QUESTIONS_WORK_PACKAGE.name,
+        description: WOLF_BCN_QUESTIONS_WORK_PACKAGE.description,
+        status: "In Progress",
+        priority: "High",
+        owner_name: "WOLF Central",
+        created_by_name: "System",
+        notes: "questionnaire",
+        created_at: now,
+        updated_at: now,
+      })
+      .select("id")
+      .single();
+    if (error) throw new Error(error.message);
+    packageId = String(data.id);
+  }
+
+  const { count, error: countError } = await db()
+    .from("internal_work_package_questions")
+    .select("id", { count: "exact", head: true })
+    .eq("workspace_id", ws)
+    .eq("work_package_id", packageId);
+  if (countError) {
+    if (countError.message.includes("does not exist") || countError.message.includes("schema cache")) {
+      return packageId;
+    }
+    throw new Error(countError.message);
+  }
+  if ((count ?? 0) > 0) return packageId;
+
+  const rows = WOLF_BCN_VIDEO_HANDLING_QUESTIONS.map((questionText, index) => ({
+    workspace_id: ws,
+    work_package_id: packageId,
+    category: WOLF_BCN_VIDEO_HANDLING_CATEGORY,
+    question_text: questionText,
+    sort_order: index + 1,
+  }));
+  const { error: insertError } = await db().from("internal_work_package_questions").insert(rows);
+  if (insertError) throw new Error(insertError.message);
+  return packageId;
+}
+
+export async function answerWorkPackageQuestion(
+  packageId: string,
+  questionId: string,
+  input: { answerText: string },
+  actor: WorkPackageActor,
+  scope?: WorkPackageWorkspaceScope,
+) {
+  const ws = await workspaceId(scope);
+  const answerText = input.answerText.trim();
+  if (!answerText) throw new Error("Answer is required.");
+
+  const { data: question, error: loadError } = await db()
+    .from("internal_work_package_questions")
+    .select("*")
+    .eq("workspace_id", ws)
+    .eq("work_package_id", packageId)
+    .eq("id", questionId)
+    .maybeSingle();
+  if (loadError) throw new Error(loadError.message);
+  if (!question) throw new Error("Question not found.");
+
+  const now = new Date().toISOString();
+  const { error: updateError } = await db()
+    .from("internal_work_package_questions")
+    .update({
+      current_answer: answerText,
+      answered_at: now,
+      answered_by_user_id: actor.userId ?? null,
+      answered_by_name: actor.displayName,
+      updated_at: now,
+    })
+    .eq("workspace_id", ws)
+    .eq("id", questionId);
+  if (updateError) throw new Error(updateError.message);
+
+  const { error: logError } = await db().from("internal_work_package_question_answer_log").insert({
+    workspace_id: ws,
+    work_package_id: packageId,
+    question_id: questionId,
+    answer_text: answerText,
+    answered_at: now,
+    answered_by_user_id: actor.userId ?? null,
+    answered_by_name: actor.displayName,
+  });
+  if (logError) throw new Error(logError.message);
+
+  await db()
+    .from("internal_work_packages")
+    .update({ updated_at: now })
+    .eq("workspace_id", ws)
+    .eq("id", packageId);
+
+  return mapQuestion({
+    ...question,
+    current_answer: answerText,
+    answered_at: now,
+    answered_by_user_id: actor.userId ?? null,
+    answered_by_name: actor.displayName,
+    updated_at: now,
+  });
+}
+
+export async function listWorkPackageQuestionAnswerLog(
+  packageId: string,
+  scope?: WorkPackageWorkspaceScope,
+) {
+  const ws = await workspaceId(scope);
+  const questions = await loadWorkPackageQuestions(ws, packageId);
+  const questionMap = new Map(questions.map((question) => [question.id, question]));
+
+  const { data, error } = await db()
+    .from("internal_work_package_question_answer_log")
+    .select("*")
+    .eq("workspace_id", ws)
+    .eq("work_package_id", packageId)
+    .order("answered_at", { ascending: false });
+  if (error) {
+    if (error.message.includes("does not exist") || error.message.includes("schema cache")) {
+      return [];
+    }
+    throw new Error(error.message);
+  }
+
+  return (data ?? []).map((row) =>
+    mapAnswerLog(row as Record<string, unknown>, questionMap.get(String(row.question_id))),
+  );
 }

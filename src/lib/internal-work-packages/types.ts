@@ -60,4 +60,27 @@ export type WorkPackageDetail = WorkPackageListItem & {
   notes: string;
   members: WorkPackageMember[];
   tasks: WorkPackageTask[];
+  questions: WorkPackageQuestion[];
+};
+
+export type WorkPackageQuestion = {
+  id: string;
+  category: string;
+  questionText: string;
+  sortOrder: number;
+  currentAnswer: string;
+  answeredAt: string | null;
+  answeredByUserId: string | null;
+  answeredByName: string;
+};
+
+export type WorkPackageQuestionAnswerLogEntry = {
+  id: string;
+  questionId: string;
+  questionText: string;
+  category: string;
+  answerText: string;
+  answeredAt: string;
+  answeredByUserId: string | null;
+  answeredByName: string;
 };
