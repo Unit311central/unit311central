@@ -2,6 +2,7 @@ import {
   createBlankArchitectureDiagram,
   type ArchitectureCatalogEntry,
   type ArchitectureDiagramDocument,
+  type ArchitectureNodeBadge,
 } from "@/lib/architecture-diagram-data";
 import { ARCHITECTURE_TREE_SLUGS } from "@/lib/architecture-taxonomy-types";
 import { WOLF_CENTRAL_HOST_ALIAS, WOLF_CENTRAL_SLUG, WOLF_DISPLAY_NAME } from "@/lib/wolf/wolf-surface";
@@ -139,6 +140,7 @@ function architectureNode(
     icon?: string;
     status?: "live" | "beta" | "planned";
     style?: Record<string, string | number>;
+    badges?: ArchitectureNodeBadge[];
   } = {},
 ) {
   const { parentId, style, ...data } = extra;
