@@ -15,7 +15,7 @@ export type GreenDesertClientPortalRoute = {
 
 export const GREENDESERT_CLIENT_PORTAL_ORIGIN = GREENDESERT_BOARD_PORTAL_ORIGIN;
 
-export const GREENDESERT_CLIENT_PORTAL_ROUTES: readonly GreenDesertClientPortalRoute[] = [
+export const GREENDESERT_CLIENT_PORTAL_ROUTES = [
   {
     path: "jeddahtechnologies",
     displayName: "Jeddah Technologies",

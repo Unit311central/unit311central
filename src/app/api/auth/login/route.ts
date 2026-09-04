@@ -86,13 +86,15 @@ import {
 } from "@/lib/greendesert/greendesert-board-portal-auth-server";
 import {
   greenDesertClientPortalAbsoluteUrl,
+  matchGreenDesertClientPortalPathname,
   type GreenDesertClientPortalRoute,
 } from "@/lib/greendesert/client-portal-routes";
 import {
+  getGreenDesertClientPortalByUsername,
   isGreenDesertClientPortalUsername,
   verifyGreenDesertClientPortalPassword,
 } from "@/lib/greendesert/greendesert-portal-auth-server";
-import { GREENDESERT_SLUG, isGreenDesertSlug } from "@/lib/greendesert-surface";
+import { GREENDESERT_SLUG, isGreenDesertHost, isGreenDesertSlug } from "@/lib/greendesert-surface";
 import { canonicalizeWolfCentralSlug, isWolfCentralSlug } from "@/lib/wolf/wolf-surface";
 import {
   isOmnitransitPortalsAllowedUsername,
@@ -740,6 +742,22 @@ async function createGreenDesertBoardPortalLoginResponse(
   return response;
 }
 
+function resolveGreenDesertClientPortalRoute(
+  nextRaw: string | null | undefined,
+  username: string,
+): GreenDesertClientPortalRoute | null {
+  const nextPath = String(nextRaw ?? "")
+    .trim()
+    .split("?")[0];
+  if (nextPath) {
+    const matched = matchGreenDesertClientPortalPathname(
+      nextPath.startsWith("/") ? nextPath : `/${nextPath}`,
+    );
+    if (matched) return matched.route;
+  }
+  return getGreenDesertClientPortalByUsername(username);
+}
+
 async function createGreenDesertClientPortalLoginResponse(
   request: NextRequest,
   usernameRaw: string,
@@ -749,23 +767,22 @@ async function createGreenDesertClientPortalLoginResponse(
   workspaceSlug: string | null,
 ) {
   const username = normalizePlatformUsername(usernameRaw);
-  if (!isGreenDesertSlug(workspaceSlug) || !isGreenDesertClientPortalUsername(username)) {
+  const requestHost = getRequestHost(request);
+  const onGreenDesertSurface =
+    isGreenDesertSlug(workspaceSlug) || isGreenDesertHost(requestHost);
+  if (!onGreenDesertSurface || !isGreenDesertClientPortalUsername(username)) {
     return null;
   }
   if (!verifyGreenDesertClientPortalPassword(password)) {
     return null;
   }
 
-  const pack = getPortalPackBySlug(GREENDESERT_SLUG);
-  if (!pack) return null;
+  const route = resolveGreenDesertClientPortalRoute(nextRaw, username);
+  if (!route || normalizePlatformUsername(route.username) !== username) {
+    return null;
+  }
 
-  const nextPath = String(nextRaw ?? "")
-    .trim()
-    .split("?")[0];
-  const nextMatch = pack.matcher.matchPathname(nextPath.startsWith("/") ? nextPath : `/${nextPath}`);
-  if (!nextMatch) return null;
-
-  const sessionRedirectPath = `/${nextMatch.route.path}`;
+  const sessionRedirectPath = `/${route.path}`;
 
   const workspace = await resolveWorkspaceBinding({
     workspaceSlug: GREENDESERT_SLUG,
@@ -784,9 +801,7 @@ async function createGreenDesertClientPortalLoginResponse(
     workspace,
   );
 
-  const portalUrl = greenDesertClientPortalAbsoluteUrl(
-    nextMatch.route as GreenDesertClientPortalRoute,
-  );
+  const portalUrl = greenDesertClientPortalAbsoluteUrl(route);
   if (!portalUrl) return null;
 
   const response = NextResponse.json({
@@ -1004,6 +1019,29 @@ export async function POST(request: NextRequest) {
       return createDemoLoginResponse(request, returnToRaw, nextRaw);
     }
 
+    // Green Desert external portals — credential fallback before DB (works without migration).
+    if (isGreenDesertSlug(workspaceSlug) || isGreenDesertHost(requestHost)) {
+      const greendesertClientLogin = await createGreenDesertClientPortalLoginResponse(
+        request,
+        body.username,
+        body.password,
+        returnToRaw,
+        nextRaw,
+        workspaceSlug,
+      );
+      if (greendesertClientLogin) return greendesertClientLogin;
+
+      const greendesertBoardLogin = await createGreenDesertBoardPortalLoginResponse(
+        request,
+        body.username,
+        body.password,
+        returnToRaw,
+        nextRaw,
+        workspaceSlug,
+      );
+      if (greendesertBoardLogin) return greendesertBoardLogin;
+    }
+
     // Prefer real workspace membership first so /login lands on the main platform.
     // Fall back to the shared demo password login only when DB auth fails.
     if (isSupabaseConfigured()) {
@@ -1176,16 +1214,6 @@ export async function POST(request: NextRequest) {
       workspaceSlug,
     );
     if (greendesertBoardLogin) return greendesertBoardLogin;
-
-    const greendesertClientLogin = await createGreenDesertClientPortalLoginResponse(
-      request,
-      body.username,
-      body.password,
-      returnToRaw,
-      nextRaw,
-      workspaceSlug,
-    );
-    if (greendesertClientLogin) return greendesertClientLogin;
 
     const omnitransitPortalLogin = await createOmnitransitPortalsExternalLoginResponse(
       request,

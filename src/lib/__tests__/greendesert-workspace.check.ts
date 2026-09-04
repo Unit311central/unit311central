@@ -26,6 +26,7 @@ import {
 } from "@/lib/greendesert-surface";
 import {
   isGreenDesertClientPortalUsername,
+  getGreenDesertClientPortalByUsername,
   verifyGreenDesertClientPortalPassword,
 } from "@/lib/greendesert/greendesert-portal-auth-server";
 import { isCustomerWorkspaceSlug } from "@/lib/customer-workspace-surface";
@@ -60,6 +61,7 @@ assert.ok(jeddahRoute);
 assert.equal(jeddahRoute?.clientId, "greendesert-cli-jeddah-technologies");
 assert.ok(isGreenDesertClientPortalUsername("jeddahtechnologies@greendesert.unit311central.com"));
 assert.ok(verifyGreenDesertClientPortalPassword("Reactor20206$"));
+assert.equal(getGreenDesertClientPortalByUsername("jeddahtechnologies@greendesert.unit311central.com")?.path, "jeddahtechnologies");
 
 assert.equal(GREENDESERT_LOGISTICS_SHIPMENTS.length, 1);
 assert.match(GREENDESERT_LOGISTICS_SHIPMENTS[0]?.origin ?? "", /Riyadh/i);
@@ -108,5 +110,6 @@ assert.match(irWorkspace, /CustomerArchitectureWorkspace/);
 
 const loginRoute = readFileSync(join(repoRoot, "src/app/api/auth/login/route.ts"), "utf8");
 assert.match(loginRoute, /createGreenDesertClientPortalLoginResponse/);
+assert.match(loginRoute, /Green Desert external portals — credential fallback before DB/);
 
 console.log("greendesert-workspace.check.ts — all assertions passed");

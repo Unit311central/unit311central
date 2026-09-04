@@ -1,6 +1,6 @@
 import { normalizePlatformUsername } from "@/lib/platform-auth";
 import {
-  getGreenDesertClientPortalByPath,
+  GREENDESERT_CLIENT_PORTAL_ROUTES,
   type GreenDesertClientPortalRoute,
 } from "@/lib/greendesert/client-portal-routes";
 
@@ -17,9 +17,19 @@ export function isGreenDesertClientPortalUsername(
 ): boolean {
   const normalized = normalizePlatformUsername(String(username ?? ""));
   if (route?.username) return normalized === normalizePlatformUsername(route.username);
-  return getGreenDesertClientPortalByPath("") == null
-    ? normalized === GREENDESERT_JEDDAH_PORTAL_USERNAME
-    : GREENDESERT_CLIENT_PORTAL_USERNAMES.has(normalized);
+  return GREENDESERT_CLIENT_PORTAL_USERNAMES.has(normalized);
+}
+
+export function getGreenDesertClientPortalByUsername(
+  username: string | null | undefined,
+): GreenDesertClientPortalRoute | null {
+  const normalized = normalizePlatformUsername(String(username ?? ""));
+  if (!normalized) return null;
+  return (
+    [...GREENDESERT_CLIENT_PORTAL_ROUTES].find(
+      (route) => normalizePlatformUsername(route.username) === normalized,
+    ) ?? null
+  );
 }
 
 const GREENDESERT_CLIENT_PORTAL_USERNAMES = new Set(
