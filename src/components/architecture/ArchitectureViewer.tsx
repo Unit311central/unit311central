@@ -160,7 +160,7 @@ function ArchitectureNodeView({ data, selected }: NodeProps<ArchitectureRfNode>)
   return (
     <div
       className={cn(
-        "min-w-[200px] max-w-[280px] rounded-xl border px-3 py-2.5 shadow-[0_8px_24px_rgba(0,0,0,0.35)] backdrop-blur-sm transition duration-200",
+        "w-full rounded-xl border px-4 py-3 shadow-[0_8px_24px_rgba(0,0,0,0.35)] backdrop-blur-sm transition duration-200",
         selected && "scale-[1.02] ring-2 ring-sky-400/70",
       )}
       style={
@@ -187,11 +187,11 @@ function ArchitectureNodeView({ data, selected }: NodeProps<ArchitectureRfNode>)
               <span className={cn("h-1.5 w-1.5 rounded-full", statusDot(data.status))} />
             ) : null}
           </div>
-          <p className="mt-1 text-sm font-semibold leading-snug">{data.label}</p>
+          <p className="mt-1 text-base font-semibold leading-snug">{data.label}</p>
         </div>
       </div>
       {data.description ? (
-        <p className="mt-1.5 text-[11px] leading-relaxed opacity-75">{data.description}</p>
+        <p className="mt-2 text-xs leading-relaxed opacity-80">{data.description}</p>
       ) : null}
       {data.badges && data.badges.length > 0 ? (
         <div className="mt-2 flex flex-wrap gap-1">
@@ -273,7 +273,10 @@ function documentToFlow(doc: ArchitectureDiagramDocument): {
               height: node.data.collapsed ? 56 : (node.style?.height ?? 220),
               ...node.style,
             }
-          : node.style,
+          : {
+              width: node.style?.width ?? node.width ?? 300,
+              ...node.style,
+            },
       hidden: node.hidden || hidden,
       draggable: true,
       selectable: true,
@@ -312,6 +315,8 @@ function flowToDocument(
       parentId: node.parentId,
       extent: node.extent === "parent" ? "parent" : undefined,
       style: node.style as Record<string, string | number> | undefined,
+      width: typeof node.width === "number" ? node.width : undefined,
+      height: typeof node.height === "number" ? node.height : undefined,
       hidden: node.hidden,
     })),
     edges: edges.map((edge) => ({

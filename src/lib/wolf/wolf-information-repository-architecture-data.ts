@@ -141,16 +141,23 @@ function architectureNode(
     status?: "live" | "beta" | "planned";
     style?: Record<string, string | number>;
     badges?: ArchitectureNodeBadge[];
+    width?: number;
+    height?: number;
   } = {},
 ) {
-  const { parentId, style, ...data } = extra;
+  const { parentId, style, width, height, ...data } = extra;
+  const nodeStyle: Record<string, string | number> = { ...style };
+  if (width != null) nodeStyle.width = width;
+  if (height != null) nodeStyle.minHeight = height;
   return {
     id,
     type: kind === "group" ? ("group" as const) : ("architecture" as const),
     position: { x, y },
     parentId,
     extent: parentId ? ("parent" as const) : undefined,
-    style,
+    width,
+    height,
+    style: Object.keys(nodeStyle).length ? nodeStyle : undefined,
     data: {
       label,
       nodeKind: kind,
@@ -159,14 +166,38 @@ function architectureNode(
   };
 }
 
-/** PAILEX seed version — bump to refresh existing placeholder diagrams in production. */
-export const WOLF_PAILEX_INFRASTRUCTURE_SEED_VERSION = 1;
+/** Default child node width inside PAILEX groups — roomy for labels + descriptions. */
+const PAILEX_NODE_WIDTH = 360;
+const PAILEX_NODE_ROW_GAP = 156;
+
+function pailexChildNode(
+  id: string,
+  label: string,
+  kind: "frontend" | "service" | "database" | "integration" | "storage",
+  parentId: string,
+  row: number,
+  extra: Omit<Parameters<typeof architectureNode>[5], "parentId" | "width"> = {},
+) {
+  return architectureNode(id, label, kind, 36, 48 + row * PAILEX_NODE_ROW_GAP, {
+    parentId,
+    width: PAILEX_NODE_WIDTH,
+    ...extra,
+  });
+}
+
+/** PAILEX seed version — bump to refresh existing diagrams in production. */
+export const WOLF_PAILEX_INFRASTRUCTURE_SEED_VERSION = 2;
 
 /** Living PAILEX infrastructure diagram — drone → satellite → RunPod AI → WOLF workspace. */
 export function createPailexInfrastructureDiagram(): ArchitectureDiagramDocument {
+  const fieldGroupHeight = 48 + 4 * PAILEX_NODE_ROW_GAP + 120;
+  const connectivityGroupHeight = 48 + 2 * PAILEX_NODE_ROW_GAP + 120;
+  const cloudGroupHeight = 48 + 3 * PAILEX_NODE_ROW_GAP + 120;
+  const groupWidth = PAILEX_NODE_WIDTH + 72;
+
   return {
     version: 1,
-    viewport: { x: 0, y: 0, zoom: 0.72 },
+    viewport: { x: 20, y: 10, zoom: 0.52 },
     meta: {
       generator: "wolf-information-repository",
       title: WOLF_IR_BUILTIN_DIAGRAM_LABELS["wolf-pailex-infrastructure"],
@@ -176,101 +207,90 @@ export function createPailexInfrastructureDiagram(): ArchitectureDiagramDocument
     },
     nodes: [
       architectureNode("group-field", "Field operations (BCN)", "group", 20, 20, {
-        style: { width: 300, height: 420 },
+        style: { width: groupWidth, height: fieldGroupHeight },
       }),
-      architectureNode("drone", "Drone", "frontend", 70, 40, {
-        parentId: "group-field",
+      pailexChildNode("drone", "Drone", "frontend", "group-field", 0, {
         description:
           "Camera sensor · image processing · video encoder H.264/H.265 ~20Mbps · radio transmitter",
         icon: "zap",
         status: "live",
         badges: [{ label: "UAV", tone: "sky" }],
       }),
-      architectureNode("bcn-radio", "BCN Radio Trans Base station", "service", 50, 130, {
-        parentId: "group-field",
+      pailexChildNode("bcn-radio", "BCN Radio Trans Base station", "service", "group-field", 1, {
         description: "Receives compressed + thermal streams · relays control actions to drone",
         icon: "server",
         status: "live",
       }),
-      architectureNode("bcn-switch", "BCN Switch / router", "service", 50, 220, {
-        parentId: "group-field",
+      pailexChildNode("bcn-switch", "BCN Switch / router", "service", "group-field", 2, {
         description: "Ethernet backhaul between base station and field laptops",
         icon: "link",
         status: "live",
       }),
-      architectureNode("bcn-laptops", "BCN Laptops (Wi‑Fi)", "frontend", 40, 300, {
-        parentId: "group-field",
+      pailexChildNode("bcn-laptops", "BCN Laptops (Wi‑Fi)", "frontend", "group-field", 3, {
         description: "Mission Planner · QGroundControl · local live video monitoring",
         icon: "layout-dashboard",
         status: "live",
       }),
 
-      architectureNode("group-connectivity", "Satellite uplink", "group", 360, 120, {
-        style: { width: 260, height: 260 },
+      architectureNode("group-connectivity", "Satellite uplink", "group", 520, 120, {
+        style: { width: groupWidth, height: connectivityGroupHeight },
       }),
-      architectureNode("sat-connection", "New sat Connection", "integration", 40, 40, {
-        parentId: "group-connectivity",
+      pailexChildNode("sat-connection", "New sat Connection", "integration", "group-connectivity", 0, {
         description: "Satellite backhaul hub · routes video to cloud AI and client laptops",
         icon: "globe",
         status: "live",
         badges: [{ label: "Satellite", tone: "amber" }],
       }),
-      architectureNode("wifi-router", "Wi‑Fi router", "service", 40, 140, {
-        parentId: "group-connectivity",
+      pailexChildNode("wifi-router", "Wi‑Fi router", "service", "group-connectivity", 1, {
         description: "To internet / satellite · local Pailex client access",
         icon: "link",
         status: "live",
       }),
 
-      architectureNode("pailex-laptops", "Pailex Laptops", "frontend", 680, 180, {
+      architectureNode("pailex-laptops", "Pailex Laptops", "frontend", 1020, 220, {
+        width: PAILEX_NODE_WIDTH,
         description: "React.js · WOLF workspace client · live video + AI results",
         icon: "layout-dashboard",
         status: "live",
         badges: [{ label: "Client", tone: "emerald" }],
       }),
 
-      architectureNode("group-cloud", "Application cloud", "group", 960, 20, {
-        style: { width: 340, height: 300 },
+      architectureNode("group-cloud", "Application cloud", "group", 1420, 20, {
+        style: { width: groupWidth, height: cloudGroupHeight },
       }),
-      architectureNode("vercel", "VERCEL", "frontend", 40, 40, {
-        parentId: "group-cloud",
+      pailexChildNode("vercel", "VERCEL", "frontend", "group-cloud", 0, {
         description: "WOLF Workspace · Next.js · wolf.unit311central.com",
         icon: "globe",
         status: "live",
         badges: [{ label: "Edge", tone: "emerald" }],
       }),
-      architectureNode("supabase", "SUPABASE", "database", 40, 140, {
-        parentId: "group-cloud",
+      pailexChildNode("supabase", "SUPABASE", "database", "group-cloud", 1, {
         description: "Postgres SQL · reserve telemetry · AI metadata persistence",
         icon: "database",
         status: "live",
       }),
-      architectureNode("github-web", "GitHub Repo", "storage", 40, 240, {
-        parentId: "group-cloud",
+      pailexChildNode("github-web", "GitHub Repo", "storage", "group-cloud", 2, {
         description: "Unit311 · TypeScript monorepo · deploys to Vercel",
         icon: "folder-open",
         status: "live",
       }),
 
-      architectureNode("group-ai", "AI inference (RunPod)", "group", 960, 360, {
-        style: { width: 340, height: 320 },
+      architectureNode("group-ai", "AI inference (RunPod)", "group", 1420, cloudGroupHeight + 60, {
+        style: { width: groupWidth, height: cloudGroupHeight },
       }),
-      architectureNode("runpod", "RUNPOD", "service", 40, 40, {
-        parentId: "group-ai",
+      pailexChildNode("runpod", "RUNPOD", "service", "group-ai", 0, {
         description:
           "WOLF AI Python + GPU · FFmpeg CPU decode (video frames) · GPU model inference",
         icon: "server",
         status: "live",
         badges: [{ label: "GPU", tone: "violet" }],
       }),
-      architectureNode("runpod-models", "Detection models", "integration", 40, 140, {
-        parentId: "group-ai",
+      pailexChildNode("runpod-models", "Detection models", "integration", "group-ai", 1, {
         description: "Fence · Animal · Injury · Fire · Flood · Poaching",
         icon: "bot",
         status: "live",
       }),
-      architectureNode("github-ai", "GitHub Repo", "storage", 40, 240, {
-        parentId: "group-ai",
+      pailexChildNode("github-ai", "GitHub Repo", "storage", "group-ai", 2, {
         description: "WOLF AI · Python inference pipelines · model weights",
         icon: "folder-open",
         status: "live",
