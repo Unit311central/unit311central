@@ -7,15 +7,21 @@ import { AlertTriangle, CalendarDays, FileText, ListChecks, Pencil, Plus, Trash2
 import { useInternalOperationsBasePath } from "@/components/testflighthub/InternalOperationsBasePathContext";
 import {
   deleteCustomerBoardAction,
+  deleteCustomerBoardDecision,
   deleteCustomerBoardMeeting,
+  deleteCustomerBoardMinute,
   deleteCustomerBoardRisk,
   getCustomerBoardGovernanceSnapshot,
   subscribeCustomerBoardGovernance,
   upsertCustomerBoardAction,
+  upsertCustomerBoardDecision,
   upsertCustomerBoardMeeting,
+  upsertCustomerBoardMinute,
   upsertCustomerBoardRisk,
   type CustomerBoardAction,
+  type CustomerBoardDecision,
   type CustomerBoardMeeting,
+  type CustomerBoardMinute,
   type CustomerBoardRisk,
 } from "@/lib/customer-board-governance-store";
 import { getInternalNavHref } from "@/lib/internal-operations-data";
@@ -39,6 +45,8 @@ export default function CustomerBoardGovernanceWorkspace({
     | { kind: "meeting"; row: Partial<CustomerBoardMeeting> & { id?: string } }
     | { kind: "action"; row: Partial<CustomerBoardAction> & { id?: string } }
     | { kind: "risk"; row: Partial<CustomerBoardRisk> & { id?: string } }
+    | { kind: "minute"; row: Partial<CustomerBoardMinute> & { id?: string } }
+    | { kind: "decision"; row: Partial<CustomerBoardDecision> & { id?: string } }
     | null
   >(null);
 
@@ -70,6 +78,28 @@ export default function CustomerBoardGovernanceWorkspace({
           owner: String(editor.row.owner ?? ""),
           dueDate: String(editor.row.dueDate ?? ""),
           status: editor.row.status ?? "open",
+        },
+        slug,
+      );
+    } else if (editor.kind === "minute") {
+      upsertCustomerBoardMinute(
+        {
+          id: editor.row.id,
+          title: String(editor.row.title ?? "").trim(),
+          meetingDate: String(editor.row.meetingDate ?? ""),
+          content: String(editor.row.content ?? ""),
+          status: editor.row.status ?? "draft",
+        },
+        slug,
+      );
+    } else if (editor.kind === "decision") {
+      upsertCustomerBoardDecision(
+        {
+          id: editor.row.id,
+          title: String(editor.row.title ?? "").trim(),
+          decidedOn: String(editor.row.decidedOn ?? ""),
+          owner: String(editor.row.owner ?? ""),
+          notes: String(editor.row.notes ?? ""),
         },
         slug,
       );
@@ -174,9 +204,45 @@ export default function CustomerBoardGovernanceWorkspace({
 
   if (section === "minutes") {
     return (
-      <div className="rounded-2xl border border-dashed border-white/15 px-6 py-12 text-center">
-        <h3 className="text-lg font-semibold text-white">Board minutes</h3>
-        <p className="mt-2 text-sm text-white/50">No board minutes on file yet.</p>
+      <div className="space-y-4 p-2 sm:p-4">
+        <SectionList
+          title="Board minutes"
+          empty="No board minutes on file yet."
+          rows={snapshot.minutes}
+          render={(row) => `${row.title} · ${row.meetingDate || "Undated"} · ${row.status}`}
+          onAdd={() =>
+            setEditor({
+              kind: "minute",
+              row: { title: "", meetingDate: "", content: "", status: "draft" },
+            })
+          }
+          onEdit={(row) => setEditor({ kind: "minute", row })}
+          onDelete={(row) => {
+            if (window.confirm(`Delete minutes ${row.title}?`)) deleteCustomerBoardMinute(row.id, slug);
+          }}
+          editor={editor}
+          setEditor={setEditor}
+          onSave={saveEditor}
+        />
+        <SectionList
+          title="Board decisions"
+          empty="No board decisions recorded yet."
+          rows={snapshot.decisions}
+          render={(row) => `${row.title} · ${row.decidedOn || "Undated"} · ${row.owner || "Unassigned"}`}
+          onAdd={() =>
+            setEditor({
+              kind: "decision",
+              row: { title: "", decidedOn: "", owner: "", notes: "" },
+            })
+          }
+          onEdit={(row) => setEditor({ kind: "decision", row })}
+          onDelete={(row) => {
+            if (window.confirm(`Delete decision ${row.title}?`)) deleteCustomerBoardDecision(row.id, slug);
+          }}
+          editor={editor}
+          setEditor={setEditor}
+          onSave={saveEditor}
+        />
       </div>
     );
   }
@@ -307,6 +373,8 @@ function SectionList<T extends { id: string; title: string }>({
     | { kind: "meeting"; row: Partial<CustomerBoardMeeting> & { id?: string } }
     | { kind: "action"; row: Partial<CustomerBoardAction> & { id?: string } }
     | { kind: "risk"; row: Partial<CustomerBoardRisk> & { id?: string } }
+    | { kind: "minute"; row: Partial<CustomerBoardMinute> & { id?: string } }
+    | { kind: "decision"; row: Partial<CustomerBoardDecision> & { id?: string } }
     | null;
   setEditor: Dispatch<SetStateAction<typeof editor>>;
   onSave: () => void;
@@ -358,12 +426,16 @@ function EditorPanel({
   editor:
     | { kind: "meeting"; row: Partial<CustomerBoardMeeting> & { id?: string } }
     | { kind: "action"; row: Partial<CustomerBoardAction> & { id?: string } }
-    | { kind: "risk"; row: Partial<CustomerBoardRisk> & { id?: string } };
+    | { kind: "risk"; row: Partial<CustomerBoardRisk> & { id?: string } }
+    | { kind: "minute"; row: Partial<CustomerBoardMinute> & { id?: string } }
+    | { kind: "decision"; row: Partial<CustomerBoardDecision> & { id?: string } };
   setEditor: Dispatch<
     SetStateAction<
       | { kind: "meeting"; row: Partial<CustomerBoardMeeting> & { id?: string } }
       | { kind: "action"; row: Partial<CustomerBoardAction> & { id?: string } }
       | { kind: "risk"; row: Partial<CustomerBoardRisk> & { id?: string } }
+      | { kind: "minute"; row: Partial<CustomerBoardMinute> & { id?: string } }
+      | { kind: "decision"; row: Partial<CustomerBoardDecision> & { id?: string } }
       | null
     >
   >;
@@ -372,13 +444,7 @@ function EditorPanel({
   function updateTitle(title: string) {
     setEditor((current) => {
       if (!current) return current;
-      if (current.kind === "meeting") {
-        return { kind: "meeting", row: { ...current.row, title } };
-      }
-      if (current.kind === "action") {
-        return { kind: "action", row: { ...current.row, title } };
-      }
-      return { kind: "risk", row: { ...current.row, title } };
+      return { ...current, row: { ...current.row, title } } as typeof current;
     });
   }
 
@@ -392,7 +458,9 @@ function EditorPanel({
 
   function updateOwner(owner: string) {
     setEditor((current) => {
-      if (!current || current.kind === "meeting") return current;
+      if (!current || current.kind === "meeting" || current.kind === "minute" || current.kind === "decision") {
+        return current;
+      }
       if (current.kind === "action") {
         return { kind: "action", row: { ...current.row, owner } };
       }
@@ -423,7 +491,112 @@ function EditorPanel({
             />
           </label>
         ) : null}
-        {editor.kind !== "meeting" ? (
+        {editor.kind === "minute" ? (
+          <>
+            <label className="block text-xs text-white/55">
+              Meeting date
+              <input
+                type="date"
+                value={String(editor.row.meetingDate ?? "")}
+                onChange={(event) =>
+                  setEditor((current) =>
+                    current?.kind === "minute"
+                      ? { kind: "minute", row: { ...current.row, meetingDate: event.target.value } }
+                      : current,
+                  )
+                }
+                className={inputClass()}
+              />
+            </label>
+            <label className="block text-xs text-white/55">
+              Status
+              <select
+                value={String(editor.row.status ?? "draft")}
+                onChange={(event) =>
+                  setEditor((current) =>
+                    current?.kind === "minute"
+                      ? {
+                          kind: "minute",
+                          row: {
+                            ...current.row,
+                            status: event.target.value as CustomerBoardMinute["status"],
+                          },
+                        }
+                      : current,
+                  )
+                }
+                className={inputClass()}
+              >
+                <option value="draft">Draft</option>
+                <option value="approved">Approved</option>
+              </select>
+            </label>
+            <label className="block text-xs text-white/55 sm:col-span-2">
+              Minutes
+              <textarea
+                value={String(editor.row.content ?? "")}
+                onChange={(event) =>
+                  setEditor((current) =>
+                    current?.kind === "minute"
+                      ? { kind: "minute", row: { ...current.row, content: event.target.value } }
+                      : current,
+                  )
+                }
+                className={inputClass()}
+                rows={4}
+              />
+            </label>
+          </>
+        ) : null}
+        {editor.kind === "decision" ? (
+          <>
+            <label className="block text-xs text-white/55">
+              Decided on
+              <input
+                type="date"
+                value={String(editor.row.decidedOn ?? "")}
+                onChange={(event) =>
+                  setEditor((current) =>
+                    current?.kind === "decision"
+                      ? { kind: "decision", row: { ...current.row, decidedOn: event.target.value } }
+                      : current,
+                  )
+                }
+                className={inputClass()}
+              />
+            </label>
+            <label className="block text-xs text-white/55">
+              Owner
+              <input
+                value={String(editor.row.owner ?? "")}
+                onChange={(event) =>
+                  setEditor((current) =>
+                    current?.kind === "decision"
+                      ? { kind: "decision", row: { ...current.row, owner: event.target.value } }
+                      : current,
+                  )
+                }
+                className={inputClass()}
+              />
+            </label>
+            <label className="block text-xs text-white/55 sm:col-span-2">
+              Notes
+              <textarea
+                value={String(editor.row.notes ?? "")}
+                onChange={(event) =>
+                  setEditor((current) =>
+                    current?.kind === "decision"
+                      ? { kind: "decision", row: { ...current.row, notes: event.target.value } }
+                      : current,
+                  )
+                }
+                className={inputClass()}
+                rows={3}
+              />
+            </label>
+          </>
+        ) : null}
+        {editor.kind === "action" || editor.kind === "risk" ? (
           <label className="block text-xs text-white/55">
             Owner
             <input

@@ -430,19 +430,27 @@ export default function LogisticsDashboard({ onManageProviders }: LogisticsDashb
               <Package className="h-4 w-4 text-sky-300" />
               <h3 className="text-base font-semibold text-white">Shipment details</h3>
             </div>
-            <p className="mt-1 font-mono text-xs text-sky-300/80">{selectedShipment.trackingNumber}</p>
+            {selectedShipment ? (
+              <p className="mt-1 font-mono text-xs text-sky-300/80">{selectedShipment.trackingNumber}</p>
+            ) : (
+              <p className="mt-2 text-sm text-white/50">No shipments yet. Add a package to start tracking.</p>
+            )}
           </div>
-          <a
-            href={selectedShipment.carrierTrackingUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex min-h-11 w-full touch-manipulation items-center justify-center gap-2 rounded-xl border border-[#4D148C]/50 bg-[#4D148C]/25 px-3 text-xs font-semibold text-violet-100 transition-colors hover:bg-[#4D148C]/40 sm:w-auto"
-          >
-            <ExternalLink className="h-3.5 w-3.5" />
-            Open {selectedShipment.carrier} tracking
-          </a>
+          {selectedShipment ? (
+            <a
+              href={selectedShipment.carrierTrackingUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex min-h-11 w-full touch-manipulation items-center justify-center gap-2 rounded-xl border border-[#4D148C]/50 bg-[#4D148C]/25 px-3 text-xs font-semibold text-violet-100 transition-colors hover:bg-[#4D148C]/40 sm:w-auto"
+            >
+              <ExternalLink className="h-3.5 w-3.5" />
+              Open {selectedShipment.carrier} tracking
+            </a>
+          ) : null}
         </div>
 
+        {selectedShipment ? (
+          <>
         <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <div className="rounded-xl border border-white/10 bg-[#0b1524]/70 p-3">
             <p className="text-[10px] uppercase tracking-[0.12em] text-white/40">Date sent</p>
@@ -482,6 +490,8 @@ export default function LogisticsDashboard({ onManageProviders }: LogisticsDashb
           <p className="mt-4 rounded-xl border border-amber-400/20 bg-amber-500/10 px-3 py-2 text-sm text-amber-100">
             {selectedShipment.notes}
           </p>
+        ) : null}
+          </>
         ) : null}
       </section>
     </div>

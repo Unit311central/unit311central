@@ -41,11 +41,20 @@ export type CustomerFundraisingDataRoom = {
   notes: string;
 };
 
+export type CustomerFundraisingMeeting = {
+  id: string;
+  title: string;
+  scheduledFor: string;
+  investor: string;
+  notes: string;
+};
+
 export type CustomerFundraisingState = {
   investors: CustomerFundraisingInvestor[];
   pipeline: CustomerFundraisingPipelineDeal[];
   pitchDecks: CustomerFundraisingPitchDeck[];
   dataRooms: CustomerFundraisingDataRoom[];
+  meetings: CustomerFundraisingMeeting[];
 };
 
 type Listener = () => void;
@@ -59,7 +68,7 @@ function storageKey(slug: string) {
 }
 
 function emptyState(): CustomerFundraisingState {
-  return { investors: [], pipeline: [], pitchDecks: [], dataRooms: [] };
+  return { investors: [], pipeline: [], pitchDecks: [], dataRooms: [], meetings: [] };
 }
 
 function clone(state: CustomerFundraisingState): CustomerFundraisingState {
@@ -68,6 +77,7 @@ function clone(state: CustomerFundraisingState): CustomerFundraisingState {
     pipeline: state.pipeline.map((row) => ({ ...row })),
     pitchDecks: state.pitchDecks.map((row) => ({ ...row })),
     dataRooms: state.dataRooms.map((row) => ({ ...row })),
+    meetings: state.meetings.map((row) => ({ ...row })),
   };
 }
 
@@ -91,6 +101,7 @@ function readPersisted(slug: string): CustomerFundraisingState | null {
       pipeline: parsed.pipeline,
       pitchDecks: Array.isArray(parsed.pitchDecks) ? parsed.pitchDecks : [],
       dataRooms: Array.isArray(parsed.dataRooms) ? parsed.dataRooms : [],
+      meetings: Array.isArray(parsed.meetings) ? parsed.meetings : [],
     };
   } catch {
     return null;
@@ -240,4 +251,23 @@ export function upsertCustomerFundraisingDataRoom(
 export function deleteCustomerFundraisingDataRoom(id: string, slug?: string | null) {
   const state = getState(slug);
   writeState(slug, { ...state, dataRooms: state.dataRooms.filter((row) => row.id !== id) });
+}
+
+export function upsertCustomerFundraisingMeeting(
+  input: Omit<CustomerFundraisingMeeting, "id"> & { id?: string },
+  slug?: string | null,
+) {
+  const state = getState(slug);
+  const id = input.id ?? uid("meet");
+  const row: CustomerFundraisingMeeting = { id, ...input };
+  const meetings = state.meetings.some((item) => item.id === id)
+    ? state.meetings.map((item) => (item.id === id ? row : item))
+    : [...state.meetings, row];
+  writeState(slug, { ...state, meetings });
+  return row;
+}
+
+export function deleteCustomerFundraisingMeeting(id: string, slug?: string | null) {
+  const state = getState(slug);
+  writeState(slug, { ...state, meetings: state.meetings.filter((row) => row.id !== id) });
 }

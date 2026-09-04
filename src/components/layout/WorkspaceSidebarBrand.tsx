@@ -12,6 +12,7 @@ import InterfaceWorxLogoMark, {
 import NorthstarLogoMark, { isNorthstarDemoSlug } from "@/components/layout/NorthstarLogoMark";
 import OnwardAirLogoMark, { isOnwardAirSlug } from "@/components/layout/OnwardAirLogoMark";
 import SaecLogoMark, { isSaecSlug } from "@/components/layout/SaecLogoMark";
+import GreenDesertLogoMark from "@/components/layout/GreenDesertLogoMark";
 import WolfLogoMark from "@/components/layout/WolfLogoMark";
 import TalantonLogoMark, {
   isTalantonImpactSlug,
@@ -19,6 +20,7 @@ import TalantonLogoMark, {
 import Unit311CentralWordmark from "@/components/layout/Unit311CentralWordmark";
 import { isDemoDomainHost } from "@/lib/app-domains";
 import { isPailexSlug, canonicalizePailexSlug } from "@/lib/pailex/pailex-surface";
+import { isGreenDesertSlug } from "@/lib/greendesert-surface";
 import { isWolfCentralSlug } from "@/lib/wolf/wolf-surface";
 import { readBrowserDemoPreviewSlug } from "@/lib/demo/workspace-preview";
 import { cn } from "@/lib/utils";
@@ -63,6 +65,7 @@ type BrandKind =
   | "interfaceworx"
   | "saec"
   | "wolf"
+  | "greendesert"
   | "pailex"
   | "customer";
 
@@ -78,6 +81,7 @@ function resolveBrandKind(slug: string | null): BrandKind {
   if (isInterfaceWorxSlug(slug)) return "interfaceworx";
   if (isSaecSlug(slug)) return "saec";
   if (isWolfCentralSlug(slug)) return "wolf";
+  if (isGreenDesertSlug(slug)) return "greendesert";
   if (isPailexSlug(slug)) return "pailex";
   return "customer";
 }
@@ -160,6 +164,8 @@ export default function WorkspaceSidebarBrand({
       <SaecLogoMark height={32} maxWidth={180} />
     ) : brand === "wolf" ? (
       <WolfLogoMark size="sm" />
+    ) : brand === "greendesert" ? (
+      <GreenDesertLogoMark height={32} maxWidth={180} />
     ) : brand === "pailex" ? (
       <span className="flex flex-col leading-tight">
         <span className="text-[15px] font-semibold tracking-tight text-white">PAILEX</span>
@@ -201,6 +207,8 @@ export default function WorkspaceSidebarBrand({
               ? "OmniTransit home"
             : brand === "wolf"
               ? "WOLF Central home"
+            : brand === "greendesert"
+              ? "Green Desert home"
             : brand === "pailex"
               ? "PAILEX home"
             : brand === "northstar"

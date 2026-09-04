@@ -80,6 +80,25 @@ export const WOLF_INFORMATION_REPOSITORY_WORKSPACE_CONFIG: InformationRepository
     },
   };
 
+export const GREENDESERT_INFORMATION_REPOSITORY_WORKSPACE_CONFIG: InformationRepositoryWorkspaceConfig =
+  {
+    profile: INTERFACE_WORX_INFORMATION_REPOSITORY_PROFILE,
+    apiBasePath: "/api/information-repository",
+    loadErrorLabel: "Information Repository",
+    selectPrompt: "Select a section above to view and edit its information.",
+    emptyStateTitle: "No information has been added yet.",
+    emptyStateBody:
+      "Create sections and tiles to build the Green Desert information repository.",
+    addSectionPlaceholder: "Section name, e.g. Company Structure, Technology Stack…",
+    features: {
+      docPacks: false,
+      architectureHub: false,
+      architectureDiagrams: false,
+      builtinIntegrations: false,
+      recordAttachments: true,
+    },
+  };
+
 const InformationRepositoryWorkspaceConfigContext =
   createContext<InformationRepositoryWorkspaceConfig>(UNIT311_DETAILS_WORKSPACE_CONFIG);
 

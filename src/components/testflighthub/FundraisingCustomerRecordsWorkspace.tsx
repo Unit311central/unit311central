@@ -6,16 +6,19 @@ import { Pencil, Plus, Trash2 } from "lucide-react";
 import { formatMoney } from "@/lib/accounting/chart-of-accounts";
 import {
   deleteCustomerFundraisingInvestor,
+  deleteCustomerFundraisingMeeting,
   deleteCustomerFundraisingPipelineDeal,
   deleteCustomerFundraisingPitchDeck,
   deleteCustomerFundraisingDataRoom,
   getCustomerFundraisingSnapshot,
   subscribeCustomerFundraising,
   upsertCustomerFundraisingInvestor,
+  upsertCustomerFundraisingMeeting,
   upsertCustomerFundraisingPipelineDeal,
   upsertCustomerFundraisingPitchDeck,
   upsertCustomerFundraisingDataRoom,
   type CustomerFundraisingInvestor,
+  type CustomerFundraisingMeeting,
   type CustomerFundraisingPipelineDeal,
   type CustomerFundraisingPitchDeck,
   type CustomerFundraisingDataRoom,
@@ -44,6 +47,7 @@ export default function FundraisingCustomerRecordsWorkspace({ title, subtitle, s
     | { kind: "pipeline"; row: Partial<CustomerFundraisingPipelineDeal> & { id?: string } }
     | { kind: "pitch-deck"; row: Partial<CustomerFundraisingPitchDeck> & { id?: string } }
     | { kind: "data-room"; row: Partial<CustomerFundraisingDataRoom> & { id?: string } }
+    | { kind: "meeting"; row: Partial<CustomerFundraisingMeeting> & { id?: string } }
     | null
   >(null);
 
@@ -82,6 +86,13 @@ export default function FundraisingCustomerRecordsWorkspace({ title, subtitle, s
     });
   }
 
+  function openMeeting(row?: CustomerFundraisingMeeting) {
+    setEditor({
+      kind: "meeting",
+      row: row ?? { title: "", scheduledFor: "", investor: "", notes: "" },
+    });
+  }
+
   function saveEditor() {
     if (!editor) return;
     if (editor.kind === "investor") {
@@ -114,6 +125,17 @@ export default function FundraisingCustomerRecordsWorkspace({ title, subtitle, s
           id: editor.row.id,
           name: String(editor.row.name ?? "").trim(),
           url: String(editor.row.url ?? "").trim(),
+          investor: String(editor.row.investor ?? "").trim(),
+          notes: String(editor.row.notes ?? ""),
+        },
+        slug,
+      );
+    } else if (editor.kind === "meeting") {
+      upsertCustomerFundraisingMeeting(
+        {
+          id: editor.row.id,
+          title: String(editor.row.title ?? "").trim(),
+          scheduledFor: String(editor.row.scheduledFor ?? ""),
           investor: String(editor.row.investor ?? "").trim(),
           notes: String(editor.row.notes ?? ""),
         },
@@ -238,9 +260,23 @@ export default function FundraisingCustomerRecordsWorkspace({ title, subtitle, s
       ) : null}
 
       {section === "meetings" ? (
-        <section className="rounded-2xl border border-dashed border-white/15 bg-white/[0.03] p-8 text-center">
-          <p className="text-sm text-white/50">No {title.toLowerCase()} yet. Add records from Investors or Pipeline to start tracking this workspace raise.</p>
-        </section>
+        <RecordSection
+          title="Fundraising meetings"
+          addLabel="Add meeting"
+          onAdd={() => openMeeting()}
+          empty="No fundraising meetings yet."
+          rows={snapshot.meetings.map((row) => ({
+            id: row.id,
+            primary: row.title,
+            secondary: `${row.investor || "Unassigned"} · ${row.scheduledFor || "Unscheduled"}`,
+            onEdit: () => openMeeting(row),
+            onDelete: () => {
+              if (window.confirm(`Delete meeting ${row.title}?`)) {
+                deleteCustomerFundraisingMeeting(row.id, slug);
+              }
+            },
+          }))}
+        />
       ) : null}
 
       {editor ? (
@@ -253,6 +289,8 @@ export default function FundraisingCustomerRecordsWorkspace({ title, subtitle, s
                 ? "pipeline deal"
                 : editor.kind === "pitch-deck"
                   ? "pitch deck"
+                  : editor.kind === "meeting"
+                    ? "meeting"
                   : "data room"}
           </p>
           <div className="mt-3 grid gap-3 sm:grid-cols-2">
@@ -412,6 +450,53 @@ export default function FundraisingCustomerRecordsWorkspace({ title, subtitle, s
                       setEditor((current) =>
                         current?.kind === "data-room"
                           ? { ...current, row: { ...current.row, url: event.target.value } }
+                          : current,
+                      )
+                    }
+                    className={inputClass()}
+                  />
+                </label>
+              </>
+            ) : null}
+            {editor.kind === "meeting" ? (
+              <>
+                <label className="block text-xs text-white/55">
+                  Title
+                  <input
+                    value={String(editor.row.title ?? "")}
+                    onChange={(event) =>
+                      setEditor((current) =>
+                        current?.kind === "meeting"
+                          ? { ...current, row: { ...current.row, title: event.target.value } }
+                          : current,
+                      )
+                    }
+                    className={inputClass()}
+                  />
+                </label>
+                <label className="block text-xs text-white/55">
+                  Scheduled for
+                  <input
+                    type="date"
+                    value={String(editor.row.scheduledFor ?? "")}
+                    onChange={(event) =>
+                      setEditor((current) =>
+                        current?.kind === "meeting"
+                          ? { ...current, row: { ...current.row, scheduledFor: event.target.value } }
+                          : current,
+                      )
+                    }
+                    className={inputClass()}
+                  />
+                </label>
+                <label className="block text-xs text-white/55 sm:col-span-2">
+                  Investor
+                  <input
+                    value={String(editor.row.investor ?? "")}
+                    onChange={(event) =>
+                      setEditor((current) =>
+                        current?.kind === "meeting"
+                          ? { ...current, row: { ...current.row, investor: event.target.value } }
                           : current,
                       )
                     }

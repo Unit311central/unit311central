@@ -74,6 +74,8 @@ import {
   deleteContract,
 } from "@/lib/procurement-mock-store";
 import { isBrowserCustomerWorkspaceSurface } from "@/lib/customer-workspace-surface";
+import { isBrowserGreenDesertSurface } from "@/lib/greendesert-surface";
+import { resolveBrowserReportingCurrency, type ReportingCurrency } from "@/lib/financial-reporting-currency";
 import { isBrowserOnwardAirSurface } from "@/lib/onwardair-surface";
 import { isBrowserSaecSurface } from "@/lib/saec-surface";
 import { downloadPurchaseOrderPdf } from "@/lib/procurement-pdf-service";
@@ -116,7 +118,16 @@ const AI_KIND_LABELS: Record<string, string> = {
 const IS_OA = typeof window !== "undefined" && isBrowserOnwardAirSurface();
 const IS_SAEC = typeof window !== "undefined" && isBrowserSaecSurface();
 const IS_CUSTOMER = typeof window !== "undefined" && isBrowserCustomerWorkspaceSurface();
-const DEFAULT_CURRENCY = IS_OA ? "USD" : IS_SAEC ? "ZAR" : IS_CUSTOMER ? "GBP" : "EUR";
+const IS_GREEN_DESERT = typeof window !== "undefined" && isBrowserGreenDesertSurface();
+const DEFAULT_CURRENCY: ReportingCurrency = IS_OA
+  ? "USD"
+  : IS_SAEC
+    ? "ZAR"
+    : IS_GREEN_DESERT
+      ? "USD"
+      : IS_CUSTOMER
+        ? resolveBrowserReportingCurrency()
+        : "EUR";
 const DEFAULT_TAX_PCT = IS_OA ? 8.25 : 21;
 const DEFAULT_COST_CENTRE = IS_OA ? "OPS-HOU" : "OPS-BCN";
 const DEFAULT_DELIVERY = IS_OA
@@ -555,7 +566,7 @@ export default function ProcurementWorkspace() {
         : "",
       deliveryAddress: DEFAULT_DELIVERY,
       billingAddress: DEFAULT_BILLING,
-      currency: supplier?.currency ?? DEFAULT_CURRENCY,
+      currency: (supplier?.currency ?? DEFAULT_CURRENCY) as ReportingCurrency,
       paymentTerms: supplier?.paymentTerms ?? "Net 30",
       expectedDelivery: isoDaysFromNow(14),
       status: "draft",
@@ -656,7 +667,7 @@ export default function ProcurementWorkspace() {
       ...f,
       supplierId,
       supplierContact: `${supplier.contacts[0]?.name ?? ""} <${supplier.contacts[0]?.email ?? ""}>`,
-      currency: supplier.currency,
+      currency: supplier.currency as ReportingCurrency,
       paymentTerms: supplier.paymentTerms,
     }));
   }
@@ -720,7 +731,7 @@ export default function ProcurementWorkspace() {
               value={`${dashboard.supplierPerformanceAvg}`}
               hint="Avg score"
             />
-            <ProcurementKpiTile label="Spend This Month" value={money(dashboard.spendThisMonth)} />
+            <ProcurementKpiTile label="Spend This Month" value={money(dashboard.spendThisMonth, DEFAULT_CURRENCY)} />
             <ProcurementKpiTile
               label="Budget vs Actual"
               value={`${dashboard.budgetVsActualPct}%`}
@@ -1117,7 +1128,12 @@ export default function ProcurementWorkspace() {
                     <input
                       className={procurementInputClass()}
                       value={poForm.currency}
-                      onChange={(e) => setPoForm((f) => ({ ...f, currency: e.target.value }))}
+                      onChange={(e) =>
+                        setPoForm((f) => ({
+                          ...f,
+                          currency: e.target.value as ReportingCurrency,
+                        }))
+                      }
                     />
                   </div>
                   <div>
@@ -1270,7 +1286,7 @@ export default function ProcurementWorkspace() {
                     </div>
                     <div className="rounded-lg bg-white/[0.04] px-2 py-2">
                       <p className="text-white/40">Spend</p>
-                      <p className="mt-1 font-semibold tabular-nums text-white">{money(supplier.totalSpend)}</p>
+                      <p className="mt-1 font-semibold tabular-nums text-white">{money(supplier.totalSpend, DEFAULT_CURRENCY)}</p>
                     </div>
                   </div>
                   {open ? (
@@ -1555,7 +1571,7 @@ export default function ProcurementWorkspace() {
                     </ProcurementStatusPill>
                   </div>
                   <p className="mt-1 text-xs text-white/45">
-                    {money(rule.minValue)} – {rule.maxValue == null ? "∞" : money(rule.maxValue)}
+                    {money(rule.minValue, DEFAULT_CURRENCY)} – {rule.maxValue == null ? "∞" : money(rule.maxValue, DEFAULT_CURRENCY)}
                   </p>
                   <ol className="mt-2 space-y-1 text-xs text-white/65">
                     {rule.levels.map((level) => (
@@ -1659,10 +1675,10 @@ export default function ProcurementWorkspace() {
       {tab === "Reporting" ? (
         <div className="space-y-5">
           <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-            <ProcurementKpiTile label="Spend YTD" value={money(reporting.totalSpendYtd)} />
-            <ProcurementKpiTile label="Savings Achieved" value={money(reporting.savingsAchieved)} />
+            <ProcurementKpiTile label="Spend YTD" value={money(reporting.totalSpendYtd, DEFAULT_CURRENCY)} />
+            <ProcurementKpiTile label="Savings Achieved" value={money(reporting.savingsAchieved, DEFAULT_CURRENCY)} />
             <ProcurementKpiTile label="Budget Utilisation" value={`${reporting.budgetUtilisationPct}%`} />
-            <ProcurementKpiTile label="Outstanding PO Value" value={money(reporting.outstandingPoValue)} />
+            <ProcurementKpiTile label="Outstanding PO Value" value={money(reporting.outstandingPoValue, DEFAULT_CURRENCY)} />
             <ProcurementKpiTile label="Contracts Renewing" value={reporting.contractsRenewingSoon} />
           </section>
           <div className="grid gap-5 lg:grid-cols-2">

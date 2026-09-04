@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { assertDemoMutationAllowedForRequest } from "@/lib/demo/mutation-guard";
+import { isGreenDesertSlug } from "@/lib/greendesert-surface";
 import { resolveSlugReportingCurrency } from "@/lib/financial-reporting-currency";
 import { resolveSalesManagementAuth, salesManagementErrorResponse } from "@/lib/sales-management-api";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
@@ -37,7 +38,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "periodStart, periodEnd, and targetValue are required." }, { status: 400 });
     }
     if (!body.ownerUserId && !body.teamId) {
-      return NextResponse.json({ error: "Assign a salesperson or team." }, { status: 400 });
+      if (!isGreenDesertSlug(auth.workspace.slug)) {
+        return NextResponse.json({ error: "Assign a salesperson or team." }, { status: 400 });
+      }
     }
 
     const supabase = createTenancyServerClient();

@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 48" role="img" aria-label="Green Desert">
+  <defs>
+    <linearGradient id="gd-leaf" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#52b788"/>
+      <stop offset="55%" stop-color="#2d6a4f"/>
+      <stop offset="100%" stop-color="#1b4332"/>
+    </linearGradient>
+    <linearGradient id="gd-sand" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#d8a15f"/>
+      <stop offset="100%" stop-color="#c87941"/>
+    </linearGradient>
+  </defs>
+  <g transform="translate(2 4)">
+    <path fill="url(#gd-sand)" d="M4 34c10-2 18-8 24-16 4 8 12 14 22 16H4z" opacity="0.9"/>
+    <path fill="url(#gd-leaf)" d="M18 6c8 4 12 12 12 20 0 8-5 14-12 16C11 40 6 32 6 22 6 14 10 8 18 6zm0 6c-4 3-6 8-6 14 0 5 2 9 6 12 4-3 6-7 6-12 0-6-2-11-6-14z"/>
+    <circle cx="30" cy="12" r="3" fill="#95d5b2"/>
+  </g>
+  <text x="52" y="21" fill="#d8f3dc" font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif" font-size="15" font-weight="700" letter-spacing="0.04em">GREEN</text>
+  <text x="52" y="38" fill="#95d5b2" font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif" font-size="15" font-weight="700" letter-spacing="0.18em">DESERT</text>
+</svg>

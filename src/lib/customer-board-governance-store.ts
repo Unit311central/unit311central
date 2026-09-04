@@ -28,10 +28,28 @@ export type CustomerBoardRisk = {
   status: "active" | "mitigating" | "monitoring" | "closed";
 };
 
+export type CustomerBoardMinute = {
+  id: string;
+  title: string;
+  meetingDate: string;
+  content: string;
+  status: "draft" | "approved";
+};
+
+export type CustomerBoardDecision = {
+  id: string;
+  title: string;
+  decidedOn: string;
+  owner: string;
+  notes: string;
+};
+
 export type CustomerBoardGovernanceState = {
   meetings: CustomerBoardMeeting[];
   actions: CustomerBoardAction[];
   risks: CustomerBoardRisk[];
+  minutes: CustomerBoardMinute[];
+  decisions: CustomerBoardDecision[];
 };
 
 type Listener = () => void;
@@ -45,7 +63,7 @@ function storageKey(slug: string) {
 }
 
 function emptyState(): CustomerBoardGovernanceState {
-  return { meetings: [], actions: [], risks: [] };
+  return { meetings: [], actions: [], risks: [], minutes: [], decisions: [] };
 }
 
 function clone(state: CustomerBoardGovernanceState): CustomerBoardGovernanceState {
@@ -53,6 +71,8 @@ function clone(state: CustomerBoardGovernanceState): CustomerBoardGovernanceStat
     meetings: state.meetings.map((row) => ({ ...row })),
     actions: state.actions.map((row) => ({ ...row })),
     risks: state.risks.map((row) => ({ ...row })),
+    minutes: state.minutes.map((row) => ({ ...row })),
+    decisions: state.decisions.map((row) => ({ ...row })),
   };
 }
 
@@ -69,7 +89,13 @@ function readPersisted(slug: string): CustomerBoardGovernanceState | null {
     if (!Array.isArray(parsed.meetings) || !Array.isArray(parsed.actions) || !Array.isArray(parsed.risks)) {
       return null;
     }
-    return parsed;
+    return {
+      meetings: parsed.meetings,
+      actions: parsed.actions,
+      risks: parsed.risks,
+      minutes: Array.isArray(parsed.minutes) ? parsed.minutes : [],
+      decisions: Array.isArray(parsed.decisions) ? parsed.decisions : [],
+    };
   } catch {
     return null;
   }
@@ -171,4 +197,42 @@ export function upsertCustomerBoardRisk(
 export function deleteCustomerBoardRisk(id: string, slug?: string | null) {
   const state = getState(slug);
   writeState(slug, { ...state, risks: state.risks.filter((row) => row.id !== id) });
+}
+
+export function upsertCustomerBoardMinute(
+  input: Omit<CustomerBoardMinute, "id"> & { id?: string },
+  slug?: string | null,
+) {
+  const state = getState(slug);
+  const id = input.id ?? uid("bmin");
+  const row: CustomerBoardMinute = { id, ...input };
+  const minutes = state.minutes.some((item) => item.id === id)
+    ? state.minutes.map((item) => (item.id === id ? row : item))
+    : [...state.minutes, row];
+  writeState(slug, { ...state, minutes });
+  return row;
+}
+
+export function deleteCustomerBoardMinute(id: string, slug?: string | null) {
+  const state = getState(slug);
+  writeState(slug, { ...state, minutes: state.minutes.filter((row) => row.id !== id) });
+}
+
+export function upsertCustomerBoardDecision(
+  input: Omit<CustomerBoardDecision, "id"> & { id?: string },
+  slug?: string | null,
+) {
+  const state = getState(slug);
+  const id = input.id ?? uid("bdec");
+  const row: CustomerBoardDecision = { id, ...input };
+  const decisions = state.decisions.some((item) => item.id === id)
+    ? state.decisions.map((item) => (item.id === id ? row : item))
+    : [...state.decisions, row];
+  writeState(slug, { ...state, decisions });
+  return row;
+}
+
+export function deleteCustomerBoardDecision(id: string, slug?: string | null) {
+  const state = getState(slug);
+  writeState(slug, { ...state, decisions: state.decisions.filter((row) => row.id !== id) });
 }

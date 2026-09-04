@@ -3,7 +3,7 @@
 import BusinessCentralDashboardView from "@/components/business-central/BusinessCentralDashboardView";
 import { buildBusinessCentralDashboardEyebrow } from "@/lib/business-central-dashboard-variant";
 import type { OaBcDashboardSummary } from "@/lib/onwardair/business-central-data";
-import { isBrowserWolfCentralSurface, WOLF_REPORTING_CURRENCY } from "@/lib/wolf/wolf-surface";
+import { resolveSlugReportingCurrency } from "@/lib/financial-reporting-currency";
 import { resolveBrowserWorkspaceDisplayName } from "@/lib/workspace-brand";
 
 const EMPTY_BC_DASHBOARD_SUMMARY: OaBcDashboardSummary = {
@@ -31,8 +31,7 @@ function resolveWorkspaceSlugFromHost(): string | null {
 export default function WorkspaceBusinessCentralDashboard() {
   const workspaceSlug = resolveWorkspaceSlugFromHost();
   const workspaceName = resolveBrowserWorkspaceDisplayName();
-  const isWolf = typeof window !== "undefined" && isBrowserWolfCentralSurface();
-  const currency = isWolf ? WOLF_REPORTING_CURRENCY : "GBP";
+  const currency = resolveSlugReportingCurrency(workspaceSlug);
   const eyebrow = buildBusinessCentralDashboardEyebrow({
     variant: "workspace",
     workspaceSlug,

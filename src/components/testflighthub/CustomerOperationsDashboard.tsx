@@ -16,7 +16,7 @@ import {
   getInternalNavHref,
   type InternalOperationsView,
 } from "@/lib/internal-operations-data";
-import { INTERFACE_WORX_REPORTING_CURRENCY } from "@/lib/interface-worx-surface";
+import { resolveBrowserReportingCurrency } from "@/lib/financial-reporting-currency";
 import { resolveBrowserWorkspaceDisplayName } from "@/lib/workspace-brand";
 
 type Tile = {
@@ -29,7 +29,7 @@ type Tile = {
 
 export default function CustomerOperationsDashboard() {
   const basePath = useInternalOperationsBasePath();
-  const currency = INTERFACE_WORX_REPORTING_CURRENCY;
+  const currency = resolveBrowserReportingCurrency();
   const money = (amount: number) => formatMoney(amount, currency);
   const href = (view: InternalOperationsView) => getInternalNavHref(view, basePath);
   const workspaceName = resolveBrowserWorkspaceDisplayName();

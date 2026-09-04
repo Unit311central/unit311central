@@ -74,9 +74,27 @@ function ManagementDashboard({
 
   if (!meeting) {
     return (
-      <WorkspaceSection title="Upcoming management meeting" subtitle="Add a meeting to track pack readiness.">
-        <WorkspaceEmpty message="No meetings yet. Use the Meetings tab to add your first management meeting." />
-      </WorkspaceSection>
+      <div className="space-y-4">
+        <WorkspaceSection title="Upcoming management meeting" subtitle="Add a meeting to track pack readiness.">
+          <WorkspaceEmpty message="No meetings yet. Use the Meetings tab to add your first management meeting." />
+        </WorkspaceSection>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <WorkspaceKpiTile label="Packs ready" value="0/0" />
+          <WorkspaceKpiTile label="Outstanding" value="0" />
+          <WorkspaceKpiTile label="Last meeting" value={summary.lastMeeting} valueClassName="text-base sm:text-lg" />
+          <WorkspaceKpiTile label="Open actions" value="0" />
+          <WorkspaceKpiTile label="Decisions logged" value="0" />
+          <WorkspaceKpiTile label="Overdue actions" value="0" />
+        </div>
+        <div className="grid gap-4 lg:grid-cols-2">
+          <WorkspaceSection title="Function packs" subtitle="No function packs uploaded yet.">
+            <WorkspaceEmpty message="No function packs are visible for your role." />
+          </WorkspaceSection>
+          <WorkspaceSection title="Actions & decisions" subtitle="No open management actions yet.">
+            <WorkspaceEmpty message="No actions or decisions yet." />
+          </WorkspaceSection>
+        </div>
+      </div>
     );
   }
 

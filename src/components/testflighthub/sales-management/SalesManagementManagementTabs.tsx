@@ -36,6 +36,12 @@ import {
 
 import { BadgePercent, CalendarRange, ClipboardList, Pencil, Plus, Trash2 } from "lucide-react";
 
+import {
+  GreenDesertSalesForecastPanel,
+  GreenDesertSalesReportsPanel,
+} from "./GreenDesertSalesRecordsPanels";
+import { isBrowserGreenDesertSurface } from "@/lib/greendesert-surface";
+
 
 
 import { formatSalesMoney, resolveSalesUiCurrency } from "@/lib/sales-management-insights";
@@ -1127,7 +1133,7 @@ export function SalesManagementForecastTab() {
 
       </WsSection>
 
-
+      {isBrowserGreenDesertSurface() ? <GreenDesertSalesForecastPanel /> : null}
 
       <WsSection title="Assumptions" subtitle="How this forecast is calculated" className="p-4 sm:p-5">
 
@@ -1673,6 +1679,8 @@ export function SalesManagementReportsTab() {
         </div>
 
       </WsSection>
+
+      {isBrowserGreenDesertSurface() ? <GreenDesertSalesReportsPanel /> : null}
 
     </div>
 

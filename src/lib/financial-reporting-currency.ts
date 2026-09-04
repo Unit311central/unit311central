@@ -51,6 +51,16 @@ export function resolveSlugReportingCurrency(slug: string | null | undefined): R
     /* optional at build edges */
   }
 
+  try {
+    const { isGreenDesertSlug, GREENDESERT_REPORTING_CURRENCY } =
+      require("@/lib/greendesert-surface") as typeof import("@/lib/greendesert-surface");
+    if (isGreenDesertSlug(normalized)) {
+      return GREENDESERT_REPORTING_CURRENCY as ReportingCurrency;
+    }
+  } catch {
+    /* optional at build edges */
+  }
+
   // Inline slug check — avoid require("@/lib/saec-surface") (Turbopack SSR chunk collision).
   if (normalized === "saec") return "ZAR";
 
@@ -108,6 +118,7 @@ export function resolveBrowserReportingCurrency(): ReportingCurrency {
   const host = window.location.hostname.split(":")[0].trim().toLowerCase();
   if (host === "omnitransit.unit311central.com" || host === "omnitransit.localhost") return "ZAR";
   if (host === "saec.unit311central.com" || host === "saec.localhost") return "ZAR";
+  if (host === "greendesert.unit311central.com" || host === "greendesert.localhost") return "USD";
 
   return DEFAULT_REPORTING_CURRENCY;
 }

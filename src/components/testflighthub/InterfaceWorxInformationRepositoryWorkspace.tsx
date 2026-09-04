@@ -8,9 +8,11 @@ import WolfInformationRepositoryArchitectureWorkspace from "./WolfInformationRep
 import {
   InformationRepositoryWorkspaceConfigProvider,
   INTERFACE_WORX_INFORMATION_REPOSITORY_WORKSPACE_CONFIG,
+  GREENDESERT_INFORMATION_REPOSITORY_WORKSPACE_CONFIG,
   WOLF_INFORMATION_REPOSITORY_WORKSPACE_CONFIG,
   type InformationRepositoryWorkspaceConfig,
 } from "./information-repository-workspace-config";
+import { isBrowserGreenDesertSurface } from "@/lib/greendesert-surface";
 import { isBrowserWolfCentralSurface } from "@/lib/wolf/wolf-surface";
 import { cn } from "@/lib/utils";
 
@@ -25,9 +27,12 @@ export default function InterfaceWorxInformationRepositoryWorkspace() {
 
   useEffect(() => {
     const wolf = isBrowserWolfCentralSurface();
+    const greenDesert = isBrowserGreenDesertSurface();
     setIsWolfSurface(wolf);
     if (wolf) {
       setConfig(WOLF_INFORMATION_REPOSITORY_WORKSPACE_CONFIG);
+    } else if (greenDesert) {
+      setConfig(GREENDESERT_INFORMATION_REPOSITORY_WORKSPACE_CONFIG);
     }
   }, []);
 

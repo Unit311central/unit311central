@@ -165,6 +165,15 @@ export function createInitialRepresentatives(): Representative[] {
     } catch {
       // Fall through.
     }
+    try {
+      const { isBrowserCustomerWorkspaceSurface } =
+        require("@/lib/customer-workspace-surface") as typeof import("@/lib/customer-workspace-surface");
+      if (isBrowserCustomerWorkspaceSurface()) {
+        return [];
+      }
+    } catch {
+      // Fall through.
+    }
   }
 
   return [

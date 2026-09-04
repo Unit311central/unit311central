@@ -18,6 +18,7 @@ import {
   type SalesReportingCurrency,
 } from "@/lib/sales-management-insights";
 import { resolveSlugReportingCurrency } from "@/lib/financial-reporting-currency";
+import { isGreenDesertSlug } from "@/lib/greendesert-surface";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
 import { createTenancyServerClient } from "@/lib/supabase/tenancy-server";
 
@@ -625,6 +626,7 @@ export async function loadSalesWorkspaceBundle(input: {
     currentUserName: input.currentUserName,
     isSalesperson: Boolean(currentPerson),
     isManager:
+      isGreenDesertSlug(input.workspaceSlug) ||
       Boolean(currentPerson?.isManager) ||
       teams.some((team) => team.managerUserId === input.currentUserId),
     people,

@@ -14,6 +14,7 @@ import {
   isCorpCentreWorkspaceSlug,
 } from "@/lib/corpcentre-financials";
 import { isCustomerWorkspaceSlug } from "@/lib/customer-workspace-surface";
+import { isGreenDesertSlug } from "@/lib/greendesert-surface";
 import {
   ABHI_CASH_BALANCE_GBP,
   ABHI_ACCOUNTS_RECEIVABLE_GBP,
@@ -323,6 +324,12 @@ export async function getFinancialOverview(
 
   try {
     const workspaceId = await resolveFinancialsWorkspaceId(scope);
+    const workspaceSlugEarly =
+      String(scope?.workspaceSlug ?? "").trim().toLowerCase() ||
+      (await resolveWorkspaceSlug(workspaceId));
+    if (isGreenDesertSlug(workspaceSlugEarly)) {
+      return emptyOverview(0, "USD");
+    }
     const workspaceScope: FinancialsWorkspaceScope = { workspaceId };
     const reportingCurrency = await resolveReportingCurrency(workspaceId);
 

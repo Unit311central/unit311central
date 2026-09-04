@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Copy, FileText, Link2, Loader2, Mail, Plus, RefreshCw } from "lucide-react";
 
 import type { SalesQuote } from "@/lib/accounting/types";
+import { resolveBrowserReportingCurrency, type ReportingCurrency } from "@/lib/financial-reporting-currency";
 import { cn } from "@/lib/utils";
 
 function statusClass(status: SalesQuote["status"]) {
@@ -20,11 +21,21 @@ function statusClass(status: SalesQuote["status"]) {
   }
 }
 
-function money(amount: number, currency: string) {
+function resolveSalesQuoteCurrency(currency: string): ReportingCurrency {
+  const normalized = currency.trim().toUpperCase();
+  if (normalized === "USD" || normalized === "GBP" || normalized === "AUD" || normalized === "ZAR") {
+    return normalized;
+  }
+  return resolveBrowserReportingCurrency();
+}
+
+function money(amount: number, currency?: ReportingCurrency) {
+  const code = currency ?? resolveBrowserReportingCurrency();
   try {
-    return new Intl.NumberFormat("en-GB", { style: "currency", currency }).format(amount);
+    const locale = code === "USD" ? "en-US" : code === "AUD" ? "en-AU" : "en-GB";
+    return new Intl.NumberFormat(locale, { style: "currency", currency: code }).format(amount);
   } catch {
-    return `${currency} ${amount.toFixed(2)}`;
+    return `${code} ${amount.toFixed(2)}`;
   }
 }
 
@@ -273,7 +284,7 @@ export default function SalesQuotesWorkspace({
                     <div>{quote.companyName}</div>
                     <div className="text-xs text-white/45">{quote.contactName}</div>
                   </td>
-                  <td className="px-4 py-3">{money(quote.totalAmount, quote.currency)}</td>
+                  <td className="px-4 py-3">{money(quote.totalAmount, resolveSalesQuoteCurrency(quote.currency))}</td>
                   <td className="px-4 py-3">
                     <span
                       className={cn(
