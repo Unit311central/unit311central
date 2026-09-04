@@ -14,6 +14,7 @@ import { getPlatformSession, type PlatformSession } from "@/lib/platform-session
 import { demoWorkspaceSlug } from "@/lib/runtime-surface";
 import { authorizeUserForWorkspace } from "@/lib/workspace-authorization";
 import { allowsAbhiPlatformWorkspaceAccess } from "@/lib/abhi/platform-demo";
+import { allowsGreenDesertWorkspaceAccess } from "@/lib/greendesert/greendesert-workspace-access";
 import { ABHI_SLUG } from "@/lib/abhi-surface";
 import {
   INTERNAL_WORKSPACE_SLUG,
@@ -176,6 +177,9 @@ async function authorizeActiveWorkspace(
 ): Promise<boolean> {
   const slug = workspace.slug.trim().toLowerCase();
   if (allowsAbhiPlatformWorkspaceAccess(session, slug)) {
+    return true;
+  }
+  if (allowsGreenDesertWorkspaceAccess(session, slug)) {
     return true;
   }
 

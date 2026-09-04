@@ -13,6 +13,7 @@ import type { HrEmployee } from "@/lib/hr-data";
 import { isDemoApiRequest } from "@/lib/demo/demo-request";
 import { getNorthstarEmployees } from "@/lib/demo/northstar-api-fixtures";
 import { ensureHrEmployeesTable } from "@/lib/internal-db-migrations";
+import { apiErrorStatus } from "@/lib/api-error-status";
 import { isGreenDesertSlug } from "@/lib/greendesert-surface";
 import { isOnwardAirSlug } from "@/lib/onwardair-surface";
 import { isSaecSlug } from "@/lib/saec-surface";
@@ -76,11 +77,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ employees });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to load employees";
-    const status =
-      message.includes("Authentication required") || message.includes("Workspace context")
-        ? 401
-        : 500;
-    return NextResponse.json({ error: message }, { status });
+    return NextResponse.json({ error: message }, { status: apiErrorStatus(error, 500) });
   }
 }
 
@@ -112,10 +109,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ employee });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to create employee";
-    const status =
-      message.includes("Authentication required") || message.includes("Workspace context")
-        ? 401
-        : 500;
-    return NextResponse.json({ error: message }, { status });
+    return NextResponse.json({ error: message }, { status: apiErrorStatus(error, 500) });
   }
 }

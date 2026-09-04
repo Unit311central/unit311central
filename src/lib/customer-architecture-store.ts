@@ -3,6 +3,8 @@
  */
 
 import { readBrowserCustomerWorkspaceSlug } from "@/lib/customer-workspace-surface";
+import { GREENDESERT_ARCHITECTURE_DIAGRAMS } from "@/lib/greendesert/greendesert-architecture-diagrams-data";
+import { GREENDESERT_SLUG } from "@/lib/greendesert-surface";
 
 export type CustomerArchitectureDiagram = {
   id: string;
@@ -43,11 +45,28 @@ function persist(slug: string, rows: CustomerArchitectureDiagram[]) {
   }
 }
 
+function seedGreenDesertArchitectureIfNeeded(slug: string, rows: CustomerArchitectureDiagram[]) {
+  if (slug !== GREENDESERT_SLUG || rows.length > 0) return rows;
+  const seeded = GREENDESERT_ARCHITECTURE_DIAGRAMS.map((diagram, index) => ({
+    id: `gd-arch-${index + 1}`,
+    title: diagram.title,
+    slug: diagram.slug,
+    description: diagram.description,
+    notes: diagram.notes,
+  }));
+  buckets.set(slug, seeded);
+  persist(slug, seeded);
+  return seeded;
+}
+
 function getRows(slug?: string | null): CustomerArchitectureDiagram[] {
   const key = slug?.trim() || readBrowserCustomerWorkspaceSlug() || "default";
   const cached = buckets.get(key);
   if (cached) return cached.map((row) => ({ ...row }));
-  const initial = (readPersisted(key) ?? []).map((row) => ({ ...row }));
+  const initial = seedGreenDesertArchitectureIfNeeded(
+    key,
+    (readPersisted(key) ?? []).map((row) => ({ ...row })),
+  );
   buckets.set(key, initial);
   return initial.map((row) => ({ ...row }));
 }

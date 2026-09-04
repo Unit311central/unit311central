@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { assertDemoMutationAllowedForRequest } from "@/lib/demo/mutation-guard";
+import { apiErrorStatus } from "@/lib/api-error-status";
 import {
   createTechnologyTelecomService,
   listTechnologyTelecomServices,
@@ -26,11 +27,7 @@ export async function GET() {
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to load telecom services.";
-    const status =
-      message.includes("Authentication required") || message.includes("Workspace context")
-        ? 401
-        : 500;
-    return NextResponse.json({ error: message }, { status });
+    return NextResponse.json({ error: message }, { status: apiErrorStatus(error, 500) });
   }
 }
 
@@ -48,10 +45,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ service }, { status: 201 });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to create telecom service.";
-    const status =
-      message.includes("Authentication required") || message.includes("Workspace context")
-        ? 401
-        : 500;
-    return NextResponse.json({ error: message }, { status });
+    return NextResponse.json({ error: message }, { status: apiErrorStatus(error, 500) });
   }
 }

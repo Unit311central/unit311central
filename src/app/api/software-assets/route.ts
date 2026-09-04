@@ -12,6 +12,8 @@ import { isSupabaseConfigured } from "@/lib/supabase/server";
 import { requireCurrentWorkspace } from "@/lib/workspace-context";
 import { ensureDemoSoftwareAssetsSeeded, buildDemoSoftwareAssetsFallback } from "@/lib/demo/demo-software-assets-seed";
 import { isDemoWorkspaceSlug } from "@/lib/demo/read-only";
+import { apiErrorStatus } from "@/lib/api-error-status";
+import { isGreenDesertSlug, GREENDESERT_REPORTING_CURRENCY } from "@/lib/greendesert-surface";
 import { isTalantonImpactSlug } from "@/lib/talanton-surface";
 import { ensureTalantonSoftwareAssetsSeeded } from "@/lib/talanton/software-assets-seed";
 
@@ -45,6 +47,8 @@ export async function GET() {
       summary.currency = "GBP";
     } else if (isTalantonImpactSlug(workspace.slug)) {
       summary.currency = "USD";
+    } else if (isGreenDesertSlug(workspace.slug)) {
+      summary.currency = GREENDESERT_REPORTING_CURRENCY;
     }
     return NextResponse.json({
       assets,
@@ -53,11 +57,7 @@ export async function GET() {
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to load software assets";
-    const status =
-      message.includes("Authentication required") || message.includes("Workspace context")
-        ? 401
-        : 500;
-    return NextResponse.json({ error: message }, { status });
+    return NextResponse.json({ error: message }, { status: apiErrorStatus(error, 500) });
   }
 }
 

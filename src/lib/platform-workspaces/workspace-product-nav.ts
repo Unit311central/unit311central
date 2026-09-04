@@ -8,6 +8,11 @@ import { filterIntelligenceProvisioningSubModules } from "@/lib/intelligence/int
 import { resolveIntelligenceNavLabel } from "@/lib/intelligence/intelligence-nav-labels";
 import { filterBusinessCentralProvisioningSubModules } from "@/lib/platform-workspaces/business-central-provisioning";
 import { isSaecSlug } from "@/lib/saec-surface";
+import {
+  greendesertEnabledSubModules,
+  GREENDESERT_ENABLED_MODULES,
+} from "@/lib/greendesert/greendesert-provisioning";
+import { isGreenDesertSlug } from "@/lib/greendesert-surface";
 import { augmentSaecOperationsNav } from "@/lib/saec/installations-nav";
 import { CLIENT_PLATFORM_ALWAYS_VIEWS } from "@/lib/unit311-support/data";
 import { buildFinancesNavSection } from "@/lib/finances-nav";
@@ -147,9 +152,21 @@ export function resolveWorkspaceNavEnablement(input: {
     normalizedType === "demo" ||
     normalizedSlug === DEMO_WORKSPACE_SLUG ||
     normalizedSlug === "demo";
+  const isGreenDesert = isGreenDesertSlug(normalizedSlug);
 
   const modules = [...(input.enabledModules ?? [])];
   const subModules = [...(input.enabledSubModules ?? [])];
+
+  if (isGreenDesert && modules.length === 0) {
+    const allModules = [...GREENDESERT_ENABLED_MODULES];
+    return {
+      enabledModules: allModules,
+      enabledSubModules: filterWorkspaceProvisioningSubModules(
+        normalizedSlug,
+        subModules.length > 0 ? subModules : greendesertEnabledSubModules(),
+      ),
+    };
+  }
 
   if (isDemo && subModules.length === 0) {
     const allModules = [...WORKSPACE_MODULE_IDS];

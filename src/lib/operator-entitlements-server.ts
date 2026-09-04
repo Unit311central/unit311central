@@ -11,7 +11,8 @@ import { isSupabaseConfigured } from "@/lib/supabase/server";
 import { createTenancyServerClient } from "@/lib/supabase/tenancy-server";
 import { getCurrentWorkspace } from "@/lib/workspace-context";
 import { resolveWorkspaceTenantEntitlements } from "@/lib/workspace-tenant-entitlements";
-import { applyDemoWorkspaceAllowedViews } from "@/lib/workspace-enabled-views";
+import { applyWorkspaceCatalogueAllowedViews } from "@/lib/workspace-enabled-views";
+import { resolveGreenDesertWorkspaceEnablement } from "@/lib/greendesert/greendesert-provisioning";
 import type { CommandCentreHomeTileId } from "@/lib/command-centre-home-tiles";
 import type { InternalOperationsView } from "@/lib/internal-operations-data";
 
@@ -128,7 +129,17 @@ export async function loadOperatorEntitlementsSnapshot(
         ? [...metadata.enabled_sub_modules]
         : null;
 
-      snapshot.allowedViews = applyDemoWorkspaceAllowedViews(
+      const greenDesertEnablement = resolveGreenDesertWorkspaceEnablement({
+        workspaceSlug: snapshot.workspaceSlug,
+        enabledModules: snapshot.enabledModules,
+        enabledSubModules: snapshot.enabledSubModules,
+      });
+      if (greenDesertEnablement) {
+        snapshot.enabledModules = greenDesertEnablement.enabledModules;
+        snapshot.enabledSubModules = greenDesertEnablement.enabledSubModules;
+      }
+
+      snapshot.allowedViews = applyWorkspaceCatalogueAllowedViews(
         snapshot.allowedViews ?? null,
         snapshot.workspaceSlug,
         snapshot.enabledModules,

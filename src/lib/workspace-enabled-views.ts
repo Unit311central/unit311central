@@ -5,6 +5,8 @@ import { isInternalOperationsView } from "@/lib/internal-operations-data";
 import { isViewAllowedForGrants } from "@/lib/internal-role-views";
 import { isPailexSlug } from "@/lib/pailex/pailex-surface";
 import { isPailexWorkspaceView } from "@/lib/pailex/pailex-views";
+import { resolveGreenDesertWorkspaceEnablement } from "@/lib/greendesert/greendesert-provisioning";
+import { isGreenDesertSlug } from "@/lib/greendesert-surface";
 import { WOLF_CENTRAL_ANALYTICS_VIEWS } from "@/lib/wolf/wolf-analytics-nav";
 import { isWolfCentralSlug } from "@/lib/wolf/wolf-surface";
 import {
@@ -95,6 +97,19 @@ export function isViewAllowedForWorkspaceGrants(
     if ((WOLF_CENTRAL_ANALYTICS_VIEWS as readonly string[]).includes(view)) return true;
   }
 
+  if (isGreenDesertSlug(slug)) {
+    const enablement = resolveGreenDesertWorkspaceEnablement({
+      workspaceSlug: slug,
+      enabledModules: options?.enabledModules,
+      enabledSubModules: options?.enabledSubModules,
+    });
+    const enabledViews = viewsForWorkspaceEnablement(
+      enablement?.enabledModules ?? options?.enabledModules,
+      enablement?.enabledSubModules ?? options?.enabledSubModules,
+    );
+    if (enabledViews.includes(view)) return true;
+  }
+
   if (slug !== DEMO_WORKSPACE_SLUG && slug !== "demo") return false;
 
   const enabledViews = viewsForWorkspaceEnablement(
@@ -114,6 +129,50 @@ export function applyDemoWorkspaceAllowedViews(
   if (!isDemoWorkspaceSlug(workspaceSlug)) return allowedViews ?? null;
   return mergeAllowedViewsWithWorkspaceEnablement(
     allowedViews,
+    enabledModules,
+    enabledSubModules,
+  );
+}
+
+/** Green Desert operators: union explicit grants with full catalogue enablement. */
+export function applyGreenDesertWorkspaceAllowedViews(
+  allowedViews: InternalOperationsView[] | null | undefined,
+  workspaceSlug: string | null | undefined,
+  enabledModules: readonly string[] | null | undefined,
+  enabledSubModules: readonly string[] | null | undefined,
+): InternalOperationsView[] | null {
+  if (!isGreenDesertSlug(workspaceSlug)) return allowedViews ?? null;
+
+  const enablement = resolveGreenDesertWorkspaceEnablement({
+    workspaceSlug,
+    enabledModules,
+    enabledSubModules,
+  });
+  if (!enablement) return allowedViews ?? null;
+
+  return mergeAllowedViewsWithWorkspaceEnablement(
+    allowedViews,
+    enablement.enabledModules,
+    enablement.enabledSubModules,
+  );
+}
+
+/** Apply workspace-specific catalogue view merges (Demo, then Green Desert). */
+export function applyWorkspaceCatalogueAllowedViews(
+  allowedViews: InternalOperationsView[] | null | undefined,
+  workspaceSlug: string | null | undefined,
+  enabledModules: readonly string[] | null | undefined,
+  enabledSubModules: readonly string[] | null | undefined,
+): InternalOperationsView[] | null {
+  const demoMerged = applyDemoWorkspaceAllowedViews(
+    allowedViews,
+    workspaceSlug,
+    enabledModules,
+    enabledSubModules,
+  );
+  return applyGreenDesertWorkspaceAllowedViews(
+    demoMerged,
+    workspaceSlug,
     enabledModules,
     enabledSubModules,
   );

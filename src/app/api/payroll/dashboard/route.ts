@@ -1,12 +1,17 @@
 import { NextResponse } from "next/server";
 
-import { ensureTalantonHrEmployeesSeeded } from "@/lib/hr-employees-service";
+import { apiErrorStatus } from "@/lib/api-error-status";
 import { isDemoApiRequest } from "@/lib/demo/demo-request";
 import { getNorthstarPayrollDashboard } from "@/lib/demo/northstar-hr-data";
+import { isGreenDesertSlug } from "@/lib/greendesert-surface";
+import {
+  ensureGreenDesertHrEmployeesSeeded,
+  ensureTalantonHrEmployeesSeeded,
+} from "@/lib/hr-employees-service";
 import { getPayrollDashboard } from "@/lib/payroll/payroll-service";
+import { requirePlatformSession } from "@/lib/platform-session";
 import { getSaecPayrollDashboard } from "@/lib/saec/saec-payroll-fixtures";
 import { isSaecSlug } from "@/lib/saec-surface";
-import { requirePlatformSession } from "@/lib/platform-session";
 import { isTalantonImpactSlug } from "@/lib/talanton-surface";
 import { requireCurrentWorkspace } from "@/lib/workspace-context";
 
@@ -27,6 +32,13 @@ export async function GET() {
         console.error("[payroll/dashboard] Talanton compensation seed failed:", seedError);
       }
     }
+    if (isGreenDesertSlug(workspace.slug)) {
+      try {
+        await ensureGreenDesertHrEmployeesSeeded(workspace.id);
+      } catch (seedError) {
+        console.error("[payroll/dashboard] Green Desert compensation seed failed:", seedError);
+      }
+    }
     if (isSaecSlug(workspace.slug)) {
       const live = await getPayrollDashboard({ workspaceId: workspace.id });
       const hasRuns = (live.recentRuns?.length ?? 0) > 0;
@@ -36,7 +48,6 @@ export async function GET() {
     return NextResponse.json({ dashboard });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to load payroll dashboard.";
-    const status = message.includes("Authentication") || message.includes("Workspace") ? 401 : 500;
-    return NextResponse.json({ error: message }, { status });
+    return NextResponse.json({ error: message }, { status: apiErrorStatus(error, 500) });
   }
 }

@@ -39,6 +39,16 @@ import {
   verifyGreenDesertBoardPortalPassword,
 } from "@/lib/greendesert/greendesert-board-portal-auth-server";
 import { GREENDESERT_REPRESENTATIVES_DASHBOARD_TILES } from "@/lib/view-dashboard-tile-catalogs";
+import { GREENDESERT_ENABLED_MODULES } from "@/lib/greendesert/greendesert-provisioning";
+import {
+  allowsGreenDesertWorkspaceAccess,
+  isGreenDesertWorkspaceOperatorUsername,
+} from "@/lib/greendesert/greendesert-workspace-access";
+import {
+  applyGreenDesertWorkspaceAllowedViews,
+  isViewAllowedForWorkspaceGrants,
+} from "@/lib/workspace-enabled-views";
+import { resolveWorkspaceNavEnablement } from "@/lib/platform-workspaces/workspace-product-nav";
 import { bootstrapPortalWorkspacePacks } from "@/lib/portals/workspace-packs";
 import { getPortalPackBySlug } from "@/lib/portals/registry";
 import { ensureMarketingWorkspacePacksRegistered, getMarketingWorkspacePack } from "@/lib/marketing/workspace-packs/registry";
@@ -93,6 +103,37 @@ assert.equal(saLabels.countryCode, "SA");
 assert.match(saLabels.settingsBlurb, /Saudi Arabia/i);
 
 assert.equal(GREENDESERT_REPRESENTATIVES_DASHBOARD_TILES[1]?.value, "$0");
+
+assert.ok(isGreenDesertWorkspaceOperatorUsername("admin@greendesert.unit311central.com"));
+assert.ok(
+  allowsGreenDesertWorkspaceAccess(
+    {
+      sub: "gd-admin",
+      username: "admin@greendesert.unit311central.com",
+      displayName: "Green Desert Administrator",
+      userType: "internal",
+      redirectPath: "/dashboard",
+      exp: Math.floor(Date.now() / 1000) + 3600,
+    },
+    GREENDESERT_SLUG,
+  ),
+);
+
+const gdEnablement = resolveWorkspaceNavEnablement({
+  workspaceSlug: GREENDESERT_SLUG,
+  workspaceType: "Customer",
+});
+assert.ok(gdEnablement.enabledModules.length >= GREENDESERT_ENABLED_MODULES.length);
+assert.ok(
+  isViewAllowedForWorkspaceGrants("technology-software", [], {
+    workspaceSlug: GREENDESERT_SLUG,
+    enabledModules: null,
+    enabledSubModules: null,
+  }),
+);
+assert.ok(
+  applyGreenDesertWorkspaceAllowedViews([], GREENDESERT_SLUG, null, null)?.includes("hr"),
+);
 
 bootstrapPortalWorkspacePacks();
 const portalPack = getPortalPackBySlug(GREENDESERT_SLUG);

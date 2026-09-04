@@ -7,6 +7,7 @@ import {
   type WorkspaceHostRecord,
 } from "@/lib/workspace-host";
 import { demoWorkspaceSlug } from "@/lib/runtime-surface";
+import { isGreenDesertSlug } from "@/lib/greendesert-surface";
 
 /**
  * Shared workspace authorization (RC1-C07).
@@ -145,6 +146,10 @@ export async function authorizeWorkspaceAccess(
 
       if (slug === demoSlug || slug === DEMO_WORKSPACE_SLUG) {
         return { allowed: true, reason: "internal_demo", userType };
+      }
+
+      if (isGreenDesertSlug(slug)) {
+        return { allowed: true, reason: "internal_unit311", userType };
       }
     }
 
