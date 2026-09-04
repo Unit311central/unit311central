@@ -1,13 +1,14 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { ChevronRight, File, Folder, FolderPlus } from "lucide-react";
 
 import { WorkspaceModuleHeader, WorkspaceSection } from "@/components/workspace-ui";
 import {
+  createGreenDesertFolderEntry,
+  GREENDESERT_FILES_ROOT_ID,
   loadGreenDesertFilesState,
   saveGreenDesertFilesState,
-  type GreenDesertFileRecord,
 } from "@/lib/greendesert/greendesert-files-persistence";
 import { GREENDESERT_DISPLAY_NAME } from "@/lib/greendesert-surface";
 import { cn } from "@/lib/utils";
@@ -22,33 +23,32 @@ function formatWhen(value: string) {
 
 export default function GreenDesertFileExplorerWorkspace() {
   const [state, setState] = useState(() => loadGreenDesertFilesState());
-  const [currentFolderId, setCurrentFolderId] = useState("gd-root");
+  const [currentFolderId, setCurrentFolderId] = useState(GREENDESERT_FILES_ROOT_ID);
   const [newFolderName, setNewFolderName] = useState("");
+  const [folderError, setFolderError] = useState<string | null>(null);
 
-  const currentFolder = state.entries.find((entry) => entry.id === currentFolderId) ?? state.entries[0];
+  useEffect(() => {
+    saveGreenDesertFilesState(state);
+  }, [state]);
+
+  const currentFolder =
+    state.entries.find((entry) => entry.id === currentFolderId) ?? state.entries[0];
   const children = useMemo(
     () => state.entries.filter((entry) => entry.parentId === currentFolderId),
     [state.entries, currentFolderId],
   );
 
-  function persist(next: typeof state) {
-    setState(next);
-    saveGreenDesertFilesState(next);
-  }
-
-  function createFolder() {
+  const createFolder = useCallback(() => {
     const name = newFolderName.trim();
-    if (!name) return;
-    const nextEntry: GreenDesertFileRecord = {
-      id: `gd-folder-${Math.random().toString(36).slice(2, 9)}`,
-      name,
-      kind: "folder",
-      parentId: currentFolderId,
-      updatedAt: new Date().toISOString(),
-    };
-    persist({ entries: [...state.entries, nextEntry] });
+    if (!name) {
+      setFolderError("Enter a folder name first.");
+      return;
+    }
+
+    setFolderError(null);
+    setState((current) => createGreenDesertFolderEntry(current, name, currentFolderId));
     setNewFolderName("");
-  }
+  }, [currentFolderId, newFolderName]);
 
   return (
     <div className="space-y-5 p-5 sm:p-6">
@@ -63,13 +63,13 @@ export default function GreenDesertFileExplorerWorkspace() {
       <WorkspaceSection title={currentFolder?.name ?? "Files"}>
         <div className="mb-4 flex flex-wrap items-center gap-2 text-xs text-white/45">
           <span>Green Desert</span>
-          {currentFolderId !== "gd-root" ? (
+          {currentFolderId !== GREENDESERT_FILES_ROOT_ID ? (
             <>
               <ChevronRight className="h-3.5 w-3.5" />
               <button
                 type="button"
                 className="text-emerald-200/80 hover:text-emerald-100"
-                onClick={() => setCurrentFolderId("gd-root")}
+                onClick={() => setCurrentFolderId(GREENDESERT_FILES_ROOT_ID)}
               >
                 {currentFolder?.name}
               </button>
@@ -77,27 +77,38 @@ export default function GreenDesertFileExplorerWorkspace() {
           ) : null}
         </div>
 
-        <form
-          className="mb-4 flex flex-wrap gap-2"
-          onSubmit={(event) => {
-            event.preventDefault();
-            createFolder();
-          }}
-        >
+        <div className="mb-4 flex flex-wrap gap-2">
           <input
             value={newFolderName}
-            onChange={(e) => setNewFolderName(e.target.value)}
+            onChange={(event) => {
+              setNewFolderName(event.target.value);
+              if (folderError) setFolderError(null);
+            }}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                event.preventDefault();
+                createFolder();
+              }
+            }}
             placeholder="New folder name"
+            aria-invalid={folderError ? true : undefined}
+            aria-describedby={folderError ? "gd-new-folder-error" : undefined}
             className="min-w-[220px] flex-1 rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm text-white outline-none focus:border-emerald-400/40"
           />
           <button
-            type="submit"
+            type="button"
+            onClick={createFolder}
             className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-400/30 bg-emerald-500/15 px-3 py-2 text-sm font-medium text-emerald-100"
           >
             <FolderPlus className="h-4 w-4" />
             Create folder
           </button>
-        </form>
+        </div>
+        {folderError ? (
+          <p id="gd-new-folder-error" className="mb-4 text-sm text-amber-200/90">
+            {folderError}
+          </p>
+        ) : null}
 
         {children.length === 0 ? (
           <p className="text-sm text-white/45">This folder is empty.</p>
