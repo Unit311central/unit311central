@@ -15,6 +15,9 @@ import type { PortalRouteDefinition } from "@/lib/portals/types";
 import { matchTalantonCompanyPortalPathname } from "@/lib/talanton/company-portal-routes";
 import { isTalantonPortalsAllowedUsername } from "@/lib/talanton/portals-auth";
 import { isTalantonImpactSlug, TALANTON_IMPACT_SLUG } from "@/lib/talanton-surface";
+import { matchWolfPailexPortalPathname } from "@/lib/wolf/wolf-pailex-portal-routes";
+import { isWolfPortalsAllowedUsername } from "@/lib/wolf/wolf-portals-auth";
+import { isWolfCentralSlug, WOLF_CENTRAL_SLUG } from "@/lib/wolf/wolf-surface";
 
 type EdgePortalPack = {
   slug: string;
@@ -63,6 +66,15 @@ const EDGE_PORTAL_PACKS: readonly EdgePortalPack[] = [
     briefingLoginPath: "/login?next=/portals",
     usesDedicatedPortalsLogin: false,
   },
+  {
+    slug: WOLF_CENTRAL_SLUG,
+    aliases: ["wolf"],
+    implBase: "/wolf-client-portal",
+    matchPathname: matchWolfPailexPortalPathname,
+    isAllowedUsername: isWolfPortalsAllowedUsername,
+    briefingLoginPath: "/pailex/login",
+    usesDedicatedPortalsLogin: true,
+  },
 ];
 
 const packsBySlug = new Map<string, EdgePortalPack>();
@@ -92,7 +104,8 @@ export function isPortalWorkspaceSlug(workspaceSlug: string | null | undefined):
     isOnwardAirSlug(normalized) ||
     isTalantonImpactSlug(normalized) ||
     isSaecSlug(normalized) ||
-    normalized === ABHI_SLUG
+    normalized === ABHI_SLUG ||
+    isWolfCentralSlug(normalized)
   );
 }
 
