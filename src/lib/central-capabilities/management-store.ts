@@ -6,6 +6,7 @@ import { DEMO_WORKSPACE_SLUG, isDemoDomainHost, parseClientPlatformSubdomainSafe
 import { isCustomerWorkspaceSlug } from "@/lib/customer-workspace-surface";
 import { readEffectiveBrowserWorkspaceSlug } from "@/lib/demo-enterprise/workspace-tenancy-surface";
 import { isSaecSlug } from "@/lib/saec-surface";
+import { isWolfCentralSlug } from "@/lib/wolf/wolf-surface";
 import {
   SAEC_MANAGEMENT_ACTIONS,
   SAEC_MANAGEMENT_FUNCTION_PACKS,
@@ -86,6 +87,9 @@ function seedState(slug?: string): ManagementWorkspaceState {
     };
   }
   if (isCustomerWorkspaceSlug(slug)) {
+    return { meetings: [], functionPacks: [], actions: [] };
+  }
+  if (isWolfCentralSlug(slug)) {
     return { meetings: [], functionPacks: [], actions: [] };
   }
   return {
@@ -185,13 +189,33 @@ function isLegacyPlaceholderManagementState(state: ManagementWorkspaceState): bo
   return state.meetings.some((meeting) => meeting.id === "mgmt-weekly-1" || /Weekly Management Meeting/i.test(meeting.name));
 }
 
+function isDefaultManagementSeedState(state: ManagementWorkspaceState): boolean {
+  const defaultMeetingIds = new Set(["mgmt-weekly-1", "mgmt-monthly-1"]);
+  const defaultPackIds = new Set([
+    "pack-ceo",
+    "pack-cfo",
+    "pack-coo",
+    "pack-cto",
+    "pack-cro",
+    "pack-hr",
+  ]);
+  const defaultActionIds = new Set(["act-1", "act-2", "act-3"]);
+  const hasDefaultMeetings = state.meetings.some((meeting) => defaultMeetingIds.has(meeting.id));
+  const hasDefaultPacks = state.functionPacks.some((pack) => defaultPackIds.has(pack.id));
+  const hasDefaultActions = state.actions.some((action) => defaultActionIds.has(action.id));
+  return hasDefaultMeetings || hasDefaultPacks || hasDefaultActions;
+}
+
 function ensureHydrated(slug: string) {
   const bucket = getBucket(slug);
   if (bucket.hydrated || typeof window === "undefined") return;
   bucket.hydrated = true;
   const persisted = readPersistedState(slug);
   if (persisted) {
-    if (isCustomerWorkspaceSlug(slug) && isLegacyPlaceholderManagementState(persisted)) {
+    if (
+      (isCustomerWorkspaceSlug(slug) && isLegacyPlaceholderManagementState(persisted)) ||
+      (isWolfCentralSlug(slug) && isDefaultManagementSeedState(persisted))
+    ) {
       bucket.state = cloneState(seedState(slug));
       bucket.serverSnapshot = cloneState(bucket.state);
       persistState(slug, bucket.state);

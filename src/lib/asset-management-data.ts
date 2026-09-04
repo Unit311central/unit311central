@@ -1214,6 +1214,20 @@ export function createInitialAssetRegistry(): AssetRegistryState {
     } catch {
       // Fall through.
     }
+
+    try {
+      const { isBrowserWolfCentralSurface } =
+        require("@/lib/wolf/wolf-surface") as typeof import("@/lib/wolf/wolf-surface");
+      if (isBrowserWolfCentralSurface()) {
+        return {
+          assets: [],
+          categories: [...DEFAULT_ASSET_CATEGORIES],
+          locations: [],
+        };
+      }
+    } catch {
+      // Fall through.
+    }
   }
 
   const assets = [

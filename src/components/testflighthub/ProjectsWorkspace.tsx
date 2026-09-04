@@ -26,7 +26,8 @@ import { isBrowserSaecSurface } from "@/lib/saec-surface";
 import { isBrowserOnwardAirSurface } from "@/lib/onwardair-surface";
 import { isBrowserTalantonImpactSurface } from "@/lib/talanton-surface";
 import { isBrowserWolfCentralSurface } from "@/lib/wolf/wolf-surface";
-import { createInitialUsers } from "@/lib/user-management-data";
+import { createInitialUsers, type ManagedUser } from "@/lib/user-management-data";
+import { fetchCachedJson } from "@/lib/platform-fetch-cache";
 import { cn } from "@/lib/utils";
 import { FolderKanban, Loader2, Plus, Trash2, X } from "lucide-react";
 import { useMobileDetailPanel } from "@/components/ui/ResponsiveMasterDetail";
@@ -40,7 +41,7 @@ import {
   DEFAULT_PROJECTS_TILE_LAYOUT,
 } from "@/lib/view-dashboard-tile-catalogs";
 
-const operators = createInitialUsers();
+const defaultOperators = createInitialUsers();
 
 function portfolioDeletedStorageKey(scope: ProjectPortfolioScope) {
   return `unit311-portfolio-deleted-projects:${scope}`;
@@ -197,6 +198,9 @@ export default function ProjectsWorkspace({
   const usePmFocusDashboard = isNorthstarDemo || isSaecSurface;
   const { showDetail, openDetail, closeDetail } = useMobileDetailPanel(false);
 
+  const [projectManagers, setProjectManagers] = useState<ManagedUser[]>([]);
+  const operators = isWolfSurface ? projectManagers : defaultOperators;
+
   const [projects, setProjects] = useState<InternalProject[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -318,6 +322,39 @@ export default function ProjectsWorkspace({
       void loadProjects();
     });
   }, [loadProjects]);
+
+  useEffect(() => {
+    if (!isWolfSurface) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        let nextUsers: ManagedUser[] = [];
+        try {
+          const messagingUsers = await fetchCachedJson<{ users?: ManagedUser[] }>(
+            "messaging-operators",
+            "/api/messaging/operators",
+            { ttlMs: 60_000 },
+          );
+          nextUsers = messagingUsers.users ?? [];
+        } catch {
+          const data = await fetchCachedJson<{ users?: ManagedUser[] }>(
+            "wolf-project-managers",
+            "/api/users",
+            { ttlMs: 120_000 },
+          );
+          nextUsers = data.users ?? [];
+        }
+        if (!cancelled) {
+          setProjectManagers(nextUsers.filter((user) => user.status === "Active"));
+        }
+      } catch {
+        if (!cancelled) setProjectManagers([]);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isWolfSurface]);
 
   useEffect(() => {
     if (!projectFilterId || loading) return;

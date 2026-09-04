@@ -46,6 +46,7 @@ export async function createWorkPackageApi(input: {
   status?: WorkPackageStatus;
   priority?: WorkPackagePriority;
   ownerName?: string;
+  ownerUserId?: string;
   startDate?: string | null;
   expectedCompletionDate?: string | null;
   notes?: string;

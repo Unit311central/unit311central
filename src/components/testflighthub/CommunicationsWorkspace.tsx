@@ -15,6 +15,8 @@ import {
   PLATFORM_CACHE_KEYS,
 } from "@/lib/platform-fetch-cache";
 import { type ManagedUser } from "@/lib/user-management-data";
+import { filterWolfMessagingOperators } from "@/lib/wolf/wolf-messaging-operators";
+import { isBrowserWolfCentralSurface } from "@/lib/wolf/wolf-surface";
 import { cn } from "@/lib/utils";
 import {
   CalendarClock,
@@ -190,6 +192,9 @@ export default function CommunicationsWorkspace(_props: CommunicationsWorkspaceP
           } catch {
             // Keep API users if fixtures unavailable.
           }
+        }
+        if (typeof window !== "undefined" && isBrowserWolfCentralSurface()) {
+          nextUsers = filterWolfMessagingOperators(nextUsers);
         }
         setUsers(nextUsers);
         const firstActive = nextUsers.find((user) => user.status === "Active");

@@ -666,6 +666,16 @@ const CORPCENTRE_LOGISTICS_SHIPMENTS: LogisticsShipment[] = [
 export function getLogisticsMockShipments(): LogisticsShipment[] {
   if (typeof window !== "undefined") {
     try {
+      const { isBrowserWolfCentralSurface } =
+        require("@/lib/wolf/wolf-surface") as typeof import("@/lib/wolf/wolf-surface");
+      if (isBrowserWolfCentralSurface()) {
+        return [];
+      }
+    } catch {
+      // Fall through.
+    }
+
+    try {
       const { isBrowserCustomerWorkspaceSurface } =
         require("@/lib/customer-workspace-surface") as typeof import("@/lib/customer-workspace-surface");
       if (isBrowserCustomerWorkspaceSurface()) {

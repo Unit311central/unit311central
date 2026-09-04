@@ -46,6 +46,7 @@ export async function POST(request: NextRequest) {
         priority:
           typeof body.priority === "string" ? (body.priority as WorkPackagePriority) : undefined,
         ownerName: typeof body.ownerName === "string" ? body.ownerName : undefined,
+        ownerUserId: typeof body.ownerUserId === "string" ? body.ownerUserId : undefined,
         startDate: typeof body.startDate === "string" ? body.startDate : null,
         expectedCompletionDate:
           typeof body.expectedCompletionDate === "string" ? body.expectedCompletionDate : null,

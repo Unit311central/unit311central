@@ -777,6 +777,16 @@ function seedCustomerWorkspaceEmptyState(): ProcurementMockState {
 function seedState(): ProcurementMockState {
   if (typeof window !== "undefined") {
     try {
+      const { isBrowserWolfCentralSurface } =
+        require("@/lib/wolf/wolf-surface") as typeof import("@/lib/wolf/wolf-surface");
+      if (isBrowserWolfCentralSurface()) {
+        return seedCustomerWorkspaceEmptyState();
+      }
+    } catch {
+      // Fall through.
+    }
+
+    try {
       const { isBrowserSaecSurface } =
         require("@/lib/saec-surface") as typeof import("@/lib/saec-surface");
       if (isBrowserSaecSurface()) {
@@ -1606,6 +1616,28 @@ export function subscribeProcurementMockStore(listener: Listener) {
 
 export function getProcurementMockSnapshot() {
   if (typeof window !== "undefined") {
+    try {
+      const { isBrowserWolfCentralSurface } =
+        require("@/lib/wolf/wolf-surface") as typeof import("@/lib/wolf/wolf-surface");
+      if (isBrowserWolfCentralSurface()) {
+        const hasStaleData =
+          state.suppliers.some(
+            (supplier) =>
+              supplier.id === "sup-dji" ||
+              supplier.currency === "EUR" ||
+              supplier.addresses.some((address) => address.city === "Barcelona"),
+          ) ||
+          state.purchaseOrders.length > 0 ||
+          state.requisitions.length > 0;
+        if (hasStaleData) {
+          state = seedState();
+        }
+        return state;
+      }
+    } catch {
+      // Fall through.
+    }
+
     try {
       const { isBrowserOnwardAirSurface } =
         require("@/lib/onwardair-surface") as typeof import("@/lib/onwardair-surface");

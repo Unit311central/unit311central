@@ -15,6 +15,7 @@ import {
   subscribePerformance,
   type PerformanceSnapshot,
 } from "@/lib/platform-performance";
+import { isBrowserWolfCentralSurface } from "@/lib/wolf/wolf-surface";
 import { cn } from "@/lib/utils";
 
 type WhoamiPayload = {
@@ -45,6 +46,13 @@ export default function AdminPerformanceMode({ activeView }: { activeView?: stri
     })
       .then((data) => {
         if (cancelled) return;
+        if (typeof window !== "undefined" && isBrowserWolfCentralSurface()) {
+          setPerformanceModeEnabled(false);
+          setAllowed(false);
+          setEnabled(false);
+          setOpen(false);
+          return;
+        }
         setAllowed(isAdminUser(data));
         setEnabled(isPerformanceModeEnabled());
         setOpen(isPerformanceModeEnabled());
@@ -69,6 +77,7 @@ export default function AdminPerformanceMode({ activeView }: { activeView?: stri
   }, [enabled, activeView]);
 
   if (!allowed) return null;
+  if (typeof window !== "undefined" && isBrowserWolfCentralSurface()) return null;
 
   return (
     <div className="pointer-events-none fixed bottom-3 right-3 z-[80] flex flex-col items-end gap-2">

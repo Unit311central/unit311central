@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { internalSurveyNavSections } from "@/lib/internal-operations-data";
 import { isBrowserDemoSurface } from "@/lib/demo-enterprise";
+import { isBrowserWolfCentralSurface } from "@/lib/wolf/wolf-surface";
 import { filterInternalNavSectionsByGrants, filterInternalNavSectionsForDemoSurface } from "@/lib/internal-role-views";
 import { resolveWorkspaceNavBaseSections } from "@/lib/platform-workspaces/workspace-nav-resolver";
 import { resolveWorkspaceNavEnablement } from "@/lib/platform-workspaces/workspace-product-nav";
@@ -907,6 +908,7 @@ export default function SettingsWorkspace() {
   }
 
   const demoSurface = hydrated && isBrowserDemoSurface();
+  const wolfSurface = hydrated && isBrowserWolfCentralSurface();
   const websiteConnectionsForDisplay = useMemo(() => {
     if (demoSurface) {
       return [
@@ -925,7 +927,7 @@ export default function SettingsWorkspace() {
 
   return (
     <div className="space-y-4">
-      {showPerfControls ? (
+      {showPerfControls && !wolfSurface ? (
         <section className="rounded-2xl border border-emerald-400/20 bg-emerald-500/[0.06] px-4 py-4 sm:px-5">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="flex items-start gap-3">

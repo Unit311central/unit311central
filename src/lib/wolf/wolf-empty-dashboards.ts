@@ -42,6 +42,14 @@ export const WOLF_EMPTY_PRODUCTIVITY_SNAPSHOT: WolfProductivitySnapshot = {
   approvals: [],
 };
 
+export const WOLF_EMPTY_FLEET_METRICS = {
+  totalAircraft: 0,
+  largeDrones: 0,
+  smallDrones: 0,
+  docks: 0,
+  batteries: 0,
+} as const;
+
 export const WOLF_EMPTY_OPERATIONS_TILES: DashboardTileDefinition[] = [
   {
     id: "assets",

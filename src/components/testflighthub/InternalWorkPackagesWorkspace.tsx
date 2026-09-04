@@ -20,6 +20,9 @@ import type {
   WorkPackageStatus,
   WorkPackageTaskStatus,
 } from "@/lib/internal-work-packages/types";
+import { fetchCachedJson } from "@/lib/platform-fetch-cache";
+import { type ManagedUser } from "@/lib/user-management-data";
+import { isBrowserWolfCentralSurface } from "@/lib/wolf/wolf-surface";
 import {
   WsEmpty,
   WsInputClass,
@@ -62,6 +65,8 @@ function statusTone(status: string) {
 }
 
 export default function InternalWorkPackagesWorkspace() {
+  const isWolfSurface =
+    typeof window !== "undefined" ? isBrowserWolfCentralSurface() : false;
   const [packages, setPackages] = useState<WorkPackageListItem[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [detail, setDetail] = useState<WorkPackageDetail | null>(null);
@@ -76,6 +81,8 @@ export default function InternalWorkPackagesWorkspace() {
   const [newName, setNewName] = useState("");
   const [newDescription, setNewDescription] = useState("");
   const [newOwner, setNewOwner] = useState("");
+  const [newOwnerUserId, setNewOwnerUserId] = useState("");
+  const [ownerOptions, setOwnerOptions] = useState<ManagedUser[]>([]);
   const [taskDraft, setTaskDraft] = useState({
     category: "",
     description: "",
@@ -120,6 +127,39 @@ export default function InternalWorkPackagesWorkspace() {
   }, []);
 
   useEffect(() => {
+    if (!isWolfSurface) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        let nextUsers: ManagedUser[] = [];
+        try {
+          const messagingUsers = await fetchCachedJson<{ users?: ManagedUser[] }>(
+            "messaging-operators",
+            "/api/messaging/operators",
+            { ttlMs: 60_000 },
+          );
+          nextUsers = messagingUsers.users ?? [];
+        } catch {
+          const data = await fetchCachedJson<{ users?: ManagedUser[] }>(
+            "wolf-work-package-owners",
+            "/api/users",
+            { ttlMs: 120_000 },
+          );
+          nextUsers = data.users ?? [];
+        }
+        if (!cancelled) {
+          setOwnerOptions(nextUsers.filter((user) => user.status === "Active"));
+        }
+      } catch {
+        if (!cancelled) setOwnerOptions([]);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isWolfSurface]);
+
+  useEffect(() => {
     void loadList();
   }, [loadList]);
 
@@ -136,15 +176,20 @@ export default function InternalWorkPackagesWorkspace() {
   async function handleCreate() {
     if (!newName.trim()) return;
     try {
+      const selectedOwner = ownerOptions.find((user) => user.id === newOwnerUserId);
       const created = await createWorkPackageApi({
         name: newName.trim(),
         description: newDescription.trim(),
-        ownerName: newOwner.trim() || undefined,
+        ownerName: isWolfSurface
+          ? selectedOwner?.fullName || newOwner.trim() || undefined
+          : newOwner.trim() || undefined,
+        ownerUserId: isWolfSurface ? selectedOwner?.id || undefined : undefined,
       });
       setCreateOpen(false);
       setNewName("");
       setNewDescription("");
       setNewOwner("");
+      setNewOwnerUserId("");
       await loadList();
       setSelectedId(created.id);
     } catch (err) {
@@ -545,12 +590,32 @@ export default function InternalWorkPackagesWorkspace() {
                 value={newDescription}
                 onChange={(event) => setNewDescription(event.target.value)}
               />
-              <input
-                className={WsInputClass()}
-                placeholder="Owner"
-                value={newOwner}
-                onChange={(event) => setNewOwner(event.target.value)}
-              />
+              {isWolfSurface ? (
+                <select
+                  className={WsInputClass()}
+                  value={newOwnerUserId}
+                  onChange={(event) => {
+                    const nextId = event.target.value;
+                    setNewOwnerUserId(nextId);
+                    const selected = ownerOptions.find((user) => user.id === nextId);
+                    setNewOwner(selected?.fullName ?? "");
+                  }}
+                >
+                  <option value="">Select owner</option>
+                  {ownerOptions.map((user) => (
+                    <option key={user.id} value={user.id}>
+                      {user.fullName}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  className={WsInputClass()}
+                  placeholder="Owner"
+                  value={newOwner}
+                  onChange={(event) => setNewOwner(event.target.value)}
+                />
+              )}
             </div>
             <div className="mt-5 flex justify-end gap-3">
               <button type="button" className={WsSecondaryButtonClass()} onClick={() => setCreateOpen(false)}>
