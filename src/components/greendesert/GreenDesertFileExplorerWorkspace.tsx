@@ -77,7 +77,13 @@ export default function GreenDesertFileExplorerWorkspace() {
           ) : null}
         </div>
 
-        <div className="mb-4 flex flex-wrap gap-2">
+        <form
+          className="mb-4 flex flex-wrap gap-2"
+          onSubmit={(event) => {
+            event.preventDefault();
+            createFolder();
+          }}
+        >
           <input
             value={newFolderName}
             onChange={(e) => setNewFolderName(e.target.value)}
@@ -85,14 +91,13 @@ export default function GreenDesertFileExplorerWorkspace() {
             className="min-w-[220px] flex-1 rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm text-white outline-none focus:border-emerald-400/40"
           />
           <button
-            type="button"
-            onClick={createFolder}
+            type="submit"
             className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-400/30 bg-emerald-500/15 px-3 py-2 text-sm font-medium text-emerald-100"
           >
             <FolderPlus className="h-4 w-4" />
             Create folder
           </button>
-        </div>
+        </form>
 
         {children.length === 0 ? (
           <p className="text-sm text-white/45">This folder is empty.</p>

@@ -53,7 +53,7 @@ import { isBrowserPailexSurface } from "@/lib/pailex/pailex-surface";
 import { isPailexWorkspaceView } from "@/lib/pailex/pailex-views";
 import NorthstarCorporateDashboard from "@/components/demo/NorthstarCorporateDashboard";
 import { isBrowserDemoSurface } from "@/lib/demo-enterprise";
-import { isBrowserGreenDesertSurface } from "@/lib/greendesert-surface";
+import { isBrowserGreenDesertSurface, isGreenDesertSlug } from "@/lib/greendesert-surface";
 import type { ReportingCurrency } from "@/lib/financial-reporting-currency";
 import {
   NorthstarBoardMeetingsWorkspace,
@@ -578,15 +578,24 @@ export default function InternalOperationsDashboard({
   const mockSeededRef = useRef(false);
   const clientsLoadedRef = useRef(false);
   const usersLoadedRef = useRef(false);
-  const [isDemoSurface, setIsDemoSurface] = useState(false);
-  const [isGreenDesertSurface, setIsGreenDesertSurface] = useState(false);
+  const [isDemoSurface, setIsDemoSurface] = useState(
+    () => typeof window !== "undefined" && isBrowserDemoSurface(),
+  );
+  const [isGreenDesertSurface, setIsGreenDesertSurface] = useState(
+    () =>
+      isGreenDesertSlug(initialEntitlementsSnapshot?.workspaceSlug) ||
+      (typeof window !== "undefined" && isBrowserGreenDesertSurface()),
+  );
 
   useInfoEmailWhatsAppPoller(true);
 
   useEffect(() => {
     setIsDemoSurface(isBrowserDemoSurface());
-    setIsGreenDesertSurface(isBrowserGreenDesertSurface());
-  }, []);
+    setIsGreenDesertSurface(
+      isGreenDesertSlug(initialEntitlementsSnapshot?.workspaceSlug) ||
+        isBrowserGreenDesertSurface(),
+    );
+  }, [initialEntitlementsSnapshot?.workspaceSlug]);
 
   useEffect(() => {
     if (
@@ -1322,15 +1331,9 @@ export default function InternalOperationsDashboard({
             </WorkspacePane>
           )}
 
-          {activeView === "files-internal" &&
-            (isGreenDesertSurface ? (
-              <GreenDesertFileExplorerWorkspace />
-            ) : (
-              <FileRepositoryWorkspace
-                scope="internal"
-                initialFolderId={searchParams.get("folderId")}
-              />
-            ))}
+          {activeView === "files-internal" && (
+            <FilesInternalWorkspace initialFolderId={searchParams.get("folderId")} />
+          )}
 
           {activeView === "unit311-details" && <Unit311DetailsWorkspace />}
           {activeView === "information-repository" && <InterfaceWorxInformationRepositoryWorkspace />}
@@ -1736,6 +1739,19 @@ export default function InternalOperationsDashboard({
     </InternalOperationsBasePathProvider>
     </OperatorEntitlementsProvider>
   );
+}
+
+function FilesInternalWorkspace({ initialFolderId }: { initialFolderId: string | null }) {
+  const { workspaceSlug } = useOperatorEntitlements();
+  const useGreenDesertExplorer =
+    isGreenDesertSlug(workspaceSlug) ||
+    (typeof window !== "undefined" && isBrowserGreenDesertSurface());
+
+  if (useGreenDesertExplorer) {
+    return <GreenDesertFileExplorerWorkspace />;
+  }
+
+  return <FileRepositoryWorkspace scope="internal" initialFolderId={initialFolderId} />;
 }
 
 function AccessViewGuard({

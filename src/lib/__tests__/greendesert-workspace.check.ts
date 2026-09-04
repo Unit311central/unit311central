@@ -243,6 +243,12 @@ const internalDashboard = readFileSync(
   "utf8",
 );
 assert.match(internalDashboard, /GreenDesertBoardPacksWorkspace/);
+assert.match(internalDashboard, /function FilesInternalWorkspace/);
+assert.match(internalDashboard, /isGreenDesertSlug\(workspaceSlug\)/);
+assert.match(
+  internalDashboard,
+  /isGreenDesertSlug\(initialEntitlementsSnapshot\?\.workspaceSlug\)/,
+);
 
 const loginRoute = readFileSync(join(repoRoot, "src/app/api/auth/login/route.ts"), "utf8");
 assert.match(loginRoute, /createGreenDesertClientPortalLoginResponse/);
