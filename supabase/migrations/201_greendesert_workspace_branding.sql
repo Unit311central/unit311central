@@ -2,7 +2,7 @@
 
 update public.workspace_settings ws
 set
-  logo_url = '/images/workspaces/greendesert/logo.svg',
+  logo_url = '/images/workspaces/greendesert/logo.png',
   currency = 'USD',
   updated_at = now()
 from public.workspaces w

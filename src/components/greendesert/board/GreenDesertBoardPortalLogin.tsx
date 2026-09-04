@@ -57,7 +57,9 @@ export function GreenDesertBoardPortalLogin() {
   const formCard = (
     <div className={`relative w-full max-w-md ${marketingFadeIn}`}>
       <div className="mb-5 flex flex-col items-center gap-3">
-        <GreenDesertLogoMark height={52} maxWidth={280} priority />
+        <div className="rounded-2xl bg-white px-6 py-4 shadow-lg">
+          <GreenDesertLogoMark height={120} maxWidth={180} priority />
+        </div>
       </div>
       <div className="rounded-2xl border border-white/10 bg-white/[0.06] px-6 py-7 shadow-[0_20px_60px_rgba(0,0,0,0.45)] backdrop-blur-xl">
         <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-emerald-300/70">

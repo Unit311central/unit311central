@@ -77,6 +77,14 @@ import {
   resolveSaecDiscoveryPlatformUserId,
 } from "@/lib/saec-discovery/provision-discovery-account";
 import { canonicalizePailexSlug } from "@/lib/pailex/pailex-surface";
+import {
+  GREENDESERT_BOARD_USERNAME,
+} from "@/lib/greendesert/greendesert-board-portal-data";
+import {
+  isGreenDesertBoardPortalUsername,
+  verifyGreenDesertBoardPortalPassword,
+} from "@/lib/greendesert/greendesert-board-portal-auth-server";
+import { GREENDESERT_SLUG, isGreenDesertSlug } from "@/lib/greendesert-surface";
 import { canonicalizeWolfCentralSlug, isWolfCentralSlug } from "@/lib/wolf/wolf-surface";
 import {
   isOmnitransitPortalsAllowedUsername,
@@ -669,6 +677,61 @@ async function createDemoPortalsCredentialLoginResponse(
   return response;
 }
 
+async function createGreenDesertBoardPortalLoginResponse(
+  request: NextRequest,
+  usernameRaw: string,
+  password: string,
+  returnToRaw: string | null,
+  nextRaw: string | null,
+  workspaceSlug: string | null,
+) {
+  const username = normalizePlatformUsername(usernameRaw);
+  if (!isGreenDesertSlug(workspaceSlug) || !isGreenDesertBoardPortalUsername(username)) {
+    return null;
+  }
+  if (!verifyGreenDesertBoardPortalPassword(password)) {
+    return null;
+  }
+
+  const workspace = await resolveWorkspaceBinding({
+    workspaceSlug: GREENDESERT_SLUG,
+    fallbackInternal: false,
+  });
+
+  const session: PlatformSession = withSessionWorkspace(
+    {
+      sub: "00000000-0000-4000-8000-00000000gd01",
+      username: GREENDESERT_BOARD_USERNAME,
+      displayName: "Green Desert Board Member",
+      userType: "external",
+      redirectPath: "/board",
+      exp: Date.now() + PLATFORM_SESSION_MAX_AGE_SECONDS * 1000,
+    },
+    workspace,
+  );
+
+  const redirectPath = await resolvePostLoginRedirect({
+    redirectPath: "/board",
+    requestHost: getRequestHost(request),
+    returnToRaw,
+    nextRaw,
+    userType: "external",
+    username,
+  });
+
+  const response = NextResponse.json({
+    redirectPath,
+    userType: session.userType,
+    displayName: session.displayName,
+    workspace: workspace
+      ? { id: workspace.id, slug: workspace.slug, name: workspace.name }
+      : null,
+  });
+
+  applyPlatformSessionCookie(response, await createPlatformSessionToken(session), request);
+  return response;
+}
+
 async function createOmnitransitPortalsExternalLoginResponse(
   request: NextRequest,
   usernameRaw: string,
@@ -1033,6 +1096,16 @@ export async function POST(request: NextRequest) {
       );
       if (portalsLogin) return portalsLogin;
     }
+
+    const greendesertBoardLogin = await createGreenDesertBoardPortalLoginResponse(
+      request,
+      body.username,
+      body.password,
+      returnToRaw,
+      nextRaw,
+      workspaceSlug,
+    );
+    if (greendesertBoardLogin) return greendesertBoardLogin;
 
     const omnitransitPortalLogin = await createOmnitransitPortalsExternalLoginResponse(
       request,

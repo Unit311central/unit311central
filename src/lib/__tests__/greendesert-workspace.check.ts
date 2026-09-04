@@ -22,7 +22,10 @@ import {
 } from "@/lib/greendesert-surface";
 import { isCustomerWorkspaceSlug } from "@/lib/customer-workspace-surface";
 import { resolveSlugReportingCurrency } from "@/lib/financial-reporting-currency";
-import { hashPlatformPasswordForUser, verifyPlatformPassword } from "@/lib/platform-auth";
+import {
+  isGreenDesertBoardPortalUsername,
+  verifyGreenDesertBoardPortalPassword,
+} from "@/lib/greendesert/greendesert-board-portal-auth-server";
 
 const repoRoot = join(process.cwd());
 
@@ -30,17 +33,14 @@ assert.ok(isGreenDesertSlug(GREENDESERT_SLUG));
 assert.ok(isCustomerWorkspaceSlug(GREENDESERT_SLUG));
 assert.equal(resolveSlugReportingCurrency(GREENDESERT_SLUG), GREENDESERT_REPORTING_CURRENCY);
 assert.equal(GREENDESERT_REPORTING_CURRENCY, "USD");
-assert.equal(GREENDESERT_WORKSPACE_LOGO_SRC, "/images/workspaces/greendesert/logo.svg");
+assert.equal(GREENDESERT_WORKSPACE_LOGO_SRC, "/images/workspaces/greendesert/logo.png");
 assert.equal(GREENDESERT_INFORMATION_REPOSITORY_WORKSPACE_CONFIG.features.recordAttachments, true);
 assert.equal(GREENDESERT_BOARD_PORTAL_ORIGIN, "https://greendesert.unit311central.com");
 assert.equal(GREENDESERT_BOARD_USERNAME, "board@greendesert.unit311central.com");
 assert.ok(isGreenDesertHost("greendesert.unit311central.com"));
-assert.ok(
-  verifyPlatformPassword(
-    "Algae2026$",
-    hashPlatformPasswordForUser(GREENDESERT_BOARD_USERNAME, "Algae2026$"),
-  ),
-);
+assert.ok(isGreenDesertBoardPortalUsername(GREENDESERT_BOARD_USERNAME));
+assert.ok(verifyGreenDesertBoardPortalPassword("Algae2026$"));
+assert.equal(verifyGreenDesertBoardPortalPassword("wrong"), false);
 
 const middleware = readFileSync(join(repoRoot, "src/middleware.ts"), "utf8");
 assert.match(middleware, /Green Desert board portal/);
