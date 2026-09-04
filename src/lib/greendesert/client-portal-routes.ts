@@ -26,8 +26,12 @@ export const GREENDESERT_CLIENT_PORTAL_ROUTES = [
   },
 ] as const;
 
-const BY_PATH = new Map(GREENDESERT_CLIENT_PORTAL_ROUTES.map((r) => [r.path, r]));
-const BY_CLIENT_ID = new Map(GREENDESERT_CLIENT_PORTAL_ROUTES.map((r) => [r.clientId, r]));
+const BY_PATH = new Map<string, GreenDesertClientPortalRoute>(
+  GREENDESERT_CLIENT_PORTAL_ROUTES.map((r) => [r.path, r]),
+);
+const BY_CLIENT_ID = new Map<string, GreenDesertClientPortalRoute>(
+  GREENDESERT_CLIENT_PORTAL_ROUTES.map((r) => [r.clientId, r]),
+);
 
 export function getGreenDesertClientPortalByPath(
   path: string | null | undefined,
