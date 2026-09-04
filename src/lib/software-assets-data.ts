@@ -241,7 +241,7 @@ export function computeSoftwareAssetsSummary(
   const currency =
     spendAssets.find((asset) => asset.currency)?.currency ||
     assets[0]?.currency ||
-    "GBP";
+    defaultSoftwareCurrencyForSurface();
 
   return {
     totalProducts: assets.length,
@@ -259,7 +259,7 @@ export function computeSoftwareAssetsSummary(
 }
 
 export function formatSoftwareMoney(amount: number, currency: string) {
-  const code = String(currency || "GBP").toUpperCase();
+  const code = String(currency || defaultSoftwareCurrencyForSurface()).toUpperCase();
   try {
     const { withPreferredCurrencySymbol } =
       require("@/lib/accounting/chart-of-accounts") as typeof import("@/lib/accounting/chart-of-accounts");

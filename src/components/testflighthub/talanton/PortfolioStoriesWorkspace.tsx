@@ -5,6 +5,7 @@ import { Check, Filter, Plus } from "lucide-react";
 
 import { CopyToClipboardButton } from "@/components/ui/CopyToClipboardButton";
 import { isBrowserDemoSurface } from "@/lib/demo-enterprise";
+import { isBrowserGreenDesertSurface } from "@/lib/greendesert-surface";
 import {
   IMPACT_CATEGORIES,
   ingestCompanyPortalStory,
@@ -54,10 +55,21 @@ function storyCopy(s: PortfolioStory) {
 export default function PortfolioStoriesWorkspace() {
   const store = useTalantonMarketingStoriesStore();
   const isDemo = isBrowserDemoSurface();
+  const isGreenDesert = isBrowserGreenDesertSurface();
   const [statusFilter, setStatusFilter] = useState<StoryStatus | "all">("all");
   const [companyFilter, setCompanyFilter] = useState("all");
   const [countryFilter, setCountryFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState<ImpactCategory | "all">("all");
+  const [storyEditorOpen, setStoryEditorOpen] = useState(false);
+  const [storyDraft, setStoryDraft] = useState({
+    title: "",
+    summary: "",
+    fullStory: "",
+    companyName: "Jeddah Technologies",
+    country: "Saudi Arabia",
+    impactCategory: "Jobs & Livelihoods" as ImpactCategory,
+    status: "Draft" as StoryStatus,
+  });
 
   const companies = useMemo(() => {
     const map = new Map<string, string>();
@@ -106,6 +118,35 @@ export default function PortfolioStoriesWorkspace() {
     });
   }
 
+  function saveGreenDesertStory() {
+    if (!storyDraft.title.trim()) return;
+    const stamp = Date.now().toString(36);
+    ingestCompanyPortalStory({
+      id: `gd-story-${stamp}`,
+      title: storyDraft.title.trim(),
+      summary: storyDraft.summary.trim() || storyDraft.title.trim(),
+      fullStory: storyDraft.fullStory.trim() || storyDraft.summary.trim(),
+      companyId: `gd-client-${stamp}`,
+      companyName: storyDraft.companyName.trim() || "Green Desert Client",
+      country: storyDraft.country.trim() || "Saudi Arabia",
+      impactCategory: storyDraft.impactCategory,
+      status: storyDraft.status === "Published" ? "Approved" : storyDraft.status,
+      submissionDate: new Date().toISOString().slice(0, 10),
+      submittedBy: "Green Desert marketing",
+      photos: [],
+    });
+    setStoryDraft({
+      title: "",
+      summary: "",
+      fullStory: "",
+      companyName: "Jeddah Technologies",
+      country: "Saudi Arabia",
+      impactCategory: "Jobs & Livelihoods",
+      status: "Draft",
+    });
+    setStoryEditorOpen(false);
+  }
+
   return (
     <div className="flex h-full min-h-0 flex-col gap-5 overflow-auto p-5 sm:p-6">
       <TalantonIntelligenceHeader
@@ -126,6 +167,15 @@ export default function PortfolioStoriesWorkspace() {
             >
               <Plus className="h-3.5 w-3.5" />
               Add client story
+            </button>
+          ) : isGreenDesert ? (
+            <button
+              type="button"
+              onClick={() => setStoryEditorOpen(true)}
+              className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-emerald-400/30 bg-emerald-500/10 px-3 text-xs font-medium text-emerald-100 transition-colors hover:bg-emerald-500/20"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              Add new story
             </button>
           ) : undefined
         }
@@ -315,6 +365,120 @@ export default function PortfolioStoriesWorkspace() {
           ) : null}
         </div>
       </TalantonGeneratedPanel>
+
+      {storyEditorOpen ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-lg rounded-2xl border border-white/10 bg-[#0b1a14] p-5 shadow-2xl">
+            <h3 className="text-lg font-semibold text-white">Add new story</h3>
+            <div className="mt-4 space-y-3">
+              <label className="block text-xs text-white/50">
+                Title
+                <input
+                  className="mt-1 w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm text-white"
+                  value={storyDraft.title}
+                  onChange={(event) =>
+                    setStoryDraft((draft) => ({ ...draft, title: event.target.value }))
+                  }
+                />
+              </label>
+              <label className="block text-xs text-white/50">
+                Company
+                <input
+                  className="mt-1 w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm text-white"
+                  value={storyDraft.companyName}
+                  onChange={(event) =>
+                    setStoryDraft((draft) => ({ ...draft, companyName: event.target.value }))
+                  }
+                />
+              </label>
+              <label className="block text-xs text-white/50">
+                Country
+                <input
+                  className="mt-1 w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm text-white"
+                  value={storyDraft.country}
+                  onChange={(event) =>
+                    setStoryDraft((draft) => ({ ...draft, country: event.target.value }))
+                  }
+                />
+              </label>
+              <label className="block text-xs text-white/50">
+                Summary
+                <textarea
+                  className="mt-1 min-h-[72px] w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm text-white"
+                  value={storyDraft.summary}
+                  onChange={(event) =>
+                    setStoryDraft((draft) => ({ ...draft, summary: event.target.value }))
+                  }
+                />
+              </label>
+              <label className="block text-xs text-white/50">
+                Full story
+                <textarea
+                  className="mt-1 min-h-[120px] w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm text-white"
+                  value={storyDraft.fullStory}
+                  onChange={(event) =>
+                    setStoryDraft((draft) => ({ ...draft, fullStory: event.target.value }))
+                  }
+                />
+              </label>
+              <label className="block text-xs text-white/50">
+                Impact category
+                <select
+                  className="mt-1 w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm text-white"
+                  value={storyDraft.impactCategory}
+                  onChange={(event) =>
+                    setStoryDraft((draft) => ({
+                      ...draft,
+                      impactCategory: event.target.value as ImpactCategory,
+                    }))
+                  }
+                >
+                  {IMPACT_CATEGORIES.map((category) => (
+                    <option key={category} value={category}>
+                      {category}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="block text-xs text-white/50">
+                Status
+                <select
+                  className="mt-1 w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm text-white"
+                  value={storyDraft.status}
+                  onChange={(event) =>
+                    setStoryDraft((draft) => ({
+                      ...draft,
+                      status: event.target.value as StoryStatus,
+                    }))
+                  }
+                >
+                  {(["Draft", "Submitted", "Under Review", "Approved"] as const).map((status) => (
+                    <option key={status} value={status}>
+                      {status}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setStoryEditorOpen(false)}
+                className="rounded-lg border border-white/10 px-3 py-2 text-sm text-white/70"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={saveGreenDesertStory}
+                className="rounded-lg border border-emerald-400/30 bg-emerald-500/15 px-3 py-2 text-sm font-medium text-emerald-100"
+              >
+                Save story
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

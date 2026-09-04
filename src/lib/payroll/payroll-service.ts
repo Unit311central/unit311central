@@ -33,6 +33,7 @@ import {
 import { createSupabaseServerClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import { requireCurrentWorkspace } from "@/lib/workspace-context";
 import { resolveWorkspaceReportingCurrency } from "@/lib/workspace-reporting-currency-server";
+import { isGreenDesertSlug } from "@/lib/greendesert-surface";
 
 async function withPayrollDb<T>(operation: () => Promise<T>): Promise<T> {
   await ensurePayrollModuleTables();
@@ -164,6 +165,39 @@ export async function getPayrollSettings(scope?: HrWorkspaceScope): Promise<Payr
       .eq("workspace_id", workspaceId)
       .maybeSingle();
     if (error) throw new Error(error.message);
+    if (data) {
+      const mapped = mapSettings(data as Record<string, unknown>, workspaceId);
+      let workspaceSlug: string | null = null;
+      try {
+        workspaceSlug = (await requireCurrentWorkspace()).slug;
+      } catch {
+        /* explicit scope callers */
+      }
+      if (isGreenDesertSlug(workspaceSlug) && mapped.countryCode !== "SA") {
+        const now = new Date().toISOString();
+        const saPatch = {
+          country_code: "SA",
+          default_tax_state: "SA",
+          default_currency: "USD",
+          federal_tax_pct: 0,
+          state_tax_pct: 0,
+          social_security_pct: 9.75,
+          medicare_pct: 0,
+          employer_payroll_pct: 11.75,
+          payroll_frequency: "monthly",
+          updated_at: now,
+        };
+        const { data: updated, error: updateError } = await supabase
+          .from("payroll_settings")
+          .update(saPatch)
+          .eq("workspace_id", workspaceId)
+          .select("*")
+          .single();
+        if (updateError) throw new Error(updateError.message);
+        return mapSettings(updated as Record<string, unknown>, workspaceId);
+      }
+      return mapped;
+    }
     if (!data) {
       const now = new Date().toISOString();
       let workspaceSlug: string | null = null;
@@ -173,16 +207,25 @@ export async function getPayrollSettings(scope?: HrWorkspaceScope): Promise<Payr
         /* explicit scope callers */
       }
       const reportingCurrency = await resolveWorkspaceReportingCurrency(workspaceId, workspaceSlug);
-      const countryCode = reportingCurrency === "GBP" ? "GB" : DEFAULT_PAYROLL_SETTINGS.countryCode;
-      const defaultTaxState = reportingCurrency === "GBP" ? "" : DEFAULT_PAYROLL_SETTINGS.defaultTaxState;
+      const isGreenDesert = isGreenDesertSlug(workspaceSlug);
+      const countryCode = isGreenDesert
+        ? "SA"
+        : reportingCurrency === "GBP"
+          ? "GB"
+          : DEFAULT_PAYROLL_SETTINGS.countryCode;
+      const defaultTaxState = isGreenDesert
+        ? "SA"
+        : reportingCurrency === "GBP"
+          ? ""
+          : DEFAULT_PAYROLL_SETTINGS.defaultTaxState;
       const insert = {
         workspace_id: workspaceId,
-        federal_tax_pct: DEFAULT_PAYROLL_SETTINGS.federalTaxPct,
-        state_tax_pct: DEFAULT_PAYROLL_SETTINGS.stateTaxPct,
-        social_security_pct: DEFAULT_PAYROLL_SETTINGS.socialSecurityPct,
-        medicare_pct: DEFAULT_PAYROLL_SETTINGS.medicarePct,
-        employer_payroll_pct: DEFAULT_PAYROLL_SETTINGS.employerPayrollPct,
-        default_currency: reportingCurrency,
+        federal_tax_pct: isGreenDesert ? 0 : DEFAULT_PAYROLL_SETTINGS.federalTaxPct,
+        state_tax_pct: isGreenDesert ? 0 : DEFAULT_PAYROLL_SETTINGS.stateTaxPct,
+        social_security_pct: isGreenDesert ? 9.75 : DEFAULT_PAYROLL_SETTINGS.socialSecurityPct,
+        medicare_pct: isGreenDesert ? 0 : DEFAULT_PAYROLL_SETTINGS.medicarePct,
+        employer_payroll_pct: isGreenDesert ? 11.75 : DEFAULT_PAYROLL_SETTINGS.employerPayrollPct,
+        default_currency: isGreenDesert ? "USD" : reportingCurrency,
         payroll_frequency: DEFAULT_PAYROLL_SETTINGS.payrollFrequency,
         pay_day: DEFAULT_PAYROLL_SETTINGS.payDay,
         bonus_pay_month: DEFAULT_PAYROLL_SETTINGS.bonusPayMonth,

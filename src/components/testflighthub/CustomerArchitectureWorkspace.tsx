@@ -10,6 +10,8 @@ import {
   upsertCustomerArchitectureDiagram,
   type CustomerArchitectureDiagram,
 } from "@/lib/customer-architecture-store";
+import { GREENDESERT_ARCHITECTURE_DIAGRAMS } from "@/lib/greendesert/greendesert-architecture-diagrams-data";
+import { isBrowserGreenDesertSurface } from "@/lib/greendesert-surface";
 
 function inputClass() {
   return "mt-1 w-full rounded-lg border border-white/10 bg-[#0b1524] px-3 py-2 text-sm text-white outline-none focus:border-sky-400/40";
@@ -23,6 +25,15 @@ export default function CustomerArchitectureWorkspace() {
 
   useEffect(() => {
     return subscribeCustomerArchitecture(() => setRows(getCustomerArchitectureSnapshot()));
+  }, []);
+
+  useEffect(() => {
+    if (!isBrowserGreenDesertSurface()) return;
+    const current = getCustomerArchitectureSnapshot();
+    if (current.length > 0) return;
+    for (const diagram of GREENDESERT_ARCHITECTURE_DIAGRAMS) {
+      upsertCustomerArchitectureDiagram(diagram);
+    }
   }, []);
 
   function saveEditor() {

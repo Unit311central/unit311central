@@ -229,7 +229,9 @@ export default function SalesQuotesWorkspace({
         </div>
         <div className="rounded-xl border border-white/10 bg-gradient-to-br from-white/[0.05] to-white/[0.02] p-4">
           <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-white/45">Open pipeline value</p>
-          <p className="mt-2 text-3xl font-semibold tabular-nums text-white">{money(totals.openValue, "GBP")}</p>
+          <p className="mt-2 text-3xl font-semibold tabular-nums text-white">
+            {money(totals.openValue, resolveBrowserReportingCurrency())}
+          </p>
         </div>
         <div className="rounded-xl border border-white/10 bg-gradient-to-br from-white/[0.05] to-white/[0.02] p-4">
           <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-white/45">Accepted</p>

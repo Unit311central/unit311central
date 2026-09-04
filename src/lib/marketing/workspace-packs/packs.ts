@@ -201,10 +201,12 @@ export const greendesertMarketingPack: MarketingWorkspacePack = {
         return { rendererId: MARKETING_RENDERER_IDS.TALANTON_PORTFOLIO_STORIES };
       case "journey-stories":
         return { rendererId: MARKETING_RENDERER_IDS.TALANTON_JOURNEY_STORIES };
+      case "marketing-newsletter":
       case "stories-newsletter":
         return { rendererId: MARKETING_RENDERER_IDS.TALANTON_STORIES_NEWSLETTER };
       case "stories-media-library":
         return { rendererId: MARKETING_RENDERER_IDS.TALANTON_MEDIA_LIBRARY };
+      case "marketing-mailing-list":
       case "stories-mailing-list":
         return { rendererId: MARKETING_RENDERER_IDS.TALANTON_STORIES_MAILING_LIST };
       case "marketing-training":

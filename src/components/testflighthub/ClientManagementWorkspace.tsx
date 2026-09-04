@@ -41,6 +41,8 @@ import { resolveOnwardAirClientPortalAbsoluteUrl } from "@/lib/onwardair/client-
 import { isBrowserAbhiSurface } from "@/lib/abhi-surface";
 import { isBrowserOnwardAirSurface } from "@/lib/onwardair-surface";
 import { isBrowserCorpCentreSurface } from "@/lib/corpcentre-surface";
+import { isBrowserGreenDesertSurface } from "@/lib/greendesert-surface";
+import { GREENDESERT_CLIENT_COUNTRY_OPTIONS } from "@/lib/greendesert/greendesert-client-countries";
 import { ExternalLink, FolderOpen, FolderPlus, Link2, Loader2, Plus, Save, Search, Trash2 } from "lucide-react";
 
 function formatFinanceMoney(amount: number, currency = "EUR") {
@@ -120,6 +122,7 @@ export default function ClientManagementWorkspace({
     typeof window !== "undefined" ? isBrowserCorpCentreSurface() : false;
   const isAbhi = typeof window !== "undefined" ? isBrowserAbhiSurface() : false;
   const isOnwardAir = typeof window !== "undefined" ? isBrowserOnwardAirSurface() : false;
+  const isGreenDesert = typeof window !== "undefined" ? isBrowserGreenDesertSurface() : false;
   const { showDetail, openDetail, closeDetail } = useMobileDetailPanel();
 
   const selectedClient = useMemo(
@@ -174,9 +177,15 @@ export default function ClientManagementWorkspace({
       const country = resolveClientLocation(client).country;
       if (country) fromClients.add(country);
     }
-    for (const option of CLIENT_COUNTRY_OPTIONS) fromClients.add(option);
+    const baseOptions = isGreenDesert ? GREENDESERT_CLIENT_COUNTRY_OPTIONS : CLIENT_COUNTRY_OPTIONS;
+    for (const option of baseOptions) fromClients.add(option);
     return Array.from(fromClients).sort((a, b) => a.localeCompare(b));
-  }, [clients]);
+  }, [clients, isGreenDesert]);
+
+  const recordCountryOptions = useMemo(() => {
+    if (!isGreenDesert) return [...CLIENT_COUNTRY_OPTIONS];
+    return [...GREENDESERT_CLIENT_COUNTRY_OPTIONS];
+  }, [isGreenDesert]);
 
   const cityFilterOptions = useMemo(() => {
     const cities = new Set<string>();
@@ -1005,7 +1014,7 @@ export default function ClientManagementWorkspace({
                       <option value="">Select country</option>
                       {Array.from(
                         new Set([
-                          ...CLIENT_COUNTRY_OPTIONS,
+                          ...recordCountryOptions,
                           ...(selectedLocation.country ? [selectedLocation.country] : []),
                         ]),
                       ).map((option) => (

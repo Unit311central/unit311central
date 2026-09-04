@@ -17,6 +17,8 @@ import {
   GREENDESERT_BOARD_USERNAME,
 } from "@/lib/greendesert/greendesert-board-portal-data";
 import { GREENDESERT_LOGISTICS_SHIPMENTS } from "@/lib/greendesert/greendesert-logistics-data";
+import { FEATURED_RIYADH_JEDDAH_ROUTE } from "@/lib/greendesert/greendesert-logistics-data";
+import { GREENDESERT_ARCHITECTURE_DIAGRAMS } from "@/lib/greendesert/greendesert-architecture-diagrams-data";
 import {
   GREENDESERT_REPORTING_CURRENCY,
   GREENDESERT_SLUG,
@@ -40,6 +42,8 @@ import { GREENDESERT_REPRESENTATIVES_DASHBOARD_TILES } from "@/lib/view-dashboar
 import { bootstrapPortalWorkspacePacks } from "@/lib/portals/workspace-packs";
 import { getPortalPackBySlug } from "@/lib/portals/registry";
 import { ensureMarketingWorkspacePacksRegistered, getMarketingWorkspacePack } from "@/lib/marketing/workspace-packs/registry";
+import { resolveMarketingView } from "@/lib/marketing/view-resolver";
+import { MARKETING_RENDERER_IDS } from "@/lib/marketing/workspace-packs/types";
 
 const repoRoot = join(process.cwd());
 
@@ -66,6 +70,27 @@ assert.equal(getGreenDesertClientPortalByUsername("jeddahtechnologies@greendeser
 assert.equal(GREENDESERT_LOGISTICS_SHIPMENTS.length, 1);
 assert.match(GREENDESERT_LOGISTICS_SHIPMENTS[0]?.origin ?? "", /Riyadh/i);
 assert.match(GREENDESERT_LOGISTICS_SHIPMENTS[0]?.destination ?? "", /Jeddah/i);
+assert.equal(FEATURED_RIYADH_JEDDAH_ROUTE.shipmentId, "gd-shp-jeddah-001");
+assert.ok(GREENDESERT_ARCHITECTURE_DIAGRAMS.length >= 3);
+
+ensureMarketingWorkspacePacksRegistered();
+assert.ok(getMarketingWorkspacePack("greendesert"));
+const mailingResolution = resolveMarketingView({
+  view: "marketing-mailing-list",
+  workspaceKey: "greendesert",
+  workspaceSlug: GREENDESERT_SLUG,
+});
+assert.equal(mailingResolution?.rendererId, MARKETING_RENDERER_IDS.TALANTON_STORIES_MAILING_LIST);
+const storiesResolution = resolveMarketingView({
+  view: "portfolio-stories",
+  workspaceKey: "greendesert",
+  workspaceSlug: GREENDESERT_SLUG,
+});
+assert.equal(storiesResolution?.rendererId, MARKETING_RENDERER_IDS.TALANTON_PORTFOLIO_STORIES);
+
+const saLabels = getPayrollUiLabels({ countryCode: "SA", defaultCurrency: "USD" });
+assert.equal(saLabels.countryCode, "SA");
+assert.match(saLabels.settingsBlurb, /Saudi Arabia/i);
 
 assert.equal(GREENDESERT_REPRESENTATIVES_DASHBOARD_TILES[1]?.value, "$0");
 
@@ -73,13 +98,6 @@ bootstrapPortalWorkspacePacks();
 const portalPack = getPortalPackBySlug(GREENDESERT_SLUG);
 assert.ok(portalPack);
 assert.equal(portalPack?.implBase, "/greendesert-portal");
-
-ensureMarketingWorkspacePacksRegistered();
-assert.ok(getMarketingWorkspacePack("greendesert"));
-
-const saLabels = getPayrollUiLabels({ countryCode: "SA", defaultCurrency: "USD" });
-assert.equal(saLabels.countryCode, "SA");
-assert.match(saLabels.settingsBlurb, /Saudi Arabia/i);
 
 const middleware = readFileSync(join(repoRoot, "src/middleware.ts"), "utf8");
 assert.match(middleware, /Green Desert board portal/);

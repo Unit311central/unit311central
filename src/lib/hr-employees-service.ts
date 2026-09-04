@@ -1371,51 +1371,105 @@ export async function addTimelineManualEvent(
 
 /**
  * Seed Green Desert workforce into hr_employees (greendesert workspace only).
+ * Keeps exactly the canonical four employees — removes extras and syncs fields.
  */
 export async function ensureGreenDesertHrEmployeesSeeded(
   workspaceId: string,
 ): Promise<HrEmployee[]> {
   const { GREENDESERT_HR_TEAM_EMPLOYEES } =
     await import("@/lib/greendesert/greendesert-hr-team-data");
+  const { GREENDESERT_DEFAULT_HR_LOCATION } =
+    await import("@/lib/greendesert/greendesert-hr-config");
+
+  const canonicalEmails = new Set(
+    GREENDESERT_HR_TEAM_EMPLOYEES.map((member) => member.email.trim().toLowerCase()),
+  );
 
   const existing = await listHrEmployees({ workspaceId, includeArchived: true });
-  const byEmail = new Set(
-    existing.map((employee) => employee.email.trim().toLowerCase()).filter(Boolean),
+  const byEmail = new Map(
+    existing.map((employee) => [employee.email.trim().toLowerCase(), employee] as const),
   );
+
+  const extras = existing.filter(
+    (employee) => !canonicalEmails.has(employee.email.trim().toLowerCase()),
+  );
+  if (extras.length > 0) {
+    await deleteHrEmployees(
+      extras.map((employee) => employee.id),
+      { workspaceId },
+    );
+  }
 
   for (const member of GREENDESERT_HR_TEAM_EMPLOYEES) {
     const email = member.email.trim().toLowerCase();
-    if (byEmail.has(email)) continue;
+    const current = byEmail.get(email);
+    const payload = {
+      fullName: member.fullName,
+      preferredName: member.preferredName,
+      email: member.email,
+      phone: member.phone,
+      employmentStatus: member.employmentStatus,
+      employmentType: member.employmentType,
+      dateJoined: member.dateJoined,
+      location: member.location ?? GREENDESERT_DEFAULT_HR_LOCATION,
+      role: member.role,
+      department: member.department,
+      manager: member.manager ?? "",
+      currency: member.currency ?? "USD",
+      payFrequency: member.payFrequency ?? "monthly",
+      salaryCurrent: member.salaryCurrent ?? 100_000,
+      salaryPrevious: member.salaryPrevious ?? 100_000,
+      bonus: member.bonus ?? 0,
+      holidayCalendar: member.holidayCalendar,
+      vacationDaysPerYear: member.vacationDaysPerYear,
+      vacationDaysTaken: member.vacationDaysTaken ?? 0,
+    };
+
+    if (current) {
+      await updateHrEmployee(current.id, payload, { workspaceId });
+      try {
+        const { upsertEmployeePayrollProfile } =
+          await import("@/lib/payroll/payroll-service");
+        await upsertEmployeePayrollProfile(
+          current.id,
+          {
+            annualSalary: 100_000,
+            payrollFrequency: "monthly",
+            currency: "USD",
+            taxState: "SA",
+            payrollStatus: "active",
+          },
+          { workspaceId },
+        );
+      } catch {
+        /* payroll tables may be unavailable in some environments */
+      }
+      continue;
+    }
+
     try {
-      await createHrEmployee(
-        {
-          fullName: member.fullName,
-          preferredName: member.preferredName,
-          email: member.email,
-          phone: member.phone,
-          employmentStatus: member.employmentStatus,
-          employmentType: member.employmentType,
-          dateJoined: member.dateJoined,
-          location: member.location,
-          role: member.role,
-          department: member.department,
-          manager: member.manager ?? "",
-          currency: member.currency ?? "USD",
-          payFrequency: member.payFrequency ?? "monthly",
-          salaryCurrent: member.salaryCurrent ?? 100_000,
-          salaryPrevious: member.salaryPrevious ?? 100_000,
-          bonus: member.bonus ?? 0,
-          holidayCalendar: member.holidayCalendar,
-          vacationDaysPerYear: member.vacationDaysPerYear,
-          vacationDaysTaken: member.vacationDaysTaken ?? 0,
-        },
-        { workspaceId },
-      );
-      byEmail.add(email);
+      const created = await createHrEmployee(payload, { workspaceId });
+      byEmail.set(email, created);
+      try {
+        const { upsertEmployeePayrollProfile } =
+          await import("@/lib/payroll/payroll-service");
+        await upsertEmployeePayrollProfile(
+          created.id,
+          {
+            annualSalary: 100_000,
+            payrollFrequency: "monthly",
+            currency: "USD",
+            taxState: "SA",
+            payrollStatus: "active",
+          },
+          { workspaceId },
+        );
+      } catch {
+        /* payroll tables may be unavailable in some environments */
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       if (/duplicate key|unique constraint/i.test(message)) {
-        byEmail.add(email);
         continue;
       }
       throw error;

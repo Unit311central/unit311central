@@ -726,6 +726,19 @@ export function getFeaturedLogisticsRoute(): FeaturedRouteSnapshot {
   }
   if (isAbhiLogisticsSurface()) return FEATURED_LONDON_CAMBRIDGE_ROUTE;
   if (isTalantonLogisticsSurface()) return FEATURED_NAIROBI_NEWYORK_ROUTE;
+  if (typeof window !== "undefined") {
+    try {
+      const { isBrowserGreenDesertSurface } =
+        require("@/lib/greendesert-surface") as typeof import("@/lib/greendesert-surface");
+      if (isBrowserGreenDesertSurface()) {
+        const { FEATURED_RIYADH_JEDDAH_ROUTE } =
+          require("@/lib/greendesert/greendesert-logistics-data") as typeof import("@/lib/greendesert/greendesert-logistics-data");
+        return FEATURED_RIYADH_JEDDAH_ROUTE;
+      }
+    } catch {
+      // Fall through.
+    }
+  }
   return isDemoLogisticsSurface() ? FEATURED_LONDON_NEW_YORK_ROUTE : FEATURED_BARCELONA_LONDON_ROUTE;
 }
 

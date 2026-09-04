@@ -336,6 +336,13 @@ export default function EmployeeRecordWorkspace() {
       } catch {
         /* ignore */
       }
+      try {
+        const { isBrowserGreenDesertSurface } =
+          require("@/lib/greendesert-surface") as typeof import("@/lib/greendesert-surface");
+        if (isBrowserGreenDesertSurface()) return "USD";
+      } catch {
+        /* ignore */
+      }
     }
     const currencies = employees
       .map((employee) => String(employee.currency || "").toUpperCase())

@@ -6,7 +6,11 @@ import { Building2, Loader2, Pencil, Plus, Radio, Smartphone, Trash2 } from "luc
 import { formatReportingMoney } from "@/lib/financial-reporting-currency";
 import { isBrowserSaecSurface } from "@/lib/saec-surface";
 import { isBrowserGreenDesertSurface } from "@/lib/greendesert-surface";
-import { GREENDESERT_TELECOM_SERVICE_OPTIONS } from "@/lib/greendesert/greendesert-telecom-config";
+import {
+  GREENDESERT_DEFAULT_TELECOM_LOCATION,
+  GREENDESERT_TELECOM_LOCATION_OPTIONS,
+  GREENDESERT_TELECOM_SERVICE_OPTIONS,
+} from "@/lib/greendesert/greendesert-telecom-config";
 import {
   isMobileTelecomService,
   type TechnologyTelecomService,
@@ -25,13 +29,13 @@ function statusClass(status: string) {
 }
 
 const EMPTY_FORM: TechnologyTelecomServiceInput & { location: string } = {
-  service: "Mobile plan",
+  service: "Mobile Plan",
   carrier: "",
   numberOrCircuit: "",
   assignedTo: "",
   location:
     typeof window !== "undefined" && isBrowserGreenDesertSurface()
-      ? ""
+      ? GREENDESERT_DEFAULT_TELECOM_LOCATION
       : typeof window !== "undefined" && isBrowserSaecSurface()
         ? "Pretoria"
         : "Manchester",
@@ -98,9 +102,11 @@ export default function TelecommunicationsWorkspace() {
 
   const officeSummary = useMemo(() => {
     const offices = [...new Set(rows.map((row) => row.location).filter(Boolean))] as string[];
-    const defaults = isBrowserSaecSurface()
-      ? ["Pretoria", "Johannesburg", "Cape Town", "Durban"]
-      : ["Manchester", "Bristol", "Austin"];
+    const defaults = isGreenDesert
+      ? [...GREENDESERT_TELECOM_LOCATION_OPTIONS]
+      : isBrowserSaecSurface()
+        ? ["Pretoria", "Johannesburg", "Cape Town", "Durban"]
+        : ["Manchester", "Bristol", "Austin"];
     const list = offices.length ? offices : defaults;
     return list.map((office) => {
       const officeRows = rows.filter((row) => row.location === office);
@@ -114,7 +120,7 @@ export default function TelecommunicationsWorkspace() {
         monthly: officeRows.reduce((sum, row) => sum + row.monthlyCostMinor, 0),
       };
     });
-  }, [rows]);
+  }, [rows, isGreenDesert]);
 
   function openCreate() {
     setEditingId(null);
@@ -129,7 +135,7 @@ export default function TelecommunicationsWorkspace() {
       carrier: row.carrier,
       numberOrCircuit: row.numberOrCircuit,
       assignedTo: row.assignedTo,
-      location: row.location ?? "Manchester",
+      location: row.location ?? (isGreenDesert ? GREENDESERT_DEFAULT_TELECOM_LOCATION : "Manchester"),
       monthlyCostMinor: row.monthlyCostMinor,
       status: row.status,
       manufacturer: row.manufacturer ?? "",
@@ -148,11 +154,13 @@ export default function TelecommunicationsWorkspace() {
     setBusy(true);
     setError(null);
     const payload: TechnologyTelecomServiceInput = {
-      service: form.service.trim() || "Mobile plan",
+      service: form.service.trim() || (isGreenDesert ? "Mobile Plan" : "Mobile plan"),
       carrier: form.carrier.trim(),
       numberOrCircuit: form.numberOrCircuit?.trim() ?? "",
       assignedTo: form.assignedTo?.trim() ?? "",
-      location: form.location?.trim() || "Manchester",
+      location:
+        form.location?.trim() ||
+        (isGreenDesert ? GREENDESERT_DEFAULT_TELECOM_LOCATION : "Manchester"),
       monthlyCostMinor: Math.max(0, Number(form.monthlyCostMinor) || 0),
       status: form.status ?? "Active",
       ...(isMobile
@@ -356,13 +364,29 @@ export default function TelecommunicationsWorkspace() {
               </label>
               <label className="space-y-1 text-xs text-white/50">
                 Location
-                <input
-                  value={form.location ?? ""}
-                  onChange={(event) =>
-                    setForm((prev) => ({ ...prev, location: event.target.value }))
-                  }
-                  className="h-9 w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 text-sm text-white outline-none focus:border-sky-400/40"
-                />
+                {isGreenDesert ? (
+                  <select
+                    value={form.location ?? GREENDESERT_DEFAULT_TELECOM_LOCATION}
+                    onChange={(event) =>
+                      setForm((prev) => ({ ...prev, location: event.target.value }))
+                    }
+                    className="h-9 w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 text-sm text-white outline-none focus:border-sky-400/40"
+                  >
+                    {GREENDESERT_TELECOM_LOCATION_OPTIONS.map((option) => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <input
+                    value={form.location ?? ""}
+                    onChange={(event) =>
+                      setForm((prev) => ({ ...prev, location: event.target.value }))
+                    }
+                    className="h-9 w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 text-sm text-white outline-none focus:border-sky-400/40"
+                  />
+                )}
               </label>
               <label className="space-y-1 text-xs text-white/50">
                 {currency}/month

@@ -1,4 +1,5 @@
 import type { LogisticsShipment } from "@/lib/logistics-data";
+import type { FeaturedRouteSnapshot } from "@/lib/logistics-data";
 
 export const GREENDESERT_LOGISTICS_SHIPMENTS: LogisticsShipment[] = [
   {
@@ -21,3 +22,22 @@ export const GREENDESERT_LOGISTICS_SHIPMENTS: LogisticsShipment[] = [
     featured: true,
   },
 ];
+
+export const FEATURED_RIYADH_JEDDAH_ROUTE: FeaturedRouteSnapshot = {
+  shipmentId: "gd-shp-jeddah-001",
+  label: "Riyadh → Jeddah",
+  currentLeg: "ground",
+  progressPct: 62,
+  currentLocationLabel: "En route — central corridor, Saudi Arabia",
+  origin: { name: "Green Desert — Riyadh", lat: 24.7136, lng: 46.6753 },
+  destination: { name: "Jeddah Technologies — Jeddah", lat: 21.4858, lng: 39.1925 },
+  route: [
+    { lat: 24.7136, lng: 46.6753 },
+    { lat: 24.4, lng: 45.8 },
+    { lat: 23.5, lng: 42.5 },
+    { lat: 22.8, lng: 40.5 },
+    { lat: 22.0, lng: 39.8 },
+    { lat: 21.4858, lng: 39.1925 },
+  ],
+  currentPosition: { lat: 22.8, lng: 40.5 },
+};
