@@ -7,6 +7,10 @@ import {
   getCustomerBoardGovernanceSnapshot,
   subscribeCustomerBoardGovernance,
 } from "@/lib/customer-board-governance-store";
+import {
+  listApprovedGreenDesertBoardPacks,
+  resolveGreenDesertPackPdfUrl,
+} from "@/lib/greendesert/greendesert-board-pack-store";
 import type { GreenDesertBoardPortalSection } from "@/lib/greendesert/greendesert-board-portal-data";
 import { GREENDESERT_SLUG } from "@/lib/greendesert-surface";
 import { cn } from "@/lib/utils";
@@ -94,7 +98,29 @@ function BoardDashboard() {
         </Card>
 
         <Card title="Latest approved board pack">
-          <p className="text-sm text-white/50">No approved board packs yet.</p>
+          {(() => {
+            const approved = listApprovedGreenDesertBoardPacks()[0];
+            if (!approved) {
+              return <p className="text-sm text-white/50">No approved board packs yet.</p>;
+            }
+            return (
+              <div>
+                <p className="text-lg font-semibold text-white">{approved.packName}</p>
+                <p className="mt-1 text-sm text-white/60">
+                  Meeting {approved.meetingDate}
+                  {approved.quarter ? ` · ${approved.quarter}` : ""}
+                </p>
+                <a
+                  href={resolveGreenDesertPackPdfUrl(approved.meetingDate)}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-3 inline-flex rounded-lg border border-emerald-400/30 bg-emerald-500/10 px-3 py-2 text-xs font-semibold text-emerald-100 hover:bg-emerald-500/15"
+                >
+                  Open board pack PDF
+                </a>
+              </div>
+            );
+          })()}
         </Card>
 
         <Card title="Open board actions">
@@ -199,6 +225,8 @@ function BoardMeetings() {
 }
 
 function BoardDecks() {
+  const approved = listApprovedGreenDesertBoardPacks();
+
   return (
     <div className="space-y-5">
       <header>
@@ -207,9 +235,40 @@ function BoardDecks() {
           Approved board packs only. Draft packs are not visible to board members.
         </p>
       </header>
-      <p className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-8 text-center text-sm text-white/50">
-        No approved board packs available yet.
-      </p>
+      {approved.length === 0 ? (
+        <p className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-8 text-center text-sm text-white/50">
+          No approved board packs available yet.
+        </p>
+      ) : (
+        <div className="space-y-3">
+          {approved.map((pack) => (
+            <article
+              key={pack.id}
+              className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 sm:p-5"
+            >
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <h2 className="text-lg font-semibold text-white">{pack.packName}</h2>
+                  <p className="mt-1 text-sm text-white/50">
+                    {pack.quarter} · Meeting {pack.meetingDate}
+                  </p>
+                </div>
+                <span className="rounded-full border border-emerald-400/30 bg-emerald-500/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-emerald-200">
+                  {pack.status}
+                </span>
+              </div>
+              <a
+                href={resolveGreenDesertPackPdfUrl(pack.meetingDate)}
+                target="_blank"
+                rel="noreferrer"
+                className="mt-3 inline-flex rounded-lg border border-emerald-400/30 bg-emerald-500/10 px-3 py-2 text-xs font-semibold text-emerald-100 hover:bg-emerald-500/15"
+              >
+                Open PDF
+              </a>
+            </article>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

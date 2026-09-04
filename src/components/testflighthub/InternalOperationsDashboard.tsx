@@ -365,6 +365,7 @@ import {
   GreenDesertEngineeringProgramsWorkspace,
   GreenDesertEngineeringRisksWorkspace,
 } from "@/components/greendesert/GreenDesertEngineeringWorkspaces";
+import GreenDesertBoardPacksWorkspace from "@/components/greendesert/GreenDesertBoardPacksWorkspace";
 import WorkspaceBusinessCentralDashboard from "@/components/business-central/WorkspaceBusinessCentralDashboard";
 import OnwardAirBusinessCentralDashboard from "@/components/onwardair/OnwardAirBusinessCentralDashboard";
 import SaecBusinessCentralDashboard from "@/components/saec/SaecBusinessCentralDashboard";
@@ -1137,6 +1138,8 @@ export default function InternalOperationsDashboard({
               <OnwardAirBoardDecksWorkspace />
             ) : isBrowserDemoSurface() ? (
               <NorthstarBoardPacksWorkspace />
+            ) : isBrowserGreenDesertSurface() ? (
+              <GreenDesertBoardPacksWorkspace />
             ) : (
               <BoardPackCustomizerWorkspace />
             ))}

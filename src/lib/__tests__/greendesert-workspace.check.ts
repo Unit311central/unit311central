@@ -196,6 +196,31 @@ const orgChart = readFileSync(
 assert.match(orgChart, /isGreenDesertSlug\(workspaceSlug\)/);
 assert.match(orgChart, /inline-flex w-max max-w-none flex-nowrap/);
 
+const boardPackModel = readFileSync(
+  join(repoRoot, "src/lib/greendesert/greendesert-board-pack-model.ts"),
+  "utf8",
+);
+assert.match(boardPackModel, /GREENDESERT_BOARD_AGENDA/);
+assert.match(boardPackModel, /buildGreenDesertBoardPackData/);
+
+const boardDeckApi = readFileSync(
+  join(repoRoot, "src/app/api/greendesert/board-deck/route.ts"),
+  "utf8",
+);
+assert.match(boardDeckApi, /generateGreenDesertBoardDeck/);
+
+const boardPacksWorkspace = readFileSync(
+  join(repoRoot, "src/components/greendesert/GreenDesertBoardPacksWorkspace.tsx"),
+  "utf8",
+);
+assert.match(boardPacksWorkspace, /GreenDesertBoardPacksWorkspace/);
+
+const internalDashboard = readFileSync(
+  join(repoRoot, "src/components/testflighthub/InternalOperationsDashboard.tsx"),
+  "utf8",
+);
+assert.match(internalDashboard, /GreenDesertBoardPacksWorkspace/);
+
 const loginRoute = readFileSync(join(repoRoot, "src/app/api/auth/login/route.ts"), "utf8");
 assert.match(loginRoute, /createGreenDesertClientPortalLoginResponse/);
 assert.match(loginRoute, /Green Desert external portals — credential fallback before DB/);

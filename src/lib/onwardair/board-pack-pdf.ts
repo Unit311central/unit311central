@@ -9,6 +9,10 @@ import {
   NORTHSTAR_LOGO_INTRINSIC_WIDTH,
 } from "@/lib/demo/northstar-surface";
 import {
+  GREENDESERT_WORKSPACE_LOGO_INTRINSIC_HEIGHT,
+  GREENDESERT_WORKSPACE_LOGO_INTRINSIC_WIDTH,
+} from "@/lib/greendesert-surface";
+import {
   abhiRiskRatingBand,
   abhiRiskScore,
   abhiRiskTrendLabel,
@@ -74,6 +78,8 @@ function paintBackground(doc: JsPdfDocument) {
 const LOGO_W = 30;
 const LOGO_H = LOGO_W * (ONWARDAIR_LOGO_INTRINSIC_HEIGHT / ONWARDAIR_LOGO_INTRINSIC_WIDTH);
 const NORTHSTAR_SKY = [14, 116, 178] as const;
+const GREENDESERT_EMERALD = [5, 150, 105] as const;
+const GREENDESERT_SAND = [180, 140, 70] as const;
 
 function logoImageFormat(logoDataUrl: string): "PNG" | "JPEG" {
   return logoDataUrl.startsWith("data:image/png") ? "PNG" : "JPEG";
@@ -82,6 +88,15 @@ function logoImageFormat(logoDataUrl: string): "PNG" | "JPEG" {
 function isNorthstarBoardPack(brand?: AbhiBoardPackData | null): boolean {
   const org = brand?.coverBrand?.orgLine ?? "";
   return /northstar/i.test(org);
+}
+
+function isGreenDesertBoardPack(brand?: AbhiBoardPackData | null): boolean {
+  const org = brand?.coverBrand?.orgLine ?? "";
+  return /green desert/i.test(org);
+}
+
+function brandAccent(brand?: AbhiBoardPackData | null): readonly [number, number, number] {
+  return isGreenDesertBoardPack(brand) ? GREENDESERT_EMERALD : C.navy;
 }
 
 /** Vector wordmark for white PDF pages — generic Demo company (no raster logo). */
@@ -119,7 +134,37 @@ function drawNorthstarWordmark(
   return subY - y + subPt * 0.35;
 }
 
+function drawGreenDesertWordmark(
+  doc: JsPdfDocument,
+  anchorX: number,
+  y: number,
+  width: number,
+): number {
+  const titlePt = Math.max(13, width * 0.16);
+  const subPt = Math.max(6, width * 0.05);
+  const titleY = y + titlePt * 0.35;
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(titlePt);
+  setText(doc, GREENDESERT_EMERALD);
+  doc.text("GREEN DESERT", anchorX, titleY, { charSpace: 1.1 });
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(subPt);
+  setText(doc, GREENDESERT_SAND);
+  const subY = titleY + subPt * 0.95;
+  doc.text("ALGAE CULTIVATION TECHNOLOGIES", anchorX, subY, { charSpace: 0.25 });
+
+  return subY - y + subPt * 0.35;
+}
+
 function logoDimensions(brand: AbhiBoardPackData | null | undefined, width: number) {
+  if (isGreenDesertBoardPack(brand)) {
+    return {
+      w: width,
+      h: width * (GREENDESERT_WORKSPACE_LOGO_INTRINSIC_HEIGHT / GREENDESERT_WORKSPACE_LOGO_INTRINSIC_WIDTH),
+    };
+  }
   if (isNorthstarBoardPack(brand)) {
     return {
       w: width,
@@ -138,7 +183,12 @@ function drawLogo(
   brand?: AbhiBoardPackData | null,
   placement: "header" | "cover" = "header",
 ) {
+  const logoLeft = isGreenDesertBoardPack(brand);
   if (!logoDataUrl) {
+    if (isGreenDesertBoardPack(brand)) {
+      drawGreenDesertWordmark(doc, MARGIN, placement === "cover" ? 7 : 4, placement === "cover" ? 72 : 48);
+      return;
+    }
     if (isNorthstarBoardPack(brand)) {
       if (placement === "cover") {
         drawNorthstarWordmark(doc, MARGIN, 7, 78, "left");
@@ -150,14 +200,16 @@ function drawLogo(
   }
   try {
     const format = logoImageFormat(logoDataUrl);
-    if (placement === "cover") {
-      const { w: coverW, h: coverH } = logoDimensions(brand, LOGO_W * 2.2);
-      doc.addImage(logoDataUrl, format, MARGIN, 6, coverW, coverH);
+    const scale = placement === "cover" ? LOGO_W * 2.2 : LOGO_W;
+    const { w, h } = logoDimensions(brand, scale);
+    const x = logoLeft || placement === "cover" ? MARGIN : SLIDE_W - MARGIN - w;
+    const y = placement === "cover" ? 6 : 4;
+    doc.addImage(logoDataUrl, format, x, y, w, h);
+  } catch {
+    if (isGreenDesertBoardPack(brand)) {
+      drawGreenDesertWordmark(doc, MARGIN, placement === "cover" ? 7 : 4, placement === "cover" ? 72 : 48);
       return;
     }
-    const { w, h } = logoDimensions(brand, LOGO_W);
-    doc.addImage(logoDataUrl, format, SLIDE_W - MARGIN - w, 4, w, h);
-  } catch {
     if (isNorthstarBoardPack(brand)) {
       if (placement === "cover") {
         drawNorthstarWordmark(doc, MARGIN, 7, 78, "left");
@@ -187,7 +239,7 @@ function drawHeader(
   drawLogo(doc, logoDataUrl, brand, "header");
   doc.setFont("helvetica", "bold");
   doc.setFontSize(18);
-  setText(doc, C.navy);
+  setText(doc, brandAccent(brand));
   doc.text(title, MARGIN, 12);
   if (subtitle) {
     doc.setFont("helvetica", "normal");
@@ -200,8 +252,13 @@ function drawHeader(
   doc.line(MARGIN, 20, SLIDE_W - MARGIN, 20);
 }
 
-function drawFooter(doc: JsPdfDocument, packName: string, slideNumber: number) {
-  setFill(doc, C.navy);
+function drawFooter(
+  doc: JsPdfDocument,
+  packName: string,
+  slideNumber: number,
+  brand?: AbhiBoardPackData | null,
+) {
+  setFill(doc, brandAccent(brand));
   doc.rect(0, SLIDE_H - 8, SLIDE_W, 8, "F");
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8);
@@ -363,7 +420,9 @@ export async function buildOnwardAirBoardPackPdf(
     addSlide(doc);
     drawLogo(doc, logoDataUrl, data, "cover");
     const northstar = isNorthstarBoardPack(data);
-    if (!northstar) {
+    const greenDesert = isGreenDesertBoardPack(data);
+    const brandedCover = northstar || greenDesert;
+    if (!brandedCover) {
       doc.setFont("helvetica", "normal");
       doc.setFontSize(11);
       setText(doc, C.muted);
@@ -371,21 +430,21 @@ export async function buildOnwardAirBoardPackPdf(
     }
     doc.setFont("helvetica", "bold");
     doc.setFontSize(28);
-    setText(doc, C.navy);
-    doc.text(data.coverBrand?.deckTitle ?? "Board Deck", MARGIN, northstar ? 43 : 47);
+    setText(doc, brandAccent(data));
+    doc.text(data.coverBrand?.deckTitle ?? "Board Deck", MARGIN, brandedCover ? 43 : 47);
     doc.setFont("helvetica", "normal");
     doc.setFontSize(14);
     setText(doc, C.text);
-    doc.text(formatAbhiBoardDate(data.meetingDate), MARGIN, northstar ? 53 : 57);
+    doc.text(formatAbhiBoardDate(data.meetingDate), MARGIN, brandedCover ? 53 : 57);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(10);
     setText(doc, C.subtleRed);
-    doc.text("CONFIDENTIAL", MARGIN, northstar ? 60 : 64);
+    doc.text("CONFIDENTIAL", MARGIN, brandedCover ? 60 : 64);
 
-    let y = northstar ? 70 : 74;
+    let y = brandedCover ? 70 : 74;
     doc.setFont("helvetica", "bold");
     doc.setFontSize(10);
-    setText(doc, C.navy);
+    setText(doc, brandAccent(data));
     doc.text("Name", MARGIN, y);
     doc.text("Role", MARGIN + 70, y);
     y += 6;
@@ -397,7 +456,7 @@ export async function buildOnwardAirBoardPackPdf(
       doc.text(person.role, MARGIN + 70, y);
       y += 5.5;
     }
-    drawFooter(doc, data.packName, 1);
+    drawFooter(doc, data.packName, 1, data);
   }
 
   // Slide 2 — Executive Summary
@@ -507,7 +566,7 @@ export async function buildOnwardAirBoardPackPdf(
       const line = doc.splitTextToSize(`${index + 1}.  ${decision}`, CONTENT_W - 8);
       doc.text(line.slice(0, 1), MARGIN + 3, 141 + index * 4.2);
     });
-    drawFooter(doc, data.packName, 2);
+    drawFooter(doc, data.packName, 2, data);
   }
 
   // Slide 3 — Actions
@@ -554,7 +613,7 @@ export async function buildOnwardAirBoardPackPdf(
       doc.text(action.status, colX[4]! + 14, y + 2.5, { align: "center" });
       y += rowH;
     }
-    drawFooter(doc, data.packName, 3);
+    drawFooter(doc, data.packName, 3, data);
   }
 
   // Slide 4 — Risk Register
@@ -647,7 +706,7 @@ export async function buildOnwardAirBoardPackPdf(
       doc.text(attention.slice(0, 2), colX[4]!, y);
       y += rowH;
     }
-    drawFooter(doc, data.packName, 4);
+    drawFooter(doc, data.packName, 4, data);
   }
 
   // Slide 5 — KPI
@@ -706,7 +765,7 @@ export async function buildOnwardAirBoardPackPdf(
         drawSparkline(doc, x + 46, y + 44, cardW - 54, 10, kpi.sparkline);
       }
     });
-    drawFooter(doc, data.packName, 5);
+    drawFooter(doc, data.packName, 5, data);
   }
 
   // Slide 6 — Financial Overview (CEO visual metrics)
@@ -803,13 +862,19 @@ export async function buildOnwardAirBoardPackPdf(
       setText(doc, C.navy);
       doc.text(card.value, x + 4, 132);
     });
-    drawFooter(doc, data.packName, 6);
+    drawFooter(doc, data.packName, 6, data);
   }
 
-  // Slide 7 — P&L
+  // Slide 7 — P&L / Operating Performance
   {
     addSlide(doc);
-    drawHeader(doc, "Programme Spend", logoDataUrl, "YTD actual vs programme budget", data);
+    drawHeader(
+      doc,
+      isGreenDesertBoardPack(data) ? "Operating Performance" : "Programme Spend",
+      logoDataUrl,
+      isGreenDesertBoardPack(data) ? "Jeddah pilot operations" : "YTD actual vs programme budget",
+      data,
+    );
     const colX = [MARGIN, MARGIN + 118, MARGIN + 155, MARGIN + 192, MARGIN + 235];
     let y = 28;
     setFill(doc, C.navy);
@@ -870,7 +935,7 @@ export async function buildOnwardAirBoardPackPdf(
       const wrapped = doc.splitTextToSize(`•  ${line}`, CONTENT_W - 8);
       doc.text(wrapped.slice(0, 1), MARGIN + 3, boxY + 14 + index * 6);
     });
-    drawFooter(doc, data.packName, 7);
+    drawFooter(doc, data.packName, 7, data);
   }
 
   // Slide 8 — Balance Sheet & Cash (visual cash story)
@@ -997,19 +1062,30 @@ export async function buildOnwardAirBoardPackPdf(
         124 + index * 7,
       );
     });
-    drawFooter(doc, data.packName, 8);
+    drawFooter(doc, data.packName, 8, data);
   }
 
   // Slide 9 — Fundraising & Pipeline
   {
     addSlide(doc);
-    drawHeader(doc, "Fundraising & Pipeline", logoDataUrl, "Programme · Seed · Investors", data);
+    drawHeader(
+      doc,
+      "Fundraising & Pipeline",
+      logoDataUrl,
+      isGreenDesertBoardPack(data)
+        ? "Series A · Investors · Grants"
+        : "Programme · Seed · Investors",
+      data,
+    );
     const colW = (CONTENT_W - 8) / 3;
     const colH = 124;
     const colY = 24;
     const insights = data.commercialInsights;
+    const col1Title = isGreenDesertBoardPack(data) ? "SERIES A" : "PROGRAMME";
+    const col2Title = isGreenDesertBoardPack(data) ? "INVESTORS" : "SEED RAISE";
+    const col3Title = isGreenDesertBoardPack(data) ? "GRANTS" : "INVESTORS";
 
-    // Programme
+    // Programme / Series A
     {
       const x = MARGIN;
       setFill(doc, C.white);
@@ -1018,8 +1094,8 @@ export async function buildOnwardAirBoardPackPdf(
       doc.roundedRect(x, colY, colW, colH, 1.5, 1.5, "FD");
       doc.setFont("helvetica", "bold");
       doc.setFontSize(11);
-      setText(doc, C.navy);
-      doc.text("PROGRAMME", x + 5, colY + 12);
+      setText(doc, brandAccent(data));
+      doc.text(col1Title, x + 5, colY + 12);
       doc.setFont("helvetica", "normal");
       doc.setFontSize(8);
       setText(doc, C.muted);
@@ -1053,8 +1129,8 @@ export async function buildOnwardAirBoardPackPdf(
       doc.roundedRect(x, colY, colW, colH, 1.5, 1.5, "FD");
       doc.setFont("helvetica", "bold");
       doc.setFontSize(11);
-      setText(doc, C.navy);
-      doc.text("SEED RAISE", x + 5, colY + 12);
+      setText(doc, brandAccent(data));
+      doc.text(col2Title, x + 5, colY + 12);
       doc.setFontSize(26);
       doc.text(formatOaBoardUsd(s.actual, true), x + 5, colY + 34);
       doc.setFont("helvetica", "normal");
@@ -1064,7 +1140,13 @@ export async function buildOnwardAirBoardPackPdf(
       drawProgressBar(doc, x + 5, colY + 52, colW - 10, 7, progress, C.navy);
       doc.setFontSize(9);
       setText(doc, C.text);
-      doc.text(`${Math.round(progress * 100)}% of Seed target`, x + 5, colY + 68);
+      doc.text(
+        isGreenDesertBoardPack(data)
+          ? `${Math.round(progress * 100)}% of Series A target`
+          : `${Math.round(progress * 100)}% of Seed target`,
+        x + 5,
+        colY + 68,
+      );
       drawStatusPill(
         doc,
         x + 5,
@@ -1092,8 +1174,8 @@ export async function buildOnwardAirBoardPackPdf(
       doc.roundedRect(x, colY, colW, colH, 1.5, 1.5, "FD");
       doc.setFont("helvetica", "bold");
       doc.setFontSize(11);
-      setText(doc, C.navy);
-      doc.text("INVESTOR PIPELINE", x + 5, colY + 12);
+      setText(doc, brandAccent(data));
+      doc.text(isGreenDesertBoardPack(data) ? col3Title : "INVESTOR PIPELINE", x + 5, colY + 12);
       doc.setFontSize(26);
       doc.text(formatOaBoardUsd(e.revenue, true), x + 5, colY + 34);
       doc.setFont("helvetica", "normal");
@@ -1128,7 +1210,7 @@ export async function buildOnwardAirBoardPackPdf(
         doc.text(stat.value, x + 5, sy + 7);
       });
     }
-    drawFooter(doc, data.packName, 9);
+    drawFooter(doc, data.packName, 9, data);
   }
 
   // Slide 10 — Team
@@ -1192,7 +1274,7 @@ export async function buildOnwardAirBoardPackPdf(
     setText(doc, C.text);
     const notes = doc.splitTextToSize(data.team.notes, CONTENT_W - 10);
     doc.text(notes.slice(0, 4), MARGIN + 4, 124);
-    drawFooter(doc, data.packName, 10);
+    drawFooter(doc, data.packName, 10, data);
   }
 
   // Slide 11 — Strategic Discussion (decision-first)
@@ -1248,7 +1330,7 @@ export async function buildOnwardAirBoardPackPdf(
     setText(doc, C.text);
     const aob = doc.splitTextToSize(data.aob, CONTENT_W - 16);
     doc.text(aob.slice(0, 1), MARGIN + 12, 130);
-    drawFooter(doc, data.packName, 11);
+    drawFooter(doc, data.packName, 11, data);
   }
 
   const buffer = doc.output("arraybuffer");
