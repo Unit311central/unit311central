@@ -8,6 +8,10 @@ import {
   resolveNorthstarDemoClientPortalRedirect,
 } from "@/lib/demo/northstar-client-portal-routes";
 import {
+  resolveGreenDesertBoardPortalPostLoginUrl,
+  resolveGreenDesertBoardPortalSessionRedirect,
+} from "@/lib/greendesert/greendesert-board-portal-data";
+import {
   canonicalizePortalRedirect,
   getPortalPackBySlug,
   listPortalWorkspacePacks,
@@ -135,6 +139,9 @@ export function resolveAnyPortalPostLoginUrl(options: {
   const northstarDemo = resolveNorthstarDemoClientPortalPostLoginUrl(options);
   if (northstarDemo) return northstarDemo;
 
+  const greenDesertBoard = resolveGreenDesertBoardPortalPostLoginUrl(options);
+  if (greenDesertBoard) return greenDesertBoard;
+
   const hostSlug = parseClientPlatformSubdomainSafe(options.requestHost);
   const preferredSlug =
     canonicalizeWolfCentralSlug(hostSlug) ??
@@ -176,6 +183,9 @@ export function resolveAnyPortalSessionRedirect(options: {
 }): string | null {
   const northstarDemo = resolveNorthstarDemoClientPortalRedirect(options);
   if (northstarDemo) return northstarDemo;
+
+  const greenDesertBoard = resolveGreenDesertBoardPortalSessionRedirect(options);
+  if (greenDesertBoard) return greenDesertBoard;
 
   const canonical = canonicalizePortalRedirect(options.redirectPath);
   if (canonical) {

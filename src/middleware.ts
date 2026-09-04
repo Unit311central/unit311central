@@ -613,7 +613,12 @@ export async function middleware(request: NextRequest) {
           return clear;
         }
 
-        if (!isPortalPath && !isAllowedUtility) {
+        const isBoardPortalPath = pathname === "/board" || pathname.startsWith("/board/");
+        const isBoardPortalHome = portalHome === "/board";
+        const allowGreenDesertBoardPortal =
+          isGreenDesertSlug(workspaceSlug) && isBoardPortalHome && isBoardPortalPath;
+
+        if (!isPortalPath && !isAllowedUtility && !allowGreenDesertBoardPortal) {
           const bounce = redirectExternal(`${workspaceOrigin}${portalHome}`);
           return applyCustomerHostRebindIfNeeded({
             request,

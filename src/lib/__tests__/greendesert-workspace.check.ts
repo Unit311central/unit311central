@@ -15,6 +15,8 @@ import {
 import {
   GREENDESERT_BOARD_PORTAL_ORIGIN,
   GREENDESERT_BOARD_USERNAME,
+  matchGreenDesertBoardPortalPathname,
+  resolveGreenDesertBoardPortalPostLoginUrl,
 } from "@/lib/greendesert/greendesert-board-portal-data";
 import { GREENDESERT_LOGISTICS_SHIPMENTS } from "@/lib/greendesert/greendesert-logistics-data";
 import { FEATURED_RIYADH_JEDDAH_ROUTE } from "@/lib/greendesert/greendesert-logistics-data";
@@ -74,6 +76,15 @@ assert.ok(isGreenDesertHost("greendesert.unit311central.com"));
 assert.ok(isGreenDesertBoardPortalUsername(GREENDESERT_BOARD_USERNAME));
 assert.ok(verifyGreenDesertBoardPortalPassword("Algae2026$"));
 assert.equal(verifyGreenDesertBoardPortalPassword("wrong"), false);
+assert.ok(matchGreenDesertBoardPortalPathname("/board"));
+assert.ok(matchGreenDesertBoardPortalPathname("/board/decks"));
+assert.equal(
+  resolveGreenDesertBoardPortalPostLoginUrl({
+    redirectPath: "/board",
+    username: GREENDESERT_BOARD_USERNAME,
+  }),
+  `${GREENDESERT_BOARD_PORTAL_ORIGIN}/board`,
+);
 
 const jeddahRoute = getGreenDesertClientPortalByPath("jeddahtechnologies");
 assert.ok(jeddahRoute);

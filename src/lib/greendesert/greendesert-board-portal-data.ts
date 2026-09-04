@@ -31,6 +31,57 @@ export const GREENDESERT_BOARD_NAV: {
   { id: "members", label: "Board Members", href: "/board/members" },
 ];
 
+export function matchGreenDesertBoardPortalPathname(pathname: string): {
+  rest: string;
+} | null {
+  const cleaned = pathname.split("?")[0] || "/";
+  if (cleaned === "/board") return { rest: "" };
+  if (cleaned.startsWith("/board/")) {
+    return { rest: cleaned.slice("/board".length) || "" };
+  }
+  return null;
+}
+
+export function isGreenDesertBoardPortalRedirectPath(
+  redirectPath: string | null | undefined,
+): boolean {
+  return matchGreenDesertBoardPortalPathname(String(redirectPath ?? "")) != null;
+}
+
+export function resolveGreenDesertBoardPortalSessionRedirect(options: {
+  redirectPath?: string | null;
+  nextRaw?: string | null;
+  username?: string | null;
+}): string | null {
+  const username = String(options.username ?? "")
+    .trim()
+    .toLowerCase();
+  if (username === GREENDESERT_BOARD_USERNAME) {
+    return `/${GREENDESERT_BOARD_PORTAL_PATH}`;
+  }
+
+  const candidates = [options.redirectPath, options.nextRaw];
+  for (const raw of candidates) {
+    const trimmed = String(raw ?? "").trim();
+    if (!trimmed) continue;
+    const pathOnly = trimmed.startsWith("/") ? trimmed.split("?")[0] : null;
+    if (pathOnly && matchGreenDesertBoardPortalPathname(pathOnly)) {
+      return `/${GREENDESERT_BOARD_PORTAL_PATH}`;
+    }
+  }
+  return null;
+}
+
+export function resolveGreenDesertBoardPortalPostLoginUrl(options: {
+  redirectPath?: string | null;
+  nextRaw?: string | null;
+  username?: string | null;
+}): string | null {
+  const path = resolveGreenDesertBoardPortalSessionRedirect(options);
+  if (!path) return null;
+  return `${GREENDESERT_BOARD_PORTAL_ORIGIN.replace(/\/$/, "")}${path}`;
+}
+
 export function parseGreenDesertBoardPortalSection(
   section: string[] | undefined,
 ): GreenDesertBoardPortalSection | null {

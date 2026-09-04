@@ -68,4 +68,12 @@ const internalDashboard = resolveAnyPortalPostLoginUrl({
 });
 assert.equal(internalDashboard, null);
 
+const greenDesertBoardPostLogin = resolveAnyPortalPostLoginUrl({
+  redirectPath: "/board",
+  nextRaw: "/board",
+  username: "board@greendesert.unit311central.com",
+  requestHost: "greendesert.unit311central.com",
+});
+assert.equal(greenDesertBoardPostLogin, "https://greendesert.unit311central.com/board");
+
 console.log("portals/post-login.check.ts: all assertions passed");
