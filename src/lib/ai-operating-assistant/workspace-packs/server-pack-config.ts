@@ -15,6 +15,7 @@ const boardPackLoaders: Record<string, BoardPackLoader> = {
   talanton: async () => (await import("./boardpack/talanton")).talantonBoardPackConfig,
   onwardair: async () => (await import("./boardpack/onwardair")).onwardAirBoardPackConfig,
   demo: async () => (await import("./boardpack/demo")).demoBoardPackConfig,
+  greendesert: async () => (await import("./boardpack/greendesert")).greendesertBoardPackConfig,
 };
 
 const boardPackCache = new Map<string, EaBoardPackConfig>();

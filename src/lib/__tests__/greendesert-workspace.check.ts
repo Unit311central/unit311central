@@ -232,6 +232,19 @@ const boardDeckApi = readFileSync(
 );
 assert.match(boardDeckApi, /generateGreenDesertBoardDeck/);
 
+const greendesertEaPack = readFileSync(
+  join(repoRoot, "src/lib/ai-operating-assistant/workspace-packs/greendesert-pack.ts"),
+  "utf8",
+);
+assert.match(greendesertEaPack, /clientSupportsBoardPack: true/);
+assert.match(greendesertEaPack, /resolveAbhiBoardPackIntent/);
+
+const serverPackConfig = readFileSync(
+  join(repoRoot, "src/lib/ai-operating-assistant/workspace-packs/server-pack-config.ts"),
+  "utf8",
+);
+assert.match(serverPackConfig, /greendesert:/);
+
 const boardPacksWorkspace = readFileSync(
   join(repoRoot, "src/components/greendesert/GreenDesertBoardPacksWorkspace.tsx"),
   "utf8",

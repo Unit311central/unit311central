@@ -5,6 +5,7 @@
 import { abhiWorkspacePack } from "./abhi-pack";
 import { demoWorkspacePack } from "./demo-pack";
 import { genericWorkspacePack } from "./generic-pack";
+import { greendesertWorkspacePack } from "./greendesert-pack";
 import { internalWorkspacePack } from "./internal-pack";
 import { onwardAirWorkspacePack } from "./onwardair-pack";
 import { registerEaClientWorkspacePack } from "./registry-client";
@@ -18,6 +19,7 @@ export function ensureEaClientWorkspacePacksRegistered(): boolean {
     registerEaClientWorkspacePack(talantonWorkspacePack);
     registerEaClientWorkspacePack(onwardAirWorkspacePack);
     registerEaClientWorkspacePack(demoWorkspacePack);
+    registerEaClientWorkspacePack(greendesertWorkspacePack);
     registerEaClientWorkspacePack(internalWorkspacePack);
     registerEaClientWorkspacePack(genericWorkspacePack);
     clientBootstrapped = true;
