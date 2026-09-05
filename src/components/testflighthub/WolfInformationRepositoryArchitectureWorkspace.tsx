@@ -23,6 +23,8 @@ import {
   WOLF_IR_TREE_TITLES,
   isWolfIrCustomDiagramSlug,
 } from "@/lib/wolf/wolf-information-repository-architecture-data";
+import { WOLF_MODEL_TESTING_ARCH_CATEGORY_ID } from "@/lib/wolf/wolf-model-testing-arch-types";
+import WolfModelTestingArchWorkspace from "@/components/testflighthub/WolfModelTestingArchWorkspace";
 import { cn } from "@/lib/utils";
 
 const API_BASE = "/api/information-repository/architecture-diagrams";
@@ -526,6 +528,8 @@ export default function WolfInformationRepositoryArchitectureWorkspace() {
                   Hierarchy unavailable.
                 </div>
               )
+            ) : topScope === "wolf" && activeSlug === WOLF_MODEL_TESTING_ARCH_CATEGORY_ID ? (
+              <WolfModelTestingArchWorkspace />
             ) : diagram ? (
               <ArchitectureViewer
                 title={activeCanvasTitle ?? diagram.title}

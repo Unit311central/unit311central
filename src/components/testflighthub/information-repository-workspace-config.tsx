@@ -23,7 +23,6 @@ export type InformationRepositoryWorkspaceConfig = {
     architectureDiagrams: boolean;
     builtinIntegrations: boolean;
     recordAttachments: boolean;
-    modelTestingArch?: boolean;
   };
 };
 
@@ -79,7 +78,6 @@ export const WOLF_INFORMATION_REPOSITORY_WORKSPACE_CONFIG: InformationRepository
       architectureDiagrams: true,
       builtinIntegrations: false,
       recordAttachments: true,
-      modelTestingArch: true,
     },
   };
 

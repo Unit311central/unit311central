@@ -12,23 +12,31 @@ import {
   WOLF_IR_BUILTIN_DIAGRAM_SLUGS,
   WOLF_IR_UNIT311_CANVAS_SLUGS,
   WOLF_IR_WOLF_CATALOG,
+  WOLF_IR_BUILTIN_DIAGRAM_LABELS,
   createPailexInfrastructureDiagram,
   createWolfArchitectureDiagram,
   createWolfIrCustomDiagramSlug,
   isWolfIrCustomDiagramSlug,
   isWolfIrManagedDiagramSlug,
 } from "@/lib/wolf/wolf-information-repository-architecture-data";
+import { WOLF_MODEL_TESTING_ARCH_CATEGORY_ID } from "@/lib/wolf/wolf-model-testing-arch-types";
 
 assert.equal(WOLF_INFORMATION_REPOSITORY_WORKSPACE_CONFIG.features.architectureDiagrams, true);
 assert.equal(WOLF_INFORMATION_REPOSITORY_WORKSPACE_CONFIG.features.architectureHub, false);
 assert.equal(WOLF_INFORMATION_REPOSITORY_WORKSPACE_CONFIG.features.recordAttachments, true);
 
 assert.equal(WOLF_IR_UNIT311_CANVAS_SLUGS.length, 4);
-assert.equal(WOLF_IR_BUILTIN_DIAGRAM_SLUGS.length, 3);
+assert.equal(WOLF_IR_BUILTIN_DIAGRAM_SLUGS.length, 4);
 assert.ok(isWolfIrManagedDiagramSlug("wolf-architecture"));
 assert.ok(isWolfIrManagedDiagramSlug("wolf-pailex-infrastructure"));
 assert.ok(isWolfIrManagedDiagramSlug("wolf-ai-models"));
+assert.ok(isWolfIrManagedDiagramSlug("model-testing-arch"));
 assert.ok(!isWolfIrManagedDiagramSlug("platform-overview"));
+
+assert.equal(
+  WOLF_IR_BUILTIN_DIAGRAM_LABELS[WOLF_MODEL_TESTING_ARCH_CATEGORY_ID],
+  "MODEL TESTING ARCH",
+);
 
 const customSlug = createWolfIrCustomDiagramSlug("Reserve telemetry");
 assert.ok(isWolfIrCustomDiagramSlug(customSlug));
@@ -57,10 +65,17 @@ assert.ok(apiRoute.includes('scope === "wolf"'));
 assert.ok(apiRoute.includes("DELETE"));
 
 const workspace = readFileSync(
+  join(process.cwd(), "src/components/testflighthub/WolfInformationRepositoryArchitectureWorkspace.tsx"),
+  "utf8",
+);
+assert.ok(workspace.includes("WolfModelTestingArchWorkspace"));
+assert.ok(workspace.includes("WOLF_MODEL_TESTING_ARCH_CATEGORY_ID"));
+
+const interfaceWorkspace = readFileSync(
   join(process.cwd(), "src/components/testflighthub/InterfaceWorxInformationRepositoryWorkspace.tsx"),
   "utf8",
 );
-assert.ok(workspace.includes("WolfInformationRepositoryArchitectureWorkspace"));
-assert.ok(workspace.includes("architectureDiagrams"));
+assert.ok(interfaceWorkspace.includes("WolfInformationRepositoryArchitectureWorkspace"));
+assert.ok(interfaceWorkspace.includes("architectureDiagrams"));
 
 console.log("wolf-information-repository-architecture.check.ts — all assertions passed.");

@@ -23,7 +23,6 @@ import {
 } from "@/lib/unit311-details-data";
 import {
   isReservedRepositoryFolderName,
-  isWolfModelTestingArchCategoryId,
   UNIT311_DETAILS_REPOSITORY_PROFILE,
   type InformationRepositoryProfile,
 } from "@/lib/information-repository-profile";
@@ -733,10 +732,6 @@ export function parseUnit311DetailCategoryId(value: string | null): Unit311Detai
 
   const trimmed = value.trim();
   if (getBuiltinDetailCategory(trimmed)) {
-    return trimmed as Unit311DetailCategoryId;
-  }
-
-  if (isWolfModelTestingArchCategoryId(trimmed)) {
     return trimmed as Unit311DetailCategoryId;
   }
 

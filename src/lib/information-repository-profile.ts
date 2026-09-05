@@ -4,7 +4,6 @@ import {
   UNIT311_DETAILS_ROOT_FOLDER_NAME,
   type Unit311DetailCategory,
 } from "@/lib/unit311-details-data";
-import { WOLF_MODEL_TESTING_ARCH_CATEGORY_ID } from "@/lib/wolf/wolf-model-testing-arch-types";
 
 export type InformationRepositoryProfile = {
   id: string;
@@ -13,18 +12,11 @@ export type InformationRepositoryProfile = {
   builtinRows: readonly (readonly string[])[];
 };
 
-export const WOLF_MODEL_TESTING_ARCH_CATEGORY: Unit311DetailCategory = {
-  id: WOLF_MODEL_TESTING_ARCH_CATEGORY_ID,
-  label: "MODEL TESTING ARCH",
-  folderName: "1",
-  builtin: true,
-};
-
 export const WOLF_INFORMATION_REPOSITORY_PROFILE: InformationRepositoryProfile = {
   id: "wolf-information-repository",
   rootFolderName: "Information Repository",
-  builtinCategories: [WOLF_MODEL_TESTING_ARCH_CATEGORY],
-  builtinRows: [[WOLF_MODEL_TESTING_ARCH_CATEGORY_ID]],
+  builtinCategories: [],
+  builtinRows: [],
 };
 
 export const UNIT311_DETAILS_REPOSITORY_PROFILE: InformationRepositoryProfile = {
@@ -51,10 +43,6 @@ export function resolveInformationRepositoryProfile(
     return WOLF_INFORMATION_REPOSITORY_PROFILE;
   }
   return INTERFACE_WORX_INFORMATION_REPOSITORY_PROFILE;
-}
-
-export function isWolfModelTestingArchCategoryId(categoryId: string | null | undefined): boolean {
-  return String(categoryId ?? "").trim() === WOLF_MODEL_TESTING_ARCH_CATEGORY_ID;
 }
 
 export function isReservedRepositoryFolderName(

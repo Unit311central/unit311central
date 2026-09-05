@@ -6,6 +6,9 @@ import {
 } from "@/lib/architecture-diagram-data";
 import { ARCHITECTURE_TREE_SLUGS } from "@/lib/architecture-taxonomy-types";
 import { WOLF_CENTRAL_HOST_ALIAS, WOLF_CENTRAL_SLUG, WOLF_DISPLAY_NAME } from "@/lib/wolf/wolf-surface";
+import { createMission1ModelTestingArchitectureDiagram } from "@/lib/wolf/wolf-model-testing-arch-diagram";
+import { WOLF_MODEL_TESTING_ARCH_SEED_VERSION } from "@/lib/wolf/wolf-model-testing-arch-data";
+import { WOLF_MODEL_TESTING_ARCH_CATEGORY_ID } from "@/lib/wolf/wolf-model-testing-arch-types";
 
 /** Unit311 platform canvas diagrams shown in the WOLF Information Repository. */
 export const WOLF_IR_UNIT311_CANVAS_SLUGS = [
@@ -42,6 +45,7 @@ export const WOLF_IR_BUILTIN_DIAGRAM_SLUGS = [
   "wolf-architecture",
   "wolf-pailex-infrastructure",
   "wolf-ai-models",
+  WOLF_MODEL_TESTING_ARCH_CATEGORY_ID,
 ] as const;
 
 export type WolfIrBuiltinDiagramSlug = (typeof WOLF_IR_BUILTIN_DIAGRAM_SLUGS)[number];
@@ -50,6 +54,7 @@ export const WOLF_IR_BUILTIN_DIAGRAM_LABELS: Record<WolfIrBuiltinDiagramSlug, st
   "wolf-architecture": "WOLF ARCHITECTURE",
   "wolf-pailex-infrastructure": "PAILEX INFRASTRUCTURE",
   "wolf-ai-models": "WOLF AI MODELS",
+  [WOLF_MODEL_TESTING_ARCH_CATEGORY_ID]: "MODEL TESTING ARCH",
 };
 
 export const WOLF_IR_BUILTIN_DIAGRAM_DESCRIPTIONS: Record<WolfIrBuiltinDiagramSlug, string> = {
@@ -59,6 +64,8 @@ export const WOLF_IR_BUILTIN_DIAGRAM_DESCRIPTIONS: Record<WolfIrBuiltinDiagramSl
     "Live PAILEX reserve stack — drone video ingest, satellite uplink, RunPod AI inference, and WOLF workspace delivery.",
   "wolf-ai-models":
     "Placeholder for WOLF AI wildlife vision models, inference pipelines, and training data flows.",
+  [WOLF_MODEL_TESTING_ARCH_CATEGORY_ID]:
+    "Living Mission 1 model-testing architecture, benchmark model outcomes, and video catalogue.",
 };
 
 export const WOLF_IR_CUSTOM_DIAGRAM_PREFIX = "wolf-custom-";
@@ -87,6 +94,14 @@ export const WOLF_IR_WOLF_CATALOG: readonly ArchitectureCatalogEntry[] = [
     navOrder: 30,
     seedTemplate: "blank",
   },
+  {
+    sectionSlug: WOLF_MODEL_TESTING_ARCH_CATEGORY_ID,
+    title: WOLF_IR_BUILTIN_DIAGRAM_LABELS[WOLF_MODEL_TESTING_ARCH_CATEGORY_ID],
+    description: WOLF_IR_BUILTIN_DIAGRAM_DESCRIPTIONS[WOLF_MODEL_TESTING_ARCH_CATEGORY_ID],
+    navOrder: 40,
+    liveRefresh: true,
+    seedTemplate: "blank",
+  },
 ];
 
 export function isWolfIrBuiltinDiagramSlug(
@@ -95,7 +110,8 @@ export function isWolfIrBuiltinDiagramSlug(
   return (
     slug === "wolf-architecture" ||
     slug === "wolf-pailex-infrastructure" ||
-    slug === "wolf-ai-models"
+    slug === "wolf-ai-models" ||
+    slug === WOLF_MODEL_TESTING_ARCH_CATEGORY_ID
   );
 }
 
@@ -437,6 +453,9 @@ export function resolveWolfIrSeedDiagram(sectionSlug: string): ArchitectureDiagr
   if (sectionSlug === "wolf-pailex-infrastructure") {
     return createPailexInfrastructureDiagram();
   }
+  if (sectionSlug === WOLF_MODEL_TESTING_ARCH_CATEGORY_ID) {
+    return createMission1ModelTestingArchitectureDiagram();
+  }
   if (isWolfIrBuiltinDiagramSlug(sectionSlug)) {
     return createWolfPlaceholderDiagram(sectionSlug);
   }
@@ -452,6 +471,11 @@ export function shouldRefreshWolfIrBuiltinDiagram(
     if (seedVersion < WOLF_PAILEX_INFRASTRUCTURE_SEED_VERSION) return true;
     if (diagramJson?.meta?.placeholder === true) return true;
     if (diagramJson?.meta?.generator === "wolf-information-repository-placeholder") return true;
+  }
+  if (sectionSlug === WOLF_MODEL_TESTING_ARCH_CATEGORY_ID) {
+    const seedVersion = Number(diagramJson?.meta?.seedVersion ?? 0);
+    if (seedVersion < WOLF_MODEL_TESTING_ARCH_SEED_VERSION) return true;
+    if (diagramJson?.meta?.generator !== "wolf-model-testing-arch") return true;
   }
   return false;
 }
