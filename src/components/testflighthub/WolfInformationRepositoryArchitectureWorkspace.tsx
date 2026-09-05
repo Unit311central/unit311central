@@ -35,6 +35,10 @@ const API_BASE = "/api/information-repository/architecture-diagrams";
 
 type TopScope = "unit311" | "wolf";
 
+function isModelTestingArchSlug(slug: string | null | undefined): boolean {
+  return String(slug ?? "").trim() === WOLF_MODEL_TESTING_ARCH_CATEGORY_ID;
+}
+
 async function readApiJson<T>(response: Response): Promise<T> {
   const text = await response.text();
   if (!text) throw new Error(`Request failed (${response.status})`);
@@ -124,6 +128,16 @@ export default function WolfInformationRepositoryArchitectureWorkspace() {
   }, []);
 
   const loadDiagram = useCallback(async (scope: TopScope, sectionSlug: string) => {
+    if (scope === "wolf" && isModelTestingArchSlug(sectionSlug)) {
+      setDiagram(null);
+      setDiagramLoading(false);
+      setError(null);
+      return;
+    }
+    if (scope === "wolf" && !isWolfIrManagedDiagramSlug(sectionSlug)) {
+      return;
+    }
+
     setDiagramLoading(true);
     setError(null);
     try {
@@ -194,11 +208,13 @@ export default function WolfInformationRepositoryArchitectureWorkspace() {
     }
 
     if (topScope === "wolf") {
-      if (activeSlug === WOLF_MODEL_TESTING_ARCH_CATEGORY_ID) {
+      if (isModelTestingArchSlug(activeSlug)) {
+        setDiagram(null);
         setDiagramLoading(false);
+        setError(null);
         return;
       }
-      if (!isArchitectureTreeSlug(activeSlug)) {
+      if (!isArchitectureTreeSlug(activeSlug) && isWolfIrManagedDiagramSlug(activeSlug)) {
         void loadDiagram("wolf", activeSlug);
       }
       return;
@@ -208,9 +224,11 @@ export default function WolfInformationRepositoryArchitectureWorkspace() {
   useEffect(() => {
     if (topScope === "unit311") {
       setActiveSlug(WOLF_IR_UNIT311_CANVAS_SLUGS[0]);
+      setError(null);
       return;
     }
     setActiveSlug(WOLF_IR_DEFAULT_WOLF_DIAGRAM_SLUG);
+    setError(null);
   }, [topScope]);
 
   async function handleDiagramChange(next: ArchitectureDiagramDocument) {
@@ -344,7 +362,15 @@ export default function WolfInformationRepositoryArchitectureWorkspace() {
             <button
               key={item.id}
               type="button"
-              onClick={() => setTopScope(item.id)}
+              onClick={() => {
+                setError(null);
+                if (item.id === "wolf") {
+                  setActiveSlug(WOLF_IR_DEFAULT_WOLF_DIAGRAM_SLUG);
+                } else {
+                  setActiveSlug(WOLF_IR_UNIT311_CANVAS_SLUGS[0]);
+                }
+                setTopScope(item.id);
+              }}
               className={cn(
                 "rounded-xl border px-4 py-2 text-sm font-semibold transition-colors",
                 isActive
@@ -436,7 +462,10 @@ export default function WolfInformationRepositoryArchitectureWorkspace() {
                         ) : (
                           <button
                             type="button"
-                            onClick={() => setActiveSlug(item.slug)}
+                            onClick={() => {
+                              setError(null);
+                              setActiveSlug(item.slug);
+                            }}
                             className={cn(
                               "inline-flex shrink-0 items-center gap-2 rounded-xl border px-3 py-2 text-left text-xs font-semibold transition-colors",
                               isActive
@@ -520,7 +549,9 @@ export default function WolfInformationRepositoryArchitectureWorkspace() {
           </div>
 
           <div className="flex min-h-[28rem] min-w-0 flex-1 flex-col rounded-2xl border border-white/10 bg-[#0b1524]/50 p-3 sm:p-4">
-            {error ? (
+            {topScope === "wolf" && isModelTestingArchSlug(activeSlug) ? (
+              <WolfModelTestingArchWorkspace />
+            ) : error ? (
               <div className="flex flex-1 items-center justify-center rounded-xl border border-rose-400/25 bg-rose-500/10 px-6 text-center text-sm text-rose-100">
                 {error}
               </div>
@@ -543,8 +574,6 @@ export default function WolfInformationRepositoryArchitectureWorkspace() {
                   Hierarchy unavailable.
                 </div>
               )
-            ) : topScope === "wolf" && activeSlug === WOLF_MODEL_TESTING_ARCH_CATEGORY_ID ? (
-              <WolfModelTestingArchWorkspace />
             ) : diagramLoading ? (
               <div className="flex flex-1 items-center justify-center text-sm text-white/60">
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />

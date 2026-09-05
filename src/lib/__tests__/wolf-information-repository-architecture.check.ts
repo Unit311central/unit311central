@@ -95,6 +95,16 @@ const workspace = readFileSync(
 assert.ok(workspace.includes("WolfModelTestingArchWorkspace"));
 assert.ok(workspace.includes("WOLF_IR_DEFAULT_WOLF_DIAGRAM_SLUG"));
 assert.ok(workspace.includes("overflow-x-auto"));
+assert.ok(workspace.includes("isModelTestingArchSlug"));
+const modelTestingArchRender = workspace.indexOf(
+  "topScope === \"wolf\" && isModelTestingArchSlug(activeSlug)",
+);
+const errorFallbackRender = workspace.indexOf(") : error ? (");
+assert.ok(
+  modelTestingArchRender !== -1 && errorFallbackRender !== -1 && modelTestingArchRender < errorFallbackRender,
+  "MODEL TESTING ARCH workspace must render before the error fallback branch",
+);
+assert.ok(workspace.includes("if (scope === \"wolf\" && isModelTestingArchSlug(sectionSlug))"));
 
 const interfaceWorkspace = readFileSync(
   join(process.cwd(), "src/components/testflighthub/InterfaceWorxInformationRepositoryWorkspace.tsx"),
