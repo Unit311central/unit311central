@@ -25,7 +25,10 @@ export type Unit311BuiltinCategoryId =
   | "module-go-live"
   | "domain-go-live";
 
-export type Unit311DetailCategoryId = Unit311BuiltinCategoryId | `custom-${string}`;
+export type Unit311DetailCategoryId =
+  | Unit311BuiltinCategoryId
+  | `custom-${string}`
+  | "model-testing-arch";
 
 export type Unit311DetailCategory = {
   readonly id: Unit311DetailCategoryId;

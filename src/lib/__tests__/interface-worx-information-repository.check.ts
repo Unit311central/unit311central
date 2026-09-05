@@ -94,7 +94,7 @@ const apiSource = readFileSync(
   "utf8",
 );
 assert.match(apiSource, /requireInterfaceWorxWorkspaceSession/);
-assert.match(apiSource, /INTERFACE_WORX_INFORMATION_REPOSITORY_PROFILE/);
+assert.match(apiSource, /resolveInformationRepositoryProfile/);
 assert.match(apiSource, /workspaceId: auth\.workspace\.id/);
 
 assert.ok(isInterfaceWorxSlug("interfaceworx"));

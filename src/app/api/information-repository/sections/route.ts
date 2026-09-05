@@ -2,7 +2,7 @@ import { assertDemoMutationAllowedForRequest } from "@/lib/demo/mutation-guard";
 import { NextRequest, NextResponse } from "next/server";
 
 import { requireInterfaceWorxWorkspaceSession } from "@/lib/interface-worx-information-repository-auth";
-import { INTERFACE_WORX_INFORMATION_REPOSITORY_PROFILE } from "@/lib/information-repository-profile";
+import { INTERFACE_WORX_INFORMATION_REPOSITORY_PROFILE, resolveInformationRepositoryProfile } from "@/lib/information-repository-profile";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
 import { createUnit311DetailSection } from "@/lib/unit311-details-service";
 
@@ -27,10 +27,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Section name is required." }, { status: 400 });
     }
 
+    const profile = resolveInformationRepositoryProfile(auth.workspace.slug);
     const created = await createUnit311DetailSection(
       name,
       { workspaceId: auth.workspace.id },
-      INTERFACE_WORX_INFORMATION_REPOSITORY_PROFILE,
+      profile,
     );
     return NextResponse.json(created);
   } catch (error) {

@@ -5,6 +5,7 @@ import { createContext, useContext, type ReactNode } from "react";
 import {
   INTERFACE_WORX_INFORMATION_REPOSITORY_PROFILE,
   UNIT311_DETAILS_REPOSITORY_PROFILE,
+  WOLF_INFORMATION_REPOSITORY_PROFILE,
   type InformationRepositoryProfile,
 } from "@/lib/information-repository-profile";
 
@@ -22,6 +23,7 @@ export type InformationRepositoryWorkspaceConfig = {
     architectureDiagrams: boolean;
     builtinIntegrations: boolean;
     recordAttachments: boolean;
+    modelTestingArch?: boolean;
   };
 };
 
@@ -63,7 +65,7 @@ export const INTERFACE_WORX_INFORMATION_REPOSITORY_WORKSPACE_CONFIG: Information
 
 export const WOLF_INFORMATION_REPOSITORY_WORKSPACE_CONFIG: InformationRepositoryWorkspaceConfig =
   {
-    profile: INTERFACE_WORX_INFORMATION_REPOSITORY_PROFILE,
+    profile: WOLF_INFORMATION_REPOSITORY_PROFILE,
     apiBasePath: "/api/information-repository",
     loadErrorLabel: "Information Repository",
     selectPrompt: "Select a section above to view and edit its information.",
@@ -77,6 +79,7 @@ export const WOLF_INFORMATION_REPOSITORY_WORKSPACE_CONFIG: InformationRepository
       architectureDiagrams: true,
       builtinIntegrations: false,
       recordAttachments: true,
+      modelTestingArch: true,
     },
   };
 

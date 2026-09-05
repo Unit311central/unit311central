@@ -2,7 +2,10 @@ import { assertDemoMutationAllowedForRequest } from "@/lib/demo/mutation-guard";
 import { NextRequest, NextResponse } from "next/server";
 
 import { requireInterfaceWorxWorkspaceSession } from "@/lib/interface-worx-information-repository-auth";
-import { INTERFACE_WORX_INFORMATION_REPOSITORY_PROFILE } from "@/lib/information-repository-profile";
+import {
+  INTERFACE_WORX_INFORMATION_REPOSITORY_PROFILE,
+  resolveInformationRepositoryProfile,
+} from "@/lib/information-repository-profile";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
 import {
   getUnit311DetailsOverview,
@@ -15,7 +18,7 @@ import type { Unit311DetailTask } from "@/lib/unit311-details-data";
 
 export const dynamic = "force-dynamic";
 
-const PROFILE = INTERFACE_WORX_INFORMATION_REPOSITORY_PROFILE;
+const DEFAULT_PROFILE = INTERFACE_WORX_INFORMATION_REPOSITORY_PROFILE;
 
 export async function GET(request: NextRequest) {
   const auth = await requireInterfaceWorxWorkspaceSession();
@@ -25,17 +28,18 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Supabase is not configured." }, { status: 503 });
   }
 
+  const profile = resolveInformationRepositoryProfile(auth.workspace.slug);
   const scope = { workspaceId: auth.workspace.id };
 
   try {
     const categoryId = parseUnit311DetailCategoryId(request.nextUrl.searchParams.get("category"));
 
     if (categoryId) {
-      const detail = await loadUnit311DetailContent(categoryId, scope, PROFILE);
+      const detail = await loadUnit311DetailContent(categoryId, scope, profile);
       return NextResponse.json(detail);
     }
 
-    const overview = await getUnit311DetailsOverview(scope, PROFILE);
+    const overview = await getUnit311DetailsOverview(scope, profile);
     return NextResponse.json(overview);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to load Information Repository";
@@ -55,6 +59,7 @@ export async function POST(request: NextRequest) {
   }
 
   const scope = { workspaceId: auth.workspace.id };
+  const profile = resolveInformationRepositoryProfile(auth.workspace.slug);
 
   try {
     const body = (await request.json()) as {
@@ -69,7 +74,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (Array.isArray(body.tasks)) {
-      const saved = await saveUnit311DetailTasks(categoryId, body.tasks, scope, PROFILE);
+      const saved = await saveUnit311DetailTasks(categoryId, body.tasks, scope, profile);
       return NextResponse.json(saved);
     }
 
@@ -77,7 +82,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Content is required." }, { status: 400 });
     }
 
-    const saved = await saveUnit311DetailContent(categoryId, body.content, scope, PROFILE);
+    const saved = await saveUnit311DetailContent(categoryId, body.content, scope, profile);
     return NextResponse.json(saved);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to save Information Repository";
