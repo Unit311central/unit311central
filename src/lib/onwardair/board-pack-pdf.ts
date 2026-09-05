@@ -79,7 +79,6 @@ const LOGO_W = 30;
 const LOGO_H = LOGO_W * (ONWARDAIR_LOGO_INTRINSIC_HEIGHT / ONWARDAIR_LOGO_INTRINSIC_WIDTH);
 const NORTHSTAR_SKY = [14, 116, 178] as const;
 const GREENDESERT_EMERALD = [5, 150, 105] as const;
-const GREENDESERT_SAND = [180, 140, 70] as const;
 
 function logoImageFormat(logoDataUrl: string): "PNG" | "JPEG" {
   return logoDataUrl.startsWith("data:image/png") ? "PNG" : "JPEG";
@@ -134,28 +133,45 @@ function drawNorthstarWordmark(
   return subY - y + subPt * 0.35;
 }
 
+const GD_COVER_LOGO_W = 24;
+const GD_HEADER_LOGO_W = 14;
+
 function drawGreenDesertWordmark(
   doc: JsPdfDocument,
   anchorX: number,
   y: number,
   width: number,
 ): number {
-  const titlePt = Math.max(13, width * 0.16);
-  const subPt = Math.max(6, width * 0.05);
+  const titlePt = Math.max(10, width * 0.19);
   const titleY = y + titlePt * 0.35;
 
   doc.setFont("helvetica", "bold");
   doc.setFontSize(titlePt);
   setText(doc, GREENDESERT_EMERALD);
-  doc.text("GREEN DESERT", anchorX, titleY, { charSpace: 1.1 });
+  doc.text("GREEN DESERT", anchorX, titleY, { charSpace: 0.45 });
 
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(subPt);
-  setText(doc, GREENDESERT_SAND);
-  const subY = titleY + subPt * 0.95;
-  doc.text("ALGAE CULTIVATION TECHNOLOGIES", anchorX, subY, { charSpace: 0.25 });
+  return titleY - y + titlePt * 0.25;
+}
 
-  return subY - y + subPt * 0.35;
+function drawGreenDesertHeaderLogo(
+  doc: JsPdfDocument,
+  logoDataUrl: string | null,
+  brand?: AbhiBoardPackData | null,
+) {
+  if (!logoDataUrl || !isGreenDesertBoardPack(brand)) return;
+  try {
+    const { w, h } = logoDimensions(brand, GD_HEADER_LOGO_W);
+    doc.addImage(
+      logoDataUrl,
+      logoImageFormat(logoDataUrl),
+      SLIDE_W - MARGIN - w,
+      3,
+      w,
+      h,
+    );
+  } catch {
+    /* wordmark-only header */
+  }
 }
 
 function logoDimensions(brand: AbhiBoardPackData | null | undefined, width: number) {
@@ -183,9 +199,14 @@ function drawLogo(
   brand?: AbhiBoardPackData | null,
   placement: "header" | "cover" = "header",
 ) {
-  const logoLeft = isGreenDesertBoardPack(brand);
+  const greenDesert = isGreenDesertBoardPack(brand);
+  if (greenDesert && placement === "header") {
+    return;
+  }
+
+  const logoLeft = greenDesert;
   if (!logoDataUrl) {
-    if (isGreenDesertBoardPack(brand)) {
+    if (greenDesert) {
       drawGreenDesertWordmark(doc, MARGIN, placement === "cover" ? 7 : 4, placement === "cover" ? 72 : 48);
       return;
     }
@@ -200,13 +221,19 @@ function drawLogo(
   }
   try {
     const format = logoImageFormat(logoDataUrl);
-    const scale = placement === "cover" ? LOGO_W * 2.2 : LOGO_W;
+    const scale = greenDesert
+      ? placement === "cover"
+        ? GD_COVER_LOGO_W
+        : GD_HEADER_LOGO_W
+      : placement === "cover"
+        ? LOGO_W * 2.2
+        : LOGO_W;
     const { w, h } = logoDimensions(brand, scale);
     const x = logoLeft || placement === "cover" ? MARGIN : SLIDE_W - MARGIN - w;
     const y = placement === "cover" ? 6 : 4;
     doc.addImage(logoDataUrl, format, x, y, w, h);
   } catch {
-    if (isGreenDesertBoardPack(brand)) {
+    if (greenDesert) {
       drawGreenDesertWordmark(doc, MARGIN, placement === "cover" ? 7 : 4, placement === "cover" ? 72 : 48);
       return;
     }
@@ -236,6 +263,31 @@ function drawHeader(
   subtitle?: string,
   brand?: AbhiBoardPackData | null,
 ) {
+  if (isGreenDesertBoardPack(brand)) {
+    drawGreenDesertHeaderLogo(doc, logoDataUrl, brand);
+    const brandBlockH = drawGreenDesertWordmark(doc, MARGIN, 3, 56);
+    const titleY = 3 + brandBlockH + 3.5;
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(16);
+    setText(doc, brandAccent(brand));
+    doc.text(title, MARGIN, titleY);
+
+    let dividerY = titleY + 5;
+    if (subtitle) {
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8.5);
+      setText(doc, C.muted);
+      doc.text(subtitle, MARGIN, titleY + 4.5);
+      dividerY = titleY + 9;
+    }
+
+    setDraw(doc, C.line);
+    doc.setLineWidth(0.3);
+    doc.line(MARGIN, dividerY, SLIDE_W - MARGIN, dividerY);
+    return;
+  }
+
   drawLogo(doc, logoDataUrl, brand, "header");
   doc.setFont("helvetica", "bold");
   doc.setFontSize(18);
@@ -465,12 +517,13 @@ export async function buildOnwardAirBoardPackPdf(
     drawHeader(doc, "Executive Summary", logoDataUrl, undefined, data);
 
     const northstarExec = isNorthstarBoardPack(data);
+    const greenDesertExec = isGreenDesertBoardPack(data);
     doc.setFont("helvetica", "normal");
     doc.setFontSize(7);
     setText(doc, C.muted);
     const statusColor =
       data.orgStatus === "Green" ? C.green : data.orgStatus === "Red" ? C.subtleRed : C.amber;
-    if (northstarExec) {
+    if (northstarExec || greenDesertExec) {
       const statusAnchorX = SLIDE_W - MARGIN;
       doc.text("Organisation Status", statusAnchorX, 23, { align: "right" });
       doc.setFont("helvetica", "bold");

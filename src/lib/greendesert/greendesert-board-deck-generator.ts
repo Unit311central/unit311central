@@ -10,7 +10,7 @@ import {
 } from "@/lib/greendesert-surface";
 import { buildOnwardAirBoardPackPdf } from "@/lib/onwardair/board-pack-pdf";
 
-export const GREENDESERT_BOARD_DECK_BUILD = "2026-09-04-v1";
+export const GREENDESERT_BOARD_DECK_BUILD = "2026-09-05-v2";
 
 export type GreenDesertBoardDeckResult = {
   data: ReturnType<typeof buildGreenDesertBoardPackData>;

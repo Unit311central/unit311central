@@ -226,6 +226,10 @@ const boardPackModel = readFileSync(
 assert.match(boardPackModel, /GREENDESERT_BOARD_AGENDA/);
 assert.match(boardPackModel, /buildGreenDesertBoardPackData/);
 
+const boardPackPdf = readFileSync(join(repoRoot, "src/lib/onwardair/board-pack-pdf.ts"), "utf8");
+assert.doesNotMatch(boardPackPdf, /ALGAE CULTIVATION TECHNOLOGIES/);
+assert.match(boardPackPdf, /drawGreenDesertHeaderLogo/);
+
 const boardDeckApi = readFileSync(
   join(repoRoot, "src/app/api/greendesert/board-deck/route.ts"),
   "utf8",
