@@ -366,7 +366,6 @@ import {
   GreenDesertEngineeringRisksWorkspace,
 } from "@/components/greendesert/GreenDesertEngineeringWorkspaces";
 import GreenDesertBoardPacksWorkspace from "@/components/greendesert/GreenDesertBoardPacksWorkspace";
-import GreenDesertFileExplorerWorkspace from "@/components/greendesert/GreenDesertFileExplorerWorkspace";
 import WorkspaceBusinessCentralDashboard from "@/components/business-central/WorkspaceBusinessCentralDashboard";
 import OnwardAirBusinessCentralDashboard from "@/components/onwardair/OnwardAirBusinessCentralDashboard";
 import SaecBusinessCentralDashboard from "@/components/saec/SaecBusinessCentralDashboard";
@@ -1742,15 +1741,6 @@ export default function InternalOperationsDashboard({
 }
 
 function FilesInternalWorkspace({ initialFolderId }: { initialFolderId: string | null }) {
-  const { workspaceSlug } = useOperatorEntitlements();
-  const useGreenDesertExplorer =
-    isGreenDesertSlug(workspaceSlug) ||
-    (typeof window !== "undefined" && isBrowserGreenDesertSurface());
-
-  if (useGreenDesertExplorer) {
-    return <GreenDesertFileExplorerWorkspace />;
-  }
-
   return <FileRepositoryWorkspace scope="internal" initialFolderId={initialFolderId} />;
 }
 

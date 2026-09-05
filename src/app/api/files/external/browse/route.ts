@@ -4,6 +4,8 @@ import { isDemoApiRequest } from "@/lib/demo/demo-request";
 import { browseNorthstarExternalFiles } from "@/lib/demo/northstar-files-fixtures";
 import { filesApiErrorStatus, requireInternalFilesAccess } from "@/lib/files-api-auth";
 import { browseExternalFilesFromDb } from "@/lib/external-files-service";
+import { ensureGreenDesertFilesSeeded } from "@/lib/greendesert/files-seed";
+import { isGreenDesertSlug } from "@/lib/greendesert-surface";
 import { isTalantonImpactSlug } from "@/lib/talanton-surface";
 import { ensureTalantonFilesSeeded } from "@/lib/talanton/files-seed";
 
@@ -28,6 +30,9 @@ export async function GET(request: NextRequest) {
   try {
     if (isTalantonImpactSlug(auth.workspace.slug)) {
       await ensureTalantonFilesSeeded(auth.workspace.id).catch(() => undefined);
+    }
+    if (isGreenDesertSlug(auth.workspace.slug)) {
+      await ensureGreenDesertFilesSeeded(auth.workspace.id).catch(() => undefined);
     }
 
     const folderId = request.nextUrl.searchParams.get("folderId");

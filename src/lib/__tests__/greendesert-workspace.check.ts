@@ -244,11 +244,12 @@ const internalDashboard = readFileSync(
 );
 assert.match(internalDashboard, /GreenDesertBoardPacksWorkspace/);
 assert.match(internalDashboard, /function FilesInternalWorkspace/);
-assert.match(internalDashboard, /isGreenDesertSlug\(workspaceSlug\)/);
-assert.match(
-  internalDashboard,
-  /isGreenDesertSlug\(initialEntitlementsSnapshot\?\.workspaceSlug\)/,
-);
+assert.match(internalDashboard, /FileRepositoryWorkspace scope="internal"/);
+assert.doesNotMatch(internalDashboard, /GreenDesertFileExplorerWorkspace/);
+
+const filesBrowseRoute = readFileSync(join(repoRoot, "src/app/api/files/browse/route.ts"), "utf8");
+assert.match(filesBrowseRoute, /ensureGreenDesertFilesSeeded/);
+assert.match(filesBrowseRoute, /isGreenDesertSlug/);
 
 const loginRoute = readFileSync(join(repoRoot, "src/app/api/auth/login/route.ts"), "utf8");
 assert.match(loginRoute, /createGreenDesertClientPortalLoginResponse/);

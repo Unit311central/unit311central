@@ -9,6 +9,8 @@ import {
 import { filesApiErrorStatus, requireInternalFilesAccess } from "@/lib/files-api-auth";
 import { browseFolder } from "@/lib/internal-files-service";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
+import { ensureGreenDesertFilesSeeded } from "@/lib/greendesert/files-seed";
+import { isGreenDesertSlug } from "@/lib/greendesert-surface";
 import { isTalantonImpactSlug } from "@/lib/talanton-surface";
 import { ensureTalantonFilesSeeded } from "@/lib/talanton/files-seed";
 
@@ -52,6 +54,9 @@ export async function GET(request: NextRequest) {
   try {
     if (isTalantonImpactSlug(auth.workspace.slug)) {
       await ensureTalantonFilesSeeded(auth.workspace.id).catch(() => undefined);
+    }
+    if (isGreenDesertSlug(auth.workspace.slug)) {
+      await ensureGreenDesertFilesSeeded(auth.workspace.id).catch(() => undefined);
     }
 
     if (clientId) {
