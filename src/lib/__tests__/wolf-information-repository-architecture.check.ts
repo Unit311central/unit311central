@@ -70,6 +70,7 @@ const workspace = readFileSync(
 );
 assert.ok(workspace.includes("WolfModelTestingArchWorkspace"));
 assert.ok(workspace.includes("WOLF_MODEL_TESTING_ARCH_CATEGORY_ID"));
+assert.ok(workspace.includes("isWolfIrManagedDiagramSlug"));
 
 const interfaceWorkspace = readFileSync(
   join(process.cwd(), "src/components/testflighthub/InterfaceWorxInformationRepositoryWorkspace.tsx"),

@@ -22,6 +22,7 @@ import {
   WOLF_IR_UNIT311_TREE_TABS,
   WOLF_IR_TREE_TITLES,
   isWolfIrCustomDiagramSlug,
+  isWolfIrManagedDiagramSlug,
 } from "@/lib/wolf/wolf-information-repository-architecture-data";
 import { WOLF_MODEL_TESTING_ARCH_CATEGORY_ID } from "@/lib/wolf/wolf-model-testing-arch-types";
 import WolfModelTestingArchWorkspace from "@/components/testflighthub/WolfModelTestingArchWorkspace";
@@ -73,20 +74,30 @@ export default function WolfInformationRepositoryArchitectureWorkspace() {
   }, []);
 
   const wolfTabs = useMemo(() => {
-    return existingDiagrams
+    const diagramBySlug = new Map(existingDiagrams.map((item) => [item.sectionSlug, item]));
+    const catalogEntries =
+      diagramCatalog.length > 0
+        ? diagramCatalog.filter((entry) => isWolfIrManagedDiagramSlug(entry.sectionSlug))
+        : existingDiagrams.map((item) => ({
+            sectionSlug: item.sectionSlug,
+            title: item.title,
+            navOrder: 9999,
+          }));
+
+    return catalogEntries
       .slice()
       .sort((a, b) => {
-        const catalogA = diagramCatalog.find((entry) => entry.sectionSlug === a.sectionSlug);
-        const catalogB = diagramCatalog.find((entry) => entry.sectionSlug === b.sectionSlug);
-        const orderA = catalogA?.navOrder ?? 9999;
-        const orderB = catalogB?.navOrder ?? 9999;
+        const orderA = a.navOrder ?? 9999;
+        const orderB = b.navOrder ?? 9999;
         if (orderA !== orderB) return orderA - orderB;
-        return a.title.localeCompare(b.title);
+        const titleA = diagramBySlug.get(a.sectionSlug)?.title ?? a.title;
+        const titleB = diagramBySlug.get(b.sectionSlug)?.title ?? b.title;
+        return titleA.localeCompare(titleB);
       })
-      .map((item) => ({
-        slug: item.sectionSlug,
-        title: item.title,
-        isCustom: isWolfIrCustomDiagramSlug(item.sectionSlug),
+      .map((entry) => ({
+        slug: entry.sectionSlug,
+        title: diagramBySlug.get(entry.sectionSlug)?.title ?? entry.title,
+        isCustom: isWolfIrCustomDiagramSlug(entry.sectionSlug),
       }));
   }, [diagramCatalog, existingDiagrams]);
 
