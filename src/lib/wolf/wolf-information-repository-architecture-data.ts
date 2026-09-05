@@ -68,7 +68,7 @@ export const WOLF_IR_BUILTIN_DIAGRAM_DESCRIPTIONS: Record<WolfIrBuiltinDiagramSl
   "wolf-pailex-infrastructure":
     "Live PAILEX reserve stack — drone video ingest, satellite uplink, RunPod AI inference, and WOLF workspace delivery.",
   "wolf-ai-models":
-    "Placeholder for WOLF AI wildlife vision models, inference pipelines, and training data flows.",
+    "Living WOLF AI processing architecture — video ingestion, FFmpeg decode, RunPod GPU missions, and Unit311 Central delivery.",
   [WOLF_MODEL_TESTING_ARCH_CATEGORY_ID]:
     "Living Mission 1 model-testing architecture, benchmark model outcomes, and video catalogue.",
   [WOLF_MISSION2_MODEL_TESTING_ARCH_CATEGORY_ID]:
@@ -115,6 +115,7 @@ export const WOLF_IR_WOLF_CATALOG: readonly ArchitectureCatalogEntry[] = [
     title: WOLF_IR_BUILTIN_DIAGRAM_LABELS["wolf-ai-models"],
     description: WOLF_IR_BUILTIN_DIAGRAM_DESCRIPTIONS["wolf-ai-models"],
     navOrder: 30,
+    liveRefresh: true,
     seedTemplate: "blank",
   },
 ];
@@ -219,6 +220,28 @@ function pailexChildNode(
 
 /** PAILEX seed version — bump to refresh existing diagrams in production. */
 export const WOLF_PAILEX_INFRASTRUCTURE_SEED_VERSION = 2;
+
+/** WOLF AI models seed version — bump to refresh existing diagrams in production. */
+export const WOLF_AI_MODELS_SEED_VERSION = 1;
+
+/** Default child node width inside WOLF AI diagram groups. */
+const WOLF_AI_NODE_WIDTH = 360;
+const WOLF_AI_NODE_ROW_GAP = 156;
+
+function wolfAiChildNode(
+  id: string,
+  label: string,
+  kind: "frontend" | "service" | "database" | "integration" | "storage",
+  parentId: string,
+  row: number,
+  extra: Omit<Parameters<typeof architectureNode>[5], "parentId" | "width"> = {},
+) {
+  return architectureNode(id, label, kind, 36, 48 + row * WOLF_AI_NODE_ROW_GAP, {
+    parentId,
+    width: WOLF_AI_NODE_WIDTH,
+    ...extra,
+  });
+}
 
 /** Living PAILEX infrastructure diagram — drone → satellite → RunPod AI → WOLF workspace. */
 export function createPailexInfrastructureDiagram(): ArchitectureDiagramDocument {
@@ -350,6 +373,188 @@ export function createPailexInfrastructureDiagram(): ArchitectureDiagramDocument
   };
 }
 
+/** Living WOLF AI processing architecture — ingestion, FFmpeg, RunPod missions, Unit311 delivery. */
+export function createWolfAiModelsDiagram(): ArchitectureDiagramDocument {
+  const ingestGroupHeight = 48 + 3 * WOLF_AI_NODE_ROW_GAP + 120;
+  const cpuGroupHeight = 48 + 5 * WOLF_AI_NODE_ROW_GAP + 120;
+  const gpuGroupHeight = 48 + 1 * WOLF_AI_NODE_ROW_GAP + 120;
+  const missionGroupHeight = 48 + 6 * WOLF_AI_NODE_ROW_GAP + 120;
+  const deliveryGroupHeight = 48 + 4 * WOLF_AI_NODE_ROW_GAP + 120;
+  const groupWidth = WOLF_AI_NODE_WIDTH + 72;
+
+  return {
+    version: 1,
+    viewport: { x: 10, y: 0, zoom: 0.42 },
+    meta: {
+      generator: "wolf-information-repository",
+      title: WOLF_IR_BUILTIN_DIAGRAM_LABELS["wolf-ai-models"],
+      seedVersion: WOLF_AI_MODELS_SEED_VERSION,
+      generatedAt: new Date().toISOString(),
+      liveRefresh: true,
+    },
+    nodes: [
+      architectureNode("group-ingest", "Video inputs", "group", 20, 20, {
+        style: { width: groupWidth, height: ingestGroupHeight },
+      }),
+      wolfAiChildNode("drone-input", "Drone Video + Telemetry", "integration", "group-ingest", 0, {
+        description: "Production drone video and telemetry from BCN / field operations",
+        icon: "zap",
+        status: "live",
+        badges: [{ label: "Input", tone: "sky" }],
+      }),
+      wolfAiChildNode("ingest-mp4", "Local MP4 video files", "storage", "group-ingest", 1, {
+        description: "Development, testing, replay, and validation input",
+        icon: "folder-open",
+        status: "live",
+      }),
+      wolfAiChildNode("ingest-live", "Live RGB video stream", "integration", "group-ingest", 2, {
+        description: "Production input from the BCN / drone system",
+        icon: "globe",
+        status: "live",
+      }),
+
+      architectureNode("group-wolf-cpu", "WOLF AI (Python / CPU)", "group", 520, 20, {
+        style: { width: groupWidth, height: cpuGroupHeight },
+      }),
+      wolfAiChildNode("video-ingestion", "Video Ingestion", "service", "group-wolf-cpu", 0, {
+        description:
+          "Common internal video-frame representation — downstream processing independent of source",
+        icon: "server",
+        status: "live",
+      }),
+      wolfAiChildNode("ffmpeg", "FFmpeg", "service", "group-wolf-cpu", 1, {
+        description:
+          "Video decoding and frame extraction only — does NOT perform telemetry synchronisation",
+        icon: "server",
+        status: "live",
+        badges: [{ label: "Decode", tone: "amber" }],
+      }),
+      wolfAiChildNode("decoded-frames", "Decoded frames + timestamps", "storage", "group-wolf-cpu", 2, {
+        description: "Decoded video frames with preserved original frame timestamps",
+        icon: "hard-drive",
+        status: "live",
+      }),
+      wolfAiChildNode("telemetry-correlation", "Timestamp correlation", "service", "group-wolf-cpu", 3, {
+        description:
+          "WOLF AI correlates video-frame timestamps with telemetry timestamps — not FFmpeg",
+        icon: "link",
+        status: "live",
+      }),
+      wolfAiChildNode("frame-processing", "WOLF AI processing", "service", "group-wolf-cpu", 4, {
+        description:
+          "Configurable AI inference rate (~5–10 FPS) — not every source frame requires inference",
+        icon: "bot",
+        status: "live",
+      }),
+
+      architectureNode("group-gpu", "AI model execution (RunPod GPU)", "group", 1020, 20, {
+        style: { width: groupWidth, height: gpuGroupHeight },
+      }),
+      wolfAiChildNode("runpod", "RunPod GPU execution", "service", "group-gpu", 0, {
+        description:
+          "GPU inference environment — WOLF AI orchestrates model execution; CPU layer remains separate",
+        icon: "server",
+        status: "live",
+        badges: [{ label: "GPU", tone: "violet" }],
+      }),
+
+      architectureNode("group-missions", "Mission model pipelines (agreed)", "group", 1020, gpuGroupHeight + 60, {
+        style: { width: groupWidth, height: missionGroupHeight },
+      }),
+      wolfAiChildNode("mission-1", "Mission 1 — Animal detection & counting", "integration", "group-missions", 0, {
+        description: "RT-DETR → SpeciesNet → ByteTrack",
+        icon: "bot",
+        status: "live",
+      }),
+      wolfAiChildNode("mission-2", "Mission 2 — Animal injury", "integration", "group-missions", 1, {
+        description: "RT-DETR → SpeciesNet → Grounding DINO → ByteTrack",
+        icon: "bot",
+        status: "live",
+      }),
+      wolfAiChildNode("mission-3", "Mission 3 — Fence breach detection", "integration", "group-missions", 2, {
+        description: "Grounding DINO only",
+        icon: "bot",
+        status: "live",
+      }),
+      wolfAiChildNode("mission-4", "Mission 4 — Poaching detection", "integration", "group-missions", 3, {
+        description: "QFDet* only",
+        icon: "bot",
+        status: "live",
+      }),
+      wolfAiChildNode("mission-5", "Mission 5 — Fire detection", "integration", "group-missions", 4, {
+        description: "RoboFireFuseNet",
+        icon: "bot",
+        status: "live",
+      }),
+      wolfAiChildNode("mission-6", "Mission 6 — Flood detection", "integration", "group-missions", 5, {
+        description: "FloodNet UMBV3",
+        icon: "bot",
+        status: "live",
+      }),
+
+      architectureNode("group-delivery", "Delivery layers", "group", 1520, 20, {
+        style: { width: groupWidth, height: deliveryGroupHeight },
+      }),
+      wolfAiChildNode("wolf-orchestration", "WOLF AI logic / orchestration", "service", "group-delivery", 0, {
+        description:
+          "Mission logic · event generation · evidence selection · result generation · Unit311 integration",
+        icon: "server",
+        status: "live",
+      }),
+      wolfAiChildNode("unit311-central", "Unit311 Central", "frontend", "group-delivery", 1, {
+        description: "TypeScript / Next.js / Vercel — application / API / workspace layer",
+        icon: "layout-dashboard",
+        status: "live",
+        badges: [{ label: "App", tone: "emerald" }],
+      }),
+      wolfAiChildNode("supabase", "Supabase", "database", "group-delivery", 2, {
+        description:
+          "Intelligence · results · metadata · evidence · references to archived raw video — not full recordings",
+        icon: "database",
+        status: "live",
+      }),
+      wolfAiChildNode("wolf-workspace", "WOLF Workspace", "frontend", "group-delivery", 3, {
+        description: "Operational user interface via Unit311 Central — WOLF AI is not in the browser",
+        icon: "users",
+        status: "live",
+      }),
+
+      architectureNode("raw-video-archive", "Raw / original video archive", "storage", 20, ingestGroupHeight + 60, {
+        width: WOLF_AI_NODE_WIDTH,
+        description:
+          "Separate from Supabase intelligence data · object storage / archive · configurable retention (~9 GB/hour)",
+        icon: "hard-drive",
+        status: "live",
+        badges: [{ label: "Archive", tone: "amber" }],
+      }),
+    ],
+    edges: [
+      { id: "e-drone-ingest", source: "drone-input", target: "video-ingestion", animated: true },
+      { id: "e-mp4-ingest", source: "ingest-mp4", target: "video-ingestion" },
+      { id: "e-live-ingest", source: "ingest-live", target: "video-ingestion" },
+      { id: "e-ingest-ffmpeg", source: "video-ingestion", target: "ffmpeg", animated: true },
+      { id: "e-ffmpeg-frames", source: "ffmpeg", target: "decoded-frames", animated: true },
+      { id: "e-drone-telemetry", source: "drone-input", target: "telemetry-correlation", label: "Telemetry" },
+      { id: "e-frames-correlation", source: "decoded-frames", target: "telemetry-correlation", animated: true },
+      { id: "e-correlation-processing", source: "telemetry-correlation", target: "frame-processing", animated: true },
+      { id: "e-processing-runpod", source: "frame-processing", target: "runpod", label: "Model inputs", animated: true },
+      { id: "e-runpod-m1", source: "runpod", target: "mission-1" },
+      { id: "e-runpod-m2", source: "runpod", target: "mission-2" },
+      { id: "e-runpod-m3", source: "runpod", target: "mission-3" },
+      { id: "e-runpod-m4", source: "runpod", target: "mission-4" },
+      { id: "e-runpod-m5", source: "runpod", target: "mission-5" },
+      { id: "e-runpod-m6", source: "runpod", target: "mission-6" },
+      { id: "e-missions-orchestration", source: "mission-1", target: "wolf-orchestration", animated: true },
+      { id: "e-runpod-orchestration", source: "runpod", target: "wolf-orchestration", label: "Model outputs" },
+      { id: "e-orchestration-unit311", source: "wolf-orchestration", target: "unit311-central", animated: true },
+      { id: "e-unit311-supabase", source: "unit311-central", target: "supabase", animated: true },
+      { id: "e-supabase-workspace", source: "supabase", target: "wolf-workspace", animated: true },
+      { id: "e-raw-reference", source: "raw-video-archive", target: "supabase", label: "References only" },
+      { id: "e-ingest-archive", source: "video-ingestion", target: "raw-video-archive", label: "Original recording" },
+    ],
+  };
+}
+
 /** Living WOLF workspace architecture seed — editable after first save. */
 export function createWolfArchitectureDiagram(): ArchitectureDiagramDocument {
   return {
@@ -469,6 +674,9 @@ export function resolveWolfIrSeedDiagram(sectionSlug: string): ArchitectureDiagr
   if (sectionSlug === "wolf-pailex-infrastructure") {
     return createPailexInfrastructureDiagram();
   }
+  if (sectionSlug === "wolf-ai-models") {
+    return createWolfAiModelsDiagram();
+  }
   if (sectionSlug === WOLF_MODEL_TESTING_ARCH_CATEGORY_ID) {
     return createMission1ModelTestingArchitectureDiagram();
   }
@@ -500,6 +708,12 @@ export function shouldRefreshWolfIrBuiltinDiagram(
     const seedVersion = Number(diagramJson?.meta?.seedVersion ?? 0);
     if (seedVersion < WOLF_MISSION2_MODEL_TESTING_ARCH_SEED_VERSION) return true;
     if (diagramJson?.meta?.generator !== "wolf-mission2-model-testing-arch") return true;
+  }
+  if (sectionSlug === "wolf-ai-models") {
+    const seedVersion = Number(diagramJson?.meta?.seedVersion ?? 0);
+    if (seedVersion < WOLF_AI_MODELS_SEED_VERSION) return true;
+    if (diagramJson?.meta?.placeholder === true) return true;
+    if (diagramJson?.meta?.generator === "wolf-information-repository-placeholder") return true;
   }
   return false;
 }

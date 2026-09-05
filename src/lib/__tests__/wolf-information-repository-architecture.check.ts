@@ -13,11 +13,14 @@ import {
   WOLF_IR_UNIT311_CANVAS_SLUGS,
   WOLF_IR_WOLF_CATALOG,
   WOLF_IR_BUILTIN_DIAGRAM_LABELS,
+  WOLF_AI_MODELS_SEED_VERSION,
   createPailexInfrastructureDiagram,
+  createWolfAiModelsDiagram,
   createWolfArchitectureDiagram,
   createWolfIrCustomDiagramSlug,
   isWolfIrCustomDiagramSlug,
   isWolfIrManagedDiagramSlug,
+  shouldRefreshWolfIrBuiltinDiagram,
 } from "@/lib/wolf/wolf-information-repository-architecture-data";
 import {
   WOLF_IR_DEFAULT_WOLF_DIAGRAM_SLUG,
@@ -80,6 +83,47 @@ assert.ok(pailexDiagram.edges.length >= 10);
 assert.ok(pailexDiagram.nodes.some((node) => node.id === "drone"));
 assert.ok(pailexDiagram.nodes.some((node) => node.id === "runpod"));
 assert.ok(pailexDiagram.nodes.some((node) => node.id === "vercel"));
+
+const wolfAiDiagram = createWolfAiModelsDiagram();
+assert.equal(wolfAiDiagram.version, 1);
+assert.equal(wolfAiDiagram.meta?.seedVersion, WOLF_AI_MODELS_SEED_VERSION);
+assert.equal(wolfAiDiagram.meta?.liveRefresh, true);
+assert.ok(wolfAiDiagram.nodes.length >= 20);
+assert.ok(wolfAiDiagram.edges.length >= 15);
+assert.ok(wolfAiDiagram.nodes.some((node) => node.id === "ffmpeg"));
+assert.ok(wolfAiDiagram.nodes.some((node) => node.id === "runpod"));
+assert.ok(wolfAiDiagram.nodes.some((node) => node.id === "supabase"));
+assert.ok(wolfAiDiagram.nodes.some((node) => node.id === "unit311-central"));
+assert.ok(wolfAiDiagram.nodes.some((node) => node.id === "wolf-workspace"));
+assert.ok(wolfAiDiagram.nodes.some((node) => node.id === "raw-video-archive"));
+assert.ok(wolfAiDiagram.nodes.some((node) => node.id === "mission-1"));
+assert.ok(wolfAiDiagram.nodes.some((node) => node.id === "mission-6"));
+const ffmpegNode = wolfAiDiagram.nodes.find((node) => node.id === "ffmpeg");
+assert.ok(
+  String(ffmpegNode?.data?.description ?? "").includes("does NOT perform telemetry"),
+  "FFmpeg must not perform telemetry synchronisation",
+);
+const supabaseNode = wolfAiDiagram.nodes.find((node) => node.id === "supabase");
+assert.ok(
+  String(supabaseNode?.data?.description ?? "").includes("references"),
+  "Supabase stores references to archived raw video",
+);
+assert.ok(
+  shouldRefreshWolfIrBuiltinDiagram("wolf-ai-models", {
+    version: 1,
+    meta: { placeholder: true, generator: "wolf-information-repository-placeholder" },
+    nodes: [],
+    edges: [],
+  }),
+);
+assert.ok(
+  !shouldRefreshWolfIrBuiltinDiagram("wolf-ai-models", {
+    version: 1,
+    meta: { seedVersion: WOLF_AI_MODELS_SEED_VERSION, generator: "wolf-information-repository" },
+    nodes: [],
+    edges: [],
+  }),
+);
 
 const apiRoute = readFileSync(
   join(process.cwd(), "src/app/api/information-repository/architecture-diagrams/route.ts"),
