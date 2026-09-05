@@ -1,7 +1,9 @@
 import type { ArchitectureDiagramDocument } from "@/lib/architecture-diagram-data";
 
-/** Section slug for MODEL TESTING ARCH under Architecture Diagrams (WOLF scope). */
 export const WOLF_MODEL_TESTING_ARCH_CATEGORY_ID = "model-testing-arch";
+
+/** Default WOLF Architecture Diagrams tab when opening the WOLF scope. */
+export const WOLF_IR_DEFAULT_WOLF_DIAGRAM_SLUG = WOLF_MODEL_TESTING_ARCH_CATEGORY_ID;
 
 export type ModelTestingOutcome =
   | "TESTED"

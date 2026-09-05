@@ -4,11 +4,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ChevronRight,
   ExternalLink,
-  Film,
-  FlaskConical,
   Loader2,
   Network,
-  Table2,
 } from "lucide-react";
 
 import ArchitectureViewer from "@/components/architecture/ArchitectureViewer";
@@ -21,7 +18,8 @@ import type {
 } from "@/lib/wolf/wolf-model-testing-arch-types";
 import { cn } from "@/lib/utils";
 
-type PanelId = "architecture" | "models" | "videos";
+const MISSION_1_ARCHITECTURE_TITLE = "Mission 1 Model Testing Architecture";
+const MISSION_1_MODEL_SUMMARY_TITLE = "Mission 1 - Animal Counting - Living Model Testing Summary";
 
 const API_PATH = "/api/information-repository/model-testing-arch";
 
@@ -303,7 +301,6 @@ export default function WolfModelTestingArchWorkspace() {
   const [payload, setPayload] = useState<WolfModelTestingArchPayload | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activePanel, setActivePanel] = useState<PanelId>("architecture");
   const [selectedModelId, setSelectedModelId] = useState<string | null>(null);
   const [selectedVideoSlug, setSelectedVideoSlug] = useState<string | null>(null);
 
@@ -351,13 +348,11 @@ export default function WolfModelTestingArchWorkspace() {
   const handleSelectModel = useCallback((modelId: string) => {
     setSelectedModelId(modelId);
     setSelectedVideoSlug(null);
-    setActivePanel("models");
   }, []);
 
   const handleSelectVideo = useCallback((slug: string) => {
     setSelectedVideoSlug(slug);
     setSelectedModelId(null);
-    setActivePanel("videos");
   }, []);
 
   if (loading) {
@@ -377,14 +372,8 @@ export default function WolfModelTestingArchWorkspace() {
     );
   }
 
-  const panels: Array<{ id: PanelId; label: string; icon: typeof Network }> = [
-    { id: "architecture", label: "Mission 1 Architecture", icon: Network },
-    { id: "models", label: "Model Testing", icon: FlaskConical },
-    { id: "videos", label: "Benchmark Videos", icon: Film },
-  ];
-
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-4">
+    <div className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto pr-1">
       <div className="rounded-xl border border-sky-400/20 bg-sky-500/10 px-4 py-3">
         <p className="text-sm font-medium text-sky-100">{payload.mission}</p>
         <p className="mt-1 text-xs leading-relaxed text-sky-100/70">
@@ -399,169 +388,152 @@ export default function WolfModelTestingArchWorkspace() {
         </p>
       </div>
 
-      <nav className="flex flex-wrap gap-2">
-        {panels.map((panel) => {
-          const Icon = panel.icon;
-          const active = activePanel === panel.id;
-          return (
-            <button
-              key={panel.id}
-              type="button"
-              onClick={() => setActivePanel(panel.id)}
-              className={cn(
-                "inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-sm font-medium transition-colors",
-                active
-                  ? "border-emerald-500/40 bg-emerald-600 text-white"
-                  : "border-white/10 bg-white/[0.03] text-white/60 hover:text-white/85",
-              )}
-            >
-              <Icon className="h-4 w-4" />
-              {panel.label}
-            </button>
-          );
-        })}
-      </nav>
+      <section className="space-y-3">
+        <div>
+          <h3 className="text-sm font-semibold text-white">{MISSION_1_ARCHITECTURE_TITLE}</h3>
+          <p className="mt-1 text-xs text-white/55">
+            A living architecture diagram, not a static document.
+          </p>
+          <p className="mt-2 text-xs text-white/45">
+            WOLF AI orchestrates each hand-off between stages. Supabase persists results — it is not
+            an AI-processing stage.
+          </p>
+        </div>
+        <ArchitectureViewer
+          title="Mission 1 — Animal Detection & Counting"
+          sectionSlug="model-testing-arch"
+          diagramDocument={payload.diagram}
+          readOnly
+          height="min(56vh, 640px)"
+        />
+      </section>
 
-      <div
-        className={cn(
-          "grid min-h-0 flex-1 gap-4",
-          selectedModel || selectedVideo ? "lg:grid-cols-[minmax(0,1fr)_minmax(280px,360px)]" : "",
-        )}
-      >
-        <div className="min-w-0">
-          {activePanel === "architecture" ? (
-            <div className="space-y-3">
-              <p className="text-xs text-white/45">
-                WOLF AI orchestrates each hand-off between stages. Supabase persists results — it is
-                not an AI-processing stage.
-              </p>
-              <ArchitectureViewer
-                title="Mission 1 — Animal Detection & Counting"
-                sectionSlug="model-testing-arch"
-                diagramDocument={payload.diagram}
-                readOnly
-                height="min(68vh, 720px)"
-              />
-            </div>
+      <section className="space-y-3">
+        <div>
+          <h3 className="text-sm font-semibold text-white">{MISSION_1_MODEL_SUMMARY_TITLE}</h3>
+          <p className="mt-1 text-xs text-white/55">
+            Living model-testing summary for Mission 1 Animal Counting.
+          </p>
+        </div>
+        <div className="overflow-hidden rounded-xl border border-white/10">
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-left text-xs text-white/75">
+              <thead className="bg-[#0b1524]/90 text-[11px] uppercase tracking-wide text-white/40">
+                <tr>
+                  <th className="px-3 py-2">Model</th>
+                  <th className="px-3 py-2">Function</th>
+                  <th className="px-3 py-2">Status</th>
+                  <th className="px-3 py-2">Outcome</th>
+                  <th className="px-3 py-2">Videos tested</th>
+                  <th className="px-3 py-2">Licence / commercial</th>
+                  <th className="px-3 py-2">Summary</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/10">
+                {payload.models.map((model) => (
+                  <tr
+                    key={model.id}
+                    className={cn(
+                      "cursor-pointer transition-colors hover:bg-white/[0.03]",
+                      selectedModelId === model.id && "bg-emerald-500/10",
+                    )}
+                    onClick={() => handleSelectModel(model.id)}
+                  >
+                    <td className="px-3 py-2 font-medium text-white">{model.modelName}</td>
+                    <td className="max-w-[12rem] px-3 py-2 text-white/55">{model.modelFunction}</td>
+                    <td className="px-3 py-2">
+                      <OutcomeBadge value={model.testStatus} />
+                    </td>
+                    <td className="px-3 py-2">
+                      <OutcomeBadge value={model.outcome} />
+                    </td>
+                    <td className="px-3 py-2 text-white/55">
+                      {model.videosTested.length > 0 ? model.videosTested.join(", ") : "—"}
+                    </td>
+                    <td className="max-w-[10rem] px-3 py-2 text-white/55">
+                      {model.commercialUseStatus}
+                    </td>
+                    <td className="max-w-md px-3 py-2 text-white/55">{model.confidenceSummary}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section className="space-y-3">
+        <div>
+          <h3 className="text-sm font-semibold text-white">Benchmark video catalogue</h3>
+          <p className="mt-1 text-xs text-white/55">
+            Nine internal evaluation videos — counts remain &quot;Not yet benchmarked&quot; until
+            harness runs establish them.
+          </p>
+        </div>
+        <div className="overflow-hidden rounded-xl border border-white/10">
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-left text-xs text-white/75">
+              <thead className="bg-[#0b1524]/90 text-[11px] uppercase tracking-wide text-white/40">
+                <tr>
+                  <th className="px-3 py-2">Slug</th>
+                  <th className="px-3 py-2">Dataset</th>
+                  <th className="px-3 py-2">Resolution</th>
+                  <th className="px-3 py-2">FPS</th>
+                  <th className="px-3 py-2">Benchmark status</th>
+                  <th className="px-3 py-2">Models tested</th>
+                  <th className="px-3 py-2">Detections</th>
+                  <th className="px-3 py-2">Unique</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/10">
+                {payload.videos.map((video) => (
+                  <tr
+                    key={video.slug}
+                    className={cn(
+                      "cursor-pointer transition-colors hover:bg-white/[0.03]",
+                      selectedVideoSlug === video.slug && "bg-emerald-500/10",
+                    )}
+                    onClick={() => handleSelectVideo(video.slug)}
+                  >
+                    <td className="px-3 py-2 font-medium text-white">{video.slug}</td>
+                    <td className="px-3 py-2 text-white/55">{video.sourceDataset}</td>
+                    <td className="px-3 py-2">{video.resolution}</td>
+                    <td className="px-3 py-2">{video.fps}</td>
+                    <td className="px-3 py-2 text-white/55">{video.benchmarkStatus}</td>
+                    <td className="px-3 py-2 text-white/55">
+                      {video.modelsTested.length > 0 ? video.modelsTested.join(", ") : "—"}
+                    </td>
+                    <td className="px-3 py-2">{video.detectionCount}</td>
+                    <td className="px-3 py-2">{video.uniqueAnimalCount}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      {(selectedModel || selectedVideo) && (
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(280px,360px)]">
+          <div />
+          {selectedModel ? (
+            <ModelDetailPanel
+              model={selectedModel}
+              videosBySlug={videosBySlug}
+              onSelectVideo={handleSelectVideo}
+              onClose={() => setSelectedModelId(null)}
+            />
           ) : null}
-
-          {activePanel === "models" ? (
-            <div className="overflow-hidden rounded-xl border border-white/10">
-              <div className="flex items-center gap-2 border-b border-white/10 bg-[#0b1524]/70 px-4 py-3">
-                <Table2 className="h-4 w-4 text-white/45" />
-                <p className="text-sm font-medium text-white">Model testing summary</p>
-              </div>
-              <div className="overflow-x-auto">
-                <table className="min-w-full text-left text-xs text-white/75">
-                  <thead className="bg-[#0b1524]/90 text-[11px] uppercase tracking-wide text-white/40">
-                    <tr>
-                      <th className="px-3 py-2">Model</th>
-                      <th className="px-3 py-2">Function</th>
-                      <th className="px-3 py-2">Status</th>
-                      <th className="px-3 py-2">Outcome</th>
-                      <th className="px-3 py-2">Videos</th>
-                      <th className="px-3 py-2">Summary</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-white/10">
-                    {payload.models.map((model) => (
-                      <tr
-                        key={model.id}
-                        className={cn(
-                          "cursor-pointer transition-colors hover:bg-white/[0.03]",
-                          selectedModelId === model.id && "bg-emerald-500/10",
-                        )}
-                        onClick={() => handleSelectModel(model.id)}
-                      >
-                        <td className="px-3 py-2 font-medium text-white">{model.modelName}</td>
-                        <td className="max-w-[12rem] px-3 py-2 text-white/55">{model.modelFunction}</td>
-                        <td className="px-3 py-2">
-                          <OutcomeBadge value={model.testStatus} />
-                        </td>
-                        <td className="px-3 py-2">
-                          <OutcomeBadge value={model.outcome} />
-                        </td>
-                        <td className="px-3 py-2 text-white/55">
-                          {model.videosTested.length > 0
-                            ? model.videosTested.join(", ")
-                            : "—"}
-                        </td>
-                        <td className="max-w-md px-3 py-2 text-white/55">{model.confidenceSummary}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          ) : null}
-
-          {activePanel === "videos" ? (
-            <div className="overflow-hidden rounded-xl border border-white/10">
-              <div className="flex items-center gap-2 border-b border-white/10 bg-[#0b1524]/70 px-4 py-3">
-                <Film className="h-4 w-4 text-white/45" />
-                <p className="text-sm font-medium text-white">Benchmark video catalogue</p>
-              </div>
-              <div className="overflow-x-auto">
-                <table className="min-w-full text-left text-xs text-white/75">
-                  <thead className="bg-[#0b1524]/90 text-[11px] uppercase tracking-wide text-white/40">
-                    <tr>
-                      <th className="px-3 py-2">Slug</th>
-                      <th className="px-3 py-2">Dataset</th>
-                      <th className="px-3 py-2">Resolution</th>
-                      <th className="px-3 py-2">FPS</th>
-                      <th className="px-3 py-2">Status</th>
-                      <th className="px-3 py-2">Models tested</th>
-                      <th className="px-3 py-2">Detections</th>
-                      <th className="px-3 py-2">Unique</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-white/10">
-                    {payload.videos.map((video) => (
-                      <tr
-                        key={video.slug}
-                        className={cn(
-                          "cursor-pointer transition-colors hover:bg-white/[0.03]",
-                          selectedVideoSlug === video.slug && "bg-emerald-500/10",
-                        )}
-                        onClick={() => handleSelectVideo(video.slug)}
-                      >
-                        <td className="px-3 py-2 font-medium text-white">{video.slug}</td>
-                        <td className="px-3 py-2 text-white/55">{video.sourceDataset}</td>
-                        <td className="px-3 py-2">{video.resolution}</td>
-                        <td className="px-3 py-2">{video.fps}</td>
-                        <td className="px-3 py-2 text-white/55">{video.benchmarkStatus}</td>
-                        <td className="px-3 py-2 text-white/55">
-                          {video.modelsTested.length > 0 ? video.modelsTested.join(", ") : "—"}
-                        </td>
-                        <td className="px-3 py-2">{video.detectionCount}</td>
-                        <td className="px-3 py-2">{video.uniqueAnimalCount}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+          {selectedVideo ? (
+            <VideoDetailPanel
+              video={selectedVideo}
+              modelsById={modelsById}
+              onSelectModel={handleSelectModel}
+              onClose={() => setSelectedVideoSlug(null)}
+            />
           ) : null}
         </div>
-
-        {selectedModel ? (
-          <ModelDetailPanel
-            model={selectedModel}
-            videosBySlug={videosBySlug}
-            onSelectVideo={handleSelectVideo}
-            onClose={() => setSelectedModelId(null)}
-          />
-        ) : null}
-
-        {selectedVideo ? (
-          <VideoDetailPanel
-            video={selectedVideo}
-            modelsById={modelsById}
-            onSelectModel={handleSelectModel}
-            onClose={() => setSelectedVideoSlug(null)}
-          />
-        ) : null}
-      </div>
+      )}
     </div>
   );
 }

@@ -115,7 +115,8 @@ const architectureWorkspaceSource = readFileSync(
   "utf8",
 );
 assert.ok(architectureWorkspaceSource.includes("WolfModelTestingArchWorkspace"));
-assert.ok(architectureWorkspaceSource.includes("WOLF_MODEL_TESTING_ARCH_CATEGORY_ID"));
+assert.ok(architectureWorkspaceSource.includes("WOLF_IR_DEFAULT_WOLF_DIAGRAM_SLUG"));
+assert.ok(architectureWorkspaceSource.includes("overflow-x-auto"));
 
 const detailsWorkspaceSource = readFileSync(
   join(process.cwd(), "src/components/testflighthub/Unit311DetailsWorkspace.tsx"),
@@ -123,10 +124,14 @@ const detailsWorkspaceSource = readFileSync(
 );
 assert.doesNotMatch(detailsWorkspaceSource, /WolfModelTestingArchWorkspace/);
 
-const apiSource = readFileSync(
-  join(process.cwd(), "src/app/api/information-repository/model-testing-arch/route.ts"),
+const modelTestingWorkspaceSource = readFileSync(
+  join(process.cwd(), "src/components/testflighthub/WolfModelTestingArchWorkspace.tsx"),
   "utf8",
 );
-assert.ok(apiSource.includes("buildWolfModelTestingArchPayload"));
+assert.ok(modelTestingWorkspaceSource.includes("Mission 1 Model Testing Architecture"));
+assert.ok(
+  modelTestingWorkspaceSource.includes("Mission 1 - Animal Counting - Living Model Testing Summary"),
+);
+assert.ok(modelTestingWorkspaceSource.includes("living architecture diagram, not a static document"));
 
 console.log("wolf-model-testing-arch.check.ts — all assertions passed.");

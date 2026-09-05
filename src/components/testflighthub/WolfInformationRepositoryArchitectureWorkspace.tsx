@@ -24,7 +24,10 @@ import {
   isWolfIrCustomDiagramSlug,
   isWolfIrManagedDiagramSlug,
 } from "@/lib/wolf/wolf-information-repository-architecture-data";
-import { WOLF_MODEL_TESTING_ARCH_CATEGORY_ID } from "@/lib/wolf/wolf-model-testing-arch-types";
+import {
+  WOLF_IR_DEFAULT_WOLF_DIAGRAM_SLUG,
+  WOLF_MODEL_TESTING_ARCH_CATEGORY_ID,
+} from "@/lib/wolf/wolf-model-testing-arch-types";
 import WolfModelTestingArchWorkspace from "@/components/testflighthub/WolfModelTestingArchWorkspace";
 import { cn } from "@/lib/utils";
 
@@ -75,30 +78,29 @@ export default function WolfInformationRepositoryArchitectureWorkspace() {
 
   const wolfTabs = useMemo(() => {
     const diagramBySlug = new Map(existingDiagrams.map((item) => [item.sectionSlug, item]));
-    const catalogEntries =
-      diagramCatalog.length > 0
-        ? diagramCatalog.filter((entry) => isWolfIrManagedDiagramSlug(entry.sectionSlug))
-        : existingDiagrams.map((item) => ({
-            sectionSlug: item.sectionSlug,
-            title: item.title,
-            navOrder: 9999,
-          }));
+    const catalogBySlug = new Map(diagramCatalog.map((entry) => [entry.sectionSlug, entry]));
 
-    return catalogEntries
-      .slice()
-      .sort((a, b) => {
-        const orderA = a.navOrder ?? 9999;
-        const orderB = b.navOrder ?? 9999;
-        if (orderA !== orderB) return orderA - orderB;
-        const titleA = diagramBySlug.get(a.sectionSlug)?.title ?? a.title;
-        const titleB = diagramBySlug.get(b.sectionSlug)?.title ?? b.title;
-        return titleA.localeCompare(titleB);
+    const slugSet = new Set<string>([
+      ...diagramCatalog.map((entry) => entry.sectionSlug),
+      ...existingDiagrams.map((item) => item.sectionSlug),
+    ]);
+
+    return [...slugSet]
+      .filter((slug) => isWolfIrManagedDiagramSlug(slug))
+      .map((slug) => {
+        const catalog = catalogBySlug.get(slug);
+        const diagram = diagramBySlug.get(slug);
+        return {
+          slug,
+          title: diagram?.title ?? catalog?.title ?? slug,
+          navOrder: catalog?.navOrder ?? 9999,
+          isCustom: isWolfIrCustomDiagramSlug(slug),
+        };
       })
-      .map((entry) => ({
-        slug: entry.sectionSlug,
-        title: diagramBySlug.get(entry.sectionSlug)?.title ?? entry.title,
-        isCustom: isWolfIrCustomDiagramSlug(entry.sectionSlug),
-      }));
+      .sort((a, b) => {
+        if (a.navOrder !== b.navOrder) return a.navOrder - b.navOrder;
+        return a.title.localeCompare(b.title);
+      });
   }, [diagramCatalog, existingDiagrams]);
 
   const loadDiagramIndex = useCallback(async (scope: TopScope) => {
@@ -191,8 +193,15 @@ export default function WolfInformationRepositoryArchitectureWorkspace() {
       return;
     }
 
-    if (!isArchitectureTreeSlug(activeSlug)) {
-      void loadDiagram("wolf", activeSlug);
+    if (topScope === "wolf") {
+      if (activeSlug === WOLF_MODEL_TESTING_ARCH_CATEGORY_ID) {
+        setDiagramLoading(false);
+        return;
+      }
+      if (!isArchitectureTreeSlug(activeSlug)) {
+        void loadDiagram("wolf", activeSlug);
+      }
+      return;
     }
   }, [topScope, activeSlug, workspaceFilter, loadDiagram, loadTaxonomy]);
 
@@ -201,7 +210,7 @@ export default function WolfInformationRepositoryArchitectureWorkspace() {
       setActiveSlug(WOLF_IR_UNIT311_CANVAS_SLUGS[0]);
       return;
     }
-    setActiveSlug("wolf-architecture");
+    setActiveSlug(WOLF_IR_DEFAULT_WOLF_DIAGRAM_SLUG);
   }, [topScope]);
 
   async function handleDiagramChange(next: ArchitectureDiagramDocument) {
@@ -261,7 +270,7 @@ export default function WolfInformationRepositoryArchitectureWorkspace() {
       if (!response.ok) throw new Error(data.error ?? "Failed to delete diagram.");
       await loadDiagramIndex("wolf");
       if (activeSlug === sectionSlug) {
-        setActiveSlug("wolf-architecture");
+        setActiveSlug(WOLF_IR_DEFAULT_WOLF_DIAGRAM_SLUG);
       }
     } catch (deleteError) {
       setError(deleteError instanceof Error ? deleteError.message : "Failed to delete diagram.");
@@ -356,11 +365,12 @@ export default function WolfInformationRepositoryArchitectureWorkspace() {
         </div>
       ) : (
         <div className="flex min-h-0 flex-1 flex-col gap-4">
-          <div className="flex flex-wrap items-center gap-2">
-            <nav
-              aria-label={topScope === "unit311" ? "Unit311 diagrams" : "WOLF diagrams"}
-              className="flex min-w-0 flex-1 flex-wrap gap-1.5"
-            >
+          <div className="flex min-w-0 items-center gap-2">
+            <div className="min-w-0 flex-1 overflow-x-auto">
+              <nav
+                aria-label={topScope === "unit311" ? "Unit311 diagrams" : "WOLF diagrams"}
+                className="flex w-max min-w-full flex-nowrap gap-1.5 pb-1"
+              >
               {topScope === "unit311"
                 ? unit311Tabs.map((item) => {
                     const isActive = activeSlug === item.slug;
@@ -443,7 +453,7 @@ export default function WolfInformationRepositoryArchitectureWorkspace() {
                             {item.title}
                           </button>
                         )}
-                        {!isRenaming ? (
+                        {!isRenaming && item.isCustom ? (
                           <>
                             <button
                               type="button"
@@ -456,22 +466,21 @@ export default function WolfInformationRepositoryArchitectureWorkspace() {
                             >
                               <Pencil className="h-3 w-3" />
                             </button>
-                            {item.isCustom ? (
-                              <button
-                                type="button"
-                                title="Delete diagram"
-                                onClick={() => void handleDeleteDiagram(item.slug)}
-                                className="rounded-lg border border-white/10 p-1.5 text-rose-300/70 hover:bg-rose-500/10 hover:text-rose-200"
-                              >
-                                <Trash2 className="h-3 w-3" />
-                              </button>
-                            ) : null}
+                            <button
+                              type="button"
+                              title="Delete diagram"
+                              onClick={() => void handleDeleteDiagram(item.slug)}
+                              className="rounded-lg border border-white/10 p-1.5 text-rose-300/70 hover:bg-rose-500/10 hover:text-rose-200"
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </button>
                           </>
                         ) : null}
                       </div>
                     );
                   })}
-            </nav>
+              </nav>
+            </div>
 
             {topScope === "wolf" ? (
               <div className="flex items-center gap-2">
@@ -515,11 +524,6 @@ export default function WolfInformationRepositoryArchitectureWorkspace() {
               <div className="flex flex-1 items-center justify-center rounded-xl border border-rose-400/25 bg-rose-500/10 px-6 text-center text-sm text-rose-100">
                 {error}
               </div>
-            ) : diagramLoading ? (
-              <div className="flex flex-1 items-center justify-center text-sm text-white/60">
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Loading diagram…
-              </div>
             ) : topScope === "unit311" && activeIsTree ? (
               taxonomy ? (
                 <ArchitectureHierarchyViewer
@@ -541,6 +545,11 @@ export default function WolfInformationRepositoryArchitectureWorkspace() {
               )
             ) : topScope === "wolf" && activeSlug === WOLF_MODEL_TESTING_ARCH_CATEGORY_ID ? (
               <WolfModelTestingArchWorkspace />
+            ) : diagramLoading ? (
+              <div className="flex flex-1 items-center justify-center text-sm text-white/60">
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Loading diagram…
+              </div>
             ) : diagram ? (
               <ArchitectureViewer
                 title={activeCanvasTitle ?? diagram.title}

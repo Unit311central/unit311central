@@ -42,10 +42,10 @@ export const WOLF_IR_TREE_TITLES: Record<string, string> = {
 
 /** Built-in WOLF architecture diagram slugs (stored in system_architecture_diagrams). */
 export const WOLF_IR_BUILTIN_DIAGRAM_SLUGS = [
+  WOLF_MODEL_TESTING_ARCH_CATEGORY_ID,
   "wolf-architecture",
   "wolf-pailex-infrastructure",
   "wolf-ai-models",
-  WOLF_MODEL_TESTING_ARCH_CATEGORY_ID,
 ] as const;
 
 export type WolfIrBuiltinDiagramSlug = (typeof WOLF_IR_BUILTIN_DIAGRAM_SLUGS)[number];
@@ -72,6 +72,14 @@ export const WOLF_IR_CUSTOM_DIAGRAM_PREFIX = "wolf-custom-";
 
 export const WOLF_IR_WOLF_CATALOG: readonly ArchitectureCatalogEntry[] = [
   {
+    sectionSlug: WOLF_MODEL_TESTING_ARCH_CATEGORY_ID,
+    title: WOLF_IR_BUILTIN_DIAGRAM_LABELS[WOLF_MODEL_TESTING_ARCH_CATEGORY_ID],
+    description: WOLF_IR_BUILTIN_DIAGRAM_DESCRIPTIONS[WOLF_MODEL_TESTING_ARCH_CATEGORY_ID],
+    navOrder: 5,
+    liveRefresh: true,
+    seedTemplate: "blank",
+  },
+  {
     sectionSlug: "wolf-architecture",
     title: WOLF_IR_BUILTIN_DIAGRAM_LABELS["wolf-architecture"],
     description: WOLF_IR_BUILTIN_DIAGRAM_DESCRIPTIONS["wolf-architecture"],
@@ -92,14 +100,6 @@ export const WOLF_IR_WOLF_CATALOG: readonly ArchitectureCatalogEntry[] = [
     title: WOLF_IR_BUILTIN_DIAGRAM_LABELS["wolf-ai-models"],
     description: WOLF_IR_BUILTIN_DIAGRAM_DESCRIPTIONS["wolf-ai-models"],
     navOrder: 30,
-    seedTemplate: "blank",
-  },
-  {
-    sectionSlug: WOLF_MODEL_TESTING_ARCH_CATEGORY_ID,
-    title: WOLF_IR_BUILTIN_DIAGRAM_LABELS[WOLF_MODEL_TESTING_ARCH_CATEGORY_ID],
-    description: WOLF_IR_BUILTIN_DIAGRAM_DESCRIPTIONS[WOLF_MODEL_TESTING_ARCH_CATEGORY_ID],
-    navOrder: 40,
-    liveRefresh: true,
     seedTemplate: "blank",
   },
 ];

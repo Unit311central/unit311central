@@ -19,7 +19,10 @@ import {
   isWolfIrCustomDiagramSlug,
   isWolfIrManagedDiagramSlug,
 } from "@/lib/wolf/wolf-information-repository-architecture-data";
-import { WOLF_MODEL_TESTING_ARCH_CATEGORY_ID } from "@/lib/wolf/wolf-model-testing-arch-types";
+import {
+  WOLF_IR_DEFAULT_WOLF_DIAGRAM_SLUG,
+  WOLF_MODEL_TESTING_ARCH_CATEGORY_ID,
+} from "@/lib/wolf/wolf-model-testing-arch-types";
 
 assert.equal(WOLF_INFORMATION_REPOSITORY_WORKSPACE_CONFIG.features.architectureDiagrams, true);
 assert.equal(WOLF_INFORMATION_REPOSITORY_WORKSPACE_CONFIG.features.architectureHub, false);
@@ -36,6 +39,27 @@ assert.ok(!isWolfIrManagedDiagramSlug("platform-overview"));
 assert.equal(
   WOLF_IR_BUILTIN_DIAGRAM_LABELS[WOLF_MODEL_TESTING_ARCH_CATEGORY_ID],
   "MODEL TESTING ARCH",
+);
+assert.equal(WOLF_IR_DEFAULT_WOLF_DIAGRAM_SLUG, WOLF_MODEL_TESTING_ARCH_CATEGORY_ID);
+assert.equal(WOLF_IR_WOLF_CATALOG[0]?.sectionSlug, WOLF_MODEL_TESTING_ARCH_CATEGORY_ID);
+assert.equal(WOLF_IR_WOLF_CATALOG[0]?.title, "MODEL TESTING ARCH");
+assert.equal(WOLF_IR_BUILTIN_DIAGRAM_SLUGS[0], WOLF_MODEL_TESTING_ARCH_CATEGORY_ID);
+
+const catalogWithCustom = [
+  ...WOLF_IR_WOLF_CATALOG,
+  {
+    sectionSlug: "wolf-custom-wolf-ai-test",
+    title: "WOLF AI",
+    description: "Custom WOLF architecture diagram",
+    navOrder: 1000,
+    seedTemplate: "blank" as const,
+  },
+];
+assert.equal(catalogWithCustom[0]?.title, "MODEL TESTING ARCH");
+assert.ok(catalogWithCustom.some((entry) => entry.title === "WOLF AI"));
+assert.equal(
+  catalogWithCustom.filter((entry) => entry.title === "WOLF ARCHITECTURE").length,
+  1,
 );
 
 const customSlug = createWolfIrCustomDiagramSlug("Reserve telemetry");
@@ -69,8 +93,8 @@ const workspace = readFileSync(
   "utf8",
 );
 assert.ok(workspace.includes("WolfModelTestingArchWorkspace"));
-assert.ok(workspace.includes("WOLF_MODEL_TESTING_ARCH_CATEGORY_ID"));
-assert.ok(workspace.includes("isWolfIrManagedDiagramSlug"));
+assert.ok(workspace.includes("WOLF_IR_DEFAULT_WOLF_DIAGRAM_SLUG"));
+assert.ok(workspace.includes("overflow-x-auto"));
 
 const interfaceWorkspace = readFileSync(
   join(process.cwd(), "src/components/testflighthub/InterfaceWorxInformationRepositoryWorkspace.tsx"),
