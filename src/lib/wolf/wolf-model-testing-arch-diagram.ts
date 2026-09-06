@@ -1,5 +1,5 @@
 import type { ArchitectureDiagramDocument } from "@/lib/architecture-diagram-data";
-import { WOLF_MODEL_TESTING_ARCH_MODELS } from "@/lib/wolf/wolf-model-testing-arch-data";
+import { resolveMission1SpeciesModelSlot } from "@/lib/wolf/wolf-model-testing-arch-species-slot";
 
 function node(
   id: string,
@@ -35,15 +35,7 @@ function wolfOrchestrator(id: string, x: number, y: number) {
 }
 
 export function createMission1ModelTestingArchitectureDiagram(): ArchitectureDiagramDocument {
-  const acceptedSpecies = WOLF_MODEL_TESTING_ARCH_MODELS.find(
-    (record) => record.modelFunction.toLowerCase().includes("species") && record.outcome === "ACCEPTED",
-  );
-  const speciesLabel = acceptedSpecies
-    ? acceptedSpecies.modelName
-    : "[REPLACEMENT SPECIES MODEL]";
-  const speciesDescription = acceptedSpecies
-    ? `Accepted species-classification candidate: ${acceptedSpecies.modelName}.`
-    : "Replaceable species-classification stage. No accepted species model yet — candidates under Mission 1 evaluation.";
+  const speciesSlot = resolveMission1SpeciesModelSlot();
 
   const rowY = 0;
   const gap = 200;
@@ -69,10 +61,10 @@ export function createMission1ModelTestingArchitectureDiagram(): ArchitectureDia
     status: "live",
   });
   const wolf3 = wolfOrchestrator("wolf-3", nextX(), rowY);
-  const speciesModel = node("species-model", speciesLabel, "integration", nextX(), rowY, {
-    description: speciesDescription,
-    status: acceptedSpecies ? "live" : "planned",
-    meta: { speciesModelSlot: true },
+  const speciesModel = node("species-model", speciesSlot.label, "integration", nextX(), rowY, {
+    description: speciesSlot.description,
+    status: speciesSlot.status,
+    meta: { speciesModelSlot: true, speciesModelId: speciesSlot.modelId },
   });
   const wolf4 = wolfOrchestrator("wolf-4", nextX(), rowY);
   const bytetrack = node("bytetrack", "ByteTrack", "integration", nextX(), rowY, {

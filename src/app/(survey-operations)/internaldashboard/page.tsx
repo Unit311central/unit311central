@@ -16,7 +16,8 @@ import {
 export default async function InternalDashboardPage() {
   const requestHeaders = await headers();
   const host = getRequestHost({ headers: requestHeaders });
-  const basePath = resolveInternalOperationsBasePath(host);
+  const pathname = requestHeaders.get("x-unit311-pathname") ?? "";
+  const basePath = resolveInternalOperationsBasePath(host, pathname);
   const workspaceSlug =
     parseClientPlatformSubdomainSafe(host) ?? (isDemoDomainHost(host) ? DEMO_WORKSPACE_SLUG : "");
   const workspace = await getCurrentWorkspace().catch(() => null);

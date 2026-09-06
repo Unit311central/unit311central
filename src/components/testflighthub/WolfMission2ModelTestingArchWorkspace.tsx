@@ -14,20 +14,21 @@ import type {
   ModelTestingEvidenceImage,
   ModelTestingOutcome,
   WolfBenchmarkVideoRecord,
-  WolfModelTestingArchPayload,
+  WolfMission2ModelTestingArchPayload,
   WolfModelTestingRecord,
-} from "@/lib/wolf/wolf-model-testing-arch-types";
+} from "@/lib/wolf/wolf-mission2-model-testing-arch-types";
 import { cn } from "@/lib/utils";
 
-const MISSION_1_ARCHITECTURE_TITLE = "Mission 1 — Animal Detection & Counting";
-const MISSION_1_MODEL_SUMMARY_TITLE =
-  "Mission 1 — Animal Detection & Counting · Living Model Testing Summary";
+const MISSION_2_ARCHITECTURE_TITLE = "Mission 2 — Animal Injury / Welfare";
+const MISSION_2_MODEL_SUMMARY_TITLE =
+  "Mission 2 — Animal Injury / Welfare · Living Model Testing Summary";
 
-const API_PATH = "/api/information-repository/model-testing-arch";
+const API_PATH = "/api/information-repository/mission-2-model-testing-arch";
 
 const OUTCOME_STYLES: Record<ModelTestingOutcome, string> = {
   ACCEPTED: "border-emerald-400/40 bg-emerald-500/15 text-emerald-100",
   REJECTED: "border-red-400/40 bg-red-500/15 text-red-100",
+  FAILED_TO_EXECUTE: "border-orange-400/40 bg-orange-500/15 text-orange-100",
   TESTED: "border-sky-400/40 bg-sky-500/15 text-sky-100",
   PENDING: "border-amber-400/40 bg-amber-500/15 text-amber-100",
   LICENCE_REVIEW: "border-violet-400/40 bg-violet-500/15 text-violet-100",
@@ -299,8 +300,8 @@ function VideoDetailPanel({
   );
 }
 
-export default function WolfModelTestingArchWorkspace() {
-  const [payload, setPayload] = useState<WolfModelTestingArchPayload | null>(null);
+export default function WolfMission2ModelTestingArchWorkspace() {
+  const [payload, setPayload] = useState<WolfMission2ModelTestingArchPayload | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedModelId, setSelectedModelId] = useState<string | null>(null);
@@ -311,14 +312,14 @@ export default function WolfModelTestingArchWorkspace() {
     setError(null);
     try {
       const response = await fetch(API_PATH, { cache: "no-store" });
-      const data = await readApiJson<WolfModelTestingArchPayload & { error?: string }>(response);
+      const data = await readApiJson<WolfMission2ModelTestingArchPayload & { error?: string }>(response);
       if (!response.ok) {
-        throw new Error(data.error ?? "Failed to load MODEL TESTING ARCH");
+        throw new Error(data.error ?? "Failed to load MISSION 2 MODEL TESTING ARCH");
       }
       setPayload(data);
     } catch (loadError) {
       setPayload(null);
-      setError(loadError instanceof Error ? loadError.message : "Failed to load MODEL TESTING ARCH");
+      setError(loadError instanceof Error ? loadError.message : "Failed to load MISSION 2 MODEL TESTING ARCH");
     } finally {
       setLoading(false);
     }
@@ -352,7 +353,10 @@ export default function WolfModelTestingArchWorkspace() {
     saveStatus: layoutSaveStatus,
     handleLayoutOverlayChange,
     handleResetLayout,
-  } = useArchitectureDiagramLayoutPersistence("model-testing-arch", payload?.diagram ?? null);
+  } = useArchitectureDiagramLayoutPersistence(
+    "mission-2-model-testing-arch",
+    payload?.diagram ?? null,
+  );
 
   const handleSelectModel = useCallback((modelId: string) => {
     setSelectedModelId(modelId);
@@ -386,20 +390,36 @@ export default function WolfModelTestingArchWorkspace() {
       <div className="rounded-xl border border-sky-400/20 bg-sky-500/10 px-4 py-3">
         <p className="text-sm font-medium text-sky-100">{payload.mission}</p>
         <p className="mt-1 text-xs leading-relaxed text-sky-100/70">
-          Living engineering repository for Mission 1 model and video benchmark evaluation. Species
-          model slot:{" "}
-          <span className="font-semibold text-sky-50">{payload.speciesModelSlotLabel}</span>
+          Living engineering repository for Mission 2 welfare model and video benchmark evaluation. Operational stack:{" "}
+          <span className="font-semibold text-sky-50">{payload.operationalStackLabel}</span>
           {" — "}
-          {payload.speciesModelSlotDescription}
+          {payload.operationalStackDescription}
         </p>
         <p className="mt-2 text-[11px] text-sky-100/45">
           Seed v{payload.seedVersion} · refreshed {new Date(payload.generatedAt).toLocaleString()}
         </p>
       </div>
 
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div className="rounded-xl border border-emerald-400/25 bg-emerald-500/10 px-4 py-3">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-emerald-200/80">
+            A. Temporal welfare
+          </p>
+          <p className="mt-1 text-sm font-medium text-emerald-50">STATIONARY_ACROSS_OBSERVATIONS</p>
+          <p className="mt-1 text-xs text-emerald-100/70">ACCEPTED V1 candidate</p>
+        </div>
+        <div className="rounded-xl border border-amber-400/25 bg-amber-500/10 px-4 py-3">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-amber-200/80">
+            B. Visible physical abnormality
+          </p>
+          <p className="mt-1 text-sm font-medium text-amber-50">VISIBLE_ABNORMALITY_DETECTED</p>
+          <p className="mt-1 text-xs text-amber-100/70">RESEARCH ONLY / NOT YET OPERATIONAL V1</p>
+        </div>
+      </div>
+
       <section className="space-y-3">
         <div>
-          <h3 className="text-sm font-semibold text-white">{MISSION_1_ARCHITECTURE_TITLE}</h3>
+          <h3 className="text-sm font-semibold text-white">{MISSION_2_ARCHITECTURE_TITLE}</h3>
           <p className="mt-1 text-xs text-white/55">
             A living architecture diagram, not a static document.
           </p>
@@ -409,8 +429,8 @@ export default function WolfModelTestingArchWorkspace() {
           </p>
         </div>
         <ArchitectureViewer
-          title={MISSION_1_ARCHITECTURE_TITLE}
-          sectionSlug="model-testing-arch"
+          title={MISSION_2_ARCHITECTURE_TITLE}
+          sectionSlug="mission-2-model-testing-arch"
           diagramDocument={displayDiagram ?? payload.diagram}
           catalog={[]}
           hideLibrary
@@ -424,9 +444,9 @@ export default function WolfModelTestingArchWorkspace() {
 
       <section className="space-y-3">
         <div>
-          <h3 className="text-sm font-semibold text-white">{MISSION_1_MODEL_SUMMARY_TITLE}</h3>
+          <h3 className="text-sm font-semibold text-white">{MISSION_2_MODEL_SUMMARY_TITLE}</h3>
           <p className="mt-1 text-xs text-white/55">
-            Living model-testing summary for Mission 1 Animal Counting.
+            Living model-testing summary for Mission 2 Animal Injury / Welfare.
           </p>
         </div>
         <div className="overflow-hidden rounded-xl border border-white/10">

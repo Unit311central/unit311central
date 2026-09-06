@@ -534,6 +534,7 @@ export default function InternalOperationsDashboard({
     // Demo ops also use / but must NOT get Internal-only platform billing.
     // /overview embeds the same customer shell for the private invite page.
     if (resolvedBasePath === "/dashboard" || resolvedBasePath === "/overview") return false;
+    if (resolvedBasePath === "/ws/wolf-central") return false;
     if (typeof window !== "undefined") {
       if (isDemoDomainHost(window.location.hostname)) return false;
       if (isInternalDomainHost(window.location.hostname)) return true;

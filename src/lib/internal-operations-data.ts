@@ -1,4 +1,5 @@
 import type { SurveyOperationsBasePath } from "@/lib/survey-operations-mock-data";
+import { isWolfCentralPreviewPathname } from "@/lib/wolf/wolf-preview-tenancy";
 import { buildFinancesNavSection } from "@/lib/finances-nav";
 import { EXECUTIVE_ASSISTANT_VISIBLE } from "@/lib/product-surface-flags";
 import { buildProjectManagementNavSection } from "@/lib/project-management-nav";
@@ -318,8 +319,13 @@ export const INTERNAL_GRANTS_OPERATIONS_BASE_PATH: SurveyOperationsBasePath =
 
 export function resolveInternalOperationsBasePath(
   hostname?: string | null,
+  pathname?: string | null,
 ): SurveyOperationsBasePath {
   const host = (hostname ?? "").split(":")[0].trim().toLowerCase();
+  const browserPath = String(pathname ?? "").trim();
+  if (host.endsWith(".vercel.app") && isWolfCentralPreviewPathname(browserPath)) {
+    return "/ws/wolf-central";
+  }
   if (host === "internal.unit311central.com" || host === "internal.localhost") {
     return "/";
   }

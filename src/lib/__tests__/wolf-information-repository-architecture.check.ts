@@ -13,11 +13,15 @@ import {
   WOLF_IR_UNIT311_CANVAS_SLUGS,
   WOLF_IR_WOLF_CATALOG,
   WOLF_IR_BUILTIN_DIAGRAM_LABELS,
+  WOLF_AI_MODELS_SEED_VERSION,
   createPailexInfrastructureDiagram,
+  createWolfAiModelsDiagram,
+  createWolfIntelligenceDiagram,
   createWolfArchitectureDiagram,
   createWolfIrCustomDiagramSlug,
   isWolfIrCustomDiagramSlug,
   isWolfIrManagedDiagramSlug,
+  shouldRefreshWolfIrBuiltinDiagram,
 } from "@/lib/wolf/wolf-information-repository-architecture-data";
 import {
   WOLF_IR_DEFAULT_WOLF_DIAGRAM_SLUG,
@@ -29,11 +33,13 @@ assert.equal(WOLF_INFORMATION_REPOSITORY_WORKSPACE_CONFIG.features.architectureH
 assert.equal(WOLF_INFORMATION_REPOSITORY_WORKSPACE_CONFIG.features.recordAttachments, true);
 
 assert.equal(WOLF_IR_UNIT311_CANVAS_SLUGS.length, 4);
-assert.equal(WOLF_IR_BUILTIN_DIAGRAM_SLUGS.length, 4);
+assert.equal(WOLF_IR_BUILTIN_DIAGRAM_SLUGS.length, 6);
+assert.ok(isWolfIrManagedDiagramSlug("wolf-intelligence"));
 assert.ok(isWolfIrManagedDiagramSlug("wolf-architecture"));
 assert.ok(isWolfIrManagedDiagramSlug("wolf-pailex-infrastructure"));
 assert.ok(isWolfIrManagedDiagramSlug("wolf-ai-models"));
 assert.ok(isWolfIrManagedDiagramSlug("model-testing-arch"));
+assert.ok(isWolfIrManagedDiagramSlug("mission-2-model-testing-arch"));
 assert.ok(!isWolfIrManagedDiagramSlug("platform-overview"));
 
 assert.equal(
@@ -80,6 +86,54 @@ assert.ok(pailexDiagram.nodes.some((node) => node.id === "drone"));
 assert.ok(pailexDiagram.nodes.some((node) => node.id === "runpod"));
 assert.ok(pailexDiagram.nodes.some((node) => node.id === "vercel"));
 
+const wolfAiDiagram = createWolfAiModelsDiagram();
+assert.equal(wolfAiDiagram.version, 1);
+assert.equal(wolfAiDiagram.meta?.seedVersion, WOLF_AI_MODELS_SEED_VERSION);
+assert.equal(wolfAiDiagram.meta?.liveRefresh, true);
+assert.ok(wolfAiDiagram.nodes.length >= 20);
+assert.ok(wolfAiDiagram.edges.length >= 15);
+assert.ok(wolfAiDiagram.nodes.some((node) => node.id === "ffmpeg"));
+assert.ok(wolfAiDiagram.nodes.some((node) => node.id === "runpod"));
+assert.ok(wolfAiDiagram.nodes.some((node) => node.id === "supabase"));
+assert.ok(wolfAiDiagram.nodes.some((node) => node.id === "unit311-central"));
+assert.ok(wolfAiDiagram.nodes.some((node) => node.id === "wolf-workspace"));
+assert.ok(wolfAiDiagram.nodes.some((node) => node.id === "raw-video-archive"));
+assert.ok(wolfAiDiagram.nodes.some((node) => node.id === "mission-1"));
+assert.ok(wolfAiDiagram.nodes.some((node) => node.id === "mission-6"));
+const ffmpegNode = wolfAiDiagram.nodes.find((node) => node.id === "ffmpeg");
+assert.ok(
+  String(ffmpegNode?.data?.description ?? "").includes("does NOT perform telemetry"),
+  "FFmpeg must not perform telemetry synchronisation",
+);
+const supabaseNode = wolfAiDiagram.nodes.find((node) => node.id === "supabase");
+assert.ok(
+  String(supabaseNode?.data?.description ?? "").includes("references"),
+  "Supabase stores references to archived raw video",
+);
+assert.ok(
+  shouldRefreshWolfIrBuiltinDiagram("wolf-ai-models", {
+    version: 1,
+    meta: { placeholder: true, generator: "wolf-information-repository-placeholder" },
+    nodes: [],
+    edges: [],
+  }),
+);
+assert.ok(
+  !shouldRefreshWolfIrBuiltinDiagram("wolf-ai-models", {
+    version: 1,
+    meta: { seedVersion: WOLF_AI_MODELS_SEED_VERSION, generator: "wolf-information-repository" },
+    nodes: [],
+    edges: [],
+  }),
+);
+
+const wolfIntelligenceDiagram = createWolfIntelligenceDiagram();
+assert.equal(wolfIntelligenceDiagram.version, 1);
+assert.ok(wolfIntelligenceDiagram.nodes.some((node) => node.id === "wolf-intelligence-core"));
+assert.ok(wolfIntelligenceDiagram.nodes.some((node) => node.id === "operator-review"));
+assert.ok(wolfIntelligenceDiagram.nodes.some((node) => node.id === "unit311-central"));
+assert.ok(wolfIntelligenceDiagram.edges.length >= 8);
+
 const apiRoute = readFileSync(
   join(process.cwd(), "src/app/api/information-repository/architecture-diagrams/route.ts"),
   "utf8",
@@ -93,18 +147,25 @@ const workspace = readFileSync(
   "utf8",
 );
 assert.ok(workspace.includes("WolfModelTestingArchWorkspace"));
+assert.ok(workspace.includes("WolfMission2ModelTestingArchWorkspace"));
 assert.ok(workspace.includes("WOLF_IR_DEFAULT_WOLF_DIAGRAM_SLUG"));
 assert.ok(workspace.includes("overflow-x-auto"));
 assert.ok(workspace.includes("isModelTestingArchSlug"));
 const modelTestingArchRender = workspace.indexOf(
-  "topScope === \"wolf\" && isModelTestingArchSlug(activeSlug)",
+  "wolfNavArea === \"model-testing\"",
 );
 const errorFallbackRender = workspace.indexOf(") : error ? (");
 assert.ok(
   modelTestingArchRender !== -1 && errorFallbackRender !== -1 && modelTestingArchRender < errorFallbackRender,
-  "MODEL TESTING ARCH workspace must render before the error fallback branch",
+  "Model testing mission workspace must render before the error fallback branch",
 );
+assert.ok(workspace.includes("WolfMission2ModelTestingArchWorkspace"));
+assert.ok(workspace.includes("WOLF_MISSION2_MODEL_TESTING_ARCH_CATEGORY_ID"));
 assert.ok(workspace.includes("if (scope === \"wolf\" && isModelTestingArchSlug(sectionSlug))"));
+assert.ok(workspace.includes("WOLF_MODEL_TESTING_ARCH_AREA_LABEL"));
+assert.ok(workspace.includes("WOLF_MODEL_TESTING_MISSIONS"));
+assert.ok(workspace.includes("filterWolfGeneralDiagramTabs"));
+assert.ok(workspace.includes('aria-label="Model testing missions"'));
 
 const interfaceWorkspace = readFileSync(
   join(process.cwd(), "src/components/testflighthub/InterfaceWorxInformationRepositoryWorkspace.tsx"),

@@ -29,7 +29,7 @@ import {
 assert.equal(WOLF_MODEL_TESTING_ARCH_CATEGORY_ID, "model-testing-arch");
 assert.ok(isWolfIrBuiltinDiagramSlug(WOLF_MODEL_TESTING_ARCH_CATEGORY_ID));
 assert.ok(isWolfIrManagedDiagramSlug(WOLF_MODEL_TESTING_ARCH_CATEGORY_ID));
-assert.equal(WOLF_IR_BUILTIN_DIAGRAM_SLUGS.length, 4);
+assert.equal(WOLF_IR_BUILTIN_DIAGRAM_SLUGS.length, 6);
 assert.equal(
   WOLF_IR_BUILTIN_DIAGRAM_LABELS[WOLF_MODEL_TESTING_ARCH_CATEGORY_ID],
   "MODEL TESTING ARCH",
@@ -45,7 +45,7 @@ const wolfProfile = resolveInformationRepositoryProfile("wolf-central");
 assert.equal(wolfProfile.builtinCategories.length, 0);
 
 const payload = buildWolfModelTestingArchPayload();
-assert.equal(payload.models.length, 7);
+assert.equal(payload.models.length, 10);
 assert.equal(payload.videos.length, 9);
 assert.ok(payload.diagram.nodes.length >= 14);
 
@@ -61,6 +61,14 @@ assert.ok(bytetrack);
 assert.equal(bytetrack?.outcome, "PENDING");
 assert.ok(!bytetrack?.modelFunction.toLowerCase().includes("species"));
 
+const bioclip2 = payload.models.find((model) => model.id === "bioclip2");
+assert.ok(bioclip2);
+assert.equal(bioclip2?.outcome, "TESTED");
+
+const biotrove = payload.models.find((model) => model.id === "biotrove-clip-b");
+assert.ok(biotrove);
+assert.equal(biotrove?.outcome, "REJECTED");
+
 const speciesnet = payload.models.find((model) => model.id === "speciesnet");
 assert.ok(speciesnet);
 assert.equal(speciesnet?.outcome, "REJECTED");
@@ -70,8 +78,16 @@ assert.ok(namib);
 assert.equal(namib?.outcome, "LICENCE_REVIEW");
 
 for (const video of payload.videos) {
-  assert.equal(video.detectionCount, "Not yet benchmarked");
-  assert.equal(video.uniqueAnimalCount, "Not yet benchmarked");
+  if (video.slug === "animals" || video.slug.startsWith("kabr_")) {
+    assert.notEqual(video.detectionCount, "Mission 1 GT benchmark");
+  } else if (
+    video.slug === "wildlive_mavic3_a" ||
+    video.slug === "wildlive_mavic3_b" ||
+    video.slug === "dazzle_mavic_zebra" ||
+    video.slug === "dazzle_anafi_zebra"
+  ) {
+    assert.equal(video.detectionCount, "Mission 1 GT benchmark");
+  }
 }
 
 const diagram = createMission1ModelTestingArchitectureDiagram();
@@ -82,13 +98,15 @@ assert.ok(diagram.nodes.some((node) => node.id === "species-model"));
 
 const speciesNode = diagram.nodes.find((node) => node.id === "species-model");
 assert.ok(speciesNode);
-assert.match(String(speciesNode?.data.label), /REPLACEMENT SPECIES MODEL/);
-assert.doesNotMatch(String(speciesNode?.data.label), /SpeciesNet/i);
+assert.match(String(speciesNode?.data.label), /BioCLIP/i);
+assert.match(String(speciesNode?.data.label), /replaceable/i);
+assert.doesNotMatch(String(speciesNode?.data.description), /No accepted species model yet/i);
+assert.doesNotMatch(String(speciesNode?.data.description), /No accepted species-classification model yet/i);
 
 const seeded = resolveWolfIrSeedDiagram(WOLF_MODEL_TESTING_ARCH_CATEGORY_ID);
 assert.equal(seeded.meta?.generator, "wolf-model-testing-arch");
 
-assert.equal(WOLF_MODEL_TESTING_ARCH_MODELS.length, 7);
+assert.equal(WOLF_MODEL_TESTING_ARCH_MODELS.length, 10);
 assert.equal(WOLF_MODEL_TESTING_ARCH_VIDEOS.length, 9);
 assert.deepEqual(
   WOLF_MODEL_TESTING_ARCH_VIDEOS.map((video) => video.slug).sort(),
@@ -128,10 +146,13 @@ const modelTestingWorkspaceSource = readFileSync(
   join(process.cwd(), "src/components/testflighthub/WolfModelTestingArchWorkspace.tsx"),
   "utf8",
 );
-assert.ok(modelTestingWorkspaceSource.includes("Mission 1 Model Testing Architecture"));
+assert.ok(modelTestingWorkspaceSource.includes("Mission 1 — Animal Detection & Counting"));
 assert.ok(
-  modelTestingWorkspaceSource.includes("Mission 1 - Animal Counting - Living Model Testing Summary"),
+  modelTestingWorkspaceSource.includes(
+    "Mission 1 — Animal Detection & Counting · Living Model Testing Summary",
+  ),
 );
+assert.ok(modelTestingWorkspaceSource.includes("layoutOverlayMode"));
 assert.ok(modelTestingWorkspaceSource.includes("living architecture diagram, not a static document"));
 
 console.log("wolf-model-testing-arch.check.ts — all assertions passed.");

@@ -22,12 +22,31 @@ import { isTalantonImpactSlug } from "@/lib/talanton-surface";
 import { loadWorkspaceLoginBrandingBySlug } from "@/lib/platform-workspaces/workspace-login-page-service";
 import { findWorkspaceBySlug } from "@/lib/workspace-host";
 import { isPailexSlug, canonicalizePailexSlug } from "@/lib/pailex/pailex-surface";
-import { canonicalizeWolfCentralSlug, isWolfCentralSlug } from "@/lib/wolf/wolf-surface";
+import { canonicalizeWolfCentralSlug, isWolfCentralSlug, WOLF_CENTRAL_SLUG } from "@/lib/wolf/wolf-surface";
 import { isInterfaceWorxSlug } from "@/lib/interface-worx-surface";
 
 function workspaceSlugFromReturnTo(returnTo: string | null | undefined): string | null {
   const target = parseLoginReturnTo(returnTo);
-  if (!target || target.kind !== "workspace") return null;
+  if (!target || target.kind !== "workspace") {
+    if (target?.kind === "preview_wolf") {
+      return WOLF_CENTRAL_SLUG;
+    }
+    if (returnTo?.trim()) {
+      try {
+        const url = new URL(returnTo.trim());
+        if (process.env.VERCEL_ENV === "preview" && url.host.endsWith(".vercel.app")) {
+          const { isWolfCentralPreviewPathname } =
+            require("@/lib/wolf/wolf-preview-tenancy") as typeof import("@/lib/wolf/wolf-preview-tenancy");
+          if (isWolfCentralPreviewPathname(url.pathname)) {
+            return WOLF_CENTRAL_SLUG;
+          }
+        }
+      } catch {
+        /* ignore malformed return_to */
+      }
+    }
+    return null;
+  }
   try {
     return parseClientPlatformSubdomainSafe(new URL(target.origin).host);
   } catch {

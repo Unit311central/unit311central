@@ -76,6 +76,11 @@ import {
   type ArchitectureNodeKind,
   type SystemArchitectureDiagram,
 } from "@/lib/architecture-diagram-data";
+import {
+  extractLayoutOverlay,
+  type ArchitectureDiagramLayoutOverlay,
+} from "@/lib/architecture-diagram-layout";
+import type { ArchitectureDiagramLayoutSaveStatus } from "@/hooks/useArchitectureDiagramLayoutPersistence";
 import { cn } from "@/lib/utils";
 
 type ArchitectureRfNode = Node<ArchitectureNodeData, "architecture" | "group">;
@@ -338,10 +343,17 @@ type ArchitectureViewerInnerProps = {
   className?: string;
   height?: number | string;
   onDocumentChange?: (doc: ArchitectureDiagramDocument) => void;
+  onLayoutOverlayChange?: (overlay: ArchitectureDiagramLayoutOverlay) => void;
+  onResetLayout?: () => void;
+  layoutSaveStatus?: ArchitectureDiagramLayoutSaveStatus;
   onNodeDocNavigate?: (sectionSlug: string) => void;
   onSelectDiagram?: (sectionSlug: string) => void;
   knownDocSections?: string[];
   readOnly?: boolean;
+  /** When true, only layout overlay is persisted — canonical architecture data is not rewritten. */
+  layoutOverlayMode?: boolean;
+  /** Hide the architecture library sidebar (e.g. model-testing mission diagrams). */
+  hideLibrary?: boolean;
 };
 
 function ArchitectureViewerInner({
@@ -353,10 +365,15 @@ function ArchitectureViewerInner({
   className,
   height = 560,
   onDocumentChange,
+  onLayoutOverlayChange,
+  onResetLayout,
+  layoutSaveStatus = "idle",
   onNodeDocNavigate,
   onSelectDiagram,
   knownDocSections = [],
   readOnly = false,
+  layoutOverlayMode = false,
+  hideLibrary = false,
 }: ArchitectureViewerInnerProps) {
   const wrapperRef = useRef<HTMLDivElement | null>(null);
   const { fitView, getViewport, setViewport, setCenter, getNode } = useReactFlow();
@@ -366,8 +383,10 @@ function ArchitectureViewerInner({
   const [exporting, setExporting] = useState<"png" | "svg" | null>(null);
   const [search, setSearch] = useState("");
   const [fullscreen, setFullscreen] = useState(false);
-  const [navOpen, setNavOpen] = useState(true);
+  const [navOpen, setNavOpen] = useState(!hideLibrary);
   const [notice, setNotice] = useState<string | null>(null);
+  const persistViewportTimerRef = useRef<number | null>(null);
+  const layoutEditingEnabled = layoutOverlayMode || (!readOnly && Boolean(onDocumentChange));
 
   useEffect(() => {
     const next = documentToFlow(diagramDocument);
@@ -387,6 +406,14 @@ function ArchitectureViewerInner({
   }, [notice]);
 
   useEffect(() => {
+    return () => {
+      if (persistViewportTimerRef.current != null) {
+        window.clearTimeout(persistViewportTimerRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape" && fullscreen) setFullscreen(false);
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "f") {
@@ -399,12 +426,43 @@ function ArchitectureViewerInner({
 
   const persist = useCallback(
     (nextNodes: ArchitectureRfNode[], nextEdges: Edge[]) => {
+      if (layoutOverlayMode) {
+        if (!onLayoutOverlayChange) return;
+        onLayoutOverlayChange(
+          extractLayoutOverlay(
+            flowToDocument(nextNodes, nextEdges, getViewport(), diagramDocument.meta),
+            getViewport(),
+          ),
+        );
+        return;
+      }
       if (!onDocumentChange || readOnly) return;
       onDocumentChange(
         flowToDocument(nextNodes, nextEdges, getViewport(), diagramDocument.meta),
       );
     },
-    [diagramDocument.meta, getViewport, onDocumentChange, readOnly],
+    [
+      diagramDocument.meta,
+      getViewport,
+      layoutOverlayMode,
+      onDocumentChange,
+      onLayoutOverlayChange,
+      readOnly,
+    ],
+  );
+
+  const scheduleViewportPersist = useCallback(
+    (nextNodes: ArchitectureRfNode[], nextEdges: Edge[]) => {
+      if (!layoutEditingEnabled) return;
+      if (persistViewportTimerRef.current != null) {
+        window.clearTimeout(persistViewportTimerRef.current);
+      }
+      persistViewportTimerRef.current = window.setTimeout(() => {
+        persist(nextNodes, nextEdges);
+        persistViewportTimerRef.current = null;
+      }, 450);
+    },
+    [layoutEditingEnabled, persist],
   );
 
   const toggleGroupCollapse = useCallback(
@@ -546,7 +604,7 @@ function ArchitectureViewerInner({
       )}
       style={shellStyle}
     >
-      {navOpen ? (
+      {!hideLibrary && navOpen ? (
         <aside className="flex w-56 shrink-0 flex-col border-r border-white/10 bg-[#07111f]/95 backdrop-blur">
           <div className="border-b border-white/10 px-3 py-3">
             <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/45">
@@ -587,9 +645,12 @@ function ArchitectureViewerInner({
           edges={edges}
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
-          onNodeDragStop={() => persist(nodes, edges)}
+          onNodeDragStop={(_event, _node, draggedNodes) => persist(draggedNodes, edges)}
+          onMoveEnd={() => scheduleViewportPersist(nodes, edges)}
           onNodeClick={onNodeClick}
           nodeTypes={nodeTypes}
+          nodesDraggable={layoutEditingEnabled}
+          nodesConnectable={false}
           fitView
           minZoom={0.2}
           maxZoom={2.2}
@@ -600,7 +661,7 @@ function ArchitectureViewerInner({
         >
           <Background gap={18} size={1} color="rgba(148,163,184,0.18)" />
           <Controls
-            showInteractive={!readOnly}
+            showInteractive={layoutEditingEnabled}
             className="!overflow-hidden !rounded-xl !border !border-white/15 !bg-[#0b1524]/95 !shadow-lg [&>button]:!border-white/10 [&>button]:!bg-transparent [&>button]:!text-white/80"
           />
           <MiniMap
@@ -651,14 +712,41 @@ function ArchitectureViewerInner({
           </Panel>
 
           <Panel position="top-right" className="m-3 flex flex-wrap justify-end gap-2">
-            <button
-              type="button"
-              onClick={() => setNavOpen((value) => !value)}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-white/15 bg-[#0b1524]/90 px-2.5 py-1.5 text-xs font-medium text-white/85 transition hover:bg-white/10"
-            >
-              {navOpen ? <ChevronRight className="h-3.5 w-3.5" /> : <Expand className="h-3.5 w-3.5" />}
-              Library
-            </button>
+            {!hideLibrary ? (
+              <button
+                type="button"
+                onClick={() => setNavOpen((value) => !value)}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-white/15 bg-[#0b1524]/90 px-2.5 py-1.5 text-xs font-medium text-white/85 transition hover:bg-white/10"
+              >
+                {navOpen ? <ChevronRight className="h-3.5 w-3.5" /> : <Expand className="h-3.5 w-3.5" />}
+                Library
+              </button>
+            ) : null}
+            {layoutOverlayMode && onResetLayout ? (
+              <button
+                type="button"
+                onClick={onResetLayout}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-white/15 bg-[#0b1524]/90 px-2.5 py-1.5 text-xs font-medium text-white/85 transition hover:bg-white/10"
+              >
+                Reset layout
+              </button>
+            ) : null}
+            {layoutOverlayMode ? (
+              <span
+                className={cn(
+                  "inline-flex items-center rounded-lg border px-2.5 py-1.5 text-xs font-medium",
+                  layoutSaveStatus === "saving" && "border-amber-400/30 bg-amber-500/10 text-amber-100",
+                  layoutSaveStatus === "saved" && "border-emerald-400/30 bg-emerald-500/10 text-emerald-100",
+                  layoutSaveStatus === "idle" && "border-white/10 bg-white/[0.03] text-white/45",
+                )}
+              >
+                {layoutSaveStatus === "saving"
+                  ? "Saving…"
+                  : layoutSaveStatus === "saved"
+                    ? "Saved"
+                    : "Layout auto-save"}
+              </span>
+            ) : null}
             <button
               type="button"
               onClick={() => fitView({ padding: 0.18, duration: 280 })}
