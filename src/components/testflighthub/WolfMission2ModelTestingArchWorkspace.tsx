@@ -26,6 +26,7 @@ const API_PATH = "/api/information-repository/mission-2-model-testing-arch";
 const OUTCOME_STYLES: Record<ModelTestingOutcome, string> = {
   ACCEPTED: "border-emerald-400/40 bg-emerald-500/15 text-emerald-100",
   REJECTED: "border-red-400/40 bg-red-500/15 text-red-100",
+  FAILED_TO_EXECUTE: "border-orange-400/40 bg-orange-500/15 text-orange-100",
   TESTED: "border-sky-400/40 bg-sky-500/15 text-sky-100",
   PENDING: "border-amber-400/40 bg-amber-500/15 text-amber-100",
   LICENCE_REVIEW: "border-violet-400/40 bg-violet-500/15 text-violet-100",

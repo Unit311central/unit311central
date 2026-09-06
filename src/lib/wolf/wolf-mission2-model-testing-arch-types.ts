@@ -6,6 +6,7 @@ export type ModelTestingOutcome =
   | "TESTED"
   | "ACCEPTED"
   | "REJECTED"
+  | "FAILED_TO_EXECUTE"
   | "PENDING"
   | "LICENCE_REVIEW"
   | "NOT_YET_TESTED";

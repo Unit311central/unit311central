@@ -106,6 +106,8 @@ assert.ok(
   modelTestingArchRender !== -1 && errorFallbackRender !== -1 && modelTestingArchRender < errorFallbackRender,
   "MODEL TESTING ARCH workspace must render before the error fallback branch",
 );
+assert.ok(workspace.includes("WolfMission2ModelTestingArchWorkspace"));
+assert.ok(workspace.includes("WOLF_MISSION2_MODEL_TESTING_ARCH_CATEGORY_ID"));
 assert.ok(workspace.includes("if (scope === \"wolf\" && isModelTestingArchSlug(sectionSlug))"));
 
 const interfaceWorkspace = readFileSync(

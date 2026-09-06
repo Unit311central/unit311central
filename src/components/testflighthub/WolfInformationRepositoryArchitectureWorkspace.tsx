@@ -555,10 +555,12 @@ export default function WolfInformationRepositoryArchitectureWorkspace() {
           </div>
 
           <div className="flex min-h-[28rem] min-w-0 flex-1 flex-col rounded-2xl border border-white/10 bg-[#0b1524]/50 p-3 sm:p-4">
-            {topScope === "wolf" && activeSlug === WOLF_MODEL_TESTING_ARCH_CATEGORY_ID ? (
-              <WolfModelTestingArchWorkspace />
-            ) : topScope === "wolf" && activeSlug === WOLF_MISSION2_MODEL_TESTING_ARCH_CATEGORY_ID ? (
-              <WolfMission2ModelTestingArchWorkspace />
+            {topScope === "wolf" && isModelTestingArchSlug(activeSlug) ? (
+              activeSlug === WOLF_MISSION2_MODEL_TESTING_ARCH_CATEGORY_ID ? (
+                <WolfMission2ModelTestingArchWorkspace />
+              ) : (
+                <WolfModelTestingArchWorkspace />
+              )
             ) : error ? (
               <div className="flex flex-1 items-center justify-center rounded-xl border border-rose-400/25 bg-rose-500/10 px-6 text-center text-sm text-rose-100">
                 {error}
