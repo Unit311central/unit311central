@@ -164,7 +164,9 @@ assert.ok(workspace.includes("WOLF_MISSION2_MODEL_TESTING_ARCH_CATEGORY_ID"));
 assert.ok(workspace.includes("if (scope === \"wolf\" && isModelTestingArchSlug(sectionSlug))"));
 assert.ok(workspace.includes("WOLF_MODEL_TESTING_ARCH_AREA_LABEL"));
 assert.ok(workspace.includes("WOLF_MODEL_TESTING_MISSIONS"));
-assert.ok(workspace.includes("filterWolfGeneralDiagramTabs"));
+assert.ok(workspace.includes("filterWolfPrimaryDiagramTabs"));
+assert.ok(workspace.includes("filterWolfSecondaryDiagramTabs"));
+assert.ok(workspace.includes("WOLF_IR_WOLF_CATALOG"));
 assert.ok(workspace.includes('aria-label="Model testing missions"'));
 
 const interfaceWorkspace = readFileSync(

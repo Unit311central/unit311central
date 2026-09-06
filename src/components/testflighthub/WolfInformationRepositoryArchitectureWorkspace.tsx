@@ -21,6 +21,7 @@ import {
   WOLF_IR_UNIT311_CANVAS_SLUGS,
   WOLF_IR_UNIT311_TREE_TABS,
   WOLF_IR_TREE_TITLES,
+  WOLF_IR_WOLF_CATALOG,
   isWolfIrCustomDiagramSlug,
   isWolfIrManagedDiagramSlug,
 } from "@/lib/wolf/wolf-information-repository-architecture-data";
@@ -32,8 +33,11 @@ import { WOLF_MISSION2_MODEL_TESTING_ARCH_CATEGORY_ID } from "@/lib/wolf/wolf-mi
 import {
   WOLF_MODEL_TESTING_ARCH_AREA_LABEL,
   WOLF_MODEL_TESTING_MISSIONS,
-  filterWolfGeneralDiagramTabs,
+  filterWolfPrimaryDiagramTabs,
+  filterWolfSecondaryDiagramTabs,
   isWolfModelTestingMissionSlug,
+  isWolfPrimaryArchitectureDiagramSlug,
+  resolveWolfDiagramNavLabel,
 } from "@/lib/wolf/wolf-model-testing-nav";
 import WolfModelTestingArchWorkspace from "@/components/testflighthub/WolfModelTestingArchWorkspace";
 import WolfMission2ModelTestingArchWorkspace from "@/components/testflighthub/WolfMission2ModelTestingArchWorkspace";
@@ -42,7 +46,7 @@ import { cn } from "@/lib/utils";
 const API_BASE = "/api/information-repository/architecture-diagrams";
 
 type TopScope = "unit311" | "wolf";
-type WolfNavArea = "general" | "model-testing";
+type WolfNavArea = "general" | "model-testing" | "primary";
 
 function isModelTestingArchSlug(slug: string | null | undefined): boolean {
   return isWolfModelTestingMissionSlug(slug);
@@ -92,9 +96,12 @@ export default function WolfInformationRepositoryArchitectureWorkspace() {
 
   const wolfTabs = useMemo(() => {
     const diagramBySlug = new Map(existingDiagrams.map((item) => [item.sectionSlug, item]));
-    const catalogBySlug = new Map(diagramCatalog.map((entry) => [entry.sectionSlug, entry]));
+    const catalogBySlug = new Map(
+      [...WOLF_IR_WOLF_CATALOG, ...diagramCatalog].map((entry) => [entry.sectionSlug, entry]),
+    );
 
     const slugSet = new Set<string>([
+      ...WOLF_IR_WOLF_CATALOG.map((entry) => entry.sectionSlug),
       ...diagramCatalog.map((entry) => entry.sectionSlug),
       ...existingDiagrams.map((item) => item.sectionSlug),
     ]);
@@ -104,9 +111,10 @@ export default function WolfInformationRepositoryArchitectureWorkspace() {
       .map((slug) => {
         const catalog = catalogBySlug.get(slug);
         const diagram = diagramBySlug.get(slug);
+        const fallbackTitle = diagram?.title ?? catalog?.title ?? slug;
         return {
           slug,
-          title: diagram?.title ?? catalog?.title ?? slug,
+          title: resolveWolfDiagramNavLabel(slug, fallbackTitle),
           navOrder: catalog?.navOrder ?? 9999,
           isCustom: isWolfIrCustomDiagramSlug(slug),
         };
@@ -117,8 +125,13 @@ export default function WolfInformationRepositoryArchitectureWorkspace() {
       });
   }, [diagramCatalog, existingDiagrams]);
 
-  const wolfGeneralTabs = useMemo(
-    () => filterWolfGeneralDiagramTabs(wolfTabs),
+  const wolfPrimaryTabs = useMemo(
+    () => filterWolfPrimaryDiagramTabs(wolfTabs),
+    [wolfTabs],
+  );
+
+  const wolfSecondaryTabs = useMemo(
+    () => filterWolfSecondaryDiagramTabs(wolfTabs),
     [wolfTabs],
   );
 
@@ -139,7 +152,11 @@ export default function WolfInformationRepositoryArchitectureWorkspace() {
         updatedAt: item.updatedAt,
       })),
     );
-    if (listData.catalog?.length) setDiagramCatalog(listData.catalog);
+    if (listData.catalog?.length) {
+      setDiagramCatalog(listData.catalog);
+    } else if (scope === "wolf") {
+      setDiagramCatalog([...WOLF_IR_WOLF_CATALOG]);
+    }
   }, []);
 
   const loadDiagram = useCallback(async (scope: TopScope, sectionSlug: string) => {
@@ -251,6 +268,10 @@ export default function WolfInformationRepositoryArchitectureWorkspace() {
     if (topScope !== "wolf") return;
     if (isWolfModelTestingMissionSlug(activeSlug)) {
       setWolfNavArea("model-testing");
+      return;
+    }
+    if (isWolfPrimaryArchitectureDiagramSlug(activeSlug)) {
+      setWolfNavArea("primary");
       return;
     }
     if (isWolfIrManagedDiagramSlug(activeSlug)) {
@@ -423,7 +444,10 @@ export default function WolfInformationRepositoryArchitectureWorkspace() {
             <div className="min-w-0 flex-1 overflow-x-auto">
               <nav
                 aria-label={topScope === "unit311" ? "Unit311 diagrams" : "WOLF diagrams"}
-                className="flex w-max min-w-full flex-nowrap gap-1.5 pb-1"
+                className={cn(
+                  "flex w-max min-w-full gap-1.5 pb-1",
+                  topScope === "wolf" ? "flex-wrap" : "flex-nowrap",
+                )}
               >
               {topScope === "unit311"
                 ? unit311Tabs.map((item) => {
@@ -464,6 +488,36 @@ export default function WolfInformationRepositoryArchitectureWorkspace() {
                   })
                 : (
                   <>
+                    {wolfPrimaryTabs
+                      .filter((item) => item.slug === "wolf-ai-models")
+                      .map((item) => {
+                        const isActive = wolfNavArea === "primary" && activeSlug === item.slug;
+                        return (
+                          <button
+                            key={item.slug}
+                            type="button"
+                            onClick={() => {
+                              setError(null);
+                              setWolfNavArea("primary");
+                              setActiveSlug(item.slug);
+                            }}
+                            className={cn(
+                              "inline-flex shrink-0 items-center gap-2 rounded-xl border px-3 py-2 text-left text-xs font-semibold transition-colors",
+                              isActive
+                                ? "border-amber-400/40 bg-amber-500/15 text-amber-100"
+                                : "border-white/10 bg-white/[0.03] text-white/60 hover:bg-white/[0.06] hover:text-white/80",
+                            )}
+                          >
+                            <Network
+                              className={cn(
+                                "h-3.5 w-3.5",
+                                isActive ? "text-amber-200" : "text-white/35",
+                              )}
+                            />
+                            {item.title}
+                          </button>
+                        );
+                      })}
                     <button
                       type="button"
                       onClick={() => {
@@ -488,7 +542,37 @@ export default function WolfInformationRepositoryArchitectureWorkspace() {
                       />
                       {WOLF_MODEL_TESTING_ARCH_AREA_LABEL}
                     </button>
-                    {wolfGeneralTabs.map((item) => {
+                    {wolfPrimaryTabs
+                      .filter((item) => item.slug === "wolf-intelligence")
+                      .map((item) => {
+                        const isActive = wolfNavArea === "primary" && activeSlug === item.slug;
+                        return (
+                          <button
+                            key={item.slug}
+                            type="button"
+                            onClick={() => {
+                              setError(null);
+                              setWolfNavArea("primary");
+                              setActiveSlug(item.slug);
+                            }}
+                            className={cn(
+                              "inline-flex shrink-0 items-center gap-2 rounded-xl border px-3 py-2 text-left text-xs font-semibold transition-colors",
+                              isActive
+                                ? "border-amber-400/40 bg-amber-500/15 text-amber-100"
+                                : "border-white/10 bg-white/[0.03] text-white/60 hover:bg-white/[0.06] hover:text-white/80",
+                            )}
+                          >
+                            <Network
+                              className={cn(
+                                "h-3.5 w-3.5",
+                                isActive ? "text-amber-200" : "text-white/35",
+                              )}
+                            />
+                            {item.title}
+                          </button>
+                        );
+                      })}
+                    {wolfSecondaryTabs.map((item) => {
                     const isActive = wolfNavArea === "general" && activeSlug === item.slug;
                     const isRenaming = renamingSlug === item.slug;
                     return (

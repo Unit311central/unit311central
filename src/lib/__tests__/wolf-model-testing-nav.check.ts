@@ -10,10 +10,15 @@ import { join } from "node:path";
 import {
   WOLF_MODEL_TESTING_ARCH_AREA_LABEL,
   WOLF_MODEL_TESTING_MISSIONS,
+  WOLF_IR_PRIMARY_DIAGRAM_LABELS,
   filterWolfGeneralDiagramTabs,
+  filterWolfPrimaryDiagramTabs,
+  filterWolfSecondaryDiagramTabs,
   getWolfModelTestingMissionSlugs,
   isWolfGeneralArchitectureDiagramSlug,
   isWolfModelTestingMissionSlug,
+  isWolfPrimaryArchitectureDiagramSlug,
+  resolveWolfDiagramNavLabel,
 } from "@/lib/wolf/wolf-model-testing-nav";
 import { WOLF_MODEL_TESTING_ARCH_CATEGORY_ID } from "@/lib/wolf/wolf-model-testing-arch-types";
 import { WOLF_MISSION2_MODEL_TESTING_ARCH_CATEGORY_ID } from "@/lib/wolf/wolf-mission2-model-testing-arch-types";
@@ -54,12 +59,36 @@ const mixedTabs = [
   { slug: "supabase-stack", title: "Supabase" },
   { slug: "codebase-stack", title: "Codebase" },
   { slug: "wolf-architecture", title: "WOLF ARCHITECTURE" },
+  { slug: "wolf-ai-models", title: "WOLF AI MODELS" },
+  { slug: "wolf-intelligence", title: "WOLF INTELLIGENCE" },
 ];
 
 const generalTabs = filterWolfGeneralDiagramTabs(mixedTabs);
 assert.ok(!generalTabs.some((tab) => tab.slug === "model-testing-arch"));
 assert.ok(!generalTabs.some((tab) => tab.slug === "mission-2-model-testing-arch"));
 assert.ok(generalTabs.some((tab) => tab.slug === "wolf-architecture"));
+
+const primaryTabs = filterWolfPrimaryDiagramTabs(mixedTabs);
+assert.deepEqual(
+  primaryTabs.map((tab) => tab.slug),
+  ["wolf-ai-models", "wolf-intelligence"],
+);
+assert.equal(
+  resolveWolfDiagramNavLabel("wolf-ai-models", "WOLF AI MODELS"),
+  WOLF_IR_PRIMARY_DIAGRAM_LABELS["wolf-ai-models"],
+);
+assert.equal(
+  resolveWolfDiagramNavLabel("wolf-intelligence", "WOLF INTELLIGENCE"),
+  WOLF_IR_PRIMARY_DIAGRAM_LABELS["wolf-intelligence"],
+);
+assert.ok(isWolfPrimaryArchitectureDiagramSlug("wolf-ai-models"));
+assert.ok(isWolfPrimaryArchitectureDiagramSlug("wolf-intelligence"));
+assert.ok(!isWolfPrimaryArchitectureDiagramSlug("wolf-architecture"));
+
+const secondaryTabs = filterWolfSecondaryDiagramTabs(mixedTabs);
+assert.ok(secondaryTabs.some((tab) => tab.slug === "wolf-architecture"));
+assert.ok(!secondaryTabs.some((tab) => tab.slug === "wolf-ai-models"));
+assert.ok(!secondaryTabs.some((tab) => tab.slug === "wolf-intelligence"));
 
 assert.ok(!missionSlugs.includes("platform-overview" as (typeof missionSlugs)[number]));
 assert.ok(!missionSlugs.includes("vercel-stack" as (typeof missionSlugs)[number]));
@@ -76,9 +105,13 @@ const workspace = readFileSync(
 );
 assert.ok(workspace.includes("WOLF_MODEL_TESTING_ARCH_AREA_LABEL"));
 assert.ok(workspace.includes("WOLF_MODEL_TESTING_MISSIONS"));
-assert.ok(workspace.includes("filterWolfGeneralDiagramTabs"));
+assert.ok(workspace.includes("filterWolfPrimaryDiagramTabs"));
+assert.ok(workspace.includes("filterWolfSecondaryDiagramTabs"));
+assert.ok(workspace.includes("WOLF_IR_WOLF_CATALOG"));
 assert.ok(workspace.includes('aria-label="Model testing missions"'));
 assert.ok(workspace.includes("wolfNavArea === \"model-testing\""));
+assert.ok(workspace.includes("resolveWolfDiagramNavLabel"));
+assert.ok(workspace.includes("isWolfPrimaryArchitectureDiagramSlug"));
 
 const mission1Workspace = readFileSync(
   join(process.cwd(), "src/components/testflighthub/WolfModelTestingArchWorkspace.tsx"),
