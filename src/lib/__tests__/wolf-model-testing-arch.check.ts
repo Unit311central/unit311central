@@ -128,10 +128,13 @@ const modelTestingWorkspaceSource = readFileSync(
   join(process.cwd(), "src/components/testflighthub/WolfModelTestingArchWorkspace.tsx"),
   "utf8",
 );
-assert.ok(modelTestingWorkspaceSource.includes("Mission 1 Model Testing Architecture"));
+assert.ok(modelTestingWorkspaceSource.includes("Mission 1 — Animal Detection & Counting"));
 assert.ok(
-  modelTestingWorkspaceSource.includes("Mission 1 - Animal Counting - Living Model Testing Summary"),
+  modelTestingWorkspaceSource.includes(
+    "Mission 1 — Animal Detection & Counting · Living Model Testing Summary",
+  ),
 );
+assert.ok(modelTestingWorkspaceSource.includes("layoutOverlayMode"));
 assert.ok(modelTestingWorkspaceSource.includes("living architecture diagram, not a static document"));
 
 console.log("wolf-model-testing-arch.check.ts — all assertions passed.");

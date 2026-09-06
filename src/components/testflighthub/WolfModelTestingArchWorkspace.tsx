@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 
 import ArchitectureViewer from "@/components/architecture/ArchitectureViewer";
+import { useArchitectureDiagramLayoutPersistence } from "@/hooks/useArchitectureDiagramLayoutPersistence";
 import type {
   ModelTestingEvidenceImage,
   ModelTestingOutcome,
@@ -18,8 +19,9 @@ import type {
 } from "@/lib/wolf/wolf-model-testing-arch-types";
 import { cn } from "@/lib/utils";
 
-const MISSION_1_ARCHITECTURE_TITLE = "Mission 1 Model Testing Architecture";
-const MISSION_1_MODEL_SUMMARY_TITLE = "Mission 1 - Animal Counting - Living Model Testing Summary";
+const MISSION_1_ARCHITECTURE_TITLE = "Mission 1 — Animal Detection & Counting";
+const MISSION_1_MODEL_SUMMARY_TITLE =
+  "Mission 1 — Animal Detection & Counting · Living Model Testing Summary";
 
 const API_PATH = "/api/information-repository/model-testing-arch";
 
@@ -345,6 +347,13 @@ export default function WolfModelTestingArchWorkspace() {
   const selectedModel = selectedModelId ? modelsById.get(selectedModelId) ?? null : null;
   const selectedVideo = selectedVideoSlug ? videosBySlug.get(selectedVideoSlug) ?? null : null;
 
+  const {
+    displayDiagram,
+    saveStatus: layoutSaveStatus,
+    handleLayoutOverlayChange,
+    handleResetLayout,
+  } = useArchitectureDiagramLayoutPersistence("model-testing-arch", payload?.diagram ?? null);
+
   const handleSelectModel = useCallback((modelId: string) => {
     setSelectedModelId(modelId);
     setSelectedVideoSlug(null);
@@ -400,10 +409,15 @@ export default function WolfModelTestingArchWorkspace() {
           </p>
         </div>
         <ArchitectureViewer
-          title="Mission 1 — Animal Detection & Counting"
+          title={MISSION_1_ARCHITECTURE_TITLE}
           sectionSlug="model-testing-arch"
-          diagramDocument={payload.diagram}
-          readOnly
+          diagramDocument={displayDiagram ?? payload.diagram}
+          catalog={[]}
+          hideLibrary
+          layoutOverlayMode
+          layoutSaveStatus={layoutSaveStatus}
+          onLayoutOverlayChange={handleLayoutOverlayChange}
+          onResetLayout={handleResetLayout}
           height="min(56vh, 640px)"
         />
       </section>
