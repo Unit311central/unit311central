@@ -219,8 +219,8 @@ export const WOLF_MISSION2_MODEL_TESTING_ARCH_MODELS: WolfModelTestingRecord[] =
     modelLicence: "See Hugging Face model card (Ornimetrics/ornimetrics-edge)",
     checkpointLicence: "See Hugging Face model card",
     commercialUseStatus: "LICENCE_REVIEW",
-    testStatus: "REJECTED",
-    outcome: "REJECTED",
+    testStatus: "FAILED_TO_EXECUTE",
+    outcome: "FAILED_TO_EXECUTE",
     confidenceSummary: "Screen MegaDetector animal crops for visual anomaly patterns. Error: Can't load image processor for 'Ornimetrics/ornimetrics-edge'. If you were trying to load it from 'https://huggingface.co/models', make sure you don't have a local directo",
     videosTested: ["mission2-elephant-standing-red-marker-day1", "mission2-elephant-lying-red-marker-day1", "mission2-elephant-lying-red-marker-day2", "mission2-elephant-lying-day1", "mission2-elephant-lying-day2"],
     evidence: [
@@ -238,7 +238,7 @@ export const WOLF_MISSION2_MODEL_TESTING_ARCH_MODELS: WolfModelTestingRecord[] =
       {
         videoSlug: "mission2-elephant-standing-red-marker-day1",
         outcome: "REJECTED",
-        testStatus: "REJECTED",
+        testStatus: "FAILED_TO_EXECUTE",
         confidenceSummary: "Screen MegaDetector animal crops for visual anomaly patterns. Error: Can't load image processor for 'Ornimetrics/ornimetrics-edge'. If you were trying to load it from 'https://huggingface.co/models', make sure you don't have a local directo",
         detectionCount: "See benchmark JSON",
         uniqueAnimalCount: "Not applicable",
@@ -249,7 +249,7 @@ export const WOLF_MISSION2_MODEL_TESTING_ARCH_MODELS: WolfModelTestingRecord[] =
       },      {
         videoSlug: "mission2-elephant-lying-red-marker-day1",
         outcome: "REJECTED",
-        testStatus: "REJECTED",
+        testStatus: "FAILED_TO_EXECUTE",
         confidenceSummary: "Screen MegaDetector animal crops for visual anomaly patterns. Error: Can't load image processor for 'Ornimetrics/ornimetrics-edge'. If you were trying to load it from 'https://huggingface.co/models', make sure you don't have a local directo",
         detectionCount: "See benchmark JSON",
         uniqueAnimalCount: "Not applicable",
@@ -260,7 +260,7 @@ export const WOLF_MISSION2_MODEL_TESTING_ARCH_MODELS: WolfModelTestingRecord[] =
       },      {
         videoSlug: "mission2-elephant-lying-red-marker-day2",
         outcome: "REJECTED",
-        testStatus: "REJECTED",
+        testStatus: "FAILED_TO_EXECUTE",
         confidenceSummary: "Screen MegaDetector animal crops for visual anomaly patterns. Error: Can't load image processor for 'Ornimetrics/ornimetrics-edge'. If you were trying to load it from 'https://huggingface.co/models', make sure you don't have a local directo",
         detectionCount: "See benchmark JSON",
         uniqueAnimalCount: "Not applicable",
@@ -271,7 +271,7 @@ export const WOLF_MISSION2_MODEL_TESTING_ARCH_MODELS: WolfModelTestingRecord[] =
       },      {
         videoSlug: "mission2-elephant-lying-day1",
         outcome: "REJECTED",
-        testStatus: "REJECTED",
+        testStatus: "FAILED_TO_EXECUTE",
         confidenceSummary: "Screen MegaDetector animal crops for visual anomaly patterns. Error: Can't load image processor for 'Ornimetrics/ornimetrics-edge'. If you were trying to load it from 'https://huggingface.co/models', make sure you don't have a local directo",
         detectionCount: "See benchmark JSON",
         uniqueAnimalCount: "Not applicable",
@@ -282,7 +282,7 @@ export const WOLF_MISSION2_MODEL_TESTING_ARCH_MODELS: WolfModelTestingRecord[] =
       },      {
         videoSlug: "mission2-elephant-lying-day2",
         outcome: "REJECTED",
-        testStatus: "REJECTED",
+        testStatus: "FAILED_TO_EXECUTE",
         confidenceSummary: "Screen MegaDetector animal crops for visual anomaly patterns. Error: Can't load image processor for 'Ornimetrics/ornimetrics-edge'. If you were trying to load it from 'https://huggingface.co/models', make sure you don't have a local directo",
         detectionCount: "See benchmark JSON",
         uniqueAnimalCount: "Not applicable",
@@ -473,8 +473,8 @@ export const WOLF_MISSION2_MODEL_TESTING_ARCH_MODELS: WolfModelTestingRecord[] =
     modelLicence: "Apache-2.0 (MMPose/AP-10K weights)",
     checkpointLicence: "Apache-2.0 (MMPose/AP-10K weights)",
     commercialUseStatus: "LICENCE_REVIEW",
-    testStatus: "REJECTED",
-    outcome: "REJECTED",
+    testStatus: "FAILED_TO_EXECUTE",
+    outcome: "FAILED_TO_EXECUTE",
     confidenceSummary: "Independent pose comparison on standing vs lying elephant crops. Error: No module named 'mmpose'",
     videosTested: ["mission2-elephant-lying-day1", "mission2-elephant-lying-red-marker-day1", "mission2-elephant-standing-red-marker-day1"],
     evidence: [
