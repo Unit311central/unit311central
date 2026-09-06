@@ -39,9 +39,9 @@ assert.ok(catalogEntry);
 assert.equal(catalogEntry?.title, "MISSION 2 MODEL TESTING ARCH");
 
 const payload = buildWolfMission2ModelTestingArchPayload();
-assert.equal(payload.models.length, 7);
+assert.equal(payload.models.length, 12);
 assert.equal(payload.videos.length, 5);
-assert.ok(payload.diagram.nodes.length >= 10);
+assert.ok(payload.diagram.nodes.length >= 12);
 assert.match(payload.operationalStackLabel, /MegaDetector V6/);
 
 const megadetector = payload.models.find((model) => model.id === "megadetector-v6");
@@ -60,6 +60,14 @@ const superanimal = payload.models.find((model) => model.id === "superanimal-qua
 assert.ok(superanimal);
 assert.equal(superanimal?.outcome, "TESTED");
 
+const owlv2 = payload.models.find((model) => model.id === "owlv2-injury");
+assert.ok(owlv2);
+assert.equal(owlv2?.outcome, "TESTED");
+
+const sam2 = payload.models.find((model) => model.id === "sam2-grounded-injury");
+assert.ok(sam2);
+assert.equal(sam2?.outcome, "FAILED_TO_EXECUTE");
+
 const seeded = resolveWolfIrSeedDiagram(WOLF_MISSION2_MODEL_TESTING_ARCH_CATEGORY_ID);
 assert.equal(seeded.meta?.generator, "wolf-mission2-model-testing-arch");
 
@@ -67,6 +75,8 @@ const diagram = createMission2ModelTestingArchitectureDiagram();
 assert.ok(diagram.nodes.some((node) => node.id === "megadetector"));
 assert.ok(diagram.nodes.some((node) => node.id === "bytetrack"));
 assert.ok(diagram.nodes.some((node) => node.id === "temporal-logic"));
+assert.ok(diagram.nodes.some((node) => node.id === "visible-abnormality-signal"));
+assert.ok(diagram.nodes.some((node) => node.id === "welfare-intelligence"));
 
 const architectureWorkspaceSource = readFileSync(
   join(process.cwd(), "src/components/testflighthub/WolfInformationRepositoryArchitectureWorkspace.tsx"),
