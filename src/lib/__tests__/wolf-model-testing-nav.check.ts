@@ -61,14 +61,14 @@ assert.ok(!generalTabs.some((tab) => tab.slug === "model-testing-arch"));
 assert.ok(!generalTabs.some((tab) => tab.slug === "mission-2-model-testing-arch"));
 assert.ok(generalTabs.some((tab) => tab.slug === "wolf-architecture"));
 
-assert.ok(!missionSlugs.includes("platform-overview"));
-assert.ok(!missionSlugs.includes("vercel-stack"));
-assert.ok(!missionSlugs.includes("supabase-stack"));
-assert.ok(!missionSlugs.includes("codebase-stack"));
-assert.ok(!WOLF_MODEL_TESTING_MISSIONS.some((mission) => mission.slug === "platform-overview"));
-assert.ok(!WOLF_MODEL_TESTING_MISSIONS.some((mission) => mission.slug === "vercel-stack"));
-assert.ok(!WOLF_MODEL_TESTING_MISSIONS.some((mission) => mission.slug === "supabase-stack"));
-assert.ok(!WOLF_MODEL_TESTING_MISSIONS.some((mission) => mission.slug === "codebase-stack"));
+assert.ok(!missionSlugs.includes("platform-overview" as (typeof missionSlugs)[number]));
+assert.ok(!missionSlugs.includes("vercel-stack" as (typeof missionSlugs)[number]));
+assert.ok(!missionSlugs.includes("supabase-stack" as (typeof missionSlugs)[number]));
+assert.ok(!missionSlugs.includes("codebase-stack" as (typeof missionSlugs)[number]));
+assert.ok(!WOLF_MODEL_TESTING_MISSIONS.some((mission) => mission.slug === ("platform-overview" as typeof mission.slug)));
+assert.ok(!WOLF_MODEL_TESTING_MISSIONS.some((mission) => mission.slug === ("vercel-stack" as typeof mission.slug)));
+assert.ok(!WOLF_MODEL_TESTING_MISSIONS.some((mission) => mission.slug === ("supabase-stack" as typeof mission.slug)));
+assert.ok(!WOLF_MODEL_TESTING_MISSIONS.some((mission) => mission.slug === ("codebase-stack" as typeof mission.slug)));
 
 const workspace = readFileSync(
   join(process.cwd(), "src/components/testflighthub/WolfInformationRepositoryArchitectureWorkspace.tsx"),

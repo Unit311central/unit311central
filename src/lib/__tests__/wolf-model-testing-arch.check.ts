@@ -29,7 +29,7 @@ import {
 assert.equal(WOLF_MODEL_TESTING_ARCH_CATEGORY_ID, "model-testing-arch");
 assert.ok(isWolfIrBuiltinDiagramSlug(WOLF_MODEL_TESTING_ARCH_CATEGORY_ID));
 assert.ok(isWolfIrManagedDiagramSlug(WOLF_MODEL_TESTING_ARCH_CATEGORY_ID));
-assert.equal(WOLF_IR_BUILTIN_DIAGRAM_SLUGS.length, 5);
+assert.equal(WOLF_IR_BUILTIN_DIAGRAM_SLUGS.length, 6);
 assert.equal(
   WOLF_IR_BUILTIN_DIAGRAM_LABELS[WOLF_MODEL_TESTING_ARCH_CATEGORY_ID],
   "MODEL TESTING ARCH",
@@ -98,8 +98,10 @@ assert.ok(diagram.nodes.some((node) => node.id === "species-model"));
 
 const speciesNode = diagram.nodes.find((node) => node.id === "species-model");
 assert.ok(speciesNode);
-assert.match(String(speciesNode?.data.label), /REPLACEMENT SPECIES MODEL/);
-assert.doesNotMatch(String(speciesNode?.data.label), /SpeciesNet/i);
+assert.match(String(speciesNode?.data.label), /BioCLIP/i);
+assert.match(String(speciesNode?.data.label), /replaceable/i);
+assert.doesNotMatch(String(speciesNode?.data.description), /No accepted species model yet/i);
+assert.doesNotMatch(String(speciesNode?.data.description), /No accepted species-classification model yet/i);
 
 const seeded = resolveWolfIrSeedDiagram(WOLF_MODEL_TESTING_ARCH_CATEGORY_ID);
 assert.equal(seeded.meta?.generator, "wolf-model-testing-arch");

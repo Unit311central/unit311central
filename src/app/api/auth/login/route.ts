@@ -310,6 +310,16 @@ async function resolvePostLoginRedirect(options: {
     if (portalUrl) return portalUrl;
   }
 
+  if (loginReturn?.kind === "preview_wolf") {
+    const { WOLF_CENTRAL_PREVIEW_ENTRY_PATH } =
+      require("@/lib/wolf/wolf-preview-tenancy") as typeof import("@/lib/wolf/wolf-preview-tenancy");
+    const origin = loginReturn.origin.replace(/\/$/, "");
+    if (nextPath && nextPath !== "/") {
+      return `${origin}${nextPath.startsWith("/") ? nextPath : `/${nextPath}`}`;
+    }
+    return `${origin}${WOLF_CENTRAL_PREVIEW_ENTRY_PATH}`;
+  }
+
   if (loginReturn?.kind === "workspace") {
     const slug = parseClientPlatformSubdomainSafe(new URL(loginReturn.origin).host);
     // Only land on /portals when that was the explicit deep-link (e.g. login?next=/portals).

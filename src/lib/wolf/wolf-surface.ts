@@ -49,5 +49,13 @@ export function isWolfCentralHost(host: string | null | undefined): boolean {
 
 export function isBrowserWolfCentralSurface(): boolean {
   if (typeof window === "undefined") return false;
-  return isWolfCentralHost(window.location.hostname);
+  if (isWolfCentralHost(window.location.hostname)) return true;
+  if (!window.location.hostname.endsWith(".vercel.app")) return false;
+  const pathname = window.location.pathname.replace(/\/+$/, "") || "/";
+  return (
+    pathname === "/ws/wolf-central" ||
+    pathname.startsWith("/ws/wolf-central/") ||
+    pathname === "/ws/wolf" ||
+    pathname.startsWith("/ws/wolf/")
+  );
 }

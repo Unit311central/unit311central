@@ -137,7 +137,8 @@ export type SurveyOperationsBasePath =
   | "/overview"
   | "/testflighthub"
   | "/internaldashboard"
-  | "/internaldashboard_grants";
+  | "/internaldashboard_grants"
+  | "/ws/wolf-central";
 
 export const DEFAULT_SURVEY_OPERATIONS_BASE_PATH: SurveyOperationsBasePath = "/testflighthub";
 
@@ -148,6 +149,7 @@ export const SURVEY_OPERATIONS_BASE_PATHS: SurveyOperationsBasePath[] = [
   "/testflighthub",
   "/internaldashboard",
   "/internaldashboard_grants",
+  "/ws/wolf-central",
 ];
 
 export function isSurveyOperationsDashboardPath(pathname: string, basePath?: SurveyOperationsBasePath) {

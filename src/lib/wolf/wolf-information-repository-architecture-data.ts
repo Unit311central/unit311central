@@ -50,6 +50,7 @@ export const WOLF_IR_BUILTIN_DIAGRAM_SLUGS = [
   "wolf-architecture",
   "wolf-pailex-infrastructure",
   "wolf-ai-models",
+  "wolf-intelligence",
 ] as const;
 
 export type WolfIrBuiltinDiagramSlug = (typeof WOLF_IR_BUILTIN_DIAGRAM_SLUGS)[number];
@@ -58,6 +59,7 @@ export const WOLF_IR_BUILTIN_DIAGRAM_LABELS: Record<WolfIrBuiltinDiagramSlug, st
   "wolf-architecture": "WOLF ARCHITECTURE",
   "wolf-pailex-infrastructure": "PAILEX INFRASTRUCTURE",
   "wolf-ai-models": "WOLF AI MODELS",
+  "wolf-intelligence": "WOLF INTELLIGENCE",
   [WOLF_MODEL_TESTING_ARCH_CATEGORY_ID]: "MODEL TESTING ARCH",
   [WOLF_MISSION2_MODEL_TESTING_ARCH_CATEGORY_ID]: "MISSION 2 MODEL TESTING ARCH",
 };
@@ -69,6 +71,8 @@ export const WOLF_IR_BUILTIN_DIAGRAM_DESCRIPTIONS: Record<WolfIrBuiltinDiagramSl
     "Live PAILEX reserve stack — drone video ingest, satellite uplink, RunPod AI inference, and WOLF workspace delivery.",
   "wolf-ai-models":
     "Living WOLF AI processing architecture — video ingestion, FFmpeg decode, RunPod GPU missions, and Unit311 Central delivery.",
+  "wolf-intelligence":
+    "Living WOLF Intelligence pipeline — model outputs through signals, events, operator review, and Unit311 Central delivery.",
   [WOLF_MODEL_TESTING_ARCH_CATEGORY_ID]:
     "Living Mission 1 model-testing architecture, benchmark model outcomes, and video catalogue.",
   [WOLF_MISSION2_MODEL_TESTING_ARCH_CATEGORY_ID]:
@@ -118,6 +122,14 @@ export const WOLF_IR_WOLF_CATALOG: readonly ArchitectureCatalogEntry[] = [
     liveRefresh: true,
     seedTemplate: "blank",
   },
+  {
+    sectionSlug: "wolf-intelligence",
+    title: WOLF_IR_BUILTIN_DIAGRAM_LABELS["wolf-intelligence"],
+    description: WOLF_IR_BUILTIN_DIAGRAM_DESCRIPTIONS["wolf-intelligence"],
+    navOrder: 35,
+    liveRefresh: true,
+    seedTemplate: "blank",
+  },
 ];
 
 export function isWolfIrBuiltinDiagramSlug(
@@ -127,6 +139,7 @@ export function isWolfIrBuiltinDiagramSlug(
     slug === "wolf-architecture" ||
     slug === "wolf-pailex-infrastructure" ||
     slug === "wolf-ai-models" ||
+    slug === "wolf-intelligence" ||
     slug === WOLF_MODEL_TESTING_ARCH_CATEGORY_ID ||
     slug === WOLF_MISSION2_MODEL_TESTING_ARCH_CATEGORY_ID
   );
@@ -223,6 +236,9 @@ export const WOLF_PAILEX_INFRASTRUCTURE_SEED_VERSION = 2;
 
 /** WOLF AI models seed version — bump to refresh existing diagrams in production. */
 export const WOLF_AI_MODELS_SEED_VERSION = 1;
+
+/** WOLF Intelligence seed version — bump to refresh existing diagrams in production. */
+export const WOLF_INTELLIGENCE_SEED_VERSION = 1;
 
 /** Default child node width inside WOLF AI diagram groups. */
 const WOLF_AI_NODE_WIDTH = 360;
@@ -555,6 +571,93 @@ export function createWolfAiModelsDiagram(): ArchitectureDiagramDocument {
   };
 }
 
+/** Living WOLF Intelligence pipeline — separate from Mission 1/2 model testing. */
+export function createWolfIntelligenceDiagram(): ArchitectureDiagramDocument {
+  const rowY = 0;
+  const gap = 220;
+  let x = 0;
+  const nextX = () => {
+    const current = x;
+    x += gap;
+    return current;
+  };
+
+  const nodes = [
+    architectureNode("ai-model-outputs", "AI / Model Outputs", "integration", nextX(), rowY, {
+      description: "Detection, classification, tracking, and welfare model outputs from WOLF AI missions.",
+      status: "live",
+    }),
+    architectureNode("wolf-ai-processing", "WOLF AI Processing", "service", nextX(), rowY, {
+      description: "Orchestration, hand-offs, and interpretation between model stages.",
+      status: "live",
+    }),
+    architectureNode("wolf-intelligence-core", "WOLF Intelligence", "service", nextX(), rowY, {
+      description: "Python intelligence foundation — converts model outputs into structured intelligence artefacts.",
+      status: "live",
+      badges: [{ label: "Intelligence", tone: "violet" }],
+    }),
+    architectureNode("signals-evidence", "Signals / Evidence / Observations", "service", nextX(), rowY, {
+      description: "Structured evidence objects derived from correlated model outputs.",
+      status: "live",
+    }),
+    architectureNode("intelligence-events", "Intelligence Events", "service", nextX(), rowY, {
+      description: "Time-bounded intelligence events assembled from signals and observations.",
+      status: "live",
+    }),
+    architectureNode("priority", "Priority", "service", nextX(), rowY, {
+      description: "Severity / urgency scoring for operator attention.",
+      status: "live",
+    }),
+    architectureNode("recommended-action", "Recommended Action", "service", nextX(), rowY, {
+      description: "Suggested operator response — not autonomous execution.",
+      status: "live",
+    }),
+    architectureNode("operator-review", "Operator Review", "frontend", nextX(), rowY, {
+      description: "Human-in-the-loop confirmation before persistence and downstream workflows.",
+      status: "live",
+    }),
+    architectureNode("supabase-intelligence", "Supabase", "database", nextX(), rowY, {
+      description: "Persistence for intelligence events, evidence, and operator decisions.",
+      status: "live",
+    }),
+    architectureNode("unit311-central", "Unit311 Central", "frontend", nextX(), rowY, {
+      description: "WOLF workspace delivery, Information Repository, and operator UI.",
+      status: "live",
+    }),
+  ];
+
+  const chain = [
+    ["ai-model-outputs", "wolf-ai-processing"],
+    ["wolf-ai-processing", "wolf-intelligence-core"],
+    ["wolf-intelligence-core", "signals-evidence"],
+    ["signals-evidence", "intelligence-events"],
+    ["intelligence-events", "priority"],
+    ["priority", "recommended-action"],
+    ["recommended-action", "operator-review"],
+    ["operator-review", "supabase-intelligence"],
+    ["supabase-intelligence", "unit311-central"],
+  ];
+
+  return {
+    version: 1,
+    viewport: { x: 0, y: 0, zoom: 0.5 },
+    meta: {
+      generator: "wolf-information-repository",
+      title: WOLF_IR_BUILTIN_DIAGRAM_LABELS["wolf-intelligence"],
+      seedVersion: WOLF_INTELLIGENCE_SEED_VERSION,
+      generatedAt: new Date().toISOString(),
+      liveRefresh: true,
+    },
+    nodes,
+    edges: chain.map(([source, target], index) => ({
+      id: `e-wolf-intelligence-${index}`,
+      source,
+      target,
+      animated: true,
+    })),
+  };
+}
+
 /** Living WOLF workspace architecture seed — editable after first save. */
 export function createWolfArchitectureDiagram(): ArchitectureDiagramDocument {
   return {
@@ -677,6 +780,9 @@ export function resolveWolfIrSeedDiagram(sectionSlug: string): ArchitectureDiagr
   if (sectionSlug === "wolf-ai-models") {
     return createWolfAiModelsDiagram();
   }
+  if (sectionSlug === "wolf-intelligence") {
+    return createWolfIntelligenceDiagram();
+  }
   if (sectionSlug === WOLF_MODEL_TESTING_ARCH_CATEGORY_ID) {
     return createMission1ModelTestingArchitectureDiagram();
   }
@@ -712,6 +818,12 @@ export function shouldRefreshWolfIrBuiltinDiagram(
   if (sectionSlug === "wolf-ai-models") {
     const seedVersion = Number(diagramJson?.meta?.seedVersion ?? 0);
     if (seedVersion < WOLF_AI_MODELS_SEED_VERSION) return true;
+    if (diagramJson?.meta?.placeholder === true) return true;
+    if (diagramJson?.meta?.generator === "wolf-information-repository-placeholder") return true;
+  }
+  if (sectionSlug === "wolf-intelligence") {
+    const seedVersion = Number(diagramJson?.meta?.seedVersion ?? 0);
+    if (seedVersion < WOLF_INTELLIGENCE_SEED_VERSION) return true;
     if (diagramJson?.meta?.placeholder === true) return true;
     if (diagramJson?.meta?.generator === "wolf-information-repository-placeholder") return true;
   }

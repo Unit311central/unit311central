@@ -16,6 +16,7 @@ import {
   WOLF_AI_MODELS_SEED_VERSION,
   createPailexInfrastructureDiagram,
   createWolfAiModelsDiagram,
+  createWolfIntelligenceDiagram,
   createWolfArchitectureDiagram,
   createWolfIrCustomDiagramSlug,
   isWolfIrCustomDiagramSlug,
@@ -32,7 +33,8 @@ assert.equal(WOLF_INFORMATION_REPOSITORY_WORKSPACE_CONFIG.features.architectureH
 assert.equal(WOLF_INFORMATION_REPOSITORY_WORKSPACE_CONFIG.features.recordAttachments, true);
 
 assert.equal(WOLF_IR_UNIT311_CANVAS_SLUGS.length, 4);
-assert.equal(WOLF_IR_BUILTIN_DIAGRAM_SLUGS.length, 5);
+assert.equal(WOLF_IR_BUILTIN_DIAGRAM_SLUGS.length, 6);
+assert.ok(isWolfIrManagedDiagramSlug("wolf-intelligence"));
 assert.ok(isWolfIrManagedDiagramSlug("wolf-architecture"));
 assert.ok(isWolfIrManagedDiagramSlug("wolf-pailex-infrastructure"));
 assert.ok(isWolfIrManagedDiagramSlug("wolf-ai-models"));
@@ -124,6 +126,13 @@ assert.ok(
     edges: [],
   }),
 );
+
+const wolfIntelligenceDiagram = createWolfIntelligenceDiagram();
+assert.equal(wolfIntelligenceDiagram.version, 1);
+assert.ok(wolfIntelligenceDiagram.nodes.some((node) => node.id === "wolf-intelligence-core"));
+assert.ok(wolfIntelligenceDiagram.nodes.some((node) => node.id === "operator-review"));
+assert.ok(wolfIntelligenceDiagram.nodes.some((node) => node.id === "unit311-central"));
+assert.ok(wolfIntelligenceDiagram.edges.length >= 8);
 
 const apiRoute = readFileSync(
   join(process.cwd(), "src/app/api/information-repository/architecture-diagrams/route.ts"),

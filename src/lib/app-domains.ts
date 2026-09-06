@@ -232,7 +232,8 @@ export function parseValidWorkspaceReturnTo(value: string | null | undefined): s
 export type LoginReturnTarget =
   | { kind: "workspace"; origin: string }
   | { kind: "demo"; origin: string }
-  | { kind: "internal"; origin: string };
+  | { kind: "internal"; origin: string }
+  | { kind: "preview_wolf"; origin: string };
 
 /**
  * Accept customer workspace, Demo, or Internal origins as post-login return targets.
@@ -259,6 +260,16 @@ export function parseLoginReturnTo(value: string | null | undefined): LoginRetur
         kind: "internal",
         origin: isLocalDevHost(host) ? `${url.protocol}//${host}` : INTERNAL_SITE_URL,
       };
+    }
+
+    if (process.env.VERCEL_ENV === "preview") {
+      const normalizedHost = normalizeHost(host);
+      if (normalizedHost.endsWith(".vercel.app")) {
+        const { isWolfCentralPreviewPathname } = require("@/lib/wolf/wolf-preview-tenancy") as typeof import("@/lib/wolf/wolf-preview-tenancy");
+        if (isWolfCentralPreviewPathname(url.pathname)) {
+          return { kind: "preview_wolf", origin: url.origin };
+        }
+      }
     }
 
     const workspace = parseValidWorkspaceReturnTo(
@@ -331,9 +342,13 @@ export function centralLoginUrl(returnTo?: string | null) {
 export function resolveValidatedLoginReturnOrigin(
   value: string | null | undefined,
 ): string | null {
+  const loginReturn = parseLoginReturnTo(value);
+  if (loginReturn?.kind === "preview_wolf") {
+    return loginReturn.origin;
+  }
   return (
     parseValidWorkspaceReturnTo(value) ??
-    parseLoginReturnTo(value)?.origin ??
+    loginReturn?.origin ??
     null
   );
 }

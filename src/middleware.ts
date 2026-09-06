@@ -61,6 +61,14 @@ import {
   canonicalizeWolfCentralSlug,
 } from "@/lib/wolf/wolf-surface";
 import {
+  isVercelPreviewEnvironment,
+  isVercelPreviewHost,
+  isWolfCentralPreviewPathname,
+  mapWolfCentralPreviewPathToInternal,
+  parseWolfCentralPreviewLoginReturnTo,
+  wolfCentralPreviewLoginReturnTo,
+} from "@/lib/wolf/wolf-preview-tenancy";
+import {
   matchDemoClientPortalPathname,
   PRIMARY_DEMO_CLIENT_PORTAL_SLUG,
 } from "@/lib/demo/demo-client-portal-routes";
@@ -208,6 +216,92 @@ function demoEaTestingPublicResponse(request: NextRequest, pathname: string): Ne
   return response;
 }
 
+async function handleWolfCentralPreviewRequest(
+  request: NextRequest,
+  host: string | null,
+  pathname: string,
+  search: string,
+): Promise<NextResponse | null> {
+  if (!isVercelPreviewEnvironment() || !isVercelPreviewHost(host)) {
+    return null;
+  }
+
+  const previewOrigin = `${request.nextUrl.protocol}//${host}`;
+  const returnToParam = request.nextUrl.searchParams.get("return_to");
+  const wolfPath = isWolfCentralPreviewPathname(pathname);
+  const wolfLoginReturn = parseWolfCentralPreviewLoginReturnTo(returnToParam, previewOrigin);
+  const wolfLoginContext =
+    pathname === "/login" ||
+    pathname.startsWith("/login/") ||
+    pathname === "/resetpassword" ||
+    pathname.startsWith("/resetpassword/");
+  const wolfContext = wolfPath || (wolfLoginContext && Boolean(wolfLoginReturn));
+
+  if (!wolfContext) {
+    return null;
+  }
+
+  const headers = withHostHeaders(request, { workspaceSlug: WOLF_CENTRAL_SLUG });
+  headers.set("x-unit311-pathname", pathname);
+  const workspaceResponseHeaders = {
+    "x-unit311-workspace": "1",
+    "x-unit311-workspace-slug": WOLF_CENTRAL_SLUG,
+  };
+
+  if (pathname.startsWith("/api/") || pathname.startsWith("/_next/")) {
+    return NextResponse.next({ request: { headers } });
+  }
+
+  if (
+    pathname === "/login" ||
+    pathname.startsWith("/login/") ||
+    pathname === "/resetpassword" ||
+    pathname.startsWith("/resetpassword/")
+  ) {
+    const gate = await evaluateCustomerHostSessionGate(request, WOLF_CENTRAL_SLUG);
+    const response = NextResponse.next({ request: { headers } });
+    if (gate.status === "invalid" || gate.status === "forbidden") {
+      clearPlatformSessionCookie(response, request);
+    }
+    for (const [key, value] of Object.entries(workspaceResponseHeaders)) {
+      response.headers.set(key, value);
+    }
+    response.headers.set(
+      "Cache-Control",
+      "private, no-cache, no-store, max-age=0, must-revalidate",
+    );
+    return response;
+  }
+
+  const gate = await evaluateCustomerHostSessionGate(request, WOLF_CENTRAL_SLUG);
+  if (gate.status === "anonymous" || gate.status === "invalid") {
+    const bounce = redirectExternal(
+      `${previewOrigin}/login?return_to=${encodeURIComponent(wolfCentralPreviewLoginReturnTo(previewOrigin))}`,
+    );
+    if (gate.status === "invalid") {
+      clearPlatformSessionCookie(bounce, request);
+    }
+    return bounce;
+  }
+
+  if (gate.status === "forbidden" || gate.status === "workspace_missing") {
+    const bounce = redirectExternal(
+      `${previewOrigin}/login?return_to=${encodeURIComponent(wolfCentralPreviewLoginReturnTo(previewOrigin))}`,
+    );
+    clearPlatformSessionCookie(bounce, request);
+    return bounce;
+  }
+
+  const internalPath = mapWolfCentralPreviewPathToInternal(pathname);
+  const response = rewriteTo(
+    request,
+    `${internalPath}${search}`,
+    headers,
+    workspaceResponseHeaders,
+  );
+  return applyCustomerHostRebindIfNeeded({ request, response, gate });
+}
+
 /**
  * Apex (public site): marketing + permanent redirects of legacy internal paths.
  * Internal host: rewrite `/` onto /internaldashboard (App Router); never
@@ -241,6 +335,16 @@ export async function middleware(request: NextRequest) {
     (isDemoEaTestingPath(pathname) || isDemoEaTestingApiPath(pathname))
   ) {
     return demoEaTestingPublicResponse(request, pathname);
+  }
+
+  const wolfPreviewResponse = await handleWolfCentralPreviewRequest(
+    request,
+    host,
+    pathname,
+    search,
+  );
+  if (wolfPreviewResponse) {
+    return wolfPreviewResponse;
   }
 
   // Internal workspace slug must never be a customer subdomain host.
