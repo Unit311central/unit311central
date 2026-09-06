@@ -189,6 +189,7 @@ assert.match(clientPortalPage, /GreenDesertClientPortalLogin/);
 assert.match(clientPortalPage, /Client Login Green Desert/);
 
 const boardLoginPage = readFileSync(join(repoRoot, "src/app/board/login/page.tsx"), "utf8");
+assert.match(boardLoginPage, /GreenDesertBoardPortalLogin/);
 
 const sidebarBrand = readFileSync(
   join(repoRoot, "src/components/layout/WorkspaceSidebarBrand.tsx"),
