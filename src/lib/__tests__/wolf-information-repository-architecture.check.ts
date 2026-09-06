@@ -29,11 +29,12 @@ assert.equal(WOLF_INFORMATION_REPOSITORY_WORKSPACE_CONFIG.features.architectureH
 assert.equal(WOLF_INFORMATION_REPOSITORY_WORKSPACE_CONFIG.features.recordAttachments, true);
 
 assert.equal(WOLF_IR_UNIT311_CANVAS_SLUGS.length, 4);
-assert.equal(WOLF_IR_BUILTIN_DIAGRAM_SLUGS.length, 4);
+assert.equal(WOLF_IR_BUILTIN_DIAGRAM_SLUGS.length, 5);
 assert.ok(isWolfIrManagedDiagramSlug("wolf-architecture"));
 assert.ok(isWolfIrManagedDiagramSlug("wolf-pailex-infrastructure"));
 assert.ok(isWolfIrManagedDiagramSlug("wolf-ai-models"));
 assert.ok(isWolfIrManagedDiagramSlug("model-testing-arch"));
+assert.ok(isWolfIrManagedDiagramSlug("mission-2-model-testing-arch"));
 assert.ok(!isWolfIrManagedDiagramSlug("platform-overview"));
 
 assert.equal(
@@ -93,6 +94,7 @@ const workspace = readFileSync(
   "utf8",
 );
 assert.ok(workspace.includes("WolfModelTestingArchWorkspace"));
+assert.ok(workspace.includes("WolfMission2ModelTestingArchWorkspace"));
 assert.ok(workspace.includes("WOLF_IR_DEFAULT_WOLF_DIAGRAM_SLUG"));
 assert.ok(workspace.includes("overflow-x-auto"));
 assert.ok(workspace.includes("isModelTestingArchSlug"));

@@ -28,7 +28,9 @@ import {
   WOLF_IR_DEFAULT_WOLF_DIAGRAM_SLUG,
   WOLF_MODEL_TESTING_ARCH_CATEGORY_ID,
 } from "@/lib/wolf/wolf-model-testing-arch-types";
+import { WOLF_MISSION2_MODEL_TESTING_ARCH_CATEGORY_ID } from "@/lib/wolf/wolf-mission2-model-testing-arch-types";
 import WolfModelTestingArchWorkspace from "@/components/testflighthub/WolfModelTestingArchWorkspace";
+import WolfMission2ModelTestingArchWorkspace from "@/components/testflighthub/WolfMission2ModelTestingArchWorkspace";
 import { cn } from "@/lib/utils";
 
 const API_BASE = "/api/information-repository/architecture-diagrams";
@@ -36,7 +38,11 @@ const API_BASE = "/api/information-repository/architecture-diagrams";
 type TopScope = "unit311" | "wolf";
 
 function isModelTestingArchSlug(slug: string | null | undefined): boolean {
-  return String(slug ?? "").trim() === WOLF_MODEL_TESTING_ARCH_CATEGORY_ID;
+  const normalized = String(slug ?? "").trim();
+  return (
+    normalized === WOLF_MODEL_TESTING_ARCH_CATEGORY_ID ||
+    normalized === WOLF_MISSION2_MODEL_TESTING_ARCH_CATEGORY_ID
+  );
 }
 
 async function readApiJson<T>(response: Response): Promise<T> {
@@ -549,8 +555,10 @@ export default function WolfInformationRepositoryArchitectureWorkspace() {
           </div>
 
           <div className="flex min-h-[28rem] min-w-0 flex-1 flex-col rounded-2xl border border-white/10 bg-[#0b1524]/50 p-3 sm:p-4">
-            {topScope === "wolf" && isModelTestingArchSlug(activeSlug) ? (
+            {topScope === "wolf" && activeSlug === WOLF_MODEL_TESTING_ARCH_CATEGORY_ID ? (
               <WolfModelTestingArchWorkspace />
+            ) : topScope === "wolf" && activeSlug === WOLF_MISSION2_MODEL_TESTING_ARCH_CATEGORY_ID ? (
+              <WolfMission2ModelTestingArchWorkspace />
             ) : error ? (
               <div className="flex flex-1 items-center justify-center rounded-xl border border-rose-400/25 bg-rose-500/10 px-6 text-center text-sm text-rose-100">
                 {error}
