@@ -29,7 +29,7 @@ import {
 assert.equal(WOLF_MODEL_TESTING_ARCH_CATEGORY_ID, "model-testing-arch");
 assert.ok(isWolfIrBuiltinDiagramSlug(WOLF_MODEL_TESTING_ARCH_CATEGORY_ID));
 assert.ok(isWolfIrManagedDiagramSlug(WOLF_MODEL_TESTING_ARCH_CATEGORY_ID));
-assert.equal(WOLF_IR_BUILTIN_DIAGRAM_SLUGS.length, 4);
+assert.equal(WOLF_IR_BUILTIN_DIAGRAM_SLUGS.length, 5);
 assert.equal(
   WOLF_IR_BUILTIN_DIAGRAM_LABELS[WOLF_MODEL_TESTING_ARCH_CATEGORY_ID],
   "MODEL TESTING ARCH",
