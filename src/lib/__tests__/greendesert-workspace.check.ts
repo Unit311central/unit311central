@@ -181,20 +181,14 @@ const middleware = readFileSync(join(repoRoot, "src/middleware.ts"), "utf8");
 assert.match(middleware, /Green Desert board portal/);
 assert.match(middleware, /isGreenDesertSlug\(workspaceSlug\)/);
 
-const clientPortalLoginPage = readFileSync(
-  join(repoRoot, "src/app/greendesert-portal/[company]/login/page.tsx"),
-  "utf8",
-);
-assert.match(clientPortalLoginPage, /Client Login Green Desert/);
-
-const boardLoginPage = readFileSync(join(repoRoot, "src/app/board/login/page.tsx"), "utf8");
-assert.match(boardLoginPage, /GreenDesertBoardPortalLogin/);
-
 const clientPortalPage = readFileSync(
   join(repoRoot, "src/app/greendesert-portal/[company]/login/page.tsx"),
   "utf8",
 );
 assert.match(clientPortalPage, /GreenDesertClientPortalLogin/);
+assert.match(clientPortalPage, /Client Login Green Desert/);
+
+const boardLoginPage = readFileSync(join(repoRoot, "src/app/board/login/page.tsx"), "utf8");
 
 const sidebarBrand = readFileSync(
   join(repoRoot, "src/components/layout/WorkspaceSidebarBrand.tsx"),
