@@ -313,6 +313,18 @@ export async function generateBoardPackTool(
     resolvedMeetingDateForDemo ??
     parseMeetingDate(asString(args.meetingDate) || asString(args.date) || asString(args.when));
 
+  if (slug === "greendesert") {
+    const { tryGreenDesertProductionBoardPackBridge } = await import(
+      "./boardpack-production-bridge"
+    );
+    const bridged = await tryGreenDesertProductionBoardPackBridge(
+      meetingDateArg,
+      ctx,
+      boardPack.stages,
+    );
+    if (bridged) return bridged;
+  }
+
   try {
     if (typeof boardPack.generateArtifacts !== "function") {
       return toolError(

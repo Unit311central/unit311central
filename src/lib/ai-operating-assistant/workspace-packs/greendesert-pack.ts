@@ -61,10 +61,13 @@ export const greendesertWorkspacePack: EaWorkspacePack = {
     ({ message }) => {
       const boardPack = resolveAbhiBoardPackIntent(message);
       if (boardPack) {
-        return packToolRoute({
-          ...boardPack,
-          reason: "Green Desert board deck generation",
-        });
+        return {
+          ...packToolRoute({
+            ...boardPack,
+            reason: "Green Desert board deck generation",
+          }),
+          skipSynthesis: true,
+        };
       }
       return null;
     },

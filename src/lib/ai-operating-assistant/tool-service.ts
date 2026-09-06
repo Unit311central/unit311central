@@ -1136,6 +1136,26 @@ export async function executeAssistantTool(
       if (bridged) return bridged;
     }
 
+    if (
+      resolvedName === "boardpack.generate" &&
+      businessContext.workspace.slug?.trim() === "greendesert"
+    ) {
+      const when = [args.when, args.meetingDate, args.date, args.focus]
+        .map((value) => (typeof value === "string" ? value.trim() : ""))
+        .find(Boolean);
+      let meetingDate: string | undefined;
+      if (when && /^\d{4}-\d{2}-\d{2}$/.test(when)) {
+        meetingDate = when;
+      }
+      const { tryGreenDesertProductionBoardPackBridge } = await import(
+        "./boardpack-production-bridge"
+      );
+      const bridged = await tryGreenDesertProductionBoardPackBridge(meetingDate, {
+        business: businessContext,
+      });
+      if (bridged) return bridged;
+    }
+
     return await handler(args, { business: businessContext });
   } catch (error) {
     return {
