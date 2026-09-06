@@ -438,6 +438,16 @@ export function workspacePostLoginUrl(
   destination: "onboarding" | "dashboard",
 ): string {
   const origin = parseValidWorkspaceReturnTo(returnToOrigin) ?? returnToOrigin.replace(/\/$/, "");
+  try {
+    const { canonicalizeWolfCentralSlug, WOLF_CENTRAL_ORIGIN } =
+      require("@/lib/wolf/wolf-surface") as typeof import("@/lib/wolf/wolf-surface");
+    const slug = parseClientPlatformSubdomainSafe(new URL(origin).host);
+    if (canonicalizeWolfCentralSlug(slug)) {
+      return `${WOLF_CENTRAL_ORIGIN}/${destination}`;
+    }
+  } catch {
+    /* ignore malformed origins */
+  }
   return `${origin}/${destination}`;
 }
 
@@ -645,6 +655,20 @@ export function resolveBrowserRedirectPathForHost(
 
   const opsOrigin = resolveOpsShellOrigin(requestHost, absoluteHost, options?.opsOrigin);
   const customerHostSlug = parseClientPlatformSubdomainSafe(requestHost);
+
+  // Customer-host login must stay on the customer origin even when the stored
+  // redirect_path is an absolute internal/demo ops URL (common for internal operators).
+  if (absoluteHost && customerHostSlug) {
+    if (isDemoDomainHost(absoluteHost) || isInternalDomainHost(absoluteHost)) {
+      const landingPath =
+        canonicalPath === "/" || canonicalPath === ""
+          ? "/dashboard"
+          : isCanonicalOpsBrowserPath(canonicalPath)
+            ? canonicalPath
+            : "/dashboard";
+      return joinOriginAndPath(`https://${normalizeHost(requestHost)}`, landingPath);
+    }
+  }
 
   // Absolute URL to ops or customer host: keep origin, canonicalize path.
   if (absoluteHost) {

@@ -95,7 +95,7 @@ import {
   verifyGreenDesertClientPortalPassword,
 } from "@/lib/greendesert/greendesert-portal-auth-server";
 import { GREENDESERT_SLUG, isGreenDesertHost, isGreenDesertSlug } from "@/lib/greendesert-surface";
-import { canonicalizeWolfCentralSlug, isWolfCentralSlug } from "@/lib/wolf/wolf-surface";
+import { canonicalizeWolfCentralSlug, isWolfCentralSlug, WOLF_CENTRAL_ORIGIN } from "@/lib/wolf/wolf-surface";
 import {
   isOmnitransitPortalsAllowedUsername,
 } from "@/lib/saec/portals-auth";
@@ -970,7 +970,9 @@ export async function POST(request: NextRequest) {
       canonicalizeSaecWorkspaceSlug(parseClientPlatformSubdomainSafe(requestHost)) ??
       parseClientPlatformSubdomainSafe(requestHost);
     const hostWorkspaceOrigin = hostWorkspaceSlug
-      ? customerWorkspaceOrigin(hostWorkspaceSlug)
+      ? canonicalizeWolfCentralSlug(hostWorkspaceSlug)
+        ? WOLF_CENTRAL_ORIGIN
+        : customerWorkspaceOrigin(hostWorkspaceSlug)
       : isDemoDomainHost(requestHost)
         ? DEMO_SITE_URL
         : isInternalDomainHost(requestHost)

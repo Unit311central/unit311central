@@ -21,6 +21,7 @@ import {
   parseSafePostLoginNext,
   workspacePostLoginUrl,
 } from "@/lib/app-domains";
+import { isWolfCentralHost } from "@/lib/wolf/wolf-surface";
 import { marketingFadeIn, MARKETING_CONTENT_CLASS } from "@/lib/marketing-ui";
 import { navigateRedirectPath } from "@/lib/navigate-redirect";
 import { invalidatePlatformWhoamiCache } from "@/lib/platform-fetch-cache";
@@ -316,6 +317,8 @@ export default function Unit311LoginPage({
       if (host === "demo.unit311central.com" || host === "demo.localhost") {
         effectiveReturnTo = `${window.location.protocol}//${window.location.host}`;
       } else if (host === "internal.unit311central.com" || host === "internal.localhost") {
+        effectiveReturnTo = `${window.location.protocol}//${window.location.host}`;
+      } else if (isWolfCentralHost(host)) {
         effectiveReturnTo = `${window.location.protocol}//${window.location.host}`;
       }
     }

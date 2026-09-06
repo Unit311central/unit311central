@@ -22,7 +22,7 @@ import { isTalantonImpactSlug } from "@/lib/talanton-surface";
 import { loadWorkspaceLoginBrandingBySlug } from "@/lib/platform-workspaces/workspace-login-page-service";
 import { findWorkspaceBySlug } from "@/lib/workspace-host";
 import { isPailexSlug, canonicalizePailexSlug } from "@/lib/pailex/pailex-surface";
-import { canonicalizeWolfCentralSlug, isWolfCentralSlug, WOLF_CENTRAL_SLUG } from "@/lib/wolf/wolf-surface";
+import { canonicalizeWolfCentralSlug, isWolfCentralSlug, WOLF_CENTRAL_ORIGIN, WOLF_CENTRAL_SLUG } from "@/lib/wolf/wolf-surface";
 import { isInterfaceWorxSlug } from "@/lib/interface-worx-surface";
 
 function workspaceSlugFromReturnTo(returnTo: string | null | undefined): string | null {
@@ -173,7 +173,11 @@ export default async function LoginPage({ searchParams }: PageProps) {
         : rawWorkspaceSlug;
   const returnTo =
     parseLoginReturnTo(params.return_to)?.origin ??
-    (workspaceSlug ? customerWorkspaceOrigin(workspaceSlug) : null) ??
+    (workspaceSlug && isWolfCentralSlug(workspaceSlug)
+      ? WOLF_CENTRAL_ORIGIN
+      : workspaceSlug
+        ? customerWorkspaceOrigin(workspaceSlug)
+        : null) ??
     (isDemo ? DEMO_SITE_URL : null) ??
     (isInternal ? INTERNAL_SITE_URL : null);
   const nextPath = parseSafePostLoginNext(params.next);
