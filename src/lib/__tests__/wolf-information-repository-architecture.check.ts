@@ -23,22 +23,28 @@ import {
   WOLF_IR_DEFAULT_WOLF_DIAGRAM_SLUG,
   WOLF_MODEL_TESTING_ARCH_CATEGORY_ID,
 } from "@/lib/wolf/wolf-model-testing-arch-types";
+import { WOLF_MISSION2_MODEL_TESTING_ARCH_CATEGORY_ID } from "@/lib/wolf/wolf-mission2-model-testing-arch-types";
 
 assert.equal(WOLF_INFORMATION_REPOSITORY_WORKSPACE_CONFIG.features.architectureDiagrams, true);
 assert.equal(WOLF_INFORMATION_REPOSITORY_WORKSPACE_CONFIG.features.architectureHub, false);
 assert.equal(WOLF_INFORMATION_REPOSITORY_WORKSPACE_CONFIG.features.recordAttachments, true);
 
 assert.equal(WOLF_IR_UNIT311_CANVAS_SLUGS.length, 4);
-assert.equal(WOLF_IR_BUILTIN_DIAGRAM_SLUGS.length, 4);
+assert.equal(WOLF_IR_BUILTIN_DIAGRAM_SLUGS.length, 5);
 assert.ok(isWolfIrManagedDiagramSlug("wolf-architecture"));
 assert.ok(isWolfIrManagedDiagramSlug("wolf-pailex-infrastructure"));
 assert.ok(isWolfIrManagedDiagramSlug("wolf-ai-models"));
 assert.ok(isWolfIrManagedDiagramSlug("model-testing-arch"));
+assert.ok(isWolfIrManagedDiagramSlug("mission-2-model-testing-arch"));
 assert.ok(!isWolfIrManagedDiagramSlug("platform-overview"));
 
 assert.equal(
   WOLF_IR_BUILTIN_DIAGRAM_LABELS[WOLF_MODEL_TESTING_ARCH_CATEGORY_ID],
   "MODEL TESTING ARCH",
+);
+assert.equal(
+  WOLF_IR_BUILTIN_DIAGRAM_LABELS[WOLF_MISSION2_MODEL_TESTING_ARCH_CATEGORY_ID],
+  "MISSION 2 MODEL TESTING ARCH",
 );
 assert.equal(WOLF_IR_DEFAULT_WOLF_DIAGRAM_SLUG, WOLF_MODEL_TESTING_ARCH_CATEGORY_ID);
 assert.equal(WOLF_IR_WOLF_CATALOG[0]?.sectionSlug, WOLF_MODEL_TESTING_ARCH_CATEGORY_ID);
@@ -93,9 +99,11 @@ const workspace = readFileSync(
   "utf8",
 );
 assert.ok(workspace.includes("WolfModelTestingArchWorkspace"));
+assert.ok(workspace.includes("WolfMission2ModelTestingArchWorkspace"));
 assert.ok(workspace.includes("WOLF_IR_DEFAULT_WOLF_DIAGRAM_SLUG"));
 assert.ok(workspace.includes("overflow-x-auto"));
 assert.ok(workspace.includes("isModelTestingArchSlug"));
+assert.ok(workspace.includes("isMission2ModelTestingArchSlug"));
 const modelTestingArchRender = workspace.indexOf(
   "topScope === \"wolf\" && isModelTestingArchSlug(activeSlug)",
 );
@@ -105,6 +113,7 @@ assert.ok(
   "MODEL TESTING ARCH workspace must render before the error fallback branch",
 );
 assert.ok(workspace.includes("if (scope === \"wolf\" && isModelTestingArchSlug(sectionSlug))"));
+assert.ok(workspace.includes("if (scope === \"wolf\" && isMission2ModelTestingArchSlug(sectionSlug))"));
 
 const interfaceWorkspace = readFileSync(
   join(process.cwd(), "src/components/testflighthub/InterfaceWorxInformationRepositoryWorkspace.tsx"),
