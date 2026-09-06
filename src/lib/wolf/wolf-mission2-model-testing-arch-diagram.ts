@@ -69,7 +69,8 @@ export function createMission2ModelTestingArchitectureDiagram(): ArchitectureDia
   });
   const wolf4 = wolfOrchestrator("wolf-4", nextX(), rowY);
   const temporal = node("temporal-logic", "WOLF temporal logic", "service", nextX(), rowY, {
-    description: "Cross-flight MegaDetector centroid comparison for stationary-animal warnings.",
+    description:
+      "STATIONARY_ACROSS_OBSERVATIONS — cross-flight MegaDetector centroid comparison. ACCEPTED V1 temporal welfare pillar.",
     status: "live",
   });
   const wolf5 = wolfOrchestrator("wolf-5", nextX(), rowY);
@@ -81,9 +82,9 @@ export function createMission2ModelTestingArchitectureDiagram(): ArchitectureDia
     rowY,
     {
       description:
-        "Open-vocabulary and embedding-anomaly injury research (Grounding DINO, OWLv2, YOLO-World, DINOv2). " +
-        "Legacy research: Ornimetrics Edge, OpenCLIP, SuperAnimal, AP-10K/MMPose. SAM 2 deferred (NOT RUN). " +
-        "Research-only until validated beyond synthetic engineering tests.",
+        "Round 1: OWLv2, Grounding DINO, YOLO-World, DINOv2, OpenCLIP, Ornimetrics, pose research. " +
+        "Round 2: WOLF red-tissue heuristic, SAM2+chromatic saliency, BioCLIP-2 injury prompts. " +
+        "Research-only — not operational V1. Temporal welfare remains separate ACCEPTED pillar.",
       status: researchModels.some((record) => record.outcome === "TESTED") ? "beta" : "planned",
       meta: { researchBranch: true, modelCount: researchModels.length },
     },
@@ -96,8 +97,8 @@ export function createMission2ModelTestingArchitectureDiagram(): ArchitectureDia
     rowY,
     {
       description:
-        "Potential visible injury/abnormality evidence for operator review — not autonomous diagnosis. " +
-        "Future fusion: visible abnormality + same/near animal location on subsequent flight → higher priority welfare alert.",
+        "VISIBLE_ABNORMALITY_DETECTED — WOLF red-tissue heuristic + SAM2/chromatic research candidates. " +
+        "Not autonomous diagnosis. Operator review required.",
       status: "beta",
     },
   );
@@ -158,7 +159,7 @@ export function createMission2ModelTestingArchitectureDiagram(): ArchitectureDia
       generator: "wolf-mission2-model-testing-arch",
       title: "Mission 2 — Animal Injury / Welfare V1",
       mission: "mission-2-animal-injury-welfare-v1",
-      seedVersion: 2,
+      seedVersion: 3,
       generatedAt: new Date().toISOString(),
       liveRefresh: true,
     },

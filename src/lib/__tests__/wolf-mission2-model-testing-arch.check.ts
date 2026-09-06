@@ -39,7 +39,7 @@ assert.ok(catalogEntry);
 assert.equal(catalogEntry?.title, "MISSION 2 MODEL TESTING ARCH");
 
 const payload = buildWolfMission2ModelTestingArchPayload();
-assert.equal(payload.models.length, 12);
+assert.equal(payload.models.length, 17);
 assert.equal(payload.videos.length, 5);
 assert.ok(payload.diagram.nodes.length >= 12);
 assert.match(payload.operationalStackLabel, /MegaDetector V6/);
@@ -64,9 +64,13 @@ const owlv2 = payload.models.find((model) => model.id === "owlv2-injury");
 assert.ok(owlv2);
 assert.equal(owlv2?.outcome, "TESTED");
 
-const sam2 = payload.models.find((model) => model.id === "sam2-grounded-injury");
-assert.ok(sam2);
-assert.equal(sam2?.outcome, "FAILED_TO_EXECUTE");
+const wolfRedTissue = payload.models.find((model) => model.id === "wolf-red-tissue-heuristic");
+assert.ok(wolfRedTissue);
+assert.equal(wolfRedTissue?.outcome, "TESTED");
+
+const sam2Pipeline = payload.models.find((model) => model.id === "sam2-chromatic-saliency-pipeline");
+assert.ok(sam2Pipeline);
+assert.equal(sam2Pipeline?.outcome, "TESTED");
 
 const seeded = resolveWolfIrSeedDiagram(WOLF_MISSION2_MODEL_TESTING_ARCH_CATEGORY_ID);
 assert.equal(seeded.meta?.generator, "wolf-mission2-model-testing-arch");
