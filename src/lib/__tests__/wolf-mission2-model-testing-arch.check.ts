@@ -93,6 +93,8 @@ const mission2WorkspaceSource = readFileSync(
   join(process.cwd(), "src/components/testflighthub/WolfMission2ModelTestingArchWorkspace.tsx"),
   "utf8",
 );
-assert.ok(mission2WorkspaceSource.includes("Mission 2 Model Testing Architecture"));
+assert.ok(mission2WorkspaceSource.includes("Mission 2 — Animal Injury / Welfare"));
+assert.ok(mission2WorkspaceSource.includes("STATIONARY_ACROSS_OBSERVATIONS"));
+assert.ok(mission2WorkspaceSource.includes("VISIBLE_ABNORMALITY_DETECTED"));
 
 console.log("wolf-mission2-model-testing-arch.check.ts — all assertions passed.");

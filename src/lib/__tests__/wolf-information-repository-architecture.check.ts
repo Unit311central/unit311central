@@ -99,16 +99,20 @@ assert.ok(workspace.includes("WOLF_IR_DEFAULT_WOLF_DIAGRAM_SLUG"));
 assert.ok(workspace.includes("overflow-x-auto"));
 assert.ok(workspace.includes("isModelTestingArchSlug"));
 const modelTestingArchRender = workspace.indexOf(
-  "topScope === \"wolf\" && isModelTestingArchSlug(activeSlug)",
+  "wolfNavArea === \"model-testing\"",
 );
 const errorFallbackRender = workspace.indexOf(") : error ? (");
 assert.ok(
   modelTestingArchRender !== -1 && errorFallbackRender !== -1 && modelTestingArchRender < errorFallbackRender,
-  "MODEL TESTING ARCH workspace must render before the error fallback branch",
+  "Model testing mission workspace must render before the error fallback branch",
 );
 assert.ok(workspace.includes("WolfMission2ModelTestingArchWorkspace"));
 assert.ok(workspace.includes("WOLF_MISSION2_MODEL_TESTING_ARCH_CATEGORY_ID"));
 assert.ok(workspace.includes("if (scope === \"wolf\" && isModelTestingArchSlug(sectionSlug))"));
+assert.ok(workspace.includes("WOLF_MODEL_TESTING_ARCH_AREA_LABEL"));
+assert.ok(workspace.includes("WOLF_MODEL_TESTING_MISSIONS"));
+assert.ok(workspace.includes("filterWolfGeneralDiagramTabs"));
+assert.ok(workspace.includes('aria-label="Model testing missions"'));
 
 const interfaceWorkspace = readFileSync(
   join(process.cwd(), "src/components/testflighthub/InterfaceWorxInformationRepositoryWorkspace.tsx"),

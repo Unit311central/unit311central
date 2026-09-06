@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 
 import ArchitectureViewer from "@/components/architecture/ArchitectureViewer";
+import { useArchitectureDiagramLayoutPersistence } from "@/hooks/useArchitectureDiagramLayoutPersistence";
 import type {
   ModelTestingEvidenceImage,
   ModelTestingOutcome,
@@ -18,8 +19,9 @@ import type {
 } from "@/lib/wolf/wolf-mission2-model-testing-arch-types";
 import { cn } from "@/lib/utils";
 
-const MISSION_2_ARCHITECTURE_TITLE = "Mission 2 Model Testing Architecture";
-const MISSION_2_MODEL_SUMMARY_TITLE = "Mission 2 - Animal Injury / Welfare - Living Model Testing Summary";
+const MISSION_2_ARCHITECTURE_TITLE = "Mission 2 — Animal Injury / Welfare";
+const MISSION_2_MODEL_SUMMARY_TITLE =
+  "Mission 2 — Animal Injury / Welfare · Living Model Testing Summary";
 
 const API_PATH = "/api/information-repository/mission-2-model-testing-arch";
 
@@ -346,6 +348,16 @@ export default function WolfMission2ModelTestingArchWorkspace() {
   const selectedModel = selectedModelId ? modelsById.get(selectedModelId) ?? null : null;
   const selectedVideo = selectedVideoSlug ? videosBySlug.get(selectedVideoSlug) ?? null : null;
 
+  const {
+    displayDiagram,
+    saveStatus: layoutSaveStatus,
+    handleLayoutOverlayChange,
+    handleResetLayout,
+  } = useArchitectureDiagramLayoutPersistence(
+    "mission-2-model-testing-arch",
+    payload?.diagram ?? null,
+  );
+
   const handleSelectModel = useCallback((modelId: string) => {
     setSelectedModelId(modelId);
     setSelectedVideoSlug(null);
@@ -388,6 +400,23 @@ export default function WolfMission2ModelTestingArchWorkspace() {
         </p>
       </div>
 
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div className="rounded-xl border border-emerald-400/25 bg-emerald-500/10 px-4 py-3">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-emerald-200/80">
+            A. Temporal welfare
+          </p>
+          <p className="mt-1 text-sm font-medium text-emerald-50">STATIONARY_ACROSS_OBSERVATIONS</p>
+          <p className="mt-1 text-xs text-emerald-100/70">ACCEPTED V1 candidate</p>
+        </div>
+        <div className="rounded-xl border border-amber-400/25 bg-amber-500/10 px-4 py-3">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-amber-200/80">
+            B. Visible physical abnormality
+          </p>
+          <p className="mt-1 text-sm font-medium text-amber-50">VISIBLE_ABNORMALITY_DETECTED</p>
+          <p className="mt-1 text-xs text-amber-100/70">RESEARCH ONLY / NOT YET OPERATIONAL V1</p>
+        </div>
+      </div>
+
       <section className="space-y-3">
         <div>
           <h3 className="text-sm font-semibold text-white">{MISSION_2_ARCHITECTURE_TITLE}</h3>
@@ -400,10 +429,15 @@ export default function WolfMission2ModelTestingArchWorkspace() {
           </p>
         </div>
         <ArchitectureViewer
-          title="Mission 2 — Animal Injury / Welfare V1"
+          title={MISSION_2_ARCHITECTURE_TITLE}
           sectionSlug="mission-2-model-testing-arch"
-          diagramDocument={payload.diagram}
-          readOnly
+          diagramDocument={displayDiagram ?? payload.diagram}
+          catalog={[]}
+          hideLibrary
+          layoutOverlayMode
+          layoutSaveStatus={layoutSaveStatus}
+          onLayoutOverlayChange={handleLayoutOverlayChange}
+          onResetLayout={handleResetLayout}
           height="min(56vh, 640px)"
         />
       </section>
