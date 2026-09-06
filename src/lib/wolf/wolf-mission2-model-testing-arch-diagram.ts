@@ -75,17 +75,37 @@ export function createMission2ModelTestingArchitectureDiagram(): ArchitectureDia
   const wolf5 = wolfOrchestrator("wolf-5", nextX(), rowY);
   const researchBranch = node(
     "research-branch",
-    "Visible injury research branches",
+    "Visible injury / abnormality research branches",
     "integration",
     nextX(),
     rowY,
     {
       description:
-        "Ornimetrics Edge, OpenCLIP anomaly, SuperAnimal-Quadruped, AP-10K/MMPose — research-only until validated on synthetic tests.",
+        "Open-vocabulary and embedding-anomaly injury research (Grounding DINO, OWLv2, YOLO-World, DINOv2). " +
+        "Legacy research: Ornimetrics Edge, OpenCLIP, SuperAnimal, AP-10K/MMPose. SAM 2 deferred (NOT RUN). " +
+        "Research-only until validated beyond synthetic engineering tests.",
       status: researchModels.some((record) => record.outcome === "TESTED") ? "beta" : "planned",
       meta: { researchBranch: true, modelCount: researchModels.length },
     },
   );
+  const visibleAbnormality = node(
+    "visible-abnormality-signal",
+    "Visible abnormality signal (research)",
+    "service",
+    nextX(),
+    rowY,
+    {
+      description:
+        "Potential visible injury/abnormality evidence for operator review — not autonomous diagnosis. " +
+        "Future fusion: visible abnormality + same/near animal location on subsequent flight → higher priority welfare alert.",
+      status: "beta",
+    },
+  );
+  const wolf6 = wolfOrchestrator("wolf-6", nextX(), rowY);
+  const welfare = node("welfare-intelligence", "WOLF welfare intelligence", "service", nextX(), rowY, {
+    description: "Fuses temporal + visible abnormality evidence for operator review / investigation alerts.",
+    status: "live",
+  });
   const supabase = node("supabase", "Supabase", "database", nextX(), rowY, {
     description: "Private wolf-benchmark bucket and benchmark metadata persistence.",
     status: "live",
@@ -95,7 +115,24 @@ export function createMission2ModelTestingArchitectureDiagram(): ArchitectureDia
     status: "live",
   });
 
-  const nodes = [video, wolf1, ffmpeg, wolf2, megadetector, wolf3, bytetrack, wolf4, temporal, wolf5, researchBranch, supabase, vercel];
+  const nodes = [
+    video,
+    wolf1,
+    ffmpeg,
+    wolf2,
+    megadetector,
+    wolf3,
+    bytetrack,
+    wolf4,
+    temporal,
+    wolf5,
+    researchBranch,
+    visibleAbnormality,
+    wolf6,
+    welfare,
+    supabase,
+    vercel,
+  ];
   const chain = [
     ["video", "wolf-1"],
     ["wolf-1", "ffmpeg"],
@@ -107,7 +144,10 @@ export function createMission2ModelTestingArchitectureDiagram(): ArchitectureDia
     ["wolf-4", "temporal-logic"],
     ["temporal-logic", "wolf-5"],
     ["wolf-5", "research-branch"],
-    ["research-branch", "supabase"],
+    ["research-branch", "visible-abnormality-signal"],
+    ["visible-abnormality-signal", "wolf-6"],
+    ["wolf-6", "welfare-intelligence"],
+    ["welfare-intelligence", "supabase"],
     ["supabase", "vercel"],
   ];
 
@@ -118,7 +158,7 @@ export function createMission2ModelTestingArchitectureDiagram(): ArchitectureDia
       generator: "wolf-mission2-model-testing-arch",
       title: "Mission 2 — Animal Injury / Welfare V1",
       mission: "mission-2-animal-injury-welfare-v1",
-      seedVersion: 1,
+      seedVersion: 2,
       generatedAt: new Date().toISOString(),
       liveRefresh: true,
     },
