@@ -70,6 +70,26 @@ async function upsertPlatformUser(input: {
     .maybeSingle();
 
   const userId = byEmail?.id ?? byUsername?.id;
+
+  if (userId) {
+    const { data: existingUser, error: existingUserError } = await supabase
+      .from("platform_users")
+      .select("id, workspace_id")
+      .eq("id", userId)
+      .maybeSingle();
+    if (existingUserError) {
+      throw new Error(`Failed to resolve platform user ${email}: ${existingUserError.message}`);
+    }
+    const existingWorkspaceId = existingUser?.workspace_id
+      ? String(existingUser.workspace_id)
+      : null;
+    if (existingWorkspaceId && existingWorkspaceId !== input.workspaceId) {
+      throw new Error(
+        `Email ${email} is already registered to another workspace and cannot be reassigned during provisioning.`,
+      );
+    }
+  }
+
   const patch = {
     username,
     display_name: displayName,

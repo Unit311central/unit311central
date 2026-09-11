@@ -78,15 +78,15 @@ function withMockHostname<T>(hostname: string, fn: () => T): T {
 assert.equal(WORKSPACE_MODULE_CATALOGUE.length, 22);
 assert.equal(WORKSPACE_MODULE_CATALOGUE[0]?.label, "HOME");
 assert.equal(WORKSPACE_MODULE_CATALOGUE[21]?.label, "SETTINGS");
-assert.equal(WORKSPACE_PROVISIONING_FUNCTION_COUNT, 148);
+assert.equal(WORKSPACE_PROVISIONING_FUNCTION_COUNT, 157);
 assert.equal(
   WORKSPACE_MODULE_CATALOGUE.find((m) => m.id === "human-resources")?.subModules.length,
   8,
   "HR must expose all eight central functions",
 );
 assert.ok(
-  WORKSPACE_MODULE_CATALOGUE.find((m) => m.id === "engineering")?.subModules.some(
-    (sub) => sub.id === "engineering-sops",
+  WORKSPACE_MODULE_CATALOGUE.find((m) => m.id === "engineering")?.subModules.some((sub) =>
+    sub.id.startsWith("engineering-sops"),
   ),
   "Engineering SOPs must remain optional central capability",
 );

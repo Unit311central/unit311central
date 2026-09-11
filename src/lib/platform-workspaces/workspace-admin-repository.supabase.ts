@@ -1,5 +1,6 @@
 import { RESERVED_UNIT311_SUBDOMAINS } from "@/lib/app-domains";
 import {
+  allCatalogueProvisioningModuleKeys,
   countEnabledModules,
   resolveProvisioningModuleKeys,
 } from "@/lib/platform-workspaces/module-catalogue";
@@ -118,15 +119,29 @@ async function countEnabledWorkspaceModules(workspaceId: string): Promise<number
 }
 
 async function syncWorkspaceModules(workspaceId: string, moduleKeys: string[]): Promise<void> {
-  if (moduleKeys.length === 0) return;
   const supabase = createTenancyServerClient();
-  const uniqueKeys = [...new Set(moduleKeys)];
-  for (const moduleKey of uniqueKeys) {
+  const catalogueKeys = new Set(allCatalogueProvisioningModuleKeys());
+  const selectedKeys = new Set(moduleKeys.filter((key) => catalogueKeys.has(key)));
+
+  const { data: existingRows, error: loadError } = await supabase
+    .from("workspace_modules")
+    .select("module_key")
+    .eq("workspace_id", workspaceId);
+  if (loadError) {
+    throw new Error(loadError.message || "Failed to load workspace modules for sync.");
+  }
+
+  const keysToSync = new Set<string>([
+    ...catalogueKeys,
+    ...(existingRows ?? []).map((row) => String(row.module_key)),
+  ]);
+
+  for (const moduleKey of keysToSync) {
     const { error } = await supabase.from("workspace_modules").upsert(
       {
         workspace_id: workspaceId,
         module_key: moduleKey,
-        enabled: true,
+        enabled: selectedKeys.has(moduleKey),
         updated_at: nowIso(),
       },
       { onConflict: "workspace_id,module_key" },

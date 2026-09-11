@@ -5,11 +5,13 @@ import { useMemo, useState } from "react";
 import { ArrowLeft, ArrowRight, CheckCircle2, Loader2, PlusCircle } from "lucide-react";
 
 import { useInternalOperationsBasePath } from "@/components/testflighthub/InternalOperationsBasePathContext";
-import {
-  CLIENT_CSV_TEMPLATE,
-  EMPLOYEE_CSV_TEMPLATE,
-} from "@/lib/platform-workspaces/csv-import";
 import { getInternalNavHref } from "@/lib/internal-operations-data";
+import {
+  getWorkspaceProvisioningCountries,
+  getWorkspaceProvisioningCurrencies,
+  WORKSPACE_PROVISIONING_DEFAULT_TIMEZONE,
+  WORKSPACE_PROVISIONING_TIMEZONES,
+} from "@/lib/platform-workspaces/workspace-provisioning-catalogues";
 import {
   WORKSPACE_MODULE_CATALOGUE,
   WORKSPACE_MODULE_IDS,
@@ -24,12 +26,7 @@ import {
   validateInitialWorkspaceAdministrator,
   validateLoginPageTitle,
 } from "@/lib/platform-workspaces/provisioning-validation";
-import type {
-  CreateWorkspaceInput,
-  WorkspaceAdminRecord,
-  WorkspaceImportClient,
-  WorkspaceImportEmployee,
-} from "@/lib/platform-workspaces/types";
+import type { CreateWorkspaceInput, WorkspaceAdminRecord } from "@/lib/platform-workspaces/types";
 import { cn } from "@/lib/utils";
 
 function defaultHostnameForWizard(state: { slug: string; name: string }): string {
@@ -40,25 +37,21 @@ function defaultHostnameForWizard(state: { slug: string; name: string }): string
 }
 
 const WIZARD_STEPS = [
-  "Workspace type",
   "Workspace details",
   "Modules",
-  "Users / employees",
-  "Clients",
-  "Login page",
-  "Initial workspace administrator",
   "Branding / configuration",
   "Review",
   "Create / provision",
 ] as const;
+
+const PROVISIONING_COUNTRY_OPTIONS = getWorkspaceProvisioningCountries();
+const PROVISIONING_CURRENCY_OPTIONS = getWorkspaceProvisioningCurrencies();
 
 type WizardState = CreateWorkspaceInput & {
   slugAvailable: boolean | null;
   slugMessage: string | null;
   hostnameAvailable: boolean | null;
   hostnameMessage: string | null;
-  employeeErrors: Array<{ row: number; message: string }>;
-  clientErrors: Array<{ row: number; message: string }>;
   loginPageLogoPreview: string | null;
   loginPageBackgroundPreview: string | null;
   initialAdminError: string | null;
@@ -75,7 +68,7 @@ function initialState(): WizardState {
     contactName: "",
     contactEmail: "",
     country: "United Kingdom",
-    timezone: "Europe/London",
+    timezone: WORKSPACE_PROVISIONING_DEFAULT_TIMEZONE,
     currency: "USD",
     description: "",
     enabledModules,
@@ -104,8 +97,6 @@ function initialState(): WizardState {
     slugMessage: null,
     hostnameAvailable: null,
     hostnameMessage: null,
-    employeeErrors: [],
-    clientErrors: [],
     loginPageLogoPreview: null,
     loginPageBackgroundPreview: null,
     initialAdminError: null,
@@ -127,8 +118,6 @@ export function NewWorkspaceWizard() {
   const [created, setCreated] = useState<WorkspaceAdminRecord | null>(null);
   const [provisioning, setProvisioning] = useState(false);
   const [provisionError, setProvisionError] = useState<string | null>(null);
-  const [employeeCsv, setEmployeeCsv] = useState("");
-  const [clientCsv, setClientCsv] = useState("");
 
   function resetWizard() {
     setStep(0);
@@ -137,8 +126,6 @@ export function NewWorkspaceWizard() {
     setCreated(null);
     setProvisioning(false);
     setProvisionError(null);
-    setEmployeeCsv("");
-    setClientCsv("");
   }
 
   const allModulesSelected = useMemo(
@@ -149,32 +136,32 @@ export function NewWorkspaceWizard() {
   );
 
   const canContinue = useMemo(() => {
-    if (step === 0) return state.type === "Customer" || state.type === "Demo";
-    if (step === 1) {
+    if (step === 0) {
       return (
         state.name.trim().length > 0 &&
         state.slug.trim().length > 0 &&
         state.companyName.trim().length > 0 &&
         state.contactName.trim().length > 0 &&
         state.contactEmail.trim().length > 0 &&
+        state.country.trim().length > 0 &&
+        state.timezone.trim().length > 0 &&
+        state.currency.trim().length > 0 &&
         state.slugAvailable === true &&
         (state.customerHostname?.trim().length === 0 || state.hostnameAvailable === true)
       );
     }
-    if (step === 5) {
-      return !validateLoginPageTitle(state.loginPage.title);
+    if (step === 1) {
+      return (
+        state.enabledModules.length > 0 &&
+        state.enabledModules.length <= WORKSPACE_MODULE_IDS.length
+      );
     }
-    if (step === 6) {
-      const validation = validateInitialWorkspaceAdministrator(state.initialAdministrator);
-      return validation.ok;
-    }
-    if (step === 7) {
+    if (step === 2) {
+      const loginOk = !validateLoginPageTitle(state.loginPage.title);
+      const adminOk = validateInitialWorkspaceAdministrator(state.initialAdministrator).ok;
       const hostname = state.customerHostname?.trim() || defaultHostnameForWizard(state);
-      return hostname.length > 0 && state.hostnameAvailable !== false;
+      return loginOk && adminOk && hostname.length > 0 && state.hostnameAvailable !== false;
     }
-    if (step === 2) return state.enabledModules.length > 0;
-    if (step === 3) return state.employeeErrors.length === 0;
-    if (step === 4) return state.clientErrors.length === 0;
     return true;
   }, [state, step]);
 
@@ -206,40 +193,6 @@ export function NewWorkspaceWizard() {
     }));
   }
 
-  async function validateEmployees(csv: string) {
-    const response = await fetch("/api/internal/workspaces/validate-employees", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ csv }),
-    });
-    const payload = await readJson<{
-      rows: WorkspaceImportEmployee[];
-      errors: Array<{ row: number; message: string }>;
-    }>(response);
-    setState((current) => ({
-      ...current,
-      employees: payload.rows,
-      employeeErrors: payload.errors,
-    }));
-  }
-
-  async function validateClients(csv: string) {
-    const response = await fetch("/api/internal/workspaces/validate-clients", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ csv }),
-    });
-    const payload = await readJson<{
-      rows: WorkspaceImportClient[];
-      errors: Array<{ row: number; message: string }>;
-    }>(response);
-    setState((current) => ({
-      ...current,
-      clients: payload.rows,
-      clientErrors: payload.errors,
-    }));
-  }
-
   async function createWorkspace() {
     if (busy || provisioning || created) return;
     setBusy(true);
@@ -251,7 +204,7 @@ export function NewWorkspaceWizard() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          type: state.type,
+          type: "Customer" as const,
           name: state.name,
           slug: state.slug,
           customerHostname,
@@ -268,8 +221,8 @@ export function NewWorkspaceWizard() {
             ...state.branding,
             displayName: state.branding.displayName || state.name,
           },
-          employees: state.employees,
-          clients: state.clients,
+          employees: [],
+          clients: [],
           loginPage: state.loginPage,
           initialAdministrator: state.initialAdministrator,
         } satisfies CreateWorkspaceInput),
@@ -333,8 +286,8 @@ export function NewWorkspaceWizard() {
           </p>
           <h1 className="mt-1 text-2xl font-semibold tracking-tight text-white">New Workspace</h1>
           <p className="mt-2 max-w-2xl text-sm leading-relaxed text-white/55">
-            Configure a customer or demo workspace. Phase 3 provisions the database foundation,
-            authentication, hostname routing, and optional imports when you create the workspace.
+            Provision a new customer workspace with the authoritative {WORKSPACE_MODULE_IDS.length}-module
+            catalogue. The workspace starts clean — no employee, client, or legacy data imports.
           </p>
         </div>
         </div>
@@ -378,31 +331,6 @@ export function NewWorkspaceWizard() {
 
       <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
         {step === 0 ? (
-          <div className="grid gap-3 md:grid-cols-2">
-            {(["Customer", "Demo"] as const).map((type) => (
-              <button
-                key={type}
-                type="button"
-                onClick={() => setState((current) => ({ ...current, type }))}
-                className={cn(
-                  "rounded-xl border p-4 text-left transition",
-                  state.type === type
-                    ? "border-sky-400/40 bg-sky-500/10"
-                    : "border-white/10 hover:bg-white/[0.03]",
-                )}
-              >
-                <p className="text-sm font-semibold text-white">{type} Workspace</p>
-                <p className="mt-2 text-sm text-white/50">
-                  {type === "Customer"
-                    ? "Provision a customer tenant with selected modules and imports."
-                    : "Create a demo tenant for sales, training, or showcase environments."}
-                </p>
-              </button>
-            ))}
-          </div>
-        ) : null}
-
-        {step === 1 ? (
           <div className="grid gap-4 md:grid-cols-2">
             <WizardField
               fieldKey="workspace-name"
@@ -489,22 +417,31 @@ export function NewWorkspaceWizard() {
               autoComplete="off"
               onChange={(value) => setState({ ...state, contactEmail: value })}
             />
-            <WizardField
+            <WizardSelect
               fieldKey="country"
-              label="Country"
+              label="Country *"
               value={state.country}
+              options={PROVISIONING_COUNTRY_OPTIONS}
               onChange={(value) => setState({ ...state, country: value })}
             />
-            <WizardField
+            <WizardSelect
               fieldKey="timezone"
-              label="Timezone"
+              label="Timezone *"
               value={state.timezone}
+              options={WORKSPACE_PROVISIONING_TIMEZONES.map((entry) => ({
+                value: entry.id,
+                label: `${entry.label} (${entry.abbreviation})`,
+              }))}
               onChange={(value) => setState({ ...state, timezone: value })}
             />
-            <WizardField
+            <WizardSelect
               fieldKey="currency"
-              label="Currency"
+              label="Currency *"
               value={state.currency}
+              options={PROVISIONING_CURRENCY_OPTIONS.map((code) => ({
+                value: code,
+                label: code,
+              }))}
               onChange={(value) => setState({ ...state, currency: value })}
             />
             <div className="md:col-span-2">
@@ -520,8 +457,12 @@ export function NewWorkspaceWizard() {
           </div>
         ) : null}
 
-        {step === 2 ? (
+        {step === 1 ? (
           <div className="space-y-3">
+            <p className="text-sm text-white/55">
+              Authoritative catalogue: {WORKSPACE_MODULE_IDS.length} modules ·{" "}
+              {state.enabledModules.length} selected
+            </p>
             <label className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2.5 text-sm font-medium text-white">
               <input
                 type="checkbox"
@@ -599,98 +540,111 @@ export function NewWorkspaceWizard() {
           </div>
         ) : null}
 
-        {step === 3 ? (
-          <CsvStep
-            title="Employee CSV upload"
-            template={EMPLOYEE_CSV_TEMPLATE}
-            csv={employeeCsv}
-            onCsvChange={setEmployeeCsv}
-            onValidate={() => void validateEmployees(employeeCsv)}
-            rows={state.employees}
-            errors={state.employeeErrors}
-            columns={["email", "first_name", "last_name", "role", "department"]}
-          />
-        ) : null}
-
-        {step === 4 ? (
-          <CsvStep
-            title="Optional active-client import"
-            template={CLIENT_CSV_TEMPLATE}
-            csv={clientCsv}
-            onCsvChange={setClientCsv}
-            onValidate={() => void validateClients(clientCsv)}
-            rows={state.clients}
-            errors={state.clientErrors}
-            columns={["name", "email", "country"]}
-          />
-        ) : null}
-
-        {step === 5 ? (
-          <LoginPageStep
-            state={state}
-            onChange={(patch) => setState((current) => ({ ...current, ...patch }))}
-          />
-        ) : null}
-
-        {step === 6 ? (
-          <InitialAdministratorStep
-            state={state}
-            onChange={(patch) => setState((current) => ({ ...current, ...patch }))}
-          />
-        ) : null}
-
-        {step === 7 ? (
-          <div className="grid gap-4 md:grid-cols-2">
-            <WizardField label="Display name" value={state.branding.displayName} onChange={(value) => setState({ ...state, branding: { ...state.branding, displayName: value } })} />
-            <WizardField label="Logo URL" value={state.branding.logoUrl ?? ""} onChange={(value) => setState({ ...state, branding: { ...state.branding, logoUrl: value || null } })} />
-            <WizardField label="Primary colour" value={state.branding.primaryColour} onChange={(value) => setState({ ...state, branding: { ...state.branding, primaryColour: value } })} />
-            <WizardField label="Secondary colour" value={state.branding.secondaryColour} onChange={(value) => setState({ ...state, branding: { ...state.branding, secondaryColour: value } })} />
-            <WizardField
-              label="Customer-facing hostname *"
-              value={state.customerHostname || defaultHostnameForWizard(state)}
-              onChange={(value) =>
-                setState({
-                  ...state,
-                  customerHostname: value.toLowerCase().replace(/[^a-z0-9-]/g, ""),
-                  hostnameAvailable: null,
-                  hostnameMessage: null,
-                })
-              }
-              onBlur={() => {
-                const hostname = state.customerHostname || defaultHostnameForWizard(state);
-                if (hostname) void checkHostname(hostname);
-              }}
-            />
-            {state.hostnameMessage ? (
-              <p
-                className={cn(
-                  "md:col-span-2 text-sm",
-                  state.hostnameAvailable ? "text-emerald-200" : "text-rose-200",
-                )}
-              >
-                {state.hostnameMessage}
+        {step === 2 ? (
+          <div className="space-y-6">
+            <div>
+              <p className="text-sm font-medium text-white">Login page</p>
+              <p className="mt-1 text-sm text-white/50">
+                Customer-facing sign-in branding for this workspace.
               </p>
-            ) : null}
-            <WizardField
-              label="Primary workspace URL"
-              value={`https://${resolvedHostname}.unit311central.com`}
-              onChange={() => undefined}
-              readOnly
-            />
-            {state.slug && state.customerHostname && state.slug !== state.customerHostname ? (
-              <p className="md:col-span-2 text-xs text-white/45">
-                Workspace slug <span className="font-mono">{state.slug}</span> maps to customer host{" "}
-                <span className="font-mono">{state.customerHostname}</span>.
+              <div className="mt-4">
+                <LoginPageStep
+                  state={state}
+                  onChange={(patch) => setState((current) => ({ ...current, ...patch }))}
+                />
+              </div>
+            </div>
+            <div>
+              <p className="text-sm font-medium text-white">Initial workspace administrator</p>
+              <p className="mt-1 text-sm text-white/50">
+                Minimum account required for the customer to sign in after provisioning.
               </p>
-            ) : null}
+              <div className="mt-4">
+                <InitialAdministratorStep
+                  state={state}
+                  onChange={(patch) => setState((current) => ({ ...current, ...patch }))}
+                />
+              </div>
+            </div>
+            <div>
+              <p className="text-sm font-medium text-white">Branding and hostname</p>
+              <div className="mt-4 grid gap-4 md:grid-cols-2">
+                <WizardField
+                  label="Display name"
+                  value={state.branding.displayName}
+                  onChange={(value) =>
+                    setState({ ...state, branding: { ...state.branding, displayName: value } })
+                  }
+                />
+                <WizardField
+                  label="Logo URL"
+                  value={state.branding.logoUrl ?? ""}
+                  onChange={(value) =>
+                    setState({ ...state, branding: { ...state.branding, logoUrl: value || null } })
+                  }
+                />
+                <WizardField
+                  label="Primary colour"
+                  value={state.branding.primaryColour}
+                  onChange={(value) =>
+                    setState({ ...state, branding: { ...state.branding, primaryColour: value } })
+                  }
+                />
+                <WizardField
+                  label="Secondary colour"
+                  value={state.branding.secondaryColour}
+                  onChange={(value) =>
+                    setState({ ...state, branding: { ...state.branding, secondaryColour: value } })
+                  }
+                />
+                <WizardField
+                  label="Customer-facing hostname *"
+                  value={state.customerHostname || defaultHostnameForWizard(state)}
+                  onChange={(value) =>
+                    setState({
+                      ...state,
+                      customerHostname: value.toLowerCase().replace(/[^a-z0-9-]/g, ""),
+                      hostnameAvailable: null,
+                      hostnameMessage: null,
+                    })
+                  }
+                  onBlur={() => {
+                    const hostname = state.customerHostname || defaultHostnameForWizard(state);
+                    if (hostname) void checkHostname(hostname);
+                  }}
+                />
+                {state.hostnameMessage ? (
+                  <p
+                    className={cn(
+                      "md:col-span-2 text-sm",
+                      state.hostnameAvailable ? "text-emerald-200" : "text-rose-200",
+                    )}
+                  >
+                    {state.hostnameMessage}
+                  </p>
+                ) : null}
+                <WizardField
+                  label="Primary workspace URL"
+                  value={`https://${resolvedHostname}.unit311central.com`}
+                  onChange={() => undefined}
+                  readOnly
+                />
+                {state.slug && state.customerHostname && state.slug !== state.customerHostname ? (
+                  <p className="md:col-span-2 text-xs text-white/45">
+                    Workspace slug <span className="font-mono">{state.slug}</span> maps to customer
+                    host <span className="font-mono">{state.customerHostname}</span>.
+                  </p>
+                ) : null}
+              </div>
+            </div>
           </div>
         ) : null}
 
-        {step === 8 ? (
+        {step === 3 ? (
           <ReviewSummary state={state} onEdit={setStep} />
         ) : null}
 
-        {step === 9 ? (
+        {step === 4 ? (
           <div className="space-y-4">
             {created ? (
               <ProvisioningResultPanel
@@ -705,8 +659,8 @@ export function NewWorkspaceWizard() {
             ) : (
               <>
                 <p className="text-sm text-white/60">
-                  This will provision the workspace database, configuration, hostname routing,
-                  authentication accounts, and any optional client imports.
+                  This will provision the workspace database, module configuration, hostname routing,
+                  login page, and initial administrator. No employees or clients are imported.
                 </p>
                 <ProvisioningStepList />
                 {provisionError ? <p className="text-sm text-rose-200">{provisionError}</p> : null}
@@ -817,98 +771,42 @@ function WizardField({
   );
 }
 
-function CsvStep({
-  title,
-  template,
-  csv,
-  onCsvChange,
-  onValidate,
-  rows,
-  errors,
-  columns,
+function WizardSelect({
+  label,
+  value,
+  options,
+  onChange,
+  fieldKey,
 }: {
-  title: string;
-  template: string;
-  csv: string;
-  onCsvChange: (value: string) => void;
-  onValidate: () => void;
-  rows: Array<Record<string, string | undefined>>;
-  errors: Array<{ row: number; message: string }>;
-  columns: string[];
+  label: string;
+  value: string;
+  options: Array<{ value: string; label: string }>;
+  onChange: (value: string) => void;
+  fieldKey?: string;
 }) {
+  const selectId = fieldKey ? `unit311-nw-${fieldKey}` : undefined;
+
   return (
-    <div className="space-y-4">
-      <div>
-        <p className="text-sm font-medium text-white">{title}</p>
-        <p className="mt-1 text-sm text-white/50">
-          Download the template, fill rows, paste or upload CSV content, then validate.
-        </p>
-      </div>
-      <pre className="overflow-x-auto rounded-xl border border-white/10 bg-[#0b1524] p-3 text-xs text-white/70">
-        {template}
-      </pre>
-      <textarea
-        value={csv}
-        onChange={(event) => onCsvChange(event.target.value)}
-        placeholder="Paste CSV content here"
-        className="min-h-32 w-full rounded-xl border border-white/10 bg-[#0b1524] px-3 py-2 text-sm text-white outline-none focus:border-sky-400/50"
-      />
-      <button
-        type="button"
-        onClick={onValidate}
-        className="rounded-xl border border-white/10 px-4 py-2 text-sm text-white/75 hover:bg-white/5"
+    <div>
+      <label
+        htmlFor={selectId}
+        className="text-[10px] font-medium uppercase tracking-[0.12em] text-white/45"
       >
-        Validate import
-      </button>
-      {errors.length > 0 ? (
-        <div className="rounded-xl border border-rose-400/30 bg-rose-500/10 p-3 text-sm text-rose-100">
-          {errors.map((item) => (
-            <p key={`${item.row}-${item.message}`}>
-              Row {item.row}: {item.message}
-            </p>
-          ))}
-        </div>
-      ) : null}
-      {rows.length > 0 ? (
-        <div className="overflow-x-auto rounded-xl border border-white/10">
-          <table className="min-w-full text-left text-sm">
-            <thead className="border-b border-white/10 text-[10px] uppercase tracking-[0.12em] text-white/40">
-              <tr>
-                {columns.map((column) => (
-                  <th key={column} className="px-3 py-2">
-                    {column}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {rows.slice(0, 10).map((row, index) => (
-                <tr key={index} className="border-b border-white/5">
-                  {columns.map((column) => {
-                    const camel = column.replace(/_([a-z])/g, (_, char: string) => char.toUpperCase());
-                    const value =
-                      row[column] ??
-                      row[camel] ??
-                      (column === "first_name" && "firstName" in row
-                        ? row.firstName
-                        : column === "last_name" && "lastName" in row
-                          ? row.lastName
-                          : undefined);
-                    return (
-                      <td key={column} className="px-3 py-2 text-white/70">
-                        {String(value ?? "—")}
-                      </td>
-                    );
-                  })}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {rows.length > 10 ? (
-            <p className="px-3 py-2 text-xs text-white/45">Showing first 10 of {rows.length} rows.</p>
-          ) : null}
-        </div>
-      ) : null}
+        {label}
+      </label>
+      <select
+        id={selectId}
+        name={selectId}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className="mt-1.5 w-full rounded-xl border border-white/10 bg-[#0b1524] px-3 py-2 text-sm text-white outline-none focus:border-sky-400/50"
+      >
+        {options.map((option) => (
+          <option key={option.value} value={option.value} className="bg-[#0b1524] text-white">
+            {option.label}
+          </option>
+        ))}
+      </select>
     </div>
   );
 }
@@ -924,30 +822,26 @@ function ReviewSummary({
     state.customerHostname?.trim() || defaultHostnameForWizard(state) || "hostname";
   return (
     <div className="space-y-4 text-sm text-white/75">
-      <ReviewBlock title="Workspace" onEdit={() => onEdit(1)}>
-        <p>{state.type} · {state.name} · {state.slug}</p>
+      <ReviewBlock title="Workspace details" onEdit={() => onEdit(0)}>
+        <p>Customer workspace · {state.name} · {state.slug}</p>
         <p>{state.companyName}</p>
         <p>{state.contactName} · {state.contactEmail}</p>
+        <p>{state.country} · {state.timezone} · {state.currency}</p>
       </ReviewBlock>
-      <ReviewBlock title="Modules" onEdit={() => onEdit(2)}>
-        <p>{state.enabledModules.length} modules · {state.enabledSubModules.length} sub-modules selected</p>
+      <ReviewBlock title="Modules" onEdit={() => onEdit(1)}>
+        <p>
+          {state.enabledModules.length} of {WORKSPACE_MODULE_IDS.length} catalogue modules ·{" "}
+          {state.enabledSubModules.length} sub-modules selected
+        </p>
       </ReviewBlock>
-      <ReviewBlock title="Users" onEdit={() => onEdit(3)}>
-        <p>{state.employees.length} employee row(s) queued</p>
-      </ReviewBlock>
-      <ReviewBlock title="Clients" onEdit={() => onEdit(4)}>
-        <p>{state.clients.length} client row(s) queued</p>
-      </ReviewBlock>
-      <ReviewBlock title="Login page" onEdit={() => onEdit(5)}>
-        <p>{state.loginPage.title}</p>
+      <ReviewBlock title="Branding / configuration" onEdit={() => onEdit(2)}>
+        <p>Login title: {state.loginPage.title}</p>
         <p>{state.loginPageLogoPreview ? "Logo uploaded" : "No logo uploaded"}</p>
         <p>{state.loginPageBackgroundPreview ? "Background uploaded" : "No background uploaded"}</p>
-      </ReviewBlock>
-      <ReviewBlock title="Initial administrator" onEdit={() => onEdit(6)}>
-        <p>{state.initialAdministrator.firstName} {state.initialAdministrator.lastName}</p>
-        <p>{state.initialAdministrator.email}</p>
-      </ReviewBlock>
-      <ReviewBlock title="Branding" onEdit={() => onEdit(7)}>
+        <p>
+          Administrator: {state.initialAdministrator.firstName} {state.initialAdministrator.lastName}{" "}
+          · {state.initialAdministrator.email}
+        </p>
         <p>{state.branding.displayName}</p>
         <p>{state.branding.primaryColour} / {state.branding.secondaryColour}</p>
         <p>https://{resolvedHostname}.unit311central.com</p>
@@ -962,12 +856,10 @@ function ReviewSummary({
 function ProvisioningStepList() {
   const steps = [
     "Workspace database foundation",
-    "Configuration and modules",
+    "Module configuration (authoritative catalogue only)",
     "Customer hostname routing",
     "Customer login page",
     "Initial workspace administrator",
-    "Additional employee accounts",
-    "Optional client imports",
     "Application deployment",
     "Hostname and login verification",
   ];

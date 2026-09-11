@@ -284,11 +284,24 @@ export function resolveProvisioningModuleKeys(
   return [...keys];
 }
 
+/** All workspace_modules.module_key values referenced by the authoritative 22-module catalogue. */
+export function allCatalogueProvisioningModuleKeys(): string[] {
+  return resolveProvisioningModuleKeys(WORKSPACE_MODULE_IDS, defaultEnabledSubModules(WORKSPACE_MODULE_IDS));
+}
+
+/** Top-level catalogue modules selected in the wizard (max 22). */
+export function countSelectedCatalogueModules(enabledModules: readonly string[]): number {
+  return enabledModules.filter((moduleId) =>
+    WORKSPACE_MODULE_IDS.includes(moduleId as (typeof WORKSPACE_MODULE_IDS)[number]),
+  ).length;
+}
+
+/** @deprecated Prefer countSelectedCatalogueModules for admin summaries — do not sum sub-modules. */
 export function countEnabledModules(
   enabledModules: readonly string[],
   enabledSubModules: readonly string[],
 ): number {
-  return enabledModules.length + enabledSubModules.length;
+  return countSelectedCatalogueModules(enabledModules);
 }
 
 export function syncModuleSelection(

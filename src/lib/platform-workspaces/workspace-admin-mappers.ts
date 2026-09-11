@@ -201,7 +201,7 @@ export function mapWorkspaceRowToRecord(
     pendingClients: [...(metadata?.pending_clients ?? [])],
     userCount: counts.userCount,
     enabledModuleCount:
-      enabledModules.length > 0 || enabledSubModules.length > 0
+      enabledModules.length > 0
         ? countEnabledModules(enabledModules, enabledSubModules)
         : counts.enabledModuleCount,
     primaryUrl: workspacePrimaryUrl(row.slug, customerHostname),
