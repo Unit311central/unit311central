@@ -1,9 +1,11 @@
 /**
- * Top-level Unit311Central module catalogue for Workspaces provisioning (22 modules).
- * Product numbering 1–22 — Workspaces (23) is internal-only and excluded.
+ * AUTHORITATIVE CUSTOMER MODULE CATALOGUE (A)
  *
- * Derived from the central product nav (`central-product-nav.ts`), not workspace-specific
- * nav injection and not tutorial coverage.
+ * Top-level Unit311Central module catalogue for customer workspace provisioning — exactly
+ * 22 modules. Workspaces (#23) is internal-only and excluded. WOLF specialist modules are
+ * excluded. Legacy workspace_modules keys (e.g. telemetry) are excluded.
+ *
+ * Derived from `central-product-nav.ts` — never from unit311 template rows or DB counts.
  */
 
 import {
@@ -153,7 +155,6 @@ function moduleKeysForView(viewId: string | undefined, moduleId: string): string
   if (view === "website-management") return ["website-management"];
   if (view === "integrations") return ["users"];
   if (view === "testing") return ["testing"];
-  if (view === "telemetry") return ["telemetry"];
   if (view === "users" || view === "users-external" || view === "external-client-access") {
     return ["users"];
   }
@@ -213,6 +214,9 @@ export const WORKSPACE_MODULE_CATALOGUE: readonly WorkspaceModuleCatalogueEntry[
 
 export const WORKSPACE_MODULE_IDS = WORKSPACE_MODULE_CATALOGUE.map((entry) => entry.id);
 
+/** Single source of truth for customer module count in UI and provisioning. */
+export const CUSTOMER_MODULE_CATALOGUE_MODULE_COUNT = WORKSPACE_MODULE_IDS.length;
+
 export const WORKSPACE_PROVISIONING_FUNCTION_COUNT = WORKSPACE_MODULE_CATALOGUE.reduce(
   (total, entry) => total + entry.subModules.length,
   0,
@@ -258,10 +262,20 @@ export function allCatalogueModuleSelections(): {
   enabledSubModules: string[];
 } {
   const enabledModules = [...WORKSPACE_MODULE_IDS];
+  assertExactlyCustomerCatalogueModuleCount(enabledModules);
   return {
     enabledModules,
     enabledSubModules: defaultEnabledSubModules(enabledModules),
   };
+}
+
+export function assertExactlyCustomerCatalogueModuleCount(moduleIds: readonly string[]): void {
+  const catalogueOnly = moduleIds.filter((id) => WORKSPACE_MODULE_IDS.includes(id as never));
+  if (catalogueOnly.length !== CUSTOMER_MODULE_CATALOGUE_MODULE_COUNT) {
+    throw new Error(
+      `Customer module catalogue selection must contain exactly ${CUSTOMER_MODULE_CATALOGUE_MODULE_COUNT} modules (got ${catalogueOnly.length}).`,
+    );
+  }
 }
 
 /** Resolve workspace_modules.module_key values from wizard selections. */

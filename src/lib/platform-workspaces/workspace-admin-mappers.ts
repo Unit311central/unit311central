@@ -163,7 +163,7 @@ export function mapProvisioningState(metadata: WorkspaceAdminMetadataRow | null)
 
 export function mapWorkspaceRowToRecord(
   row: WorkspaceRow,
-  counts: { userCount: number; enabledModuleCount: number },
+  counts: { userCount: number },
 ): WorkspaceAdminRecord {
   const settings = firstRelation(row.workspace_settings);
   const metadata = firstRelation(row.workspace_admin_metadata);
@@ -200,10 +200,7 @@ export function mapWorkspaceRowToRecord(
     pendingEmployees: [...(metadata?.pending_employees ?? [])],
     pendingClients: [...(metadata?.pending_clients ?? [])],
     userCount: counts.userCount,
-    enabledModuleCount:
-      enabledModules.length > 0
-        ? countEnabledModules(enabledModules, enabledSubModules)
-        : counts.enabledModuleCount,
+    enabledModuleCount: countEnabledModules(enabledModules, enabledSubModules),
     primaryUrl: workspacePrimaryUrl(row.slug, customerHostname),
     customerHostname,
     createdAt: metadata?.created_at ?? row.created_at,

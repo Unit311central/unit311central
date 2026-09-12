@@ -13,6 +13,7 @@ import {
   WORKSPACE_PROVISIONING_TIMEZONES,
 } from "@/lib/platform-workspaces/workspace-provisioning-catalogues";
 import {
+  CUSTOMER_MODULE_CATALOGUE_MODULE_COUNT,
   WORKSPACE_MODULE_CATALOGUE,
   WORKSPACE_MODULE_IDS,
   allCatalogueModuleSelections,
@@ -286,8 +287,9 @@ export function NewWorkspaceWizard() {
           </p>
           <h1 className="mt-1 text-2xl font-semibold tracking-tight text-white">New Workspace</h1>
           <p className="mt-2 max-w-2xl text-sm leading-relaxed text-white/55">
-            Provision a new customer workspace with the authoritative {WORKSPACE_MODULE_IDS.length}-module
-            catalogue. The workspace starts clean — no employee, client, or legacy data imports.
+            Provision a new customer workspace with the authoritative{" "}
+            {CUSTOMER_MODULE_CATALOGUE_MODULE_COUNT}-module catalogue. The workspace starts clean — no
+            employee, client, or legacy data imports.
           </p>
         </div>
         </div>
@@ -460,7 +462,7 @@ export function NewWorkspaceWizard() {
         {step === 1 ? (
           <div className="space-y-3">
             <p className="text-sm text-white/55">
-              Authoritative catalogue: {WORKSPACE_MODULE_IDS.length} modules ·{" "}
+              Authoritative catalogue: {CUSTOMER_MODULE_CATALOGUE_MODULE_COUNT} modules ·{" "}
               {state.enabledModules.length} selected
             </p>
             <label className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2.5 text-sm font-medium text-white">
@@ -830,7 +832,7 @@ function ReviewSummary({
       </ReviewBlock>
       <ReviewBlock title="Modules" onEdit={() => onEdit(1)}>
         <p>
-          {state.enabledModules.length} of {WORKSPACE_MODULE_IDS.length} catalogue modules ·{" "}
+          {state.enabledModules.length} of {CUSTOMER_MODULE_CATALOGUE_MODULE_COUNT} catalogue modules ·{" "}
           {state.enabledSubModules.length} sub-modules selected
         </p>
       </ReviewBlock>

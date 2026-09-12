@@ -1,9 +1,12 @@
 import { RESERVED_UNIT311_SUBDOMAINS } from "@/lib/app-domains";
 import {
-  allCatalogueProvisioningModuleKeys,
   countEnabledModules,
   resolveProvisioningModuleKeys,
 } from "@/lib/platform-workspaces/module-catalogue";
+import {
+  buildCustomerWorkspaceModuleConfiguration,
+  legacyModuleKeysOutsideCatalogue,
+} from "@/lib/platform-workspaces/workspace-module-configuration";
 import {
   mapWorkspaceRowToRecord,
   normalizeSlug,
@@ -107,21 +110,9 @@ async function countWorkspaceUsers(workspaceId: string): Promise<number> {
   return count;
 }
 
-async function countEnabledWorkspaceModules(workspaceId: string): Promise<number> {
-  const supabase = createTenancyServerClient();
-  const { count, error } = await supabase
-    .from("workspace_modules")
-    .select("id", { count: "exact", head: true })
-    .eq("workspace_id", workspaceId)
-    .eq("enabled", true);
-  if (error || count == null) return 0;
-  return count;
-}
-
 async function syncWorkspaceModules(workspaceId: string, moduleKeys: string[]): Promise<void> {
   const supabase = createTenancyServerClient();
-  const catalogueKeys = new Set(allCatalogueProvisioningModuleKeys());
-  const selectedKeys = new Set(moduleKeys.filter((key) => catalogueKeys.has(key)));
+  const configuration = buildCustomerWorkspaceModuleConfiguration(moduleKeys);
 
   const { data: existingRows, error: loadError } = await supabase
     .from("workspace_modules")
@@ -131,23 +122,34 @@ async function syncWorkspaceModules(workspaceId: string, moduleKeys: string[]): 
     throw new Error(loadError.message || "Failed to load workspace modules for sync.");
   }
 
-  const keysToSync = new Set<string>([
-    ...catalogueKeys,
-    ...(existingRows ?? []).map((row) => String(row.module_key)),
-  ]);
+  const legacyKeys = legacyModuleKeysOutsideCatalogue(
+    (existingRows ?? []).map((row) => String(row.module_key)),
+  );
+  if (legacyKeys.length > 0) {
+    const { error: deleteError } = await supabase
+      .from("workspace_modules")
+      .delete()
+      .eq("workspace_id", workspaceId)
+      .in("module_key", legacyKeys);
+    if (deleteError) {
+      throw new Error(
+        deleteError.message || "Failed to remove legacy module keys from customer workspace.",
+      );
+    }
+  }
 
-  for (const moduleKey of keysToSync) {
+  for (const row of configuration) {
     const { error } = await supabase.from("workspace_modules").upsert(
       {
         workspace_id: workspaceId,
-        module_key: moduleKey,
-        enabled: selectedKeys.has(moduleKey),
+        module_key: row.module_key,
+        enabled: row.enabled,
         updated_at: nowIso(),
       },
       { onConflict: "workspace_id,module_key" },
     );
     if (error) {
-      throw new Error(error.message || `Failed to sync module "${moduleKey}".`);
+      throw new Error(error.message || `Failed to sync module "${row.module_key}".`);
     }
   }
 }
@@ -230,10 +232,7 @@ export function createSupabaseWorkspaceAdminRepository(): WorkspaceAdminReposito
       const records: WorkspaceAdminRecord[] = [];
       for (const row of data ?? []) {
         const workspaceId = String(row.id);
-        const [userCount, enabledModuleCount] = await Promise.all([
-          countWorkspaceUsers(workspaceId),
-          countEnabledWorkspaceModules(workspaceId),
-        ]);
+        const userCount = await countWorkspaceUsers(workspaceId);
         records.push(
           mapWorkspaceRowToRecord(
             {
@@ -247,7 +246,7 @@ export function createSupabaseWorkspaceAdminRepository(): WorkspaceAdminReposito
               workspace_settings: row.workspace_settings,
               workspace_admin_metadata: row.workspace_admin_metadata,
             },
-            { userCount, enabledModuleCount },
+            { userCount },
           ),
         );
       }
@@ -267,10 +266,7 @@ export function createSupabaseWorkspaceAdminRepository(): WorkspaceAdminReposito
       }
       if (!data) return null;
 
-      const [userCount, enabledModuleCount] = await Promise.all([
-        countWorkspaceUsers(workspaceId),
-        countEnabledWorkspaceModules(workspaceId),
-      ]);
+      const userCount = await countWorkspaceUsers(workspaceId);
 
       return mapWorkspaceRowToRecord(
         {
@@ -284,7 +280,7 @@ export function createSupabaseWorkspaceAdminRepository(): WorkspaceAdminReposito
           workspace_settings: data.workspace_settings,
           workspace_admin_metadata: data.workspace_admin_metadata,
         },
-        { userCount, enabledModuleCount },
+        { userCount },
       );
     },
 
