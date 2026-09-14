@@ -1661,6 +1661,7 @@ function AccessViewGuard({
     if (activeView === "qa-tasks" && isTestWorkspaceSlug(workspaceSlug)) {
       return;
     }
+    // qa-tasks on non-QA workspaces falls through to allowedViews check below
     if (
       isFundraisingModuleView(activeView) &&
       !isFundraisingModuleEnabled(resolvedEnablement.enabledModules, {

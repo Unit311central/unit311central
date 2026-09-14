@@ -47,13 +47,13 @@ assert.equal(isTestWorkspaceSlug("test"), true);
 assert.equal(isTestWorkspaceSlug("TEST"), true);
 assert.equal(isTestWorkspaceSlug("demo"), false);
 assert.equal(isTestWorkspaceSlug("unit311"), false);
-assert.equal(isTestWorkspaceSlug("interfaceworx"), false);
+assert.equal(isTestWorkspaceSlug("interfaceworx"), true);
 assert.equal(isTestWorkspaceSlug("onwardair"), false);
 assert.equal(isTestWorkspaceSlug("abhi"), false);
 assert.equal(isTestWorkspaceSlug("talantonimpact"), false);
 assert.equal(TEST_WORKSPACE_SLUG, "test");
 
-assert.throws(() => assertTestWorkspaceSlug("demo"), /only available on the dedicated Test workspace/);
+assert.throws(() => assertTestWorkspaceSlug("demo"), /only available on enabled QA workspaces/);
 
 // --- Nav injection: Test workspace only ---
 const toolsSection = internalSurveyNavSections.find(
@@ -78,12 +78,14 @@ assert.ok(
   "Internal must not get QA Tasks nav",
 );
 
-const testNav = injectTestWorkspaceQaNav(internalSurveyNavSections, "test");
-const testTools = testNav.find((section) => section.kind === "workspace" && section.label === "Tools");
-assert.ok(testTools);
-const qaItem = testTools!.items.find((item) => item.view === "qa-tasks");
-assert.ok(qaItem, "Test workspace must get QA Tasks under Tools");
-assert.equal(qaItem!.label, "QA Tasks");
+for (const slug of ["test", "interfaceworx"] as const) {
+  const nav = injectTestWorkspaceQaNav(internalSurveyNavSections, slug);
+  const tools = nav.find((section) => section.kind === "workspace" && section.label === "Tools");
+  assert.ok(tools, `${slug} must have Tools section`);
+  const qaItem = tools!.items.find((item) => item.view === "qa-tasks");
+  assert.ok(qaItem, `${slug} workspace must get QA Tasks under Tools`);
+  assert.equal(qaItem!.label, "QA Tasks");
+}
 
 // --- Page / module context ---
 const pageContext = resolveQaPageContext({
@@ -169,6 +171,7 @@ const sampleTask: QaWorkspaceTask = {
   elementType: "page",
   elementId: "home",
   description: 'Dashboard shows 3 clients but BC shows 0',
+  comments: "Needs BC sync review",
   createdBy: null,
   createdByEmail: null,
   createdAt: "2026-08-22T12:00:00.000Z",
@@ -178,15 +181,19 @@ const sampleTask: QaWorkspaceTask = {
 const csv = qaTasksToCsv([sampleTask], "test");
 assert.match(csv, /^ID,Scope,Status,Completed,Module,Page,Element/);
 assert.match(csv, /Page,open,false,HOME,Home,Page-level/);
+assert.match(csv, /Needs BC sync review/);
 assert.match(csv, /,test,/);
 
 // --- Migration registered ---
 const migration153 = "supabase/migrations/153_qa_workspace_tasks.sql";
 const migration154 = "supabase/migrations/154_qa_workspace_tasks_scope.sql";
+const migration172 = "supabase/migrations/172_qa_workspace_tasks_comments.sql";
 assert.ok(UNIT311_PENDING_MIGRATIONS.includes(migration153 as never));
 assert.ok(UNIT311_PENDING_MIGRATIONS.includes(migration154 as never));
+assert.ok(UNIT311_PENDING_MIGRATIONS.includes(migration172 as never));
 assert.ok(MIGRATION_SATISFACTION_PROBES[migration153]);
 assert.ok(MIGRATION_SATISFACTION_PROBES[migration154]);
+assert.ok(MIGRATION_SATISFACTION_PROBES[migration172]);
 
 const migrationSql = readRepoFile(migration153);
 assert.match(migrationSql, /create table if not exists public\.qa_workspace_tasks/);
@@ -221,6 +228,17 @@ const wizardSource = readRepoFile("src/components/platform-workspaces/NewWorkspa
 assert.ok(!/qa-tasks/i.test(wizardSource), "New Workspace wizard must not include QA");
 
 // --- API routes enforce test workspace ---
+const commentsMigrationSql = readRepoFile(migration172);
+assert.match(commentsMigrationSql, /add column if not exists comments text/);
+
+const qaServiceSource = readRepoFile("src/lib/qa-workspace/service.ts");
+assert.match(qaServiceSource, /notifyQaTaskCommentUpdated/);
+assert.match(qaServiceSource, /notifyQaTaskCompleted/);
+
+const qaTasksUi = readRepoFile("src/components/qa-workspace/QaTasksWorkspace.tsx");
+assert.match(qaTasksUi, /Comments/);
+assert.match(qaTasksUi, /saveComment/);
+
 const qaApiRoute = readRepoFile("src/app/api/qa/tasks/route.ts");
 assert.match(qaApiRoute, /requireTestWorkspaceAccess/);
 assert.match(qaApiRoute, /validateQaWorkspaceTaskInput/);

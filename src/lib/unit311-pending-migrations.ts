@@ -110,6 +110,7 @@ export const UNIT311_PENDING_MIGRATIONS = [
   "supabase/migrations/168_demo_complete_catalogue_enablement.sql",
   "supabase/migrations/169_demo_sales_management_coherent_seed.sql",
   "supabase/migrations/170_saec_installations.sql",
+  "supabase/migrations/172_qa_workspace_tasks_comments.sql",
 ] as const;
 
 export const SALES_MANAGEMENT_FOUNDATION_MIGRATION =

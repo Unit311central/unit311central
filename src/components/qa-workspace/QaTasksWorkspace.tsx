@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Download, Pencil, Trash2 } from "lucide-react";
+import { Download, Loader2, Pencil, Trash2 } from "lucide-react";
 
 import type { QaTaskScope, QaTaskStatus } from "@/lib/qa-workspace/constants";
 import { QA_TASK_SCOPES } from "@/lib/qa-workspace/constants";
@@ -35,6 +35,8 @@ export default function QaTasksWorkspace() {
     elementType: "",
   });
   const [editing, setEditing] = useState<QaWorkspaceTask | null>(null);
+  const [commentDrafts, setCommentDrafts] = useState<Record<string, string>>({});
+  const [savingCommentId, setSavingCommentId] = useState<string | null>(null);
 
   const queryString = useMemo(() => {
     const params = new URLSearchParams();
@@ -54,7 +56,15 @@ export default function QaTasksWorkspace() {
       const response = await fetch(`/api/qa/tasks${queryString}`);
       const payload = (await response.json()) as { tasks?: QaWorkspaceTask[]; error?: string };
       if (!response.ok) throw new Error(payload.error || "Failed to load QA tasks.");
-      setTasks(payload.tasks ?? []);
+      const nextTasks = payload.tasks ?? [];
+      setTasks(nextTasks);
+      setCommentDrafts((current) => {
+        const next = { ...current };
+        for (const task of nextTasks) {
+          if (next[task.id] === undefined) next[task.id] = task.comments ?? "";
+        }
+        return next;
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load QA tasks.");
     } finally {
@@ -80,14 +90,38 @@ export default function QaTasksWorkspace() {
   );
 
   async function toggleCompleted(task: QaWorkspaceTask, completed: boolean) {
-    const response = await fetch(`/api/qa/tasks/${task.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ completed, status: completed ? "completed" : "open" }),
-    });
-    const payload = (await response.json()) as { error?: string };
-    if (!response.ok) throw new Error(payload.error || "Failed to update QA task.");
-    await loadTasks();
+    try {
+      const response = await fetch(`/api/qa/tasks/${task.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ completed, status: completed ? "completed" : "open" }),
+      });
+      const payload = (await response.json()) as { error?: string };
+      if (!response.ok) throw new Error(payload.error || "Failed to update QA task.");
+      await loadTasks();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to update QA task.");
+    }
+  }
+
+  async function saveComment(task: QaWorkspaceTask) {
+    const comments = (commentDrafts[task.id] ?? "").trim();
+    setSavingCommentId(task.id);
+    setError(null);
+    try {
+      const response = await fetch(`/api/qa/tasks/${task.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ comments }),
+      });
+      const payload = (await response.json()) as { error?: string };
+      if (!response.ok) throw new Error(payload.error || "Failed to save comment.");
+      await loadTasks();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to save comment.");
+    } finally {
+      setSavingCommentId(null);
+    }
   }
 
   async function deleteTask(task: QaWorkspaceTask) {
@@ -121,7 +155,7 @@ export default function QaTasksWorkspace() {
   }
 
   return (
-    <div className="space-y-4 p-1">
+    <div className="mx-auto max-w-[1180px] space-y-4 p-1">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h2 className="text-lg font-semibold text-white">QA Tasks</h2>
@@ -200,61 +234,70 @@ export default function QaTasksWorkspace() {
       {error ? <p className="text-sm text-rose-300">{error}</p> : null}
 
       <div className="overflow-x-auto rounded-xl border border-white/10">
-        <table className="min-w-full text-left text-sm text-white/80">
-          <thead className="bg-white/[0.03] text-xs uppercase tracking-wide text-white/45">
+        <table className="w-full table-fixed text-left text-xs text-white/80">
+          <thead className="bg-white/[0.03] text-[10px] uppercase tracking-wide text-white/45">
             <tr>
-              <th className="px-3 py-2">Done</th>
-              <th className="px-3 py-2">Scope</th>
-              <th className="px-3 py-2">Module / Area</th>
-              <th className="px-3 py-2">Page</th>
-              <th className="px-3 py-2">Element</th>
-              <th className="px-3 py-2">Description</th>
-              <th className="px-3 py-2">Created</th>
-              <th className="px-3 py-2">Status</th>
-              <th className="px-3 py-2">Actions</th>
+              <th className="w-10 px-2 py-2">Done</th>
+              <th className="w-16 px-2 py-2">Scope</th>
+              <th className="w-16 px-2 py-2">Status</th>
+              <th className="w-24 px-2 py-2">Module</th>
+              <th className="w-24 px-2 py-2">Page</th>
+              <th className="w-24 px-2 py-2">Element</th>
+              <th className="w-[22%] px-2 py-2">Description</th>
+              <th className="w-20 px-2 py-2">Created</th>
+              <th className="w-14 px-2 py-2">Actions</th>
+              <th className="w-[24%] px-2 py-2">Comments</th>
             </tr>
           </thead>
           <tbody>
             {tasks.map((task) => (
               <tr key={task.id} className="border-t border-white/10 align-top">
-                <td className="px-3 py-2">
+                <td className="px-2 py-2">
                   <input
                     type="checkbox"
                     checked={task.completed}
                     onChange={(event) => void toggleCompleted(task, event.target.checked)}
                   />
                 </td>
-                <td className="px-3 py-2">
-                  <span className="rounded bg-white/[0.06] px-2 py-0.5 text-xs font-medium text-white/75">
+                <td className="px-2 py-2">
+                  <span className="inline-block rounded bg-white/[0.06] px-1.5 py-0.5 text-[10px] font-medium text-white/75">
                     {formatQaTaskScopeLabel(task.scope)}
                   </span>
                 </td>
-                <td className="px-3 py-2">{task.moduleLabel}</td>
-                <td className="px-3 py-2">{task.pageLabel}</td>
-                <td className="px-3 py-2">{task.elementLabel}</td>
-                <td className="max-w-md px-3 py-2 whitespace-pre-wrap">{task.description}</td>
-                <td className="px-3 py-2">{formatDate(task.createdAt)}</td>
-                <td className="px-3 py-2">
+                <td className="px-2 py-2">
                   <span
                     className={cn(
-                      "rounded px-2 py-0.5 text-xs font-medium uppercase",
+                      "inline-block rounded px-1.5 py-0.5 text-[10px] font-medium uppercase",
                       task.completed
                         ? "bg-emerald-500/15 text-emerald-200"
                         : "bg-amber-500/15 text-amber-200",
                     )}
                   >
-                    {task.completed ? "Completed" : "Open"}
+                    {task.completed ? "Done" : "Open"}
                   </span>
                 </td>
-                <td className="px-3 py-2">
-                  <div className="flex gap-2">
+                <td className="truncate px-2 py-2" title={task.moduleLabel}>
+                  {task.moduleLabel}
+                </td>
+                <td className="truncate px-2 py-2" title={task.pageLabel}>
+                  {task.pageLabel}
+                </td>
+                <td className="truncate px-2 py-2" title={task.elementLabel}>
+                  {task.elementLabel}
+                </td>
+                <td className="px-2 py-2">
+                  <p className="line-clamp-3 whitespace-pre-wrap break-words">{task.description}</p>
+                </td>
+                <td className="whitespace-nowrap px-2 py-2">{formatDate(task.createdAt)}</td>
+                <td className="px-2 py-2">
+                  <div className="flex gap-1">
                     <button
                       type="button"
                       className="rounded border border-white/10 p-1 text-white/70 hover:bg-white/[0.05]"
                       onClick={() => setEditing({ ...task })}
                       aria-label="Edit task"
                     >
-                      <Pencil className="h-4 w-4" />
+                      <Pencil className="h-3.5 w-3.5" />
                     </button>
                     <button
                       type="button"
@@ -262,7 +305,34 @@ export default function QaTasksWorkspace() {
                       onClick={() => void deleteTask(task)}
                       aria-label="Delete task"
                     >
-                      <Trash2 className="h-4 w-4" />
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                </td>
+                <td className="px-2 py-2">
+                  <div className="space-y-1.5">
+                    <textarea
+                      value={commentDrafts[task.id] ?? task.comments ?? ""}
+                      onChange={(event) =>
+                        setCommentDrafts((current) => ({
+                          ...current,
+                          [task.id]: event.target.value,
+                        }))
+                      }
+                      rows={2}
+                      placeholder="Add reviewer comment…"
+                      className="w-full rounded-lg border border-white/10 bg-[#050b16] px-2 py-1.5 text-xs text-white outline-none focus:border-sky-400/40"
+                    />
+                    <button
+                      type="button"
+                      disabled={savingCommentId === task.id}
+                      onClick={() => void saveComment(task)}
+                      className="inline-flex items-center gap-1 rounded-lg border border-sky-400/30 bg-sky-500/15 px-2 py-1 text-[11px] font-medium text-sky-100 disabled:opacity-50"
+                    >
+                      {savingCommentId === task.id ? (
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                      ) : null}
+                      Save
                     </button>
                   </div>
                 </td>
@@ -270,7 +340,7 @@ export default function QaTasksWorkspace() {
             ))}
             {!loading && tasks.length === 0 ? (
               <tr>
-                <td colSpan={9} className="px-3 py-8 text-center text-white/45">
+                <td colSpan={10} className="px-3 py-8 text-center text-white/45">
                   No QA tasks yet. Turn on QA Mode and click an element to capture your first task.
                 </td>
               </tr>

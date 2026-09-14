@@ -19,7 +19,7 @@ import {
   buildPageCapture,
   buildWorkspaceCapture,
 } from "@/lib/qa-workspace/scope";
-import { isBrowserTestWorkspaceSurface } from "@/lib/qa-workspace/surface";
+import { isBrowserTestWorkspaceSurface, isQaEnabledWorkspaceSlug } from "@/lib/qa-workspace/surface";
 import type { QaPageContext, QaTaskCaptureContext } from "@/lib/qa-workspace/types";
 
 import QaModeOverlay from "./QaModeOverlay";
@@ -61,7 +61,7 @@ export default function QaWorkspaceProvider({
   workspaceSlug,
 }: QaWorkspaceProviderProps) {
   const enabled =
-    isBrowserTestWorkspaceSurface() || workspaceSlug?.trim().toLowerCase() === "test";
+    isBrowserTestWorkspaceSurface() || isQaEnabledWorkspaceSlug(workspaceSlug);
   const pathname = usePathname() ?? "";
   const searchParams = useSearchParams();
   const search = searchParams?.toString() ? `?${searchParams.toString()}` : "";

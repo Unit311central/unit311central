@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
 
-import { isTestWorkspaceSlug } from "@/lib/qa-workspace/surface";
+import { isQaEnabledWorkspaceSlug } from "@/lib/qa-workspace/surface";
 import { getPlatformSession } from "@/lib/platform-session";
 import { requireCurrentWorkspace, type CurrentWorkspace } from "@/lib/workspace-context";
 import type { PlatformSession } from "@/lib/platform-session";
 
-const QA_FORBIDDEN = "QA features are only available on the dedicated Test workspace.";
+const QA_FORBIDDEN = "QA features are only available on enabled QA workspaces.";
 
 export async function requireTestWorkspaceAccess(): Promise<
   { error: NextResponse } | { workspace: CurrentWorkspace; session: PlatformSession }
@@ -17,7 +17,7 @@ export async function requireTestWorkspaceAccess(): Promise<
 
   try {
     const workspace = await requireCurrentWorkspace();
-    if (!isTestWorkspaceSlug(workspace.slug)) {
+    if (!isQaEnabledWorkspaceSlug(workspace.slug)) {
       return { error: NextResponse.json({ error: QA_FORBIDDEN }, { status: 403 }) };
     }
     return { workspace, session };
@@ -28,7 +28,7 @@ export async function requireTestWorkspaceAccess(): Promise<
 }
 
 export function assertTestWorkspaceSlug(slug: string | null | undefined): void {
-  if (!isTestWorkspaceSlug(slug)) {
+  if (!isQaEnabledWorkspaceSlug(slug)) {
     throw new Error(QA_FORBIDDEN);
   }
 }

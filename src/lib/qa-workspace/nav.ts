@@ -1,12 +1,12 @@
 import type { InternalNavSection } from "@/lib/internal-operations-data";
-import { isTestWorkspaceSlug } from "@/lib/qa-workspace/surface";
+import { isQaEnabledWorkspaceSlug } from "@/lib/qa-workspace/surface";
 
-/** Inject QA Tasks under Tools for the dedicated Test workspace only. */
+/** Inject QA Tasks under Tools for QA-enabled workspaces only. */
 export function injectTestWorkspaceQaNav(
   sections: readonly InternalNavSection[],
   workspaceSlug: string | null | undefined,
 ): InternalNavSection[] {
-  if (!isTestWorkspaceSlug(workspaceSlug)) return [...sections];
+  if (!isQaEnabledWorkspaceSlug(workspaceSlug)) return [...sections];
 
   return sections.map((section) => {
     if (section.kind !== "workspace" || section.label !== "Tools") return section;

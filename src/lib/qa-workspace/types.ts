@@ -15,6 +15,7 @@ export type QaWorkspaceTask = {
   elementType: string | null;
   elementId: string | null;
   description: string;
+  comments: string;
   createdBy: string | null;
   createdByEmail: string | null;
   createdAt: string;
@@ -32,6 +33,7 @@ export type QaWorkspaceTaskInput = {
   elementType?: string | null;
   elementId?: string | null;
   description: string;
+  comments?: string;
   completed?: boolean;
   status?: QaTaskStatus;
 };

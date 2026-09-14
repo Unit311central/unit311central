@@ -1,5 +1,9 @@
 import { createTenancyServerClient } from "@/lib/supabase/tenancy-server";
 import type { QaTaskScope, QaTaskStatus } from "@/lib/qa-workspace/constants";
+import {
+  notifyQaTaskCommentUpdated,
+  notifyQaTaskCompleted,
+} from "@/lib/qa-workspace/notifications";
 import { inferScopeFromLegacyTask } from "@/lib/qa-workspace/scope";
 import type {
   QaWorkspaceTask,
@@ -22,6 +26,7 @@ type QaTaskRow = {
   element_type: string | null;
   element_id: string | null;
   description: string;
+  comments?: string | null;
   created_by: string | null;
   created_by_email: string | null;
   created_at: string;
@@ -50,6 +55,7 @@ function mapRow(row: QaTaskRow): QaWorkspaceTask {
     elementType: row.element_type,
     elementId: row.element_id,
     description: row.description,
+    comments: row.comments?.trim() ?? "",
     createdBy: row.created_by,
     createdByEmail: row.created_by_email,
     createdAt: row.created_at,
@@ -136,6 +142,9 @@ export async function updateQaWorkspaceTask(
   taskId: string,
   patch: Partial<QaWorkspaceTaskInput>,
 ): Promise<QaWorkspaceTask> {
+  const existing = await getQaWorkspaceTask(workspaceId, taskId);
+  if (!existing) throw new Error("QA task not found.");
+
   const supabase = createTenancyServerClient();
   const update: Record<string, unknown> = { updated_at: new Date().toISOString() };
 
@@ -149,6 +158,7 @@ export async function updateQaWorkspaceTask(
   if (patch.elementType !== undefined) update.element_type = patch.elementType?.trim() || null;
   if (patch.elementId !== undefined) update.element_id = patch.elementId?.trim() || null;
   if (patch.description !== undefined) update.description = patch.description.trim();
+  if (patch.comments !== undefined) update.comments = patch.comments.trim();
 
   if (patch.status !== undefined || patch.completed !== undefined) {
     const status = normalizeStatus(patch);
@@ -166,7 +176,18 @@ export async function updateQaWorkspaceTask(
 
   if (error) throw new Error(error.message || "Failed to update QA task.");
   if (!data) throw new Error("QA task not found.");
-  return mapRow(data as QaTaskRow);
+
+  const updated = mapRow(data as QaTaskRow);
+
+  if (patch.comments !== undefined && patch.comments.trim() !== existing.comments.trim()) {
+    await notifyQaTaskCommentUpdated(updated, patch.comments);
+  }
+
+  if (!existing.completed && updated.completed) {
+    await notifyQaTaskCompleted(updated);
+  }
+
+  return updated;
 }
 
 export async function deleteQaWorkspaceTask(workspaceId: string, taskId: string): Promise<void> {

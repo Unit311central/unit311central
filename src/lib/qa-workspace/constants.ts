@@ -3,6 +3,11 @@ export const TEST_WORKSPACE_SLUG = "test";
 
 export const TEST_WORKSPACE_HOST = "test.unit311central.com";
 
+/** Workspaces that expose QA Mode and the QA Tasks backlog (not product modules). */
+export const QA_ENABLED_WORKSPACE_SLUGS = ["test", "interfaceworx"] as const;
+
+export const QA_NOTIFY_EMAIL = "paul@unit311central.com";
+
 export const QA_TASK_STATUSES = ["open", "completed"] as const;
 
 export type QaTaskStatus = (typeof QA_TASK_STATUSES)[number];
