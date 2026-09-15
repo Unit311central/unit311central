@@ -10,6 +10,7 @@ import {
   buildSidebarConfigSnapshot,
   defaultWorkspaceSidebarModuleRows,
   deriveSidebarRowsFromLegacyEnabledModules,
+  enableWorkspaceSidebarModule,
   listSidebarCatalogueModules,
   mergeCatalogueWithPersistedRows,
   sanitizeSidebarModulePayload,
@@ -97,23 +98,39 @@ assert.ok(legacySubset.find((row) => row.moduleId === "intelligence")?.enabled =
 const specialistDefault = deriveSidebarRowsFromLegacyEnabledModules(null);
 assert.ok(specialistDefault.every((row) => row.enabled));
 
-const disableMiddle = buildSidebarConfigSnapshot([
+const abcdRows = [
   { moduleId: "board", enabled: true, displayOrder: 10 },
   { moduleId: "financials", enabled: true, displayOrder: 20 },
   { moduleId: "fundraising", enabled: true, displayOrder: 30 },
+  { moduleId: "engineering", enabled: true, displayOrder: 40 },
+] as const;
+
+assert.deepEqual(buildSidebarConfigSnapshot(abcdRows).enabledModuleIds, [
+  "board",
+  "financials",
+  "fundraising",
+  "engineering",
 ]);
-const disabledBoardRows = disableMiddle.modules.map((row) =>
+
+const disabledMiddle = abcdRows.map((row) =>
   row.moduleId === "financials" ? { ...row, enabled: false } : row,
 );
-const afterDisable = buildSidebarConfigSnapshot(disabledBoardRows);
-assert.deepEqual(
-  afterDisable.enabledModuleIds,
-  ["board", "fundraising"],
+const afterDisable = buildSidebarConfigSnapshot(disabledMiddle);
+assert.deepEqual(afterDisable.enabledModuleIds, ["board", "fundraising", "engineering"]);
+assert.equal(
+  afterDisable.modules.find((row) => row.moduleId === "financials")?.displayOrder,
+  20,
 );
-const reenabled = afterDisable.modules.map((row) =>
-  row.moduleId === "financials" ? { ...row, enabled: true } : row,
-);
+
+const reenabled = enableWorkspaceSidebarModule(disabledMiddle, "financials");
+assert.ok(reenabled);
 const afterReenable = buildSidebarConfigSnapshot(reenabled);
+assert.deepEqual(afterReenable.enabledModuleIds, [
+  "board",
+  "financials",
+  "fundraising",
+  "engineering",
+]);
 assert.equal(
   afterReenable.modules.find((row) => row.moduleId === "financials")?.displayOrder,
   20,

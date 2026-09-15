@@ -116,6 +116,16 @@ export function deriveSidebarRowsFromLegacyEnabledModules(
   });
 }
 
+/** Re-enable a module without changing its persisted display_order. */
+export function enableWorkspaceSidebarModule(
+  rows: readonly WorkspaceSidebarModuleRecord[],
+  moduleId: string,
+): WorkspaceSidebarModuleRecord[] | null {
+  const target = rows.find((row) => row.moduleId === moduleId);
+  if (!target) return null;
+  return rows.map((row) => (row.moduleId === moduleId ? { ...row, enabled: true } : row));
+}
+
 export function buildSidebarConfigSnapshot(
   rows: readonly WorkspaceSidebarModuleRecord[],
 ): WorkspaceSidebarConfigSnapshot {

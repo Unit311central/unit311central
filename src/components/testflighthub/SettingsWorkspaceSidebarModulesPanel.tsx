@@ -19,7 +19,10 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { GripVertical, Lock, MinusCircle, Plus } from "lucide-react";
 
-import type { WorkspaceSidebarModuleRecord } from "@/lib/platform-workspaces/workspace-sidebar-config";
+import {
+  enableWorkspaceSidebarModule,
+  type WorkspaceSidebarModuleRecord,
+} from "@/lib/platform-workspaces/workspace-sidebar-config";
 import { PLATFORM_CACHE_KEYS, invalidateCachedJson } from "@/lib/platform-fetch-cache";
 import { SIDEBAR_NAV_CUSTOM_EVENT } from "@/lib/sidebar-nav-custom";
 import { cn } from "@/lib/utils";
@@ -242,12 +245,8 @@ export function SettingsWorkspaceSidebarModulesPanel() {
   }
 
   function enableModule(moduleId: string) {
-    const maxOrder = enabledModules.reduce((max, row) => Math.max(max, row.displayOrder), 0);
-    const nextRows = modules.map((row) =>
-      row.moduleId === moduleId
-        ? { ...row, enabled: true, displayOrder: maxOrder + 10 }
-        : row,
-    );
+    const nextRows = enableWorkspaceSidebarModule(modules, moduleId);
+    if (!nextRows) return;
     setModules(nextRows);
     void persist(nextRows);
   }
