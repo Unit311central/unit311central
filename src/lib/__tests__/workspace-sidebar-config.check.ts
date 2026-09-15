@@ -9,6 +9,7 @@ import {
   applyWorkspaceSidebarModuleConfig,
   buildSidebarConfigSnapshot,
   defaultWorkspaceSidebarModuleRows,
+  deriveSidebarRowsFromLegacyEnabledModules,
   listSidebarCatalogueModules,
   mergeCatalogueWithPersistedRows,
   sanitizeSidebarModulePayload,
@@ -81,5 +82,41 @@ const sanitized = sanitizeSidebarModulePayload([
 assert.ok(sanitized);
 assert.ok(sanitized.some((row) => row.moduleId === "board" && !row.enabled));
 assert.ok(!sanitized.some((row) => row.moduleId === "not-a-module"));
+
+const legacySubset = deriveSidebarRowsFromLegacyEnabledModules([
+  "home",
+  "executive-assistant",
+  "business-central",
+  "financials",
+  "settings",
+]);
+assert.ok(legacySubset.find((row) => row.moduleId === "business-central")?.enabled);
+assert.ok(legacySubset.find((row) => row.moduleId === "board")?.enabled === false);
+assert.ok(legacySubset.find((row) => row.moduleId === "intelligence")?.enabled === false);
+
+const specialistDefault = deriveSidebarRowsFromLegacyEnabledModules(null);
+assert.ok(specialistDefault.every((row) => row.enabled));
+
+const disableMiddle = buildSidebarConfigSnapshot([
+  { moduleId: "board", enabled: true, displayOrder: 10 },
+  { moduleId: "financials", enabled: true, displayOrder: 20 },
+  { moduleId: "fundraising", enabled: true, displayOrder: 30 },
+]);
+const disabledBoardRows = disableMiddle.modules.map((row) =>
+  row.moduleId === "financials" ? { ...row, enabled: false } : row,
+);
+const afterDisable = buildSidebarConfigSnapshot(disabledBoardRows);
+assert.deepEqual(
+  afterDisable.enabledModuleIds,
+  ["board", "fundraising"],
+);
+const reenabled = afterDisable.modules.map((row) =>
+  row.moduleId === "financials" ? { ...row, enabled: true } : row,
+);
+const afterReenable = buildSidebarConfigSnapshot(reenabled);
+assert.equal(
+  afterReenable.modules.find((row) => row.moduleId === "financials")?.displayOrder,
+  20,
+);
 
 console.log("workspace-sidebar-config.check.ts: all assertions passed");

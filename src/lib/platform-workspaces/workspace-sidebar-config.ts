@@ -73,6 +73,49 @@ export function defaultWorkspaceSidebarModuleRows(): WorkspaceSidebarModuleRecor
   }));
 }
 
+const LEGACY_METADATA_PIN_IDS = new Set<string>(FIXED_SIDEBAR_MODULE_IDS);
+
+function metadataHasConfigurableSelection(
+  enabledModules: readonly string[] | null | undefined,
+): boolean {
+  if (!enabledModules?.length) return false;
+  return enabledModules.some((id) => !LEGACY_METADATA_PIN_IDS.has(id));
+}
+
+/**
+ * Derive initial sidebar rows from legacy workspace_admin_metadata.enabled_modules.
+ * When metadata is empty or pins-only, all configurable catalogue modules are enabled
+ * (matches specialist workspaces that previously showed the full nav tree).
+ */
+export function deriveSidebarRowsFromLegacyEnabledModules(
+  enabledModules: readonly string[] | null | undefined,
+): WorkspaceSidebarModuleRecord[] {
+  const catalogue = listSidebarCatalogueModules();
+  if (!metadataHasConfigurableSelection(enabledModules)) {
+    return defaultWorkspaceSidebarModuleRows();
+  }
+
+  const orderIndex = new Map(
+    (enabledModules ?? []).map((id, index) => [id, index] as const),
+  );
+  const enabledSet = new Set(enabledModules ?? []);
+
+  return catalogue.map((entry, catalogueIndex) => {
+    const enabled = enabledSet.has(entry.id);
+    const metadataOrder = orderIndex.get(entry.id);
+    return {
+      moduleId: entry.id,
+      enabled,
+      displayOrder:
+        metadataOrder != null
+          ? (metadataOrder + 1) * 10
+          : enabled
+            ? (catalogueIndex + 1) * 10
+            : (catalogueIndex + 100) * 10,
+    };
+  });
+}
+
 export function buildSidebarConfigSnapshot(
   rows: readonly WorkspaceSidebarModuleRecord[],
 ): WorkspaceSidebarConfigSnapshot {

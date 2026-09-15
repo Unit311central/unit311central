@@ -6,7 +6,6 @@ import { resolveOperatorEntitlementsFromOperatorRow } from "@/lib/operator-entit
 import type { PlatformSession } from "@/lib/platform-session";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
 import { createTenancyServerClient } from "@/lib/supabase/tenancy-server";
-import { isWorkspaceTenantAdministratorSurface } from "@/lib/customer-workspace-surface";
 import type { CurrentWorkspace } from "@/lib/workspace-context";
 
 function isAdminRole(roles: readonly string[] | null | undefined): boolean {
@@ -59,9 +58,5 @@ export async function canManageWorkspaceSidebar(
     /* optional operator profile */
   }
 
-  if (isWorkspaceTenantAdministratorSurface(workspace.slug)) {
-    return isWorkspaceMembershipAdmin(workspace.id, session.sub);
-  }
-
-  return false;
+  return isWorkspaceMembershipAdmin(workspace.id, session.sub);
 }

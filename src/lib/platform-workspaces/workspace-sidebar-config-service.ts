@@ -2,7 +2,7 @@ import "server-only";
 
 import {
   buildSidebarConfigSnapshot,
-  defaultWorkspaceSidebarModuleRows,
+  deriveSidebarRowsFromLegacyEnabledModules,
   mergeCatalogueWithPersistedRows,
   resolveProvisioningKeysFromSidebarRows,
   type WorkspaceSidebarModuleRecord,
@@ -29,11 +29,27 @@ function nowIso() {
   return new Date().toISOString();
 }
 
+async function readLegacyEnabledModules(workspaceId: string): Promise<string[] | null> {
+  const supabase = createTenancyServerClient();
+  const { data } = await supabase
+    .from("workspace_admin_metadata")
+    .select("enabled_modules")
+    .eq("workspace_id", workspaceId)
+    .maybeSingle();
+  if (!data?.enabled_modules || !Array.isArray(data.enabled_modules)) return null;
+  return data.enabled_modules.map((id) => String(id));
+}
+
+async function bootstrapSidebarRows(workspaceId: string): Promise<WorkspaceSidebarModuleRecord[]> {
+  const legacyEnabledModules = await readLegacyEnabledModules(workspaceId);
+  return deriveSidebarRowsFromLegacyEnabledModules(legacyEnabledModules);
+}
+
 export async function loadWorkspaceSidebarModuleRows(
   workspaceId: string,
 ): Promise<WorkspaceSidebarModuleRecord[]> {
   if (!isSupabaseConfigured()) {
-    return defaultWorkspaceSidebarModuleRows();
+    return deriveSidebarRowsFromLegacyEnabledModules(null);
   }
 
   const supabase = createTenancyServerClient();
@@ -48,9 +64,9 @@ export async function loadWorkspaceSidebarModuleRows(
   }
 
   if (!data?.length) {
-    const defaults = defaultWorkspaceSidebarModuleRows();
-    await saveWorkspaceSidebarModuleRows(workspaceId, defaults, { syncMetadata: false });
-    return defaults;
+    const bootstrapped = await bootstrapSidebarRows(workspaceId);
+    await saveWorkspaceSidebarModuleRows(workspaceId, bootstrapped, { syncMetadata: false });
+    return bootstrapped;
   }
 
   return mergeCatalogueWithPersistedRows(data.map(mapRow));
