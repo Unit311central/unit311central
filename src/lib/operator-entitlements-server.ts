@@ -116,17 +116,14 @@ export async function loadOperatorEntitlementsSnapshot(
 
   if (workspace?.id && isSupabaseConfigured()) {
     try {
-      const supabase = createTenancyServerClient();
-      const { data: metadata } = await supabase
-        .from("workspace_admin_metadata")
-        .select("enabled_modules, enabled_sub_modules")
-        .eq("workspace_id", workspace.id)
-        .maybeSingle();
-      snapshot.enabledModules = metadata?.enabled_modules?.length
-        ? [...metadata.enabled_modules]
+      const { loadWorkspaceSidebarConfig } =
+        await import("@/lib/platform-workspaces/workspace-sidebar-config-service");
+      const sidebarConfig = await loadWorkspaceSidebarConfig(workspace.id);
+      snapshot.enabledModules = sidebarConfig.enabledModuleIds.length
+        ? [...sidebarConfig.enabledModuleIds]
         : null;
-      snapshot.enabledSubModules = metadata?.enabled_sub_modules?.length
-        ? [...metadata.enabled_sub_modules]
+      snapshot.enabledSubModules = sidebarConfig.enabledSubModuleKeys.length
+        ? [...sidebarConfig.enabledSubModuleKeys]
         : null;
 
       const greenDesertEnablement = resolveGreenDesertWorkspaceEnablement({

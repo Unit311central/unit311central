@@ -22,9 +22,11 @@ import type { OperatorEntitlementsSnapshot } from "@/lib/operator-entitlements-s
 import {
   PLATFORM_CACHE_KEYS,
   fetchCachedJson,
+  invalidateCachedJson,
   peekCachedJson,
   scopedPlatformCacheKey,
 } from "@/lib/platform-fetch-cache";
+import { SIDEBAR_NAV_CUSTOM_EVENT } from "@/lib/sidebar-nav-custom";
 import { mapUserRoleToInternalRoleView } from "@/lib/ai-operating-assistant/operator-entitlements";
 import {
   primaryUserRole,
@@ -265,6 +267,19 @@ export function OperatorEntitlementsProvider({
     }
     void load();
   }, [load, initialSnapshot]);
+
+  useEffect(() => {
+    const refreshSidebarEntitlements = () => {
+      invalidateCachedJson(
+        scopedPlatformCacheKey(PLATFORM_CACHE_KEYS.whoami, readHostWorkspaceSlug()),
+      );
+      void load();
+    };
+    window.addEventListener(SIDEBAR_NAV_CUSTOM_EVENT, refreshSidebarEntitlements);
+    return () => {
+      window.removeEventListener(SIDEBAR_NAV_CUSTOM_EVENT, refreshSidebarEntitlements);
+    };
+  }, [load]);
 
   const value = useMemo(() => state, [state]);
 

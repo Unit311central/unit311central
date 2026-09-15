@@ -98,6 +98,10 @@ import {
   type SidebarThemeTokens,
 } from "@/lib/sidebar-chrome";
 import {
+  applyWorkspaceSidebarModuleConfig,
+  sidebarConfigFromEnabledModuleIds,
+} from "@/lib/platform-workspaces/workspace-sidebar-config";
+import {
   applySidebarSectionOrder,
   loadSidebarNavCustom,
   reconcileSidebarNavCustom,
@@ -366,6 +370,11 @@ export default function EnterprisePlatformSidebar({
         enablement: workspaceNavEnablement,
       }),
     [effectiveWorkspaceSlug, workspaceType, workspaceNavEnablement],
+  );
+
+  const sidebarModuleConfig = useMemo(
+    () => sidebarConfigFromEnabledModuleIds(enabledModules),
+    [enabledModules],
   );
 
   // Only migrate / insert brand-new module keys. Do not rewrite storage when
@@ -899,6 +908,17 @@ export default function EnterprisePlatformSidebar({
     );
     const withQaNav = injectQaWorkspaceNav(filtered, workspaceSlug);
     if (
+      sidebarModuleConfig &&
+      entitlementsReady &&
+      (enabledModules?.length ?? 0) > 0
+    ) {
+      return applyWorkspaceSidebarModuleConfig(
+        withQaNav,
+        sidebarModuleConfig,
+        effectiveWorkspaceSlug,
+      );
+    }
+    if (
       typeof window !== "undefined" &&
       (hydrated || customerHostNav) &&
       !isPailexNavWorkspace(effectiveWorkspaceSlug)
@@ -909,7 +929,18 @@ export default function EnterprisePlatformSidebar({
     return withQaNav;
     // sectionOrderTick forces re-read after Settings saves.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [allowedViews, entitlementsReady, hydrated, sectionOrderTick, workspaceNavBase, customerHostNav, effectiveWorkspaceSlug]);
+  }, [
+    allowedViews,
+    entitlementsReady,
+    enabledModules,
+    hydrated,
+    sectionOrderTick,
+    sidebarModuleConfig,
+    workspaceNavBase,
+    customerHostNav,
+    effectiveWorkspaceSlug,
+    workspaceSlug,
+  ]);
 
   const pinSections = navSections.filter((section) => section.kind === "pin");
   const showWorkspaceSections =

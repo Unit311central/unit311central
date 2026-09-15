@@ -94,18 +94,14 @@ export async function GET() {
 
     if (workspace?.id && isSupabaseConfigured()) {
       try {
-        const { createTenancyServerClient } = await import("@/lib/supabase/tenancy-server");
-        const supabase = createTenancyServerClient();
-        const { data: metadata } = await supabase
-          .from("workspace_admin_metadata")
-          .select("enabled_modules, enabled_sub_modules")
-          .eq("workspace_id", workspace.id)
-          .maybeSingle();
-        if (metadata?.enabled_modules?.length) {
-          payload.enabledModules = [...metadata.enabled_modules];
+        const { loadWorkspaceSidebarConfig } =
+          await import("@/lib/platform-workspaces/workspace-sidebar-config-service");
+        const sidebarConfig = await loadWorkspaceSidebarConfig(workspace.id);
+        if (sidebarConfig.enabledModuleIds.length) {
+          payload.enabledModules = [...sidebarConfig.enabledModuleIds];
         }
-        if (metadata?.enabled_sub_modules?.length) {
-          payload.enabledSubModules = [...metadata.enabled_sub_modules];
+        if (sidebarConfig.enabledSubModuleKeys.length) {
+          payload.enabledSubModules = [...sidebarConfig.enabledSubModuleKeys];
         }
       } catch {
         /* optional nav enablement */
@@ -234,14 +230,14 @@ export async function GET() {
         .maybeSingle();
       workspaceLogoUrl = settings?.logo_url?.trim() || null;
 
-      const { data: metadata } = await supabase
-        .from("workspace_admin_metadata")
-        .select("enabled_modules, enabled_sub_modules")
-        .eq("workspace_id", workspace.id)
-        .maybeSingle();
-      enabledModules = metadata?.enabled_modules?.length ? [...metadata.enabled_modules] : null;
-      enabledSubModules = metadata?.enabled_sub_modules?.length
-        ? [...metadata.enabled_sub_modules]
+      const { loadWorkspaceSidebarConfig } =
+        await import("@/lib/platform-workspaces/workspace-sidebar-config-service");
+      const sidebarConfig = await loadWorkspaceSidebarConfig(workspace.id);
+      enabledModules = sidebarConfig.enabledModuleIds.length
+        ? [...sidebarConfig.enabledModuleIds]
+        : null;
+      enabledSubModules = sidebarConfig.enabledSubModuleKeys.length
+        ? [...sidebarConfig.enabledSubModuleKeys]
         : null;
 
       const greenDesertEnablement = resolveGreenDesertWorkspaceEnablement({
