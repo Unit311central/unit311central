@@ -17,7 +17,7 @@ import {
   type DragStartEvent,
 } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
-import { GripVertical, Lock, MinusCircle, Plus } from "lucide-react";
+import { ChevronDown, ChevronUp, GripVertical, Lock, MinusCircle, Plus } from "lucide-react";
 
 import {
   enableWorkspaceSidebarModule,
@@ -49,6 +49,9 @@ const collisionDetection: CollisionDetection = (args) => {
 function labelForModule(catalogue: SidebarCatalogueEntry[], moduleId: string): string {
   return catalogue.find((entry) => entry.id === moduleId)?.label ?? moduleId;
 }
+
+const compactIconButtonClass =
+  "inline-flex h-5 w-5 shrink-0 items-center justify-center rounded border border-white/10 text-white/55 transition-colors hover:bg-white/[0.06] hover:text-white/80 disabled:pointer-events-none disabled:opacity-30";
 
 function DraggableEnabledRow({
   moduleId,
@@ -85,11 +88,11 @@ function DraggableEnabledRow({
         transform: transform ? CSS.Translate.toString(transform) : undefined,
         opacity: isDragging ? 0.45 : 1,
       }}
-      className="flex items-center gap-2 rounded-lg border border-violet-400/25 bg-violet-500/10 px-2 py-1.5 2xl:px-2.5 2xl:py-2"
+      className="flex min-w-0 items-center gap-1 rounded-lg border border-violet-400/25 bg-violet-500/10 px-1.5 py-1.5"
     >
       <button
         type="button"
-        className="inline-flex shrink-0 cursor-grab touch-none text-white/45 active:cursor-grabbing"
+        className="inline-flex shrink-0 cursor-grab touch-none self-center text-white/40 active:cursor-grabbing"
         aria-label={`Drag ${label}`}
         disabled={busy}
         {...listeners}
@@ -97,35 +100,39 @@ function DraggableEnabledRow({
       >
         <GripVertical className="h-3.5 w-3.5" />
       </button>
-      <span className="min-w-0 flex-1 truncate text-[11px] font-semibold uppercase tracking-[0.04em] text-white/90 2xl:text-xs">
+      <span
+        className="min-w-0 flex-1 self-center text-[10px] font-semibold uppercase leading-snug tracking-[0.02em] text-white/90 break-words [overflow-wrap:anywhere]"
+        title={label}
+      >
         {label}
       </span>
-      <div className="flex shrink-0 items-center gap-1">
+      <div className="flex shrink-0 items-center gap-0.5 self-center">
         <button
           type="button"
           disabled={busy || !canMoveUp}
           onClick={onMoveUp}
-          className="rounded border border-white/10 px-1.5 py-0.5 text-[10px] text-white/60 disabled:opacity-30"
+          className={compactIconButtonClass}
           aria-label={`Move ${label} up`}
         >
-          ↑
+          <ChevronUp className="h-3 w-3" strokeWidth={2} />
         </button>
         <button
           type="button"
           disabled={busy || !canMoveDown}
           onClick={onMoveDown}
-          className="rounded border border-white/10 px-1.5 py-0.5 text-[10px] text-white/60 disabled:opacity-30"
+          className={compactIconButtonClass}
           aria-label={`Move ${label} down`}
         >
-          ↓
+          <ChevronDown className="h-3 w-3" strokeWidth={2} />
         </button>
         <button
           type="button"
           disabled={busy}
           onClick={onRemove}
-          className="inline-flex items-center gap-1 rounded border border-rose-400/30 bg-rose-500/10 px-1.5 py-0.5 text-[10px] font-medium text-rose-100 hover:bg-rose-500/20 disabled:opacity-40"
+          className="inline-flex h-5 shrink-0 items-center gap-0.5 rounded border border-rose-400/25 bg-rose-500/10 px-1 text-[9px] font-medium text-rose-100/90 transition-colors hover:bg-rose-500/20 disabled:opacity-40"
+          aria-label={`Remove ${label} from sidebar`}
         >
-          <MinusCircle className="h-3 w-3" />
+          <MinusCircle className="h-2.5 w-2.5 shrink-0" />
           Remove
         </button>
       </div>
@@ -264,7 +271,7 @@ export function SettingsWorkspaceSidebarModulesPanel() {
   }
 
   return (
-    <div className="space-y-3">
+    <div className="min-w-0 -mx-2 space-y-3 px-1">
       <p className="text-[9px] leading-snug text-white/40 2xl:text-[10px]">
         Choose which platform modules appear in the left navigation for this workspace. Removing a
         module hides it from the sidebar only — data and settings are kept.
@@ -355,27 +362,34 @@ export function SettingsWorkspaceSidebarModulesPanel() {
             Available modules
           </p>
           <ul className="space-y-1">
-            {disabledModules.map((row) => (
-              <li
-                key={row.moduleId}
-                className="flex items-center justify-between rounded-lg border border-white/10 bg-white/[0.03] px-2.5 py-1.5"
-              >
-                <span className="truncate text-[11px] text-white/55">
-                  {labelForModule(catalogue, row.moduleId)}
-                </span>
-                <button
-                  type="button"
-                  disabled={saving || !canManage}
-                  onClick={() => enableModule(row.moduleId)}
-                  className={cn(
-                    "inline-flex items-center gap-1 rounded border border-emerald-400/30 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium text-emerald-100 hover:bg-emerald-500/20 disabled:opacity-40",
-                  )}
+            {disabledModules.map((row) => {
+              const label = labelForModule(catalogue, row.moduleId);
+              return (
+                <li
+                  key={row.moduleId}
+                  className="flex min-w-0 items-center gap-1 rounded-lg border border-white/10 bg-white/[0.03] px-1.5 py-1.5"
                 >
-                  <Plus className="h-3 w-3" />
-                  Add to sidebar
-                </button>
-              </li>
-            ))}
+                  <span
+                    className="min-w-0 flex-1 text-[10px] font-medium uppercase leading-snug tracking-[0.02em] text-white/60 break-words [overflow-wrap:anywhere]"
+                    title={label}
+                  >
+                    {label}
+                  </span>
+                  <button
+                    type="button"
+                    disabled={saving || !canManage}
+                    onClick={() => enableModule(row.moduleId)}
+                    className={cn(
+                      "inline-flex h-5 shrink-0 items-center gap-0.5 rounded border border-emerald-400/30 bg-emerald-500/10 px-1 text-[9px] font-medium text-emerald-100 transition-colors hover:bg-emerald-500/20 disabled:opacity-40",
+                    )}
+                    aria-label={`Add ${label} to sidebar`}
+                  >
+                    <Plus className="h-2.5 w-2.5 shrink-0" />
+                    Add
+                  </button>
+                </li>
+              );
+            })}
           </ul>
         </div>
       ) : null}
