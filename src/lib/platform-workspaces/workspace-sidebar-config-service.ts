@@ -40,16 +40,33 @@ async function readLegacyEnabledModules(workspaceId: string): Promise<string[] |
   return data.enabled_modules.map((id) => String(id));
 }
 
-async function bootstrapSidebarRows(workspaceId: string): Promise<WorkspaceSidebarModuleRecord[]> {
+async function readWorkspaceSlug(workspaceId: string): Promise<string | null> {
+  const supabase = createTenancyServerClient();
+  const { data } = await supabase
+    .from("workspaces")
+    .select("slug")
+    .eq("id", workspaceId)
+    .maybeSingle();
+  return data?.slug ? String(data.slug) : null;
+}
+
+async function bootstrapSidebarRows(
+  workspaceId: string,
+  workspaceSlug: string | null,
+): Promise<WorkspaceSidebarModuleRecord[]> {
   const legacyEnabledModules = await readLegacyEnabledModules(workspaceId);
-  return deriveSidebarRowsFromLegacyEnabledModules(legacyEnabledModules);
+  return deriveSidebarRowsFromLegacyEnabledModules(legacyEnabledModules, workspaceSlug);
 }
 
 export async function loadWorkspaceSidebarModuleRows(
   workspaceId: string,
+  workspaceSlug?: string | null,
 ): Promise<WorkspaceSidebarModuleRecord[]> {
+  const resolvedSlug =
+    workspaceSlug ?? (isSupabaseConfigured() ? await readWorkspaceSlug(workspaceId) : null);
+
   if (!isSupabaseConfigured()) {
-    return deriveSidebarRowsFromLegacyEnabledModules(null);
+    return deriveSidebarRowsFromLegacyEnabledModules(null, resolvedSlug);
   }
 
   const supabase = createTenancyServerClient();
@@ -64,16 +81,22 @@ export async function loadWorkspaceSidebarModuleRows(
   }
 
   if (!data?.length) {
-    const bootstrapped = await bootstrapSidebarRows(workspaceId);
-    await saveWorkspaceSidebarModuleRows(workspaceId, bootstrapped, { syncMetadata: false });
+    const bootstrapped = await bootstrapSidebarRows(workspaceId, resolvedSlug);
+    await saveWorkspaceSidebarModuleRows(workspaceId, bootstrapped, {
+      syncMetadata: false,
+      workspaceSlug: resolvedSlug,
+    });
     return bootstrapped;
   }
 
-  return mergeCatalogueWithPersistedRows(data.map(mapRow));
+  return mergeCatalogueWithPersistedRows(data.map(mapRow), resolvedSlug);
 }
 
-export async function loadWorkspaceSidebarConfig(workspaceId: string) {
-  const modules = await loadWorkspaceSidebarModuleRows(workspaceId);
+export async function loadWorkspaceSidebarConfig(
+  workspaceId: string,
+  workspaceSlug?: string | null,
+) {
+  const modules = await loadWorkspaceSidebarModuleRows(workspaceId, workspaceSlug);
   return buildSidebarConfigSnapshot(modules);
 }
 
@@ -165,13 +188,17 @@ async function syncWorkspaceModuleKeys(
 export async function saveWorkspaceSidebarModuleRows(
   workspaceId: string,
   rows: readonly WorkspaceSidebarModuleRecord[],
-  options?: { syncMetadata?: boolean },
+  options?: { syncMetadata?: boolean; workspaceSlug?: string | null },
 ): Promise<ReturnType<typeof buildSidebarConfigSnapshot>> {
+  const resolvedSlug =
+    options?.workspaceSlug ??
+    (isSupabaseConfigured() ? await readWorkspaceSlug(workspaceId) : null);
+
   if (!isSupabaseConfigured()) {
     return buildSidebarConfigSnapshot(rows);
   }
 
-  const merged = mergeCatalogueWithPersistedRows(rows);
+  const merged = mergeCatalogueWithPersistedRows(rows, resolvedSlug);
   const snapshot = buildSidebarConfigSnapshot(merged);
   const supabase = createTenancyServerClient();
   const timestamp = nowIso();

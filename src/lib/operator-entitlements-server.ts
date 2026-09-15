@@ -118,7 +118,7 @@ export async function loadOperatorEntitlementsSnapshot(
     try {
       const { loadWorkspaceSidebarConfig } =
         await import("@/lib/platform-workspaces/workspace-sidebar-config-service");
-      const sidebarConfig = await loadWorkspaceSidebarConfig(workspace.id);
+      const sidebarConfig = await loadWorkspaceSidebarConfig(workspace.id, workspace.slug);
       snapshot.enabledModules = sidebarConfig.enabledModuleIds.length
         ? [...sidebarConfig.enabledModuleIds]
         : null;

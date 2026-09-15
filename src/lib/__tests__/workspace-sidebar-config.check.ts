@@ -11,6 +11,7 @@ import {
   defaultWorkspaceSidebarModuleRows,
   deriveSidebarRowsFromLegacyEnabledModules,
   enableWorkspaceSidebarModule,
+  isWolfSidebarExtensionModuleId,
   listSidebarCatalogueModules,
   mergeCatalogueWithPersistedRows,
   sanitizeSidebarModulePayload,
@@ -134,6 +135,21 @@ assert.deepEqual(afterReenable.enabledModuleIds, [
 assert.equal(
   afterReenable.modules.find((row) => row.moduleId === "financials")?.displayOrder,
   20,
+);
+
+const talantonCatalogue = listSidebarCatalogueModules({ workspaceSlug: "talantonimpact" });
+assert.ok(talantonCatalogue.length > 0);
+assert.ok(!talantonCatalogue.some((entry) => isWolfSidebarExtensionModuleId(entry.id)));
+
+const wolfCatalogue = listSidebarCatalogueModules({ workspaceSlug: "wolf-central" });
+assert.ok(wolfCatalogue.some((entry) => entry.id === "wolf-animals"));
+
+const pailexCatalogue = listSidebarCatalogueModules({ workspaceSlug: "pailex" });
+assert.ok(pailexCatalogue.some((entry) => entry.id === "wolf-animals"));
+
+assert.equal(
+  talantonCatalogue.find((entry) => entry.id === "business-central")?.label,
+  "Business Central",
 );
 
 console.log("workspace-sidebar-config.check.ts: all assertions passed");

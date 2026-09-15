@@ -10,12 +10,13 @@ import {
 import { buildFinancesNavSection } from "@/lib/finances-nav";
 import { resolveIntelligenceNavLabel } from "@/lib/intelligence/intelligence-nav-labels";
 import {
-  WORKSPACE_CORE_MODULE_IDS,
   WORKSPACE_MODULE_CATALOGUE,
   defaultEnabledSubModules,
   getWorkspaceModuleEntry,
   resolveProvisioningModuleKeys,
 } from "@/lib/platform-workspaces/module-catalogue";
+import { isPailexSlug } from "@/lib/pailex/pailex-surface";
+import { isWolfCentralSlug } from "@/lib/wolf/wolf-surface";
 import {
   getNavSectionKey,
   isFixedPinSection,
@@ -48,10 +49,36 @@ export type SidebarCatalogueModule = {
   number: number;
 };
 
+export function isWolfSidebarExtensionModuleId(moduleId: string): boolean {
+  return moduleId.startsWith("wolf-");
+}
+
+/** WOLF specialist extensions are only configurable on WOLF / PAILEX product workspaces. */
+export function workspaceEligibleForWolfSidebarExtensions(
+  workspaceSlug?: string | null,
+): boolean {
+  return isWolfCentralSlug(workspaceSlug) || isPailexSlug(workspaceSlug);
+}
+
+export function isSidebarModuleEligibleForWorkspace(
+  moduleId: string,
+  workspaceSlug?: string | null,
+): boolean {
+  if (FIXED_SIDEBAR_MODULE_IDS.includes(moduleId as FixedSidebarModuleId)) return false;
+  if (isWolfSidebarExtensionModuleId(moduleId)) {
+    return workspaceEligibleForWolfSidebarExtensions(workspaceSlug);
+  }
+  return Boolean(getWorkspaceModuleEntry(moduleId));
+}
+
 /** Configurable modules from the central catalogue (excludes fixed pins + settings). */
-export function listSidebarCatalogueModules(): SidebarCatalogueModule[] {
+export function listSidebarCatalogueModules(options?: {
+  workspaceSlug?: string | null;
+}): SidebarCatalogueModule[] {
+  const workspaceSlug = options?.workspaceSlug;
   return buildCentralProductNavSections()
     .filter((spec) => !FIXED_SIDEBAR_MODULE_IDS.includes(spec.id as FixedSidebarModuleId))
+    .filter((spec) => isSidebarModuleEligibleForWorkspace(spec.id, workspaceSlug))
     .map((spec) => ({
       id: spec.id,
       label: formatSidebarCatalogueLabel(spec),
@@ -60,13 +87,17 @@ export function listSidebarCatalogueModules(): SidebarCatalogueModule[] {
 }
 
 function formatSidebarCatalogueLabel(spec: CentralProductModuleSpec): string {
+  const sectionLabel = spec.section.label?.trim();
+  if (sectionLabel) return sectionLabel;
   const entry = getWorkspaceModuleEntry(spec.id);
   return entry?.label ?? spec.label;
 }
 
 /** Default rows: every configurable catalogue module enabled in catalogue order. */
-export function defaultWorkspaceSidebarModuleRows(): WorkspaceSidebarModuleRecord[] {
-  return listSidebarCatalogueModules().map((entry, index) => ({
+export function defaultWorkspaceSidebarModuleRows(
+  workspaceSlug?: string | null,
+): WorkspaceSidebarModuleRecord[] {
+  return listSidebarCatalogueModules({ workspaceSlug }).map((entry, index) => ({
     moduleId: entry.id,
     enabled: true,
     displayOrder: (index + 1) * 10,
@@ -89,10 +120,11 @@ function metadataHasConfigurableSelection(
  */
 export function deriveSidebarRowsFromLegacyEnabledModules(
   enabledModules: readonly string[] | null | undefined,
+  workspaceSlug?: string | null,
 ): WorkspaceSidebarModuleRecord[] {
-  const catalogue = listSidebarCatalogueModules();
+  const catalogue = listSidebarCatalogueModules({ workspaceSlug });
   if (!metadataHasConfigurableSelection(enabledModules)) {
-    return defaultWorkspaceSidebarModuleRows();
+    return defaultWorkspaceSidebarModuleRows(workspaceSlug);
   }
 
   const orderIndex = new Map(
@@ -330,11 +362,19 @@ export function sidebarSectionOrderFromConfig(
   return filtered.filter(isMovableWorkspaceSection).map(getNavSectionKey);
 }
 
+export function filterSidebarModulesForWorkspace(
+  rows: readonly WorkspaceSidebarModuleRecord[],
+  workspaceSlug?: string | null,
+): WorkspaceSidebarModuleRecord[] {
+  return rows.filter((row) => isSidebarModuleEligibleForWorkspace(row.moduleId, workspaceSlug));
+}
+
 export function mergeCatalogueWithPersistedRows(
   persisted: readonly WorkspaceSidebarModuleRecord[],
+  workspaceSlug?: string | null,
 ): WorkspaceSidebarModuleRecord[] {
   const byId = new Map(persisted.map((row) => [row.moduleId, row] as const));
-  const catalogue = listSidebarCatalogueModules();
+  const catalogue = listSidebarCatalogueModules({ workspaceSlug });
   const merged: WorkspaceSidebarModuleRecord[] = [];
   let orderCursor = 0;
 
@@ -355,7 +395,9 @@ export function mergeCatalogueWithPersistedRows(
   }
 
   for (const orphan of byId.values()) {
-    merged.push(orphan);
+    if (isSidebarModuleEligibleForWorkspace(orphan.moduleId, workspaceSlug)) {
+      merged.push(orphan);
+    }
   }
 
   return merged.sort((a, b) => a.displayOrder - b.displayOrder);
@@ -380,13 +422,10 @@ export function sidebarConfigFromEnabledModuleIds(
 
 export function sanitizeSidebarModulePayload(
   input: Array<{ moduleId?: string; enabled?: boolean; displayOrder?: number }>,
+  workspaceSlug?: string | null,
 ): WorkspaceSidebarModuleRecord[] | null {
   if (!Array.isArray(input) || input.length === 0) return null;
-  const allowed = new Set(
-    WORKSPACE_CORE_MODULE_IDS.filter(
-      (id) => !FIXED_SIDEBAR_MODULE_IDS.includes(id as FixedSidebarModuleId),
-    ),
-  );
+  const allowed = new Set(listSidebarCatalogueModules({ workspaceSlug }).map((entry) => entry.id));
   const rows: WorkspaceSidebarModuleRecord[] = [];
   const seen = new Set<string>();
 
@@ -404,5 +443,5 @@ export function sanitizeSidebarModulePayload(
     });
   }
 
-  return rows.length > 0 ? mergeCatalogueWithPersistedRows(rows) : null;
+  return rows.length > 0 ? mergeCatalogueWithPersistedRows(rows, workspaceSlug) : null;
 }

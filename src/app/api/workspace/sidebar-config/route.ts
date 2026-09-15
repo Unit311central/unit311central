@@ -28,7 +28,7 @@ export async function GET() {
   }
 
   const canManage = await canManageWorkspaceSidebar(session, workspace);
-  const catalogue = listSidebarCatalogueModules();
+  const catalogue = listSidebarCatalogueModules({ workspaceSlug: workspace.slug });
 
   if (!isSupabaseConfigured()) {
     return NextResponse.json({
@@ -45,7 +45,7 @@ export async function GET() {
   }
 
   try {
-    const config = await loadWorkspaceSidebarConfig(workspace.id);
+    const config = await loadWorkspaceSidebarConfig(workspace.id, workspace.slug);
     return NextResponse.json({
       catalogue,
       modules: config.modules,
@@ -86,7 +86,7 @@ export async function PUT(request: Request) {
     return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
   }
 
-  const sanitized = sanitizeSidebarModulePayload(body.modules ?? []);
+  const sanitized = sanitizeSidebarModulePayload(body.modules ?? [], workspace.slug);
   if (!sanitized) {
     return NextResponse.json({ error: "No valid sidebar modules supplied." }, { status: 400 });
   }
@@ -96,7 +96,9 @@ export async function PUT(request: Request) {
   }
 
   try {
-    const config = await saveWorkspaceSidebarModuleRows(workspace.id, sanitized);
+    const config = await saveWorkspaceSidebarModuleRows(workspace.id, sanitized, {
+      workspaceSlug: workspace.slug,
+    });
     return NextResponse.json({
       ok: true,
       modules: config.modules,

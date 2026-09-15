@@ -96,7 +96,7 @@ export async function GET() {
       try {
         const { loadWorkspaceSidebarConfig } =
           await import("@/lib/platform-workspaces/workspace-sidebar-config-service");
-        const sidebarConfig = await loadWorkspaceSidebarConfig(workspace.id);
+        const sidebarConfig = await loadWorkspaceSidebarConfig(workspace.id, workspace.slug);
         if (sidebarConfig.enabledModuleIds.length) {
           payload.enabledModules = [...sidebarConfig.enabledModuleIds];
         }
@@ -232,7 +232,7 @@ export async function GET() {
 
       const { loadWorkspaceSidebarConfig } =
         await import("@/lib/platform-workspaces/workspace-sidebar-config-service");
-      const sidebarConfig = await loadWorkspaceSidebarConfig(workspace.id);
+      const sidebarConfig = await loadWorkspaceSidebarConfig(workspace.id, workspace?.slug ?? null);
       enabledModules = sidebarConfig.enabledModuleIds.length
         ? [...sidebarConfig.enabledModuleIds]
         : null;
