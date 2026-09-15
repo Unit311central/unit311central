@@ -38,7 +38,7 @@ const mockSections: InternalNavSection[] = [
   {
     kind: "workspace",
     label: "Financials",
-    items: [{ label: "Dashboard", icon: "LayoutDashboard", view: "financials-dashboard" }],
+    items: [{ label: "Dashboard", icon: "LayoutDashboard", view: "financials" }],
   },
   {
     kind: "workspace",
