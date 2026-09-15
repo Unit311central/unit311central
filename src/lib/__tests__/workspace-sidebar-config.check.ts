@@ -232,7 +232,7 @@ const duplicateTrainingSections: InternalNavSection[] = [
     label: "Training",
     items: [
       { label: "Dashboard", icon: "LayoutDashboard", view: "training-dashboard" },
-      { label: "Courses", icon: "GraduationCap", view: "training-courses" },
+      { label: "Certifications", icon: "GraduationCap", view: "training-certifications" },
     ],
   },
 ];
