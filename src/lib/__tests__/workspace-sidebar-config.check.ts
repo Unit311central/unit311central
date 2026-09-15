@@ -5,15 +5,19 @@
 import assert from "node:assert/strict";
 
 import type { InternalNavSection } from "@/lib/internal-operations-data";
+import { getTalantonImpactNavSections } from "@/lib/internal-role-views";
+import { buildProjectManagementNavSection } from "@/lib/project-management-nav";
 import {
   applyWorkspaceSidebarModuleConfig,
   buildSidebarConfigSnapshot,
+  dedupeNavSectionsByCatalogueModuleId,
   defaultWorkspaceSidebarModuleRows,
   deriveSidebarRowsFromLegacyEnabledModules,
   enableWorkspaceSidebarModule,
   isWolfSidebarExtensionModuleId,
   listSidebarCatalogueModules,
   mergeCatalogueWithPersistedRows,
+  resolveCatalogueModuleIdForNavSection,
   sanitizeSidebarModulePayload,
   sidebarConfigFromEnabledModuleIds,
 } from "@/lib/platform-workspaces/workspace-sidebar-config";
@@ -150,6 +154,115 @@ assert.ok(pailexCatalogue.some((entry) => entry.id === "wolf-animals"));
 assert.equal(
   talantonCatalogue.find((entry) => entry.id === "business-central")?.label,
   "Business Central",
+);
+
+function countCatalogueModuleSections(
+  sections: readonly InternalNavSection[],
+  moduleId: string,
+): number {
+  return sections.filter(
+    (section) =>
+      section.kind === "workspace" &&
+      resolveCatalogueModuleIdForNavSection(section) === moduleId,
+  ).length;
+}
+
+function countLabelSections(sections: readonly InternalNavSection[], label: string): number {
+  return sections.filter((section) => section.kind === "workspace" && section.label === label)
+    .length;
+}
+
+const talantonNav = getTalantonImpactNavSections();
+assert.equal(
+  countCatalogueModuleSections(talantonNav, "project-management"),
+  2,
+  "Talanton host overlay currently produces two PM catalogue representations before normalisation",
+);
+
+const pmEnabledConfig = buildSidebarConfigSnapshot([
+  { moduleId: "project-management", enabled: true, displayOrder: 100 },
+  { moduleId: "business-productivity", enabled: true, displayOrder: 110 },
+  { moduleId: "training", enabled: true, displayOrder: 120 },
+]);
+const talantonPmEnabled = applyWorkspaceSidebarModuleConfig(
+  talantonNav,
+  pmEnabledConfig,
+  "talantonimpact",
+);
+assert.equal(
+  countCatalogueModuleSections(talantonPmEnabled, "project-management"),
+  1,
+  "Project Management enabled → exactly one catalogue section",
+);
+assert.equal(
+  countLabelSections(talantonPmEnabled, "Project Management"),
+  1,
+  "Project Management enabled → exactly one PM-labelled section",
+);
+
+const pmDisabledConfig = buildSidebarConfigSnapshot([
+  { moduleId: "project-management", enabled: false, displayOrder: 100 },
+  { moduleId: "business-productivity", enabled: true, displayOrder: 110 },
+  { moduleId: "training", enabled: true, displayOrder: 120 },
+]);
+const talantonPmDisabled = applyWorkspaceSidebarModuleConfig(
+  talantonNav,
+  pmDisabledConfig,
+  "talantonimpact",
+);
+assert.equal(
+  countCatalogueModuleSections(talantonPmDisabled, "project-management"),
+  0,
+  "Project Management disabled → zero catalogue sections",
+);
+assert.equal(
+  countLabelSections(talantonPmDisabled, "Project Management"),
+  0,
+  "Project Management disabled → zero PM-labelled sections",
+);
+
+const duplicateTrainingSections: InternalNavSection[] = [
+  {
+    kind: "workspace",
+    label: "Training",
+    items: [{ label: "Dashboard", icon: "LayoutDashboard", view: "training-dashboard" }],
+  },
+  {
+    kind: "workspace",
+    label: "Training",
+    items: [
+      { label: "Dashboard", icon: "LayoutDashboard", view: "training-dashboard" },
+      { label: "Courses", icon: "GraduationCap", view: "training-courses" },
+    ],
+  },
+];
+const dedupedTraining = dedupeNavSectionsByCatalogueModuleId(duplicateTrainingSections);
+assert.equal(dedupedTraining.length, 1);
+assert.equal(dedupedTraining[0]?.items.length, 2, "dedupe keeps the richer Training section");
+
+const trainingEnabledConfig = buildSidebarConfigSnapshot([
+  { moduleId: "training", enabled: true, displayOrder: 10 },
+  { moduleId: "project-management", enabled: true, displayOrder: 20 },
+]);
+const duplicatePmTree = [
+  ...mockSections.filter((section) => section.label !== "Board"),
+  buildProjectManagementNavSection(),
+  buildProjectManagementNavSection({ includeGrants: true }),
+  ...duplicateTrainingSections,
+];
+const dedupedPmTree = applyWorkspaceSidebarModuleConfig(
+  duplicatePmTree,
+  trainingEnabledConfig,
+);
+assert.equal(
+  countCatalogueModuleSections(dedupedPmTree, "project-management"),
+  1,
+  "duplicate PM sections in input collapse to one",
+);
+assert.equal(
+  countCatalogueModuleSections(dedupedPmTree, "training"),
+  1,
+  "another module with duplicates also collapses to one",
 );
 
 console.log("workspace-sidebar-config.check.ts: all assertions passed");

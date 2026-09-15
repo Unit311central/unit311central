@@ -270,6 +270,50 @@ function moduleOrderIndex(
   return orderByModuleId.get(moduleId) ?? Number.MAX_SAFE_INTEGER;
 }
 
+function navSectionRichness(section: InternalNavSection): number {
+  return section.items.reduce((count, item) => count + 1 + (item.children?.length ?? 0), 0);
+}
+
+/**
+ * Collapse duplicate top-level workspace sections that resolve to the same catalogue module id.
+ * Host overlays (Talanton, OnwardAir, ABHI) may inject a module section while the base nav tree
+ * already includes one — workspace sidebar config must emit at most one section per module.
+ */
+export function dedupeNavSectionsByCatalogueModuleId(
+  sections: readonly InternalNavSection[],
+): InternalNavSection[] {
+  const bestByModuleId = new Map<string, InternalNavSection>();
+
+  for (const section of sections) {
+    const moduleId = resolveCatalogueModuleIdForNavSection(section);
+    if (!moduleId) continue;
+    const existing = bestByModuleId.get(moduleId);
+    if (!existing || navSectionRichness(section) > navSectionRichness(existing)) {
+      bestByModuleId.set(moduleId, section);
+    }
+  }
+
+  const emittedModuleIds = new Set<string>();
+  const emittedUnmappedKeys = new Set<string>();
+  const deduped: InternalNavSection[] = [];
+
+  for (const section of sections) {
+    const moduleId = resolveCatalogueModuleIdForNavSection(section);
+    if (!moduleId) {
+      const key = getNavSectionKey(section);
+      if (emittedUnmappedKeys.has(key)) continue;
+      emittedUnmappedKeys.add(key);
+      deduped.push(section);
+      continue;
+    }
+    if (emittedModuleIds.has(moduleId)) continue;
+    emittedModuleIds.add(moduleId);
+    deduped.push(bestByModuleId.get(moduleId) ?? section);
+  }
+
+  return deduped;
+}
+
 function buildProductSectionForModule(
   moduleId: string,
   workspaceSlug?: string | null,
@@ -342,7 +386,9 @@ export function applyWorkspaceSidebarModuleConfig(
     }
   }
 
-  movable.sort((a, b) => {
+  const normalizedMovable = dedupeNavSectionsByCatalogueModuleId(movable);
+
+  normalizedMovable.sort((a, b) => {
     const aId = resolveCatalogueModuleIdForNavSection(a);
     const bId = resolveCatalogueModuleIdForNavSection(b);
     const byOrder = moduleOrderIndex(aId, orderByModuleId) - moduleOrderIndex(bId, orderByModuleId);
@@ -350,7 +396,7 @@ export function applyWorkspaceSidebarModuleConfig(
     return getNavSectionKey(a).localeCompare(getNavSectionKey(b));
   });
 
-  return [...pins, ...movable, ...(settings ? [settings] : [])];
+  return [...pins, ...normalizedMovable, ...(settings ? [settings] : [])];
 }
 
 /** Convert persisted rows to section keys for legacy applySidebarSectionOrder compatibility. */
