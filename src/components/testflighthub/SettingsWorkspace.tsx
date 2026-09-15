@@ -54,7 +54,7 @@ import {
   type SidebarNavCustomStorage,
   type SidebarNavLeafItem,
 } from "@/lib/sidebar-nav-custom";
-import { SettingsSidebarReorderPanel } from "./SettingsSidebarReorderPanel";
+import { SettingsWorkspaceSidebarModulesPanel } from "./SettingsWorkspaceSidebarModulesPanel";
 import { useOperatorEntitlements } from "./OperatorEntitlementsProvider";
 
 const MOCK_USERS = createInitialUsers();
@@ -1178,22 +1178,11 @@ export default function SettingsWorkspace() {
 
         <SettingsColumn
           title="Sidebar"
-          description="Drag modules to reorder the left nav. One shared order applies across the whole workspace."
+          description="Enable, disable, and reorder workspace modules in the left navigation."
           icon={<Menu className="h-4 w-4" />}
           accentClass="border-violet-400/20"
         >
-          <SettingsSidebarReorderPanel
-            orderedSections={orderedSections}
-            navCustom={navCustom}
-            expandedModules={expandedModules}
-            customNavLabel={customNavLabel}
-            onCustomNavLabelChange={setCustomNavLabel}
-            onPersistNavCustom={persistNavCustom}
-            onToggleModuleExpanded={toggleModuleExpanded}
-            onToggleNavHidden={toggleNavHidden}
-            onAddCustomNavItem={addCustomNavItem}
-            inputClassName={inputClassName()}
-          />
+          <SettingsWorkspaceSidebarModulesPanel />
         </SettingsColumn>
 
         <SettingsColumn

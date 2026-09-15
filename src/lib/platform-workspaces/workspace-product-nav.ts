@@ -309,8 +309,19 @@ export function buildWorkspaceProductNavSections(
   const intelligenceLabel = options.intelligenceLabel ?? resolveIntelligenceNavLabel(options.workspaceSlug);
 
   const sections: InternalNavSection[] = [];
+  const moduleOrder = new Map(
+    options.enablement.enabledModules.map((moduleId, index) => [moduleId, index] as const),
+  );
+  const orderedSpecs = [...buildCentralProductNavSections()].sort((left, right) => {
+    const leftOrder = moduleOrder.get(left.id);
+    const rightOrder = moduleOrder.get(right.id);
+    if (leftOrder != null && rightOrder != null) return leftOrder - rightOrder;
+    if (leftOrder != null) return -1;
+    if (rightOrder != null) return 1;
+    return left.number - right.number;
+  });
 
-  for (const spec of buildCentralProductNavSections()) {
+  for (const spec of orderedSpecs) {
     if (!enabledModuleSet.has(spec.id)) continue;
 
     let section = spec.section;
