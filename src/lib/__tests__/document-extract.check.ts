@@ -10,11 +10,11 @@ const source = fs.readFileSync(path.join(process.cwd(), "src/lib/document-extrac
 assert.match(
   source,
   /toWorkerSafePdfBytes\(buf\)/,
-  "Each unpdf call must copy PDF bytes — workers detach the ArrayBuffer",
+  "unpdf must receive a copied ArrayBuffer",
 );
-assert.match(source, /extractPdfTextWithUnpdf/, "PDF extraction must use unpdf fallback strategies");
-assert.match(source, /extractTextItems/, "PDF extraction must fall back to structured text items");
-assert.match(source, /extractPdfTextViaOpenAi/, "Scanned PDFs must attempt OpenAI OCR fallback");
+assert.match(source, /isPdfWorkerTransferError/, "pdf.js worker transfer errors must be caught");
+assert.match(source, /extractPdfTextViaOpenAi/, "Scanned PDFs must fall back to OpenAI OCR");
+assert.doesNotMatch(source, /extractTextItems/, "Do not multi-pass unpdf — workers detach buffers");
 assert.match(
   source,
   /Could not extract text from this PDF/,

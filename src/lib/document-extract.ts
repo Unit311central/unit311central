@@ -16,7 +16,26 @@ const PDF_OCR_MAX_BYTES = 15 * 1024 * 1024;
  * rejects pooled/non-transferable buffers — always copy to a fresh ArrayBuffer.
  */
 function toWorkerSafePdfBytes(buf: Buffer): Uint8Array {
-  return Uint8Array.from(buf);
+  return new Uint8Array(Buffer.from(buf));
+}
+
+function isPdfWorkerTransferError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  return (
+    message.includes("Cannot transfer object of unsupported type") ||
+    message.includes("Cannot clone object of unsupported type") ||
+    message.includes("DataCloneError")
+  );
+}
+
+function toExtractBuffer(bytes: ArrayBuffer | Buffer | Uint8Array): Buffer {
+  if (Buffer.isBuffer(bytes)) {
+    return Buffer.from(bytes);
+  }
+  if (bytes instanceof ArrayBuffer) {
+    return Buffer.from(new Uint8Array(bytes));
+  }
+  return Buffer.from(bytes);
 }
 
 function normalizeText(raw: string): string {
@@ -32,39 +51,21 @@ async function extractPdfTextWithUnpdf(buf: Buffer): Promise<{
   text: string;
   totalPages?: number;
 }> {
-  const { extractText, extractTextItems } = await import("unpdf");
+  const { extractText } = await import("unpdf");
 
-  // unpdf/pdf.js transfers (detaches) the input ArrayBuffer in its worker — never reuse bytes.
-  const runMerged = async () => {
+  // Single unpdf pass — workers detach buffers; retries and multi-pass calls fail on Node 21+.
+  try {
     const merged = await extractText(toWorkerSafePdfBytes(buf), { mergePages: true });
     const text = normalizeText(
       Array.isArray(merged.text) ? merged.text.join("\n\n") : String(merged.text ?? ""),
     );
     return { text, totalPages: merged.totalPages };
-  };
-
-  const mergedResult = await runMerged();
-  if (mergedResult.text) {
-    return mergedResult;
+  } catch (error) {
+    if (isPdfWorkerTransferError(error)) {
+      return { text: "" };
+    }
+    throw error;
   }
-
-  const perPage = await extractText(toWorkerSafePdfBytes(buf), { mergePages: false });
-  const perPageText = normalizeText(
-    Array.isArray(perPage.text) ? perPage.text.filter(Boolean).join("\n\n") : String(perPage.text ?? ""),
-  );
-  if (perPageText) {
-    return { text: perPageText, totalPages: perPage.totalPages };
-  }
-
-  const structured = await extractTextItems(toWorkerSafePdfBytes(buf));
-  const structuredText = normalizeText(
-    structured.items
-      .flat()
-      .map((item) => item.str)
-      .filter(Boolean)
-      .join(" "),
-  );
-  return { text: structuredText, totalPages: structured.totalPages };
 }
 
 async function extractPdfTextViaOpenAi(buf: Buffer, fileName: string): Promise<string> {
@@ -108,7 +109,7 @@ async function extractPdfTextViaOpenAi(buf: Buffer, fileName: string): Promise<s
 
 async function extractPdfText(buf: Buffer, fileName: string): Promise<ExtractedDocument> {
   const unpdfResult = await extractPdfTextWithUnpdf(buf);
-  if (unpdfResult.text) {
+  if (unpdfResult.text.length >= 80) {
     return {
       text: unpdfResult.text,
       mimeType: "application/pdf",
@@ -117,12 +118,28 @@ async function extractPdfText(buf: Buffer, fileName: string): Promise<ExtractedD
     };
   }
 
-  const ocrText = await extractPdfTextViaOpenAi(buf, fileName);
-  if (ocrText) {
+  // Scanned PDFs and pdf.js worker transfer failures — OpenAI reads the file directly.
+  try {
+    const ocrText = await extractPdfTextViaOpenAi(buf, fileName);
+    if (ocrText.length >= 80) {
+      return {
+        text: ocrText,
+        mimeType: "application/pdf",
+        fileName,
+      };
+    }
+  } catch (error) {
+    if (!isPdfWorkerTransferError(error)) {
+      throw error;
+    }
+  }
+
+  if (unpdfResult.text.length > 0) {
     return {
-      text: ocrText,
+      text: unpdfResult.text,
       mimeType: "application/pdf",
       fileName,
+      pageHint: unpdfResult.totalPages,
     };
   }
 
@@ -139,9 +156,7 @@ export async function extractTextFromBuffer(
   const name = fileName || "document";
   const lower = name.toLowerCase();
   const mime = (mimeType || "").toLowerCase();
-  const buf = Buffer.isBuffer(bytes)
-    ? bytes
-    : Buffer.from(bytes instanceof ArrayBuffer ? new Uint8Array(bytes) : bytes);
+  const buf = toExtractBuffer(bytes);
 
   if (
     mime.includes("wordprocessingml") ||

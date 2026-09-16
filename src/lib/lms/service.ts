@@ -926,7 +926,33 @@ export async function createCourseTree(
       }
     }
 
-    const questions = input.questions ?? [];
+    const questions = (input.questions ?? []).map((q) => {
+      const choices =
+        Array.isArray(q.choices) && q.choices.length
+          ? q.choices.map((choice, index) => ({
+              id: String(choice.id ?? String.fromCharCode(97 + index)).trim() || "a",
+              label: String(choice.label ?? "").trim() || `Option ${index + 1}`,
+            }))
+          : [
+              { id: "a", label: "Yes" },
+              { id: "b", label: "No" },
+            ];
+      const preferred = String(
+        q.correctChoiceId ??
+          (q as { correctId?: string }).correctId ??
+          (q as { correct_answer?: string }).correct_answer ??
+          "",
+      ).trim();
+      const correctChoiceId = choices.some((choice) => choice.id === preferred)
+        ? preferred
+        : choices[0]!.id;
+      return {
+        ...q,
+        choices,
+        correctChoiceId,
+        stem: String(q.stem ?? "").trim() || "Review question",
+      };
+    });
     for (let i = 0; i < questions.length; i += 25) {
       const chunk = questions.slice(i, i + 25).map((q, offset) => ({
         workspace_id: workspaceId,
