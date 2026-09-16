@@ -1,6 +1,10 @@
 import type { InternalRoleView } from "@/lib/internal-role-views";
 import type { UserDepartment, UserRole } from "@/lib/user-management-data";
 
+import {
+  isTalantonImpactSlug,
+  isBrowserTalantonImpactSurface,
+} from "@/lib/talanton-surface";
 import { isWolfCentralSlug, isBrowserWolfCentralSurface } from "@/lib/wolf/wolf-surface";
 import { filterWolfContentStudioFunctions } from "@/lib/wolf/wolf-content-studio";
 import type {
@@ -75,7 +79,19 @@ const PACK_ROLE_MATCH: Record<string, (access: CentralCapabilityAccessContext) =
   HR: (access) => isExecutive(access) || hasDepartment(access, "Human Resources", "HR"),
 };
 
-export function canAccessManagementWorkspace(access: CentralCapabilityAccessContext): boolean {
+function isTalantonManagementWorkspace(options?: {
+  workspaceSlug?: string | null;
+}): boolean {
+  return (
+    isTalantonImpactSlug(options?.workspaceSlug) || isBrowserTalantonImpactSurface()
+  );
+}
+
+export function canAccessManagementWorkspace(
+  access: CentralCapabilityAccessContext,
+  options?: { workspaceSlug?: string | null },
+): boolean {
+  if (isTalantonManagementWorkspace(options)) return true;
   if (isExecutive(access) || isPlatformAdmin(access)) return true;
   return hasDepartment(
     access,
@@ -90,14 +106,17 @@ export function canAccessManagementWorkspace(access: CentralCapabilityAccessCont
 
 export function getVisibleManagementFunctionPacks(
   access: CentralCapabilityAccessContext,
+  options?: { workspaceSlug?: string | null },
 ): ManagementFunctionPackPlaceholder[] {
-  return filterVisibleManagementFunctionPacks(access, MANAGEMENT_FUNCTION_PACKS);
+  return filterVisibleManagementFunctionPacks(access, MANAGEMENT_FUNCTION_PACKS, options);
 }
 
 export function filterVisibleManagementFunctionPacks(
   access: CentralCapabilityAccessContext,
   packs: readonly ManagementFunctionPackPlaceholder[],
+  options?: { workspaceSlug?: string | null },
 ): ManagementFunctionPackPlaceholder[] {
+  if (isTalantonManagementWorkspace(options)) return [...packs];
   if (isExecutive(access) || isPlatformAdmin(access)) return [...packs];
   return packs.filter((pack) => {
     const matcher = PACK_ROLE_MATCH[pack.ownerRole];

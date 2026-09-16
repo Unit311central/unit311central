@@ -843,13 +843,16 @@ export default function ManagementWorkspace() {
   );
   const { state } = useManagementStore();
   const visiblePacks = useMemo(
-    () => filterVisibleManagementFunctionPacks(access, state.functionPacks),
-    [access, state.functionPacks],
+    () =>
+      filterVisibleManagementFunctionPacks(access, state.functionPacks, {
+        workspaceSlug: entitlements.workspaceSlug,
+      }),
+    [access, entitlements.workspaceSlug, state.functionPacks],
   );
   const meetingNames = useMemo(() => state.meetings.map((meeting) => meeting.name), [state.meetings]);
   const isSaec = isBrowserSaecSurface();
 
-  if (!canAccessManagementWorkspace(access)) {
+  if (!canAccessManagementWorkspace(access, { workspaceSlug: entitlements.workspaceSlug })) {
     return (
       <WorkspaceSection title="Management" subtitle={MANAGEMENT_SUBTITLE}>
         <p className="text-sm text-white/55">

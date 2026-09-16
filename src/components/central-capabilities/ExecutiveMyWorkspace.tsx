@@ -48,7 +48,12 @@ export default function ExecutiveMyWorkspace() {
     entitlements.roleView === "c-suite" ||
     entitlements.roleView === "admin";
 
-  if (!isCeoExperience || !canAccessManagementWorkspace(access)) return null;
+  if (
+    !isCeoExperience ||
+    !canAccessManagementWorkspace(access, { workspaceSlug: entitlements.workspaceSlug })
+  ) {
+    return null;
+  }
 
   const summary = computeManagementSummary(managementState);
   const upcoming = managementState.meetings[0];

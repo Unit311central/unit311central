@@ -101,6 +101,29 @@ function assertSurfaceNav(
 }
 
 {
+  const talantonAssociate = managementAccessFromEntitlements({
+    roleView: "manager",
+    roles: ["Associate"],
+    departments: ["Design"],
+  });
+  assert.equal(
+    canAccessManagementWorkspace(talantonAssociate, { workspaceSlug: "talantonimpact" }),
+    true,
+    "Talanton workspace users may access Management",
+  );
+  assert.ok(
+    getVisibleManagementFunctionPacks(talantonAssociate, { workspaceSlug: "talantonimpact" })
+      .length >= 4,
+    "Talanton must see full management function packs",
+  );
+  assert.equal(
+    canAccessManagementWorkspace(talantonAssociate, { workspaceSlug: "onwardair" }),
+    false,
+    "Management Talanton bypass must not apply to other workspaces",
+  );
+}
+
+{
   const admin = managementAccessFromEntitlements({
     roleView: "admin",
     roles: ["Admin"],
