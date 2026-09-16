@@ -9,6 +9,8 @@ export type ExtractedDocument = {
   pageHint?: number;
 };
 
+const PDF_OCR_MAX_BYTES = 15 * 1024 * 1024;
+
 function normalizeText(raw: string): string {
   return raw
     .replace(/\r\n/g, "\n")
@@ -16,6 +18,104 @@ function normalizeText(raw: string): string {
     .replace(/[ \t]+\n/g, "\n")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
+}
+
+async function extractPdfTextWithUnpdf(data: Uint8Array): Promise<{
+  text: string;
+  totalPages?: number;
+}> {
+  const { extractText, extractTextItems } = await import("unpdf");
+
+  const merged = await extractText(data, { mergePages: true });
+  let text = normalizeText(
+    Array.isArray(merged.text) ? merged.text.join("\n\n") : String(merged.text ?? ""),
+  );
+  if (text) {
+    return { text, totalPages: merged.totalPages };
+  }
+
+  const perPage = await extractText(data, { mergePages: false });
+  text = normalizeText(
+    Array.isArray(perPage.text) ? perPage.text.filter(Boolean).join("\n\n") : String(perPage.text ?? ""),
+  );
+  if (text) {
+    return { text, totalPages: perPage.totalPages };
+  }
+
+  const structured = await extractTextItems(data);
+  text = normalizeText(
+    structured.items
+      .flat()
+      .map((item) => item.str)
+      .filter(Boolean)
+      .join(" "),
+  );
+  return { text, totalPages: structured.totalPages };
+}
+
+async function extractPdfTextViaOpenAi(buf: Buffer, fileName: string): Promise<string> {
+  if (!process.env.OPENAI_API_KEY?.trim()) {
+    return "";
+  }
+  if (buf.byteLength > PDF_OCR_MAX_BYTES) {
+    return "";
+  }
+
+  const { createAssistantResponse } = await import("@/lib/ai-operating-assistant/openai-client");
+  const model = process.env.OPENAI_DOCUMENT_OCR_MODEL?.trim() || "gpt-4o-mini";
+  const base64 = buf.toString("base64");
+
+  const response = await createAssistantResponse(
+    {
+      model,
+      input: [
+        {
+          role: "user",
+          content: [
+            {
+              type: "input_file",
+              filename: fileName || "document.pdf",
+              file_data: `data:application/pdf;base64,${base64}`,
+              detail: "high",
+            },
+            {
+              type: "input_text",
+              text: "Extract all readable text from this PDF in natural reading order. Return plain text only with no commentary.",
+            },
+          ],
+        },
+      ],
+    },
+    { callSite: "lms.document-extract.pdf-ocr" },
+  );
+
+  return normalizeText(String((response as { output_text?: string }).output_text ?? ""));
+}
+
+async function extractPdfText(buf: Buffer, fileName: string): Promise<ExtractedDocument> {
+  const data = new Uint8Array(buf);
+  const unpdfResult = await extractPdfTextWithUnpdf(data);
+  if (unpdfResult.text) {
+    return {
+      text: unpdfResult.text,
+      mimeType: "application/pdf",
+      fileName,
+      pageHint: unpdfResult.totalPages,
+    };
+  }
+
+  const ocrText = await extractPdfTextViaOpenAi(buf, fileName);
+  if (ocrText) {
+    return {
+      text: ocrText,
+      mimeType: "application/pdf",
+      fileName,
+    };
+  }
+
+  throw new Error(
+    "Could not extract text from this PDF. Upload a text-based PDF or a Word (.docx) file, or use a smaller scanned document.",
+  );
 }
 
 export async function extractTextFromBuffer(
@@ -39,23 +139,15 @@ export async function extractTextFromBuffer(
     const result = await mammoth.extractRawText({ buffer: buf });
     const text = normalizeText(result.value || "");
     if (!text) throw new Error("Could not extract text from Word document.");
-    return { text, mimeType: mime || "application/vnd.openxmlformats-officedocument.wordprocessingml.document", fileName: name };
+    return {
+      text,
+      mimeType: mime || "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      fileName: name,
+    };
   }
 
   if (mime.includes("pdf") || lower.endsWith(".pdf")) {
-    const { extractText } = await import("unpdf");
-    const data = new Uint8Array(buf);
-    const result = await extractText(data, { mergePages: true });
-    const text = normalizeText(
-      Array.isArray(result.text) ? result.text.join("\n\n") : String(result.text ?? ""),
-    );
-    if (!text) throw new Error("Could not extract text from PDF.");
-    return {
-      text,
-      mimeType: "application/pdf",
-      fileName: name,
-      pageHint: typeof result.totalPages === "number" ? result.totalPages : undefined,
-    };
+    return extractPdfText(buf, name);
   }
 
   if (mime.startsWith("text/") || lower.endsWith(".txt") || lower.endsWith(".md")) {

@@ -12,4 +12,13 @@ declare module "unpdf" {
     data: Uint8Array,
     options?: { mergePages?: boolean },
   ): Promise<{ text: string | string[]; totalPages?: number }>;
+
+  export type StructuredTextItem = {
+    str: string;
+  };
+
+  export function extractTextItems(data: Uint8Array): Promise<{
+    totalPages: number;
+    items: StructuredTextItem[][];
+  }>;
 }

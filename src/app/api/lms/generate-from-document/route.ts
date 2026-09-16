@@ -6,7 +6,7 @@ import {
   summarizeGeneratedCourse,
 } from "@/lib/abhi/lms-course-generator";
 import { extractTextFromBuffer } from "@/lib/document-extract";
-import { requireLmsWorkspaceSession } from "@/lib/lms/auth";
+import { requireLmsStaffSession } from "@/lib/lms/auth";
 import { createCourseTree } from "@/lib/lms/service";
 import { allowsLmsAiCourseGeneration } from "@/lib/lms/workspace-gates";
 
@@ -20,11 +20,8 @@ export async function POST(request: NextRequest) {
   const demoMutationBlock = await assertDemoMutationAllowedForRequest(request);
   if (demoMutationBlock) return demoMutationBlock;
 
-  const auth = await requireLmsWorkspaceSession();
+  const auth = await requireLmsStaffSession();
   if ("error" in auth) return auth.error;
-  if (auth.session.userType !== "internal") {
-    return NextResponse.json({ error: "Staff only." }, { status: 403 });
-  }
   if (!allowsLmsAiCourseGeneration(auth.workspace.slug)) {
     return NextResponse.json(
       { error: "AI course generation is not available on this workspace." },

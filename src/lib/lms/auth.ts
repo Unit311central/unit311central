@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { usesWorkspaceTenantUserManagement } from "@/lib/customer-workspace-surface";
 import { getPlatformSession, type PlatformSession } from "@/lib/platform-session";
 import { getCompanyPortalByPath } from "@/lib/talanton/company-portal-routes";
 import { TALANTON_IMPACT_SLUG } from "@/lib/talanton-surface";
@@ -35,6 +36,27 @@ export async function requireLmsWorkspaceSession(): Promise<
       error: NextResponse.json({ error: "Workspace access denied." }, { status: 403 }),
     };
   }
+}
+
+/**
+ * LMS staff actions (AI course generation, course admin APIs).
+ * Internal operators, plus Talanton real admin on the tenant host.
+ */
+export async function requireLmsStaffSession(): Promise<
+  { error: NextResponse } | { session: PlatformSession; workspace: CurrentWorkspace }
+> {
+  const auth = await requireLmsWorkspaceSession();
+  if ("error" in auth) return auth;
+
+  if (auth.session.userType === "internal") {
+    return auth;
+  }
+
+  if (usesWorkspaceTenantUserManagement(auth.workspace.slug, auth.session.username)) {
+    return auth;
+  }
+
+  return { error: NextResponse.json({ error: "Staff only." }, { status: 403 }) };
 }
 
 /**
