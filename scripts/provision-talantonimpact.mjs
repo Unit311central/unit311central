@@ -98,7 +98,7 @@ const PORTFOLIO_COMPANIES = [
 
 /** From https://www.talantonimpact.com/about/our-team */
 const TEAM = [
-  { fullName: "David Simms", role: "Managing Partner and Founder", department: "Leadership", manager: "", country: "United States", employmentType: "full_time", isOwner: true },
+  { fullName: "David Simms", role: "Managing Partner and Founder", department: "Leadership", manager: "", country: "United States", employmentType: "full_time", isOwner: false },
   { fullName: "Harry Turner", role: "Partner", department: "Leadership", manager: "David Simms", country: "United States", employmentType: "full_time", isOwner: false },
   { fullName: "Jon Halverson", role: "Partner", department: "Leadership", manager: "David Simms", country: "United States", employmentType: "full_time", isOwner: false },
   { fullName: "Iris Liang", role: "Associate Partner", department: "Investments", manager: "David Simms", country: "United States", employmentType: "full_time", isOwner: false },
