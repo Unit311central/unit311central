@@ -11,6 +11,14 @@ export type ExtractedDocument = {
 
 const PDF_OCR_MAX_BYTES = 15 * 1024 * 1024;
 
+/**
+ * pdf.js workers transfer the PDF bytes ArrayBuffer between threads. Node 21+
+ * rejects pooled/non-transferable buffers — always copy to a fresh ArrayBuffer.
+ */
+function toWorkerSafePdfBytes(buf: Buffer): Uint8Array {
+  return Uint8Array.from(buf);
+}
+
 function normalizeText(raw: string): string {
   return raw
     .replace(/\r\n/g, "\n")
@@ -93,7 +101,7 @@ async function extractPdfTextViaOpenAi(buf: Buffer, fileName: string): Promise<s
 }
 
 async function extractPdfText(buf: Buffer, fileName: string): Promise<ExtractedDocument> {
-  const data = new Uint8Array(buf);
+  const data = toWorkerSafePdfBytes(buf);
   const unpdfResult = await extractPdfTextWithUnpdf(data);
   if (unpdfResult.text) {
     return {
