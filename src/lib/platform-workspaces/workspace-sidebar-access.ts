@@ -2,6 +2,7 @@ import "server-only";
 
 import { isUnit311GlobalAdminUsername } from "@/lib/demo/read-only";
 import { getInternalOperatorByUsername } from "@/lib/internal-operators-service";
+import { isPortalsBriefingAdminUsername } from "@/lib/portals/registry";
 import { resolveOperatorEntitlementsFromOperatorRow } from "@/lib/operator-entitlements-resolve";
 import type { PlatformSession } from "@/lib/platform-session";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
@@ -40,6 +41,7 @@ export async function canManageWorkspaceSidebar(
 ): Promise<boolean> {
   if (!session || !workspace?.id) return false;
   if (isUnit311GlobalAdminUsername(session.username)) return true;
+  if (isPortalsBriefingAdminUsername(session.username, workspace.slug)) return true;
 
   try {
     const operator = await getInternalOperatorByUsername(session.username);

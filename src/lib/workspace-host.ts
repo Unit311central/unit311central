@@ -57,16 +57,29 @@ const findWorkspaceBySlugCached = cache(async function findWorkspaceBySlugImpl(
   const dbAlias = await findWorkspaceSlugByHostAlias(raw);
   const normalized = canonicalizeWorkspaceHostSubdomain(raw, dbAlias);
 
+  const slugCandidates: string[] = [];
+  const pushCandidate = (value: string | null | undefined) => {
+    const candidate = value?.trim().toLowerCase();
+    if (!candidate) return;
+    if (!slugCandidates.includes(candidate)) slugCandidates.push(candidate);
+  };
+
+  pushCandidate(dbAlias);
+  pushCandidate(normalized);
+  pushCandidate(raw);
+
   const supabase = createTenancyServerClient();
-  const { data, error } = await supabase
-    .from("workspaces")
-    .select("id, name, slug, workspace_type, status")
-    .eq("slug", normalized)
-    .maybeSingle();
+  for (const candidate of slugCandidates) {
+    const { data, error } = await supabase
+      .from("workspaces")
+      .select("id, name, slug, workspace_type, status")
+      .eq("slug", candidate)
+      .maybeSingle();
 
-  if (error || !data) return null;
+    if (!error && data) return mapWorkspaceRow(data);
+  }
 
-  return mapWorkspaceRow(data);
+  return null;
 });
 
 export async function findWorkspaceById(

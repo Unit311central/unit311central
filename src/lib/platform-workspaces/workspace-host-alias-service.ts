@@ -130,7 +130,7 @@ export async function isCustomerHostnameAvailable(
 
 /**
  * Map a customer host subdomain to the canonical workspace slug used in the database.
- * Code-level aliases (OnwardAir, Talanton) take precedence over DB aliases.
+ * DB host aliases win when present; code-level aliases apply only when no DB mapping exists.
  */
 export function canonicalizeWorkspaceHostSubdomain(
   subdomain: string,
@@ -138,6 +138,7 @@ export function canonicalizeWorkspaceHostSubdomain(
 ): string {
   const raw = subdomain.trim().toLowerCase();
   if (!raw) return raw;
+  if (dbResolvedSlug) return dbResolvedSlug;
   const codeAlias =
     canonicalizeOnwardAirSlug(raw) ??
     canonicalizeTalantonImpactSlug(raw) ??
@@ -145,5 +146,5 @@ export function canonicalizeWorkspaceHostSubdomain(
     canonicalizeWolfCentralSlug(raw) ??
     canonicalizePailexSlug(raw) ??
     null;
-  return codeAlias ?? dbResolvedSlug ?? raw;
+  return codeAlias ?? raw;
 }

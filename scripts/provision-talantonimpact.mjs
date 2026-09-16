@@ -386,6 +386,13 @@ $struct$;
     role: "admin",
     isOwner: false,
   });
+  await upsertPlatformUser({
+    email: "admin@talantonimpact.com",
+    displayName: "Talanton Portals Admin",
+    workspaceId,
+    role: "admin",
+    isOwner: true,
+  });
 
   for (const person of TEAM.filter((p) => p.employmentType === "full_time")) {
     const emailLocal = slugify(person.fullName.replace(/,.*/, ""));

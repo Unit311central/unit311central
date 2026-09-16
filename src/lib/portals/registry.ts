@@ -124,6 +124,30 @@ export function isPortalsBriefingAllowedUsername(
   return pack.briefing.isAllowedUsername(username);
 }
 
+export function isPortalsBriefingAdminUsername(
+  username: string | null | undefined,
+  workspaceSlug: string,
+): boolean {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { getPortalsBriefingPackBySlug } =
+    require("@/lib/portals/briefing/pack-registry") as typeof import("@/lib/portals/briefing/pack-registry");
+  const pack = getPortalsBriefingPackBySlug(workspaceSlug);
+  if (!pack?.briefing) return false;
+  return pack.briefing.isAdminUsername(username);
+}
+
+/** Matches middleware portals-briefing dashboard access on customer workspace hosts. */
+export function allowsPortalsBriefingPlatformWorkspaceAccess(
+  username: string | null | undefined,
+  workspaceSlug: string | null | undefined,
+): boolean {
+  const slug = String(workspaceSlug ?? "")
+    .trim()
+    .toLowerCase();
+  if (!slug) return false;
+  return isPortalsBriefingAllowedUsername(username, slug);
+}
+
 export function portalsBriefingLoginUrl(origin: string, workspaceSlug: string): string {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const { getPortalsBriefingPackBySlug } =

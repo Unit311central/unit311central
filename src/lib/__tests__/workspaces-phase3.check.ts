@@ -133,6 +133,12 @@ assert.equal(
   "platform code alias still canonicalizes",
 );
 
+assert.equal(
+  canonicalizeWorkspaceHostSubdomain("talantonimpact", "talanton-impact"),
+  "talanton-impact",
+  "DB host alias wins over Talanton code alias",
+);
+
 const acmeHost = "acme-manufacturing-ltd.unit311central.com";
 assert.equal(
   parseClientPlatformSubdomainSafe(acmeHost),

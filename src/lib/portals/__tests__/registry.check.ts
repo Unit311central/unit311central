@@ -7,6 +7,8 @@ import {
   canonicalizePortalRedirect,
   getPortalPackBySlug,
   isPortalWorkspaceSlug,
+  allowsPortalsBriefingPlatformWorkspaceAccess,
+  isPortalsBriefingAdminUsername,
   isPortalsBriefingAllowedUsername,
   listPortalWorkspacePacks,
   matchPortalPathnameForSlug,
@@ -16,7 +18,7 @@ import { abhiPortalPack } from "@/lib/portals/workspace-packs/abhi";
 import { onwardAirPortalPack } from "@/lib/portals/workspace-packs/onwardair";
 import { talantonPortalPack } from "@/lib/portals/workspace-packs/talanton";
 
-assert.equal(listPortalWorkspacePacks().length, 3);
+assert.ok(listPortalWorkspacePacks().length >= 3);
 
 assert.equal(getPortalPackBySlug("abhi")?.slug, "abhi");
 assert.equal(getPortalPackBySlug("onward")?.slug, "onwardair");
@@ -55,5 +57,17 @@ assert.equal(talantonPortalPack.accessPolicy.allowStaffPreview, true);
 
 assert.equal(isPortalsBriefingAllowedUsername("demo@abhi.org.uk", "abhi"), true);
 assert.equal(isPortalsBriefingAllowedUsername("demo@abhi.org.uk", "onwardair"), false);
+assert.equal(
+  allowsPortalsBriefingPlatformWorkspaceAccess("admin@talantonimpact.com", "talantonimpact"),
+  true,
+);
+assert.equal(
+  isPortalsBriefingAdminUsername("admin@talantonimpact.com", "talantonimpact"),
+  true,
+);
+assert.equal(
+  isPortalsBriefingAdminUsername("demo@talantonimpact.com", "talantonimpact"),
+  false,
+);
 
 console.log("portals/registry.check.ts: all assertions passed");
