@@ -11,6 +11,7 @@ import { isAbhiSlug } from "@/lib/abhi-surface";
 import { isCorpCentreWorkspaceSlug } from "@/lib/corpcentre-financials";
 import { isDemoWorkspaceSlug } from "@/lib/demo/read-only";
 import { isOnwardAirSlug } from "@/lib/onwardair-surface";
+import { TALANTON_PORTALS_ADMIN_USERNAME } from "@/lib/talanton/portals-auth";
 import { isTalantonImpactSlug } from "@/lib/talanton-surface";
 import { isSaecSlug } from "@/lib/saec-surface";
 import { isPailexSlug } from "@/lib/pailex/pailex-surface";
@@ -25,6 +26,27 @@ export function isWorkspaceTenantAdministratorSurface(
   slug: string | null | undefined,
 ): boolean {
   return isCustomerWorkspaceSlug(slug) || isPailexSlug(slug);
+}
+
+/**
+ * Workspaces where the signed-in user may manage Tools → Users via tenant APIs.
+ * Generic customer tenants use workspace owner/admin membership; Talanton Impact
+ * additionally allows the real portals administrator only (not demo@).
+ */
+export function usesWorkspaceTenantUserManagement(
+  slug: string | null | undefined,
+  username?: string | null | undefined,
+): boolean {
+  if (isWorkspaceTenantAdministratorSurface(slug)) {
+    return true;
+  }
+  if (!isTalantonImpactSlug(slug)) {
+    return false;
+  }
+  const normalized = String(username ?? "")
+    .trim()
+    .toLowerCase();
+  return normalized === TALANTON_PORTALS_ADMIN_USERNAME;
 }
 
 export function isCustomerWorkspaceSlug(slug: string | null | undefined): boolean {

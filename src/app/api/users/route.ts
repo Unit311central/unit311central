@@ -9,8 +9,6 @@ import { listWorkspaceTenantUsers } from "@/lib/platform-users-service";
 import { createWorkspaceTenantUser } from "@/lib/workspace-tenant-users-service";
 import { isAbhiSlug } from "@/lib/abhi-surface";
 import { listAbhiTenantUsers } from "@/lib/abhi/users-data";
-import { isTalantonImpactSlug } from "@/lib/talanton-surface";
-import { listTalantonTenantUsers } from "@/lib/talanton/users-data";
 import { ensureInternalOperatorsTable } from "@/lib/internal-db-migrations";
 import type {
   UserDashboardPrefs,
@@ -24,7 +22,7 @@ import { isSupabaseConfigured } from "@/lib/supabase/server";
 import { isDemoApiRequest } from "@/lib/demo/demo-request";
 import { listDemoWorkspaceUsers } from "@/lib/demo/demo-users-service";
 import { isDemoWorkspaceSlug } from "@/lib/demo/read-only";
-import { isWorkspaceTenantAdministratorSurface } from "@/lib/customer-workspace-surface";
+import { usesWorkspaceTenantUserManagement } from "@/lib/customer-workspace-surface";
 
 export const dynamic = "force-dynamic";
 
@@ -45,12 +43,10 @@ export async function GET() {
       return NextResponse.json({ users: await listDemoWorkspaceUsers() });
     }
 
-    if (isWorkspaceTenantAdministratorSurface(auth.workspace.slug)) {
-      const users = isTalantonImpactSlug(auth.workspace.slug)
-        ? listTalantonTenantUsers()
-        : isAbhiSlug(auth.workspace.slug)
-          ? listAbhiTenantUsers()
-          : await listWorkspaceTenantUsers(auth.workspace.id);
+    if (usesWorkspaceTenantUserManagement(auth.workspace.slug, auth.session.username)) {
+      const users = isAbhiSlug(auth.workspace.slug)
+        ? listAbhiTenantUsers()
+        : await listWorkspaceTenantUsers(auth.workspace.id);
       return NextResponse.json({ users });
     }
 
@@ -101,7 +97,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (isWorkspaceTenantAdministratorSurface(auth.workspace.slug)) {
+    if (usesWorkspaceTenantUserManagement(auth.workspace.slug, auth.session.username)) {
       const result = await createWorkspaceTenantUser(
         auth.workspace.id,
         auth.workspace.name,

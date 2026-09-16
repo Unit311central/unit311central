@@ -14,6 +14,7 @@ import { isDemoWorkspaceSlug, isUnit311GlobalAdminUsername } from "@/lib/demo/re
 import {
   isCustomerWorkspaceSlug,
   isWorkspaceTenantAdministratorSurface,
+  usesWorkspaceTenantUserManagement,
 } from "@/lib/customer-workspace-surface";
 import {
   WorkspaceAccessError,
@@ -201,7 +202,7 @@ export async function requireUsersModuleAdministratorSession(): Promise<
     return { error: NextResponse.json({ error: message }, { status: 401 }) };
   }
 
-  if (!isWorkspaceTenantAdministratorSurface(workspace.slug)) {
+  if (!usesWorkspaceTenantUserManagement(workspace.slug, session.username)) {
     return requireInternalAdministratorWorkspaceSession();
   }
 
