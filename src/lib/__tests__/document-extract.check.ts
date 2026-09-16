@@ -7,7 +7,11 @@ import path from "node:path";
 
 const source = fs.readFileSync(path.join(process.cwd(), "src/lib/document-extract.ts"), "utf8");
 
-assert.match(source, /toWorkerSafePdfBytes/, "PDF bytes must be copied for worker transfer on Node 21+");
+assert.match(
+  source,
+  /toWorkerSafePdfBytes\(buf\)/,
+  "Each unpdf call must copy PDF bytes — workers detach the ArrayBuffer",
+);
 assert.match(source, /extractPdfTextWithUnpdf/, "PDF extraction must use unpdf fallback strategies");
 assert.match(source, /extractTextItems/, "PDF extraction must fall back to structured text items");
 assert.match(source, /extractPdfTextViaOpenAi/, "Scanned PDFs must attempt OpenAI OCR fallback");

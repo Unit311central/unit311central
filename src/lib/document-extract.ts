@@ -28,37 +28,43 @@ function normalizeText(raw: string): string {
     .trim();
 }
 
-async function extractPdfTextWithUnpdf(data: Uint8Array): Promise<{
+async function extractPdfTextWithUnpdf(buf: Buffer): Promise<{
   text: string;
   totalPages?: number;
 }> {
   const { extractText, extractTextItems } = await import("unpdf");
 
-  const merged = await extractText(data, { mergePages: true });
-  let text = normalizeText(
-    Array.isArray(merged.text) ? merged.text.join("\n\n") : String(merged.text ?? ""),
-  );
-  if (text) {
+  // unpdf/pdf.js transfers (detaches) the input ArrayBuffer in its worker — never reuse bytes.
+  const runMerged = async () => {
+    const merged = await extractText(toWorkerSafePdfBytes(buf), { mergePages: true });
+    const text = normalizeText(
+      Array.isArray(merged.text) ? merged.text.join("\n\n") : String(merged.text ?? ""),
+    );
     return { text, totalPages: merged.totalPages };
+  };
+
+  const mergedResult = await runMerged();
+  if (mergedResult.text) {
+    return mergedResult;
   }
 
-  const perPage = await extractText(data, { mergePages: false });
-  text = normalizeText(
+  const perPage = await extractText(toWorkerSafePdfBytes(buf), { mergePages: false });
+  const perPageText = normalizeText(
     Array.isArray(perPage.text) ? perPage.text.filter(Boolean).join("\n\n") : String(perPage.text ?? ""),
   );
-  if (text) {
-    return { text, totalPages: perPage.totalPages };
+  if (perPageText) {
+    return { text: perPageText, totalPages: perPage.totalPages };
   }
 
-  const structured = await extractTextItems(data);
-  text = normalizeText(
+  const structured = await extractTextItems(toWorkerSafePdfBytes(buf));
+  const structuredText = normalizeText(
     structured.items
       .flat()
       .map((item) => item.str)
       .filter(Boolean)
       .join(" "),
   );
-  return { text, totalPages: structured.totalPages };
+  return { text: structuredText, totalPages: structured.totalPages };
 }
 
 async function extractPdfTextViaOpenAi(buf: Buffer, fileName: string): Promise<string> {
@@ -101,8 +107,7 @@ async function extractPdfTextViaOpenAi(buf: Buffer, fileName: string): Promise<s
 }
 
 async function extractPdfText(buf: Buffer, fileName: string): Promise<ExtractedDocument> {
-  const data = toWorkerSafePdfBytes(buf);
-  const unpdfResult = await extractPdfTextWithUnpdf(data);
+  const unpdfResult = await extractPdfTextWithUnpdf(buf);
   if (unpdfResult.text) {
     return {
       text: unpdfResult.text,
