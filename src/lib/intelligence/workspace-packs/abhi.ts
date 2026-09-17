@@ -110,6 +110,8 @@ const memberProvider: IntelligenceDomainProvider = {
       },
     ], {
       posture: portfolio.summary.atRiskMembers > 0 ? "elevated" : "healthy",
+      postureReason: `${portfolio.summary.activeMembers} active members · ${portfolio.summary.atRiskMembers} at risk · ${portfolio.summary.renewalsDueIn90Days} renewals in 90 days`,
+      recommendedActions: actions.slice(0, 2).map((a) => `Review ${a.memberName}`),
     });
   },
 };
@@ -139,6 +141,7 @@ const regulatoryProvider: IntelligenceDomainProvider = {
   },
   async buildBriefing(ctx) {
     const dashboard = buildAbhiRegulatoryDashboard(clientsFromContext(ctx));
+    const elevated = dashboard.memberAlerts.some((a) => a.priority === "High");
     return briefingFromSections(ctx.workspaceSlug, "regulatory", dashboard.todaysBrief.headline, [
       {
         id: "today",
@@ -153,7 +156,11 @@ const regulatoryProvider: IntelligenceDomainProvider = {
         title: "Member alerts",
         bullets: dashboard.memberAlerts.slice(0, 5).map((a) => `${a.memberName} — ${a.priority} priority`),
       },
-    ]);
+    ], {
+      posture: elevated ? "elevated" : "watch",
+      postureReason: `${dashboard.todaysBrief.potentiallyAffectedMembers} members potentially affected by today's regulatory updates`,
+      recommendedActions: ["Review regulatory impact assessments", "Export member alert brief"],
+    });
   },
 };
 
@@ -184,6 +191,7 @@ const companyProvider: IntelligenceDomainProvider = {
   },
   async buildBriefing(ctx) {
     const records = abhiCompanyIntelligenceRecords();
+    const top = records[0];
     return briefingFromSections(
       ctx.workspaceSlug,
       "company-intelligence",
@@ -195,7 +203,11 @@ const companyProvider: IntelligenceDomainProvider = {
           bullets: records.slice(0, 4).map((row) => row.summary),
         },
       ],
-      { posture: "healthy" },
+      {
+        posture: "healthy",
+        postureReason: top?.summary ?? "Association operations and membership programme performance.",
+        recommendedActions: ["Review renewal concentration Q4", "Open programme delivery dashboard"],
+      },
     );
   },
 };
@@ -215,6 +227,7 @@ const marketProvider: IntelligenceDomainProvider = {
   async buildBriefing(ctx) {
     const records = abhiMarketIntelligenceRecords();
     const elevated = records.some((r) => r.severity === "high" || r.severity === "critical");
+    const headlineRecord = records.find((r) => r.severity === "high") ?? records[0];
     return briefingFromSections(
       ctx.workspaceSlug,
       "market-intelligence",
@@ -226,7 +239,11 @@ const marketProvider: IntelligenceDomainProvider = {
           bullets: records.slice(0, 4).map((row) => row.summary),
         },
       ],
-      { posture: elevated ? "elevated" : "watch" },
+      {
+        posture: elevated ? "elevated" : "watch",
+        postureReason: headlineRecord?.summary ?? "Sector and regulatory signals for UK health-tech.",
+        recommendedActions: ["Review MHRA reform timeline", "Monitor export demand in US & GCC"],
+      },
     );
   },
 };
@@ -236,31 +253,58 @@ const dashboardProvider: IntelligenceDomainProvider = {
   async buildBriefing(ctx) {
     const portfolio = buildMemberIntelligencePortfolio(clientsFromContext(ctx));
     const regulatory = buildAbhiRegulatoryDashboard(clientsFromContext(ctx));
-    return briefingFromSections(ctx.workspaceSlug, "dashboard", "ABHI Intelligence overview", [
+    const companyTop = abhiCompanyIntelligenceRecords()[0];
+    const marketTop =
+      abhiMarketIntelligenceRecords().find((r) => r.severity === "high") ??
+      abhiMarketIntelligenceRecords()[0];
+    const posture =
+      portfolio.summary.atRiskMembers > 0 || regulatory.memberAlerts.some((a) => a.priority === "High")
+        ? "elevated"
+        : "healthy";
+    return briefingFromSections(
+      ctx.workspaceSlug,
+      "dashboard",
+      "ABHI Intelligence overview",
+      [
+        {
+          id: "company",
+          title: "Company Intelligence",
+          bullets: [
+            companyTop?.summary ?? "Association operations and membership programme performance.",
+            `${abhiCompanyIntelligenceRecords().length} active company signals`,
+          ],
+        },
+        {
+          id: "member",
+          title: "Member Intelligence",
+          bullets: [
+            `${portfolio.summary.activeMembers} active members`,
+            `${portfolio.summary.atRiskMembers} at risk · ${portfolio.summary.renewalsDueIn90Days} renewals in 90 days`,
+          ],
+        },
+        {
+          id: "market",
+          title: "Market Intelligence",
+          bullets: [
+            marketTop?.summary ?? "UK health-tech and diagnostics sector monitor.",
+            `${abhiMarketIntelligenceRecords().length} external market signals`,
+          ],
+        },
+        {
+          id: "regulatory",
+          title: "Regulatory Intelligence",
+          bullets: [
+            regulatory.todaysBrief.headline,
+            `${regulatory.todaysBrief.potentiallyAffectedMembers} members potentially affected`,
+          ],
+        },
+      ],
       {
-        id: "company",
-        title: "Company Intelligence",
-        bullets: ["Association operations and membership programme performance."],
+        posture,
+        postureReason:
+          "Consolidated posture across membership, operations, market, and regulatory monitoring.",
       },
-      {
-        id: "member",
-        title: "Member Intelligence",
-        bullets: [
-          `${portfolio.summary.activeMembers} active members`,
-          `${portfolio.summary.atRiskMembers} at risk`,
-        ],
-      },
-      {
-        id: "market",
-        title: "Market Intelligence",
-        bullets: ["UK health-tech and diagnostics sector monitor."],
-      },
-      {
-        id: "regulatory",
-        title: "Regulatory Intelligence",
-        bullets: [regulatory.todaysBrief.headline],
-      },
-    ]);
+    );
   },
 };
 
