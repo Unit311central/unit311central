@@ -7,6 +7,7 @@ import {
   buildAbhiHomeFinancialOverviewFallback,
   isAbhiWorkspaceSlug,
 } from "@/lib/abhi-financials";
+import { getAbhiMemberFixtureClients } from "@/lib/abhi/member-intelligence";
 import { listLeads } from "@/lib/crm-leads-service";
 import { isDemoWorkspaceSlug } from "@/lib/demo/read-only";
 import { isDemoApiRequest } from "@/lib/demo/demo-request";
@@ -301,7 +302,10 @@ export async function GET() {
           : listClientOnboardingRecords({ status: "in_progress", workspaceId }).catch(() => []),
       ]);
 
-    const clients = oaSurface ? filterOaHomeClients(clientsRaw) : clientsRaw;
+    let clients = oaSurface ? filterOaHomeClients(clientsRaw) : clientsRaw;
+    if (abhiSurface && clients.length === 0) {
+      clients = getAbhiMemberFixtureClients();
+    }
 
     return NextResponse.json({
       projects,

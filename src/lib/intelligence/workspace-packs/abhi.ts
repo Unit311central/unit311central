@@ -18,9 +18,12 @@ import type {
   IntelligenceProviderContext,
 } from "@/lib/intelligence/types";
 import {
-  createEmptyIntelligenceProvider,
-} from "@/lib/intelligence/workspace-packs/_customer-providers";
+  abhiCompanyIntelligenceRecords,
+  abhiMarketIntelligenceRecords,
+} from "@/lib/abhi/intelligence-records";
+import { createCustomerIntelligenceSources } from "@/lib/intelligence/workspace-packs/_customer-providers";
 import { briefingFromSections, paginateRecords } from "@/lib/intelligence/workspace-packs/_helpers";
+import type { IntelligenceRecord } from "@/lib/intelligence/types";
 import { buildStandardIntelligencePack } from "@/lib/intelligence/workspace-packs/_standard-pack";
 
 const SLUG = ABHI_SLUG;
@@ -154,6 +157,80 @@ const regulatoryProvider: IntelligenceDomainProvider = {
   },
 };
 
+function filterRecords(records: readonly IntelligenceRecord[], query?: string) {
+  const q = query?.trim().toLowerCase();
+  if (!q) return [...records];
+  return records.filter(
+    (record) =>
+      record.title.toLowerCase().includes(q) ||
+      record.summary.toLowerCase().includes(q) ||
+      record.tags.some((tag) => tag.label.toLowerCase().includes(q)),
+  );
+}
+
+const ABHI_INTEL_SOURCES = createCustomerIntelligenceSources(SLUG);
+
+const companyProvider: IntelligenceDomainProvider = {
+  domainId: "company-intelligence",
+  async listSources(ctx) {
+    return ABHI_INTEL_SOURCES.filter((source) => source.domainId === ctx.domainId);
+  },
+  async searchRecords(_ctx, query) {
+    const rows = filterRecords(abhiCompanyIntelligenceRecords(), query.filter?.search);
+    return paginateRecords(rows, (row) => row, query.limit, query.offset);
+  },
+  async getRecord(_ctx, recordId) {
+    return abhiCompanyIntelligenceRecords().find((row) => row.id === recordId) ?? null;
+  },
+  async buildBriefing(ctx) {
+    const records = abhiCompanyIntelligenceRecords();
+    return briefingFromSections(
+      ctx.workspaceSlug,
+      "company-intelligence",
+      "ABHI company intelligence",
+      [
+        {
+          id: "highlights",
+          title: "Operational highlights",
+          bullets: records.slice(0, 4).map((row) => row.summary),
+        },
+      ],
+      { posture: "healthy" },
+    );
+  },
+};
+
+const marketProvider: IntelligenceDomainProvider = {
+  domainId: "market-intelligence",
+  async listSources(ctx) {
+    return ABHI_INTEL_SOURCES.filter((source) => source.domainId === ctx.domainId);
+  },
+  async searchRecords(_ctx, query) {
+    const rows = filterRecords(abhiMarketIntelligenceRecords(), query.filter?.search);
+    return paginateRecords(rows, (row) => row, query.limit, query.offset);
+  },
+  async getRecord(_ctx, recordId) {
+    return abhiMarketIntelligenceRecords().find((row) => row.id === recordId) ?? null;
+  },
+  async buildBriefing(ctx) {
+    const records = abhiMarketIntelligenceRecords();
+    const elevated = records.some((r) => r.severity === "high" || r.severity === "critical");
+    return briefingFromSections(
+      ctx.workspaceSlug,
+      "market-intelligence",
+      "UK health-tech market monitor",
+      [
+        {
+          id: "signals",
+          title: "Market signals",
+          bullets: records.slice(0, 4).map((row) => row.summary),
+        },
+      ],
+      { posture: elevated ? "elevated" : "watch" },
+    );
+  },
+};
+
 const dashboardProvider: IntelligenceDomainProvider = {
   domainId: "dashboard",
   async buildBriefing(ctx) {
@@ -196,8 +273,8 @@ export const abhiIntelligencePack = buildStandardIntelligencePack({
   clientDomainId: "member",
   clientLabel: "Member Intelligence",
   clientProvider: memberProvider,
-  companyProvider: createEmptyIntelligenceProvider(SLUG, "company-intelligence"),
-  marketProvider: createEmptyIntelligenceProvider(SLUG, "market-intelligence"),
+  companyProvider,
+  marketProvider,
   dashboardProvider,
   extraDomains: [
     {

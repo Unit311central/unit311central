@@ -3,6 +3,7 @@
  * Server-only Demo detection lives in bank-provider-server.ts.
  */
 
+import { isAbhiSlug } from "@/lib/abhi-surface";
 import { demoWorkspaceSlug } from "@/lib/runtime-surface";
 import { isOnwardAirSlug } from "@/lib/onwardair-surface";
 import { isSaecSlug } from "@/lib/saec-surface";
@@ -26,12 +27,17 @@ export function isOmniTransitBankWorkspaceSlug(slug: string | null | undefined):
   return isSaecSlug(slug);
 }
 
+export function isAbhiBankWorkspaceSlug(slug: string | null | undefined): boolean {
+  return isAbhiSlug(slug);
+}
+
 /** Workspaces allowed to use the Bank treasury UI (live or simulated). */
 export function isWiseTreasuryWorkspaceSlug(slug: string | null | undefined): boolean {
   return (
     isDemoWiseWorkspaceSlug(slug) ||
     isLiveWiseWorkspaceSlug(slug) ||
     isOnwardAirBankWorkspaceSlug(slug) ||
-    isOmniTransitBankWorkspaceSlug(slug)
+    isOmniTransitBankWorkspaceSlug(slug) ||
+    isAbhiBankWorkspaceSlug(slug)
   );
 }

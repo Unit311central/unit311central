@@ -893,9 +893,12 @@ function mapWiseBalance(row: {
 }
 
 export async function listWiseBalances(profileId?: number): Promise<WiseBalance[]> {
-  const { shouldUseDemoWiseSimulator, shouldUseOnwardAirBankSimulator, shouldUseOmniTransitBankSimulator } = await import(
-    "@/lib/treasury/bank-provider-server"
-  );
+  const {
+    shouldUseDemoWiseSimulator,
+    shouldUseOnwardAirBankSimulator,
+    shouldUseOmniTransitBankSimulator,
+    shouldUseAbhiBankSimulator,
+  } = await import("@/lib/treasury/bank-provider-server");
   if (await shouldUseDemoWiseSimulator()) {
     const { listDemoWiseBalances } = await import(
       "@/lib/treasury/providers/demo-wise-simulator"
@@ -913,6 +916,12 @@ export async function listWiseBalances(profileId?: number): Promise<WiseBalance[
       "@/lib/treasury/providers/omnitransit-bank-simulator"
     );
     return listOmniTransitBankBalances();
+  }
+  if (await shouldUseAbhiBankSimulator()) {
+    const { listAbhiBankBalances } = await import(
+      "@/lib/treasury/providers/abhi-bank-simulator"
+    );
+    return listAbhiBankBalances();
   }
 
   const resolvedProfileId = profileId ?? readWiseProfileId();
@@ -965,9 +974,12 @@ export async function listWiseBalances(profileId?: number): Promise<WiseBalance[
 }
 
 export async function getWiseConnectionStatus(): Promise<WiseConnectionStatus> {
-  const { shouldUseDemoWiseSimulator, shouldUseOnwardAirBankSimulator, shouldUseOmniTransitBankSimulator } = await import(
-    "@/lib/treasury/bank-provider-server"
-  );
+  const {
+    shouldUseDemoWiseSimulator,
+    shouldUseOnwardAirBankSimulator,
+    shouldUseOmniTransitBankSimulator,
+    shouldUseAbhiBankSimulator,
+  } = await import("@/lib/treasury/bank-provider-server");
   if (await shouldUseDemoWiseSimulator()) {
     const { getDemoWiseConnectionStatus } = await import(
       "@/lib/treasury/providers/demo-wise-simulator"
@@ -985,6 +997,12 @@ export async function getWiseConnectionStatus(): Promise<WiseConnectionStatus> {
       "@/lib/treasury/providers/omnitransit-bank-simulator"
     );
     return getOmniTransitBankConnectionStatus();
+  }
+  if (await shouldUseAbhiBankSimulator()) {
+    const { getAbhiBankConnectionStatus } = await import(
+      "@/lib/treasury/providers/abhi-bank-simulator"
+    );
+    return getAbhiBankConnectionStatus();
   }
 
   const profileId = readWiseProfileId();
@@ -1282,9 +1300,12 @@ export async function getWiseBalanceTransactions(input: {
   intervalEnd: string;
   profileId?: number;
 }) {
-  const { shouldUseDemoWiseSimulator, shouldUseOnwardAirBankSimulator, shouldUseOmniTransitBankSimulator } = await import(
-    "@/lib/treasury/bank-provider-server"
-  );
+  const {
+    shouldUseDemoWiseSimulator,
+    shouldUseOnwardAirBankSimulator,
+    shouldUseOmniTransitBankSimulator,
+    shouldUseAbhiBankSimulator,
+  } = await import("@/lib/treasury/bank-provider-server");
   if (await shouldUseDemoWiseSimulator()) {
     const { getDemoWiseBalanceTransactions } = await import(
       "@/lib/treasury/providers/demo-wise-simulator"
@@ -1302,6 +1323,12 @@ export async function getWiseBalanceTransactions(input: {
       "@/lib/treasury/providers/omnitransit-bank-simulator"
     );
     return getOmniTransitBankBalanceTransactions(input);
+  }
+  if (await shouldUseAbhiBankSimulator()) {
+    const { getAbhiBankBalanceTransactions } = await import(
+      "@/lib/treasury/providers/abhi-bank-simulator"
+    );
+    return getAbhiBankBalanceTransactions(input);
   }
 
   try {

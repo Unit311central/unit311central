@@ -3,6 +3,7 @@ import {
   ABHI_CASH_PRIOR_MONTH_GBP,
   ABHI_MONTHLY_BURN_PRIOR_GBP,
 } from "@/lib/abhi-financials";
+import { ABHI_ACTIVE_MEMBER_COUNT } from "@/lib/abhi-surface";
 import { formatMoney, withPreferredCurrencySymbol } from "@/lib/accounting/chart-of-accounts";
 import { formatReportingMoney, roundReportingPercent, type ReportingCurrency } from "@/lib/financial-reporting-currency";
 import type { FinancialOverviewSnapshot } from "@/lib/accounting/types";
@@ -546,7 +547,9 @@ export function buildExecutiveHomeLiveKpis(input: {
         : abhiHome
           ? ABHI_MONTHLY_BURN_PRIOR_GBP
           : 0;
-  const activeClients = selectHomeActiveClients(input.clients).length;
+  const activeClients = abhiHome
+    ? ABHI_ACTIVE_MEMBER_COUNT
+    : selectHomeActiveClients(input.clients).length;
   const effectiveOnboarding = resolveEffectiveOnboardingCount({
     clients: input.clients,
     onboardingPipelineCount: input.onboardingPipelineCount,

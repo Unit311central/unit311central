@@ -22,6 +22,7 @@ import type {
 } from "@/lib/intelligence/types";
 import { resolveIntelligenceDomainForView } from "@/lib/intelligence/views";
 import { resolveIntelligenceWorkspaceSlugFromBrowser } from "@/lib/intelligence/workspace-context";
+import { isBrowserAbhiSurface } from "@/lib/abhi-surface";
 import { isGreenDesertSlug } from "@/lib/greendesert-surface";
 import { cn } from "@/lib/utils";
 
@@ -100,10 +101,13 @@ export default function IntelligenceCentralWorkspace({
       setLoading(true);
       setError(null);
       try {
-        const providerData =
-          clients && clients.length > 0
-            ? `&providerData=${encodeURIComponent(JSON.stringify({ clients }))}`
-            : "";
+        let providerData = "";
+        if (clients && clients.length > 0 && !isBrowserAbhiSurface()) {
+          const payload = JSON.stringify({ clients });
+          if (payload.length <= 2048) {
+            providerData = `&providerData=${encodeURIComponent(payload)}`;
+          }
+        }
 
         const searchParams = new URLSearchParams({
           domainId,

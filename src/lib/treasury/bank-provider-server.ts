@@ -7,6 +7,7 @@ import "server-only";
 
 import { isDemoDomainHost } from "@/lib/app-domains";
 import {
+  isAbhiBankWorkspaceSlug,
   isDemoWiseWorkspaceSlug,
   isOnwardAirBankWorkspaceSlug,
 } from "@/lib/treasury/bank-provider";
@@ -63,6 +64,17 @@ export async function shouldUseOmniTransitBankSimulator(): Promise<boolean> {
     const workspace = await getCurrentWorkspace();
     const { isOmniTransitBankWorkspaceSlug } = await import("@/lib/treasury/bank-provider");
     return isOmniTransitBankWorkspaceSlug(workspace?.slug ?? null);
+  } catch {
+    return false;
+  }
+}
+
+/** ABHI Finance → Bank uses a GBP Wise read-only simulator. */
+export async function shouldUseAbhiBankSimulator(): Promise<boolean> {
+  try {
+    const { getCurrentWorkspace } = await import("@/lib/workspace-context");
+    const workspace = await getCurrentWorkspace();
+    return isAbhiBankWorkspaceSlug(workspace?.slug ?? null);
   } catch {
     return false;
   }
