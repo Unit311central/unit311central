@@ -7,6 +7,7 @@ import {
   DEMO_WORKSPACE_SLUG,
   parseClientPlatformSubdomainSafe,
 } from "@/lib/app-domains";
+import { isAbhiPortalsAllowedUsername } from "@/lib/abhi/portals-auth";
 import { isAbhiSlug } from "@/lib/abhi-surface";
 import { isCorpCentreWorkspaceSlug } from "@/lib/corpcentre-financials";
 import { isDemoWorkspaceSlug } from "@/lib/demo/read-only";
@@ -38,6 +39,9 @@ export function usesWorkspaceTenantUserManagement(
   username?: string | null | undefined,
 ): boolean {
   if (isWorkspaceTenantAdministratorSurface(slug)) {
+    return true;
+  }
+  if (isAbhiSlug(slug) && isAbhiPortalsAllowedUsername(username)) {
     return true;
   }
   if (!isTalantonImpactSlug(slug)) {

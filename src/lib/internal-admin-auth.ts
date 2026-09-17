@@ -11,6 +11,8 @@ import {
 import { createTenancyServerClient } from "@/lib/supabase/tenancy-server";
 import { userHasRole } from "@/lib/user-management-data";
 import { isDemoWorkspaceSlug, isUnit311GlobalAdminUsername } from "@/lib/demo/read-only";
+import { isAbhiPortalsAllowedUsername } from "@/lib/abhi/portals-auth";
+import { isAbhiSlug } from "@/lib/abhi-surface";
 import {
   isCustomerWorkspaceSlug,
   isWorkspaceTenantAdministratorSurface,
@@ -160,6 +162,13 @@ export async function requireInternalAdministratorWorkspaceSession(): Promise<
   const workspaceAuth = await requireInternalWorkspaceSession();
   if ("error" in workspaceAuth) return workspaceAuth;
 
+  if (
+    isAbhiSlug(workspaceAuth.workspace.slug) &&
+    isAbhiPortalsAllowedUsername(workspaceAuth.session.username)
+  ) {
+    return { session: workspaceAuth.session, workspace: workspaceAuth.workspace };
+  }
+
   const adminAuth = await requireInternalAdministratorSession();
   if ("error" in adminAuth) return adminAuth;
 
@@ -200,6 +209,13 @@ export async function requireUsersModuleAdministratorSession(): Promise<
     }
     const message = error instanceof Error ? error.message : AUTH_REQUIRED;
     return { error: NextResponse.json({ error: message }, { status: 401 }) };
+  }
+
+  if (
+    isAbhiSlug(workspace.slug) &&
+    isAbhiPortalsAllowedUsername(session.username)
+  ) {
+    return { session, workspace };
   }
 
   if (!usesWorkspaceTenantUserManagement(workspace.slug, session.username)) {
