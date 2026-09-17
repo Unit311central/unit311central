@@ -338,6 +338,7 @@ export function SalesManagementActivitiesTab() {
 export function SalesManagementTargetsTab() {
 
   const { data, loading, error, reload } = useSalesWorkspaceSection("targets");
+  const basePath = useInternalOperationsBasePath();
 
   const [saving, setSaving] = useState(false);
 
@@ -471,6 +472,15 @@ export function SalesManagementTargetsTab() {
         description="Revenue targets by salesperson or team. Actuals derive from Won opportunities and accepted quotes in the period."
 
       />
+
+      {data.context.isManager ? (
+        <div className="flex flex-wrap justify-end gap-2">
+          <Link href={getInternalNavHref("crm", basePath)} className={WsPrimaryButtonClass()}>
+            <Plus className="h-3.5 w-3.5" />
+            Add pipeline opportunity
+          </Link>
+        </div>
+      ) : null}
 
 
 
@@ -973,6 +983,7 @@ export function SalesManagementPerformanceTab() {
 export function SalesManagementForecastTab() {
 
   const { data, loading, error, reload } = useSalesWorkspaceSection("forecast");
+  const basePath = useInternalOperationsBasePath();
 
   if (loading) return <SalesManagementLoading label="Loading forecast…" />;
 
@@ -1048,6 +1059,22 @@ export function SalesManagementForecastTab() {
         }
 
       />
+
+      {data.context.isManager ? (
+        <div className="flex flex-wrap justify-end gap-2">
+          <Link href={getInternalNavHref("crm", basePath)} className={WsPrimaryButtonClass()}>
+            <Plus className="h-3.5 w-3.5" />
+            Add pipeline opportunity
+          </Link>
+          <Link
+            href={getInternalNavHref("sales-management", basePath, { tab: "targets" })}
+            className={WsPrimaryButtonClass()}
+          >
+            <Plus className="h-3.5 w-3.5" />
+            Add target
+          </Link>
+        </div>
+      ) : null}
 
       {forecast.horizons?.length ? (
         <WsSection title="Forecast horizons" subtitle="Prorated from current pipeline and committed revenue" className="p-4 sm:p-5">

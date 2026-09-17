@@ -43,6 +43,8 @@ export async function resolveSalesManagementAuth() {
     workspaceSlug: workspace.slug,
     currentUserId: session.sub,
     currentUserName: session.displayName,
+    currentUsername: session.username,
+    currentUserType: session.userType,
   });
 
   return {

@@ -600,6 +600,8 @@ export async function loadSalesWorkspaceBundle(input: {
   workspaceSlug: string;
   currentUserId: string;
   currentUserName: string;
+  currentUsername?: string;
+  currentUserType?: "internal" | "external";
 }): Promise<SalesWorkspaceBundle> {
   const [leads, quotes, meetings, teams] = await Promise.all([
     listLeads("All", { workspaceId: input.workspaceId }),
@@ -620,13 +622,27 @@ export async function loadSalesWorkspaceBundle(input: {
 
   const reportingCurrency = resolveSlugReportingCurrency(input.workspaceSlug) as SalesReportingCurrency;
   const currentPerson = personByUserId[input.currentUserId];
+  let abhiManagerAccess = false;
+  try {
+    const { isAbhiSlug } = require("@/lib/abhi-surface") as typeof import("@/lib/abhi-surface");
+    const { isAbhiPortalsAllowedUsername } =
+      require("@/lib/abhi/portals-auth") as typeof import("@/lib/abhi/portals-auth");
+    if (isAbhiSlug(input.workspaceSlug)) {
+      abhiManagerAccess =
+        isAbhiPortalsAllowedUsername(input.currentUsername) ||
+        input.currentUserType === "internal";
+    }
+  } catch {
+    /* optional */
+  }
   const context: SalesWorkspaceContext = {
     currency: reportingCurrency,
     currentUserId: input.currentUserId,
     currentUserName: input.currentUserName,
-    isSalesperson: Boolean(currentPerson),
+    isSalesperson: Boolean(currentPerson) || abhiManagerAccess,
     isManager:
       isGreenDesertSlug(input.workspaceSlug) ||
+      abhiManagerAccess ||
       Boolean(currentPerson?.isManager) ||
       teams.some((team) => team.managerUserId === input.currentUserId),
     people,

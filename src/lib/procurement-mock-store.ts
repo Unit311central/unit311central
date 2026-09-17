@@ -799,6 +799,18 @@ function seedState(): ProcurementMockState {
     }
 
     try {
+      const { isBrowserAbhiSurface } =
+        require("@/lib/abhi-surface") as typeof import("@/lib/abhi-surface");
+      if (isBrowserAbhiSurface()) {
+        const { buildAbhiProcurementState } =
+          require("@/lib/abhi/demo/procurement-state") as typeof import("@/lib/abhi/demo/procurement-state");
+        return buildAbhiProcurementState();
+      }
+    } catch {
+      // Fall through.
+    }
+
+    try {
       const { isBrowserCustomerWorkspaceSurface } =
         require("@/lib/customer-workspace-surface") as typeof import("@/lib/customer-workspace-surface");
       if (isBrowserCustomerWorkspaceSurface()) {

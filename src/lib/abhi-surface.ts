@@ -4,6 +4,9 @@
 
 export const ABHI_SLUG = "abhi";
 
+/** ABHI reports membership, sales, fundraising, and operations in sterling. */
+export const ABHI_REPORTING_CURRENCY = "GBP" as const;
+
 /** Transparent ABHI wordmark (PNG with alpha). Prefer this over abhi.jpg. */
 export const ABHI_LOGO_SRC = "/images/workspaces/abhi-logo.png";
 

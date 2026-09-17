@@ -76,6 +76,7 @@ import {
 import { isBrowserCustomerWorkspaceSurface } from "@/lib/customer-workspace-surface";
 import { isBrowserGreenDesertSurface } from "@/lib/greendesert-surface";
 import { resolveBrowserReportingCurrency, type ReportingCurrency } from "@/lib/financial-reporting-currency";
+import { isBrowserAbhiSurface } from "@/lib/abhi-surface";
 import { isBrowserOnwardAirSurface } from "@/lib/onwardair-surface";
 import { isBrowserSaecSurface } from "@/lib/saec-surface";
 import { downloadPurchaseOrderPdf } from "@/lib/procurement-pdf-service";
@@ -117,17 +118,20 @@ const AI_KIND_LABELS: Record<string, string> = {
 
 const IS_OA = typeof window !== "undefined" && isBrowserOnwardAirSurface();
 const IS_SAEC = typeof window !== "undefined" && isBrowserSaecSurface();
+const IS_ABHI = typeof window !== "undefined" && isBrowserAbhiSurface();
 const IS_CUSTOMER = typeof window !== "undefined" && isBrowserCustomerWorkspaceSurface();
 const IS_GREEN_DESERT = typeof window !== "undefined" && isBrowserGreenDesertSurface();
 const DEFAULT_CURRENCY: ReportingCurrency = IS_OA
   ? "USD"
   : IS_SAEC
     ? "ZAR"
-    : IS_GREEN_DESERT
-      ? "USD"
-      : IS_CUSTOMER
-        ? resolveBrowserReportingCurrency()
-        : "EUR";
+    : IS_ABHI
+      ? "GBP"
+      : IS_GREEN_DESERT
+        ? "USD"
+        : IS_CUSTOMER
+          ? resolveBrowserReportingCurrency()
+          : "EUR";
 const DEFAULT_TAX_PCT = IS_OA ? 8.25 : 21;
 const DEFAULT_COST_CENTRE = IS_OA ? "OPS-HOU" : "OPS-BCN";
 const DEFAULT_DELIVERY = IS_OA

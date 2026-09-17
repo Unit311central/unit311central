@@ -8,8 +8,13 @@ import { isBrowserDemoSurface } from "@/lib/demo-enterprise";
 import { isBrowserSaecSurface } from "@/lib/saec-surface";
 import { isBrowserWolfCentralSurface } from "@/lib/wolf/wolf-surface";
 import WolfOperationsDashboard from "@/components/wolf/WolfOperationsDashboard";
+import AbhiOperationsDashboard from "@/components/abhi/AbhiOperationsDashboard";
+import { isBrowserAbhiSurface } from "@/lib/abhi-surface";
 
 export function OperationsDashboardWorkspace() {
+  if (typeof window !== "undefined" && isBrowserAbhiSurface()) {
+    return <AbhiOperationsDashboard />;
+  }
   if (typeof window !== "undefined" && isBrowserDemoSurface()) {
     return <NorthstarOperationsDashboard />;
   }

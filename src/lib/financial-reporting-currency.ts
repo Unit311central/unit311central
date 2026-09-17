@@ -61,6 +61,16 @@ export function resolveSlugReportingCurrency(slug: string | null | undefined): R
     /* optional at build edges */
   }
 
+  try {
+    const { isAbhiSlug, ABHI_REPORTING_CURRENCY } =
+      require("@/lib/abhi-surface") as typeof import("@/lib/abhi-surface");
+    if (isAbhiSlug(normalized)) {
+      return ABHI_REPORTING_CURRENCY as ReportingCurrency;
+    }
+  } catch {
+    /* optional at build edges */
+  }
+
   // Inline slug check — avoid require("@/lib/saec-surface") (Turbopack SSR chunk collision).
   if (normalized === "saec") return "ZAR";
 
@@ -119,6 +129,15 @@ export function resolveBrowserReportingCurrency(): ReportingCurrency {
   if (host === "omnitransit.unit311central.com" || host === "omnitransit.localhost") return "ZAR";
   if (host === "saec.unit311central.com" || host === "saec.localhost") return "ZAR";
   if (host === "greendesert.unit311central.com" || host === "greendesert.localhost") return "USD";
+  if (host === "abhi.unit311central.com" || host === "abhi.localhost") return "GBP";
+
+  try {
+    const { isBrowserAbhiSurface, ABHI_REPORTING_CURRENCY } =
+      require("@/lib/abhi-surface") as typeof import("@/lib/abhi-surface");
+    if (isBrowserAbhiSurface()) return ABHI_REPORTING_CURRENCY as ReportingCurrency;
+  } catch {
+    /* optional at build edges */
+  }
 
   return DEFAULT_REPORTING_CURRENCY;
 }

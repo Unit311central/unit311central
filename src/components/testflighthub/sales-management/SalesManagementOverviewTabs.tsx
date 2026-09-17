@@ -22,7 +22,7 @@ import {
 
 } from "recharts";
 
-import { AlertCircle, CalendarClock, FileText, Target, TrendingUp, Users } from "lucide-react";
+import { AlertCircle, CalendarClock, FileText, Plus, Target, TrendingUp, Users } from "lucide-react";
 
 
 
@@ -65,6 +65,8 @@ import {
   useSalesWorkspaceSection,
 
 } from "./sales-management-ui";
+
+import { WsPrimaryButtonClass } from "../domain-workspace-ui";
 
 
 
@@ -315,6 +317,7 @@ export function SalesManagementMySalesTab() {
 export function SalesManagementSalesTeamTab() {
 
   const { data, loading, error, reload } = useSalesWorkspaceSection("sales-team");
+  const basePath = useInternalOperationsBasePath();
 
 
 
@@ -361,6 +364,27 @@ export function SalesManagementSalesTeamTab() {
         description="Team membership, ownership, and pipeline distribution across workspace salespeople."
 
       />
+
+      <div className="flex flex-wrap items-center justify-end gap-2">
+        <Link href={getInternalNavHref("crm", basePath)} className={WsPrimaryButtonClass()}>
+          <Plus className="h-3.5 w-3.5" />
+          Add pipeline opportunity
+        </Link>
+        <Link
+          href={getInternalNavHref("sales-management", basePath, { tab: "targets" })}
+          className={WsPrimaryButtonClass()}
+        >
+          <Plus className="h-3.5 w-3.5" />
+          Add target
+        </Link>
+        <Link
+          href={getInternalNavHref("sales-management", basePath, { tab: "forecast" })}
+          className={WsPrimaryButtonClass()}
+        >
+          <Plus className="h-3.5 w-3.5" />
+          Add forecast inputs
+        </Link>
+      </div>
 
 
 

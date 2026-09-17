@@ -21,7 +21,11 @@ import {
   filterLeadsBySalesSegment,
   formatSalesMoney,
   isOpenPipelineLead,
+  resolveSalesUiCurrency,
+  salesReportingCurrency,
 } from "@/lib/sales-management-insights";
+import { Plus } from "lucide-react";
+import { WsPrimaryButtonClass } from "../domain-workspace-ui";
 
 import { WsSection } from "../domain-workspace-ui";
 import {
@@ -49,6 +53,8 @@ async function readApiJson<T>(response: Response): Promise<T> {
 
 export default function SalesManagementPipelineTab() {
   const basePath = useInternalOperationsBasePath();
+  const currency = resolveSalesUiCurrency(salesReportingCurrency());
+  const money = (value: number) => formatSalesMoney(value, currency);
   const [leads, setLeads] = useState<CrmLead[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -116,8 +122,15 @@ export default function SalesManagementPipelineTab() {
         description="Analytical funnel and stage view over existing CRM leads — single source of truth."
       />
 
+      <div className="flex flex-wrap justify-end">
+        <Link href={getInternalNavHref("crm", basePath)} className={WsPrimaryButtonClass()}>
+          <Plus className="h-3.5 w-3.5" />
+          Add opportunity
+        </Link>
+      </div>
+
       <SalesKpiGrid>
-        <SalesKpiTile label="Open pipeline" value={formatSalesMoney(pipelineValue)} hint="Cold, warm, and hot value" />
+        <SalesKpiTile label="Open pipeline" value={money(pipelineValue)} hint={`Cold, warm, and hot value (${currency})`} />
         <SalesKpiTile label="Open deals" value={String(pipelineLeads.length)} hint="Active pipeline records" />
         <SalesKpiTile label="Won" value={String(wonCount)} hint="Closed-won CRM leads" />
         <SalesKpiTile label="Lost" value={String(lostCount)} hint="Closed-lost CRM leads" />
@@ -136,7 +149,7 @@ export default function SalesManagementPipelineTab() {
                     <div className="rounded-lg border border-white/10 bg-[#0b1524] px-3 py-2 text-xs text-white">
                       <div className="font-medium">{label}</div>
                       <div>{payload[0]?.value} opportunities</div>
-                      <div>{formatSalesMoney(Number(payload[1]?.value ?? 0))}</div>
+                      <div>{money(Number(payload[1]?.value ?? 0))}</div>
                     </div>
                   ) : null
                 }
@@ -158,7 +171,7 @@ export default function SalesManagementPipelineTab() {
             <WsSection
               key={status}
               title={status}
-              subtitle={`${columnLeads.length} open · ${formatSalesMoney(
+              subtitle={`${columnLeads.length} open · ${money(
                 columnLeads.reduce((sum, lead) => sum + (lead.estimatedValue ?? 0), 0),
               )}`}
               className="p-4 sm:p-5"
@@ -178,7 +191,7 @@ export default function SalesManagementPipelineTab() {
                       <p className="text-[11px] text-white/45">{lead.contactName}</p>
                       <div className="mt-2 flex items-center justify-between text-[11px]">
                         <span className="text-violet-200">
-                          {lead.estimatedValue ? formatSalesMoney(lead.estimatedValue) : "—"}
+                          {lead.estimatedValue ? money(lead.estimatedValue) : "—"}
                         </span>
                         <span className="text-white/40">{lead.nextActionDate ?? "No date"}</span>
                       </div>
