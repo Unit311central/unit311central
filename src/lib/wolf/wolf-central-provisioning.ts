@@ -15,6 +15,7 @@ export const WOLF_CENTRAL_ENABLED_MODULES = [
   "wolf-environment",
   "wolf-drone-operations",
   "wolf-fleet",
+  "wolf-shark",
   "wolf-tools",
   "executive-assistant",
   "business-central",
@@ -47,6 +48,12 @@ export const WOLF_CENTRAL_NATIVE_SUBMODULES = [
   "wolf-environment:wolf-environment",
   "wolf-drone-operations:wolf-drone-operations",
   "wolf-fleet:wolf-fleet",
+  "wolf-shark:wolf-shark-dashboard",
+  "wolf-shark:wolf-shark-video-analysis",
+  "wolf-shark:wolf-shark-ai-detection",
+  "wolf-shark:wolf-shark-tracking",
+  "wolf-shark:wolf-shark-test-results",
+  "wolf-shark:wolf-shark-settings",
   "wolf-tools:wolf-ai-wildlife-vision",
 ] as const;
 

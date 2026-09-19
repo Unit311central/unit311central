@@ -1,6 +1,6 @@
 /**
  * Top-level Unit311Central module catalogue for Workspaces provisioning.
- * Core product numbering 1–22; WOLF specialist extensions 23–27.
+ * Core product numbering 1–22; WOLF specialist extensions 23–28.
  * Workspaces (internal) is excluded from customer catalogue.
  */
 
@@ -211,6 +211,7 @@ function moduleKeysForView(viewId: string | undefined, moduleId: string): string
     "wolf-environment": ["wolf-environment"],
     "wolf-drone-operations": ["wolf-drone-operations"],
     "wolf-fleet": ["wolf-fleet"],
+    "wolf-shark": ["wolf-shark"],
   };
 
   return moduleFallbacks[moduleId] ?? [];

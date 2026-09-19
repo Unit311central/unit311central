@@ -153,6 +153,20 @@ export function buildWolfCentralNavSections(): readonly InternalNavSection[] {
     buildWolfAnalyticsNavSection(),
     {
       kind: "workspace",
+      label: "SHARK",
+      icon: "Fish",
+      color: "#0c4a6e",
+      items: [
+        { label: "Dashboard", icon: "LayoutDashboard", view: "wolf-shark-dashboard" },
+        { label: "Video Analysis", icon: "Video", view: "wolf-shark-video-analysis" },
+        { label: "AI Detection", icon: "ScanSearch", view: "wolf-shark-ai-detection" },
+        { label: "Tracking", icon: "Route", view: "wolf-shark-tracking" },
+        { label: "Test Results", icon: "Table2", view: "wolf-shark-test-results" },
+        { label: "Settings", icon: "Settings", view: "wolf-shark-settings" },
+      ],
+    },
+    {
+      kind: "workspace",
       label: "External Client Access",
       icon: "KeyRound",
       color: "#0F766E",

@@ -274,6 +274,12 @@ export type InternalOperationsView =
   | "wolf-drone-operations"
   | "wolf-fleet"
   | "wolf-ai-wildlife-vision"
+  | "wolf-shark-dashboard"
+  | "wolf-shark-video-analysis"
+  | "wolf-shark-ai-detection"
+  | "wolf-shark-tracking"
+  | "wolf-shark-test-results"
+  | "wolf-shark-settings"
   | "pailex-dashboard"
   | "pailex-animals-registry"
   | "pailex-animals-monitoring"
@@ -622,6 +628,12 @@ export const internalOperationsViews: InternalOperationsView[] = [
   "wolf-drone-operations",
   "wolf-fleet",
   "wolf-ai-wildlife-vision",
+  "wolf-shark-dashboard",
+  "wolf-shark-video-analysis",
+  "wolf-shark-ai-detection",
+  "wolf-shark-tracking",
+  "wolf-shark-test-results",
+  "wolf-shark-settings",
   "pailex-dashboard",
   "pailex-animals-registry",
   "pailex-animals-monitoring",
@@ -1559,6 +1571,12 @@ export const internalViewTitles: Record<
     title: "AI Wildlife Vision (Demo)",
     subtitle: "WOLF Central · Tools",
   },
+  "wolf-shark-dashboard": { title: "SHARK Dashboard", subtitle: "WOLF Central · SHARK" },
+  "wolf-shark-video-analysis": { title: "SHARK Video Analysis", subtitle: "WOLF Central · SHARK" },
+  "wolf-shark-ai-detection": { title: "SHARK AI Detection", subtitle: "WOLF Central · SHARK" },
+  "wolf-shark-tracking": { title: "SHARK Tracking", subtitle: "WOLF Central · SHARK" },
+  "wolf-shark-test-results": { title: "SHARK Test Results", subtitle: "WOLF Central · SHARK" },
+  "wolf-shark-settings": { title: "SHARK Settings", subtitle: "WOLF Central · SHARK" },
   "pailex-dashboard": { title: "Dashboard", subtitle: "PAILEX · WOLF Wildlife Operations" },
   "pailex-animals-registry": { title: "Animal Registry", subtitle: "PAILEX · Animals" },
   "pailex-animals-monitoring": { title: "Monitoring", subtitle: "PAILEX · Animals" },

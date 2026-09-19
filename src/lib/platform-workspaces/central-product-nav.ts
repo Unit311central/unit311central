@@ -270,6 +270,19 @@ export function buildWolfFleetNavSection(): InternalNavSection {
   };
 }
 
+export function buildWolfSharkNavSection(): InternalNavSection {
+  return {
+    kind: "workspace",
+    label: "SHARK",
+    icon: "Fish",
+    color: "#0c4a6e",
+    items: [
+      { label: "Dashboard", icon: "LayoutDashboard", view: "wolf-shark-dashboard" },
+      { label: "Test Results", icon: "Table2", view: "wolf-shark-test-results" },
+    ],
+  };
+}
+
 /**
  * Ordered central product nav used to derive the Workspaces provisioning catalogue.
  * Core Unit311 modules (1–22) plus WOLF specialist extensions (23–27).
@@ -437,6 +450,12 @@ export function buildCentralProductNavSections(): readonly CentralProductModuleS
       id: "wolf-fleet",
       label: "WOLF FLEET",
       section: buildWolfFleetNavSection(),
+    },
+    {
+      number: 28,
+      id: "wolf-shark",
+      label: "WOLF SHARK",
+      section: buildWolfSharkNavSection(),
     },
   ] as const;
 }

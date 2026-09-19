@@ -49,6 +49,7 @@ import { isBrowserTalantonImpactSurface } from "@/lib/talanton-surface";
 import { isBrowserOnwardAirSurface } from "@/lib/onwardair-surface";
 import { isBrowserSaecSurface } from "@/lib/saec-surface";
 import { isBrowserWolfCentralSurface } from "@/lib/wolf/wolf-surface";
+import { isSharkView, type SharkViewId } from "@/lib/wolf/shark/constants";
 import { isBrowserPailexSurface } from "@/lib/pailex/pailex-surface";
 import { isPailexWorkspaceView } from "@/lib/pailex/pailex-views";
 import NorthstarCorporateDashboard from "@/components/demo/NorthstarCorporateDashboard";
@@ -309,6 +310,7 @@ import {
   WolfDroneSummaryWorkspace,
   WolfFleetSummaryWorkspace,
   WolfAiWildlifeVisionDemo,
+  WolfSharkWorkspace,
   PailexViewHost,
   MemberIntelligenceWorkspace,
   RegulatoryIntelligenceWorkspace,
@@ -1543,6 +1545,10 @@ export default function InternalOperationsDashboard({
           {activeView === "wolf-drone-operations" && <WolfDroneSummaryWorkspace />}
           {activeView === "wolf-fleet" && <WolfFleetSummaryWorkspace />}
           {activeView === "wolf-ai-wildlife-vision" && <WolfAiWildlifeVisionDemo />}
+
+          {isSharkView(activeView) ? (
+            <WolfSharkWorkspace activeView={activeView as SharkViewId} />
+          ) : null}
 
           {isPailexWorkspaceView(activeView) ? <PailexViewHost view={activeView} /> : null}
 

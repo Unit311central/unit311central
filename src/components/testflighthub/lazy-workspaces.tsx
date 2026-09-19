@@ -197,6 +197,9 @@ export const WolfFleetSummaryWorkspace = lazyWorkspace(
 export const WolfAiWildlifeVisionDemo = lazyWorkspace(
   () => import("@/components/wolf/WolfAiWildlifeVisionDemo"),
 );
+export const WolfSharkWorkspace = lazyWorkspace(
+  () => import("@/components/wolf/shark/WolfSharkWorkspace"),
+);
 export const PailexViewHost = lazyWorkspace(
   () => import("@/components/pailex/PailexViewHost"),
 );
