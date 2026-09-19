@@ -2,6 +2,7 @@ import "server-only";
 
 import {
   applyMetadataEnabledModuleHints,
+  applyWolfCentralSharkSidebarRows,
   buildSidebarConfigSnapshot,
   deriveSidebarRowsFromLegacyEnabledModules,
   mergeCatalogueWithPersistedRows,
@@ -67,7 +68,10 @@ export async function loadWorkspaceSidebarModuleRows(
     workspaceSlug ?? (isSupabaseConfigured() ? await readWorkspaceSlug(workspaceId) : null);
 
   if (!isSupabaseConfigured()) {
-    return deriveSidebarRowsFromLegacyEnabledModules(null, resolvedSlug);
+    return applyWolfCentralSharkSidebarRows(
+      deriveSidebarRowsFromLegacyEnabledModules(null, resolvedSlug),
+      resolvedSlug,
+    );
   }
 
   const supabase = createTenancyServerClient();
@@ -87,12 +91,13 @@ export async function loadWorkspaceSidebarModuleRows(
       syncMetadata: false,
       workspaceSlug: resolvedSlug,
     });
-    return bootstrapped;
+    return applyWolfCentralSharkSidebarRows(bootstrapped, resolvedSlug);
   }
 
   const legacyEnabledModules = await readLegacyEnabledModules(workspaceId);
   const merged = mergeCatalogueWithPersistedRows(data.map(mapRow), resolvedSlug);
-  return applyMetadataEnabledModuleHints(merged, legacyEnabledModules);
+  const withMetadata = applyMetadataEnabledModuleHints(merged, legacyEnabledModules);
+  return applyWolfCentralSharkSidebarRows(withMetadata, resolvedSlug);
 }
 
 export async function loadWorkspaceSidebarConfig(

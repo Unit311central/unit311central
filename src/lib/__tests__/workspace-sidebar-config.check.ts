@@ -10,6 +10,7 @@ import { buildProjectManagementNavSection } from "@/lib/project-management-nav";
 import { buildWolfCentralNavSections } from "@/lib/wolf/wolf-nav";
 import {
   applyMetadataEnabledModuleHints,
+  applyWolfCentralSharkSidebarRows,
   applyWorkspaceSidebarModuleConfig,
   buildSidebarConfigSnapshot,
   dedupeNavSectionsByCatalogueModuleId,
@@ -180,6 +181,24 @@ assert.ok(sharkRow);
 assert.equal(sharkRow.enabled, false);
 const hinted = applyMetadataEnabledModuleHints(mergedSharkDisabled, ["wolf-shark"]);
 assert.equal(hinted.find((row) => row.moduleId === "wolf-shark")?.enabled, true);
+
+const trimmedWolfSidebar = applyWolfCentralSharkSidebarRows(
+  [
+    { moduleId: "engineering", enabled: true, displayOrder: 100 },
+    { moduleId: "external-client-access", enabled: true, displayOrder: 200 },
+    { moduleId: "wolf-shark", enabled: false, displayOrder: 9999 },
+  ],
+  "wolf-central",
+);
+const wolfSharkRow = trimmedWolfSidebar.find((row) => row.moduleId === "wolf-shark");
+assert.ok(wolfSharkRow?.enabled);
+assert.equal(wolfSharkRow?.displayOrder, 150);
+const wolfNavTrimmedShark = applyWorkspaceSidebarModuleConfig(
+  buildWolfCentralNavSections(),
+  buildSidebarConfigSnapshot(trimmedWolfSidebar),
+  "wolf-central",
+);
+assert.ok(wolfNavTrimmedShark.some((section) => section.label === "SHARK"));
 
 const pailexCatalogue = listSidebarCatalogueModules({ workspaceSlug: "pailex" });
 assert.ok(pailexCatalogue.some((entry) => entry.id === "wolf-animals"));

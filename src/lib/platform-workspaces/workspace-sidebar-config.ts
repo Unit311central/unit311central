@@ -17,6 +17,8 @@ import {
 } from "@/lib/platform-workspaces/module-catalogue";
 import { isPailexSlug } from "@/lib/pailex/pailex-surface";
 import { isWolfCentralSlug } from "@/lib/wolf/wolf-surface";
+
+const WOLF_CENTRAL_SHARK_MODULE_ID = "wolf-shark";
 import {
   getNavSectionKey,
   isFixedPinSection,
@@ -461,6 +463,37 @@ export function applyMetadataEnabledModuleHints(
   return rows.map((row) =>
     hintSet.has(row.moduleId) ? { ...row, enabled: true } : row,
   );
+}
+
+/** WOLF Central always shows SHARK in the LHS (product module, not optional trim). */
+export function applyWolfCentralSharkSidebarRows(
+  rows: readonly WorkspaceSidebarModuleRecord[],
+  workspaceSlug?: string | null,
+): WorkspaceSidebarModuleRecord[] {
+  if (!isWolfCentralSlug(workspaceSlug)) return [...rows];
+
+  const next = [...rows];
+  const sharkIndex = next.findIndex((row) => row.moduleId === WOLF_CENTRAL_SHARK_MODULE_ID);
+  const engineering = next.find((row) => row.moduleId === "engineering");
+  const external = next.find((row) => row.moduleId === "external-client-access");
+  const displayOrder =
+    engineering && external
+      ? Math.round((engineering.displayOrder + external.displayOrder) / 2)
+      : sharkIndex >= 0
+        ? next[sharkIndex]!.displayOrder
+        : next.reduce((max, row) => Math.max(max, row.displayOrder), 0) + 10;
+
+  if (sharkIndex >= 0) {
+    next[sharkIndex] = { ...next[sharkIndex]!, enabled: true, displayOrder };
+  } else {
+    next.push({
+      moduleId: WOLF_CENTRAL_SHARK_MODULE_ID,
+      enabled: true,
+      displayOrder,
+    });
+  }
+
+  return next;
 }
 
 /** Validate PUT payload module ids against the central catalogue. */
