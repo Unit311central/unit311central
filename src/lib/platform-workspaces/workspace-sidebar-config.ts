@@ -225,6 +225,7 @@ const SECTION_LABEL_TO_MODULE_ID: Record<string, string> = {
   "Drone Operations": "wolf-drone-operations",
   Fleet: "wolf-fleet",
   Analytics: "wolf-analytics",
+  SHARK: "wolf-shark",
   "Regulatory Intelligence": "intelligence",
 };
 
@@ -234,6 +235,7 @@ const VIEW_PREFIX_TO_MODULE_ID: Array<{ prefix: string; moduleId: string }> = [
   { prefix: "intelligence-", moduleId: "intelligence" },
   { prefix: "marketing-abhi-", moduleId: "marketing-events" },
   { prefix: "portfolio-", moduleId: "business-central" },
+  { prefix: "wolf-shark", moduleId: "wolf-shark" },
   { prefix: "wolf-", moduleId: "wolf-animals" },
 ];
 
@@ -447,6 +449,18 @@ export function mergeCatalogueWithPersistedRows(
   }
 
   return merged.sort((a, b) => a.displayOrder - b.displayOrder);
+}
+
+/** Turn on sidebar rows that appear in legacy workspace_admin_metadata.enabled_modules. */
+export function applyMetadataEnabledModuleHints(
+  rows: readonly WorkspaceSidebarModuleRecord[],
+  enabledModules: readonly string[] | null | undefined,
+): WorkspaceSidebarModuleRecord[] {
+  if (!enabledModules?.length) return [...rows];
+  const hintSet = new Set(enabledModules);
+  return rows.map((row) =>
+    hintSet.has(row.moduleId) ? { ...row, enabled: true } : row,
+  );
 }
 
 /** Validate PUT payload module ids against the central catalogue. */

@@ -136,6 +136,7 @@ export const UNIT311_PENDING_MIGRATIONS = [
   "supabase/migrations/206_wolf_benchmark_infrastructure.sql",
   "supabase/migrations/208_wolf_shark_module.sql",
   "supabase/migrations/209_wolf_central_shark_module_enablement.sql",
+  "supabase/migrations/210_wolf_shark_sidebar_module.sql",
 ] as const;
 
 export const SALES_MANAGEMENT_FOUNDATION_MIGRATION =

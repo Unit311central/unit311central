@@ -7,7 +7,9 @@ import assert from "node:assert/strict";
 import type { InternalNavSection } from "@/lib/internal-operations-data";
 import { getTalantonImpactNavSections } from "@/lib/internal-role-views";
 import { buildProjectManagementNavSection } from "@/lib/project-management-nav";
+import { buildWolfCentralNavSections } from "@/lib/wolf/wolf-nav";
 import {
+  applyMetadataEnabledModuleHints,
   applyWorkspaceSidebarModuleConfig,
   buildSidebarConfigSnapshot,
   dedupeNavSectionsByCatalogueModuleId,
@@ -147,6 +149,37 @@ assert.ok(!talantonCatalogue.some((entry) => isWolfSidebarExtensionModuleId(entr
 
 const wolfCatalogue = listSidebarCatalogueModules({ workspaceSlug: "wolf-central" });
 assert.ok(wolfCatalogue.some((entry) => entry.id === "wolf-animals"));
+assert.ok(wolfCatalogue.some((entry) => entry.id === "wolf-shark"));
+
+const sharkSection = buildWolfCentralNavSections().find((section) => section.label === "SHARK");
+assert.ok(sharkSection);
+assert.equal(resolveCatalogueModuleIdForNavSection(sharkSection!), "wolf-shark");
+
+const sharkOnlyConfig = buildSidebarConfigSnapshot([
+  { moduleId: "wolf-shark", enabled: true, displayOrder: 10 },
+]);
+const wolfNavWithShark = applyWorkspaceSidebarModuleConfig(
+  buildWolfCentralNavSections(),
+  sharkOnlyConfig,
+  "wolf-central",
+);
+assert.ok(
+  wolfNavWithShark.some(
+    (section) =>
+      section.label === "SHARK" &&
+      resolveCatalogueModuleIdForNavSection(section) === "wolf-shark",
+  ),
+);
+
+const mergedSharkDisabled = mergeCatalogueWithPersistedRows(
+  [{ moduleId: "business-central", enabled: true, displayOrder: 10 }],
+  "wolf-central",
+);
+const sharkRow = mergedSharkDisabled.find((row) => row.moduleId === "wolf-shark");
+assert.ok(sharkRow);
+assert.equal(sharkRow.enabled, false);
+const hinted = applyMetadataEnabledModuleHints(mergedSharkDisabled, ["wolf-shark"]);
+assert.equal(hinted.find((row) => row.moduleId === "wolf-shark")?.enabled, true);
 
 const pailexCatalogue = listSidebarCatalogueModules({ workspaceSlug: "pailex" });
 assert.ok(pailexCatalogue.some((entry) => entry.id === "wolf-animals"));

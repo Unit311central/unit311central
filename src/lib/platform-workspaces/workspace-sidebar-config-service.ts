@@ -1,6 +1,7 @@
 import "server-only";
 
 import {
+  applyMetadataEnabledModuleHints,
   buildSidebarConfigSnapshot,
   deriveSidebarRowsFromLegacyEnabledModules,
   mergeCatalogueWithPersistedRows,
@@ -89,7 +90,9 @@ export async function loadWorkspaceSidebarModuleRows(
     return bootstrapped;
   }
 
-  return mergeCatalogueWithPersistedRows(data.map(mapRow), resolvedSlug);
+  const legacyEnabledModules = await readLegacyEnabledModules(workspaceId);
+  const merged = mergeCatalogueWithPersistedRows(data.map(mapRow), resolvedSlug);
+  return applyMetadataEnabledModuleHints(merged, legacyEnabledModules);
 }
 
 export async function loadWorkspaceSidebarConfig(
