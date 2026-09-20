@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Loader2 } from "lucide-react";
 
 import BusinessCentralDashboardView from "@/components/business-central/BusinessCentralDashboardView";
 import { buildBusinessCentralDashboardEyebrow } from "@/lib/business-central-dashboard-variant";
+import { buildWorkspaceBcDashboardSummaryFromClients } from "@/lib/business-central/workspace-dashboard-summary";
 import { getAbhiBcDashboardSummary } from "@/lib/abhi/business-central-data";
 import { isBrowserAbhiSurface } from "@/lib/abhi-surface";
 import type { OaBcDashboardSummary } from "@/lib/onwardair/business-central-data";
@@ -40,14 +42,18 @@ export default function WorkspaceBusinessCentralDashboard() {
   const [summary, setSummary] = useState<OaBcDashboardSummary>(
     isAbhi ? getAbhiBcDashboardSummary() : EMPTY_BC_DASHBOARD_SUMMARY,
   );
+  const [loading, setLoading] = useState(!isAbhi);
 
   useEffect(() => {
     if (isAbhi) {
       setSummary(getAbhiBcDashboardSummary());
+      setLoading(false);
       return;
     }
+
     let cancelled = false;
     (async () => {
+      setLoading(true);
       try {
         const [clientsRes, leadsRes] = await Promise.all([
           fetch("/api/clients", { cache: "no-store" }),
@@ -74,31 +80,30 @@ export default function WorkspaceBusinessCentralDashboard() {
           count: row.count,
           valueUsd: row.valueUsd,
         }));
-        const activeClients = clients.filter(
-          (client: { accountStatus?: string }) => client.accountStatus === "Active",
-        ).length;
+        const clientBase = buildWorkspaceBcDashboardSummaryFromClients(clients);
         const next: OaBcDashboardSummary = {
-          clientsCount: clients.length,
-          activeClients,
-          arrUsd: openLeads.reduce((sum: number, lead: { estimatedValue?: number }) => sum + (Number(lead.estimatedValue) || 0), 0),
+          ...clientBase,
+          arrUsd: openLeads.reduce(
+            (sum: number, lead: { estimatedValue?: number }) =>
+              sum + (Number(lead.estimatedValue) || 0),
+            0,
+          ),
           pipelineValueUsd: openLeads.reduce(
-            (sum: number, lead: { estimatedValue?: number }) => sum + (Number(lead.estimatedValue) || 0),
+            (sum: number, lead: { estimatedValue?: number }) =>
+              sum + (Number(lead.estimatedValue) || 0),
             0,
           ),
           pipelineByStage,
           discoveryCount: Math.min(leads.length, 12),
-          onboardingCount: clients.filter(
-            (client: { accountStatus?: string }) => client.accountStatus === "Onboarding",
-          ).length,
-          partnersCount: 0,
-          partnerRegions: [],
-          commissionPipelineUsd: 0,
         };
         if (!cancelled) setSummary(next);
       } catch {
         if (!cancelled) setSummary(EMPTY_BC_DASHBOARD_SUMMARY);
+      } finally {
+        if (!cancelled) setLoading(false);
       }
     })();
+
     return () => {
       cancelled = true;
     };
@@ -109,6 +114,15 @@ export default function WorkspaceBusinessCentralDashboard() {
     workspaceSlug,
     workspaceName,
   });
+
+  if (loading) {
+    return (
+      <div className="flex items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-8 text-sm text-white/50">
+        <Loader2 className="h-4 w-4 animate-spin" />
+        Loading Business Central snapshot…
+      </div>
+    );
+  }
 
   return (
     <BusinessCentralDashboardView
