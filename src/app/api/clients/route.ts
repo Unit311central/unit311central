@@ -65,20 +65,9 @@ export async function POST(request: NextRequest) {
   try {
     await requirePlatformSession();
     const workspace = await requireCurrentWorkspace();
-    const body = (await request.json()) as {
+    const body = (await request.json()) as Partial<ManagedClient> & {
       companyName?: string;
-      industry?: ClientIndustry;
-      primaryContact?: string;
-      email?: string;
-      phone?: string;
-      region?: ClientRegion;
-      accountStatus?: ClientAccountStatus;
-      contractType?: ClientContractType;
-      taxId?: string;
-      billingAddress?: string;
-      activeProjects?: number;
-      notes?: string;
-      platformUrl?: string;
+      workspaceId?: string;
     };
 
     await ensureInternalClientsTable();

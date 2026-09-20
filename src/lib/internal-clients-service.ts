@@ -326,7 +326,10 @@ export async function createInternalClient(
       const id = `client-${crypto.randomUUID().slice(0, 8)}`;
       const accountsPayableEmail =
         input.accountsPayableEmail?.trim() || input.invoiceEmail?.trim() || "";
-      const companyName = input.companyName?.trim() || blank.companyName || "New Client";
+      const companyName = input.companyName?.trim() || blank.companyName?.trim() || "";
+      if (!companyName) {
+        throw new Error("Company name is required.");
+      }
       const { createLoungeToken } = await import("@/lib/support-lounge-service");
       const companySlug = companyName
         .toLowerCase()

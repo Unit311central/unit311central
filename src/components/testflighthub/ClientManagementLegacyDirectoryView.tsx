@@ -9,7 +9,11 @@ import {
   CLIENT_CONTRACT_OPTIONS,
   CLIENT_COUNTRY_OPTIONS,
   CLIENT_INDUSTRY_OPTIONS,
+  CLIENT_RECORD_COUNTRY_OPTIONS,
   CLIENT_STATUS_OPTIONS,
+  createNewClientDraft,
+  isNewClientDraftId,
+  NEW_CLIENT_DRAFT_ID,
   canTransitionClientAccountStatus,
   clientCitiesForCountry,
   clientFieldsEqual,
@@ -118,6 +122,9 @@ export default function ClientManagementLegacyDirectoryView({
   const detailTopRef = useRef<HTMLDivElement>(null);
   const pinDetailTopRef = useRef(false);
   const deepLinkedClientRef = useRef<string | null>(null);
+  const createInFlightRef = useRef(false);
+  const [newClientDraft, setNewClientDraft] = useState<ManagedClient | null>(null);
+  const [companyNameError, setCompanyNameError] = useState<string | null>(null);
   const isCorpCentre =
     typeof window !== "undefined" ? isBrowserCorpCentreSurface() : false;
   const isAbhi = typeof window !== "undefined" ? isBrowserAbhiSurface() : false;
@@ -125,18 +132,19 @@ export default function ClientManagementLegacyDirectoryView({
   const isGreenDesert = typeof window !== "undefined" ? isBrowserGreenDesertSurface() : false;
   const { showDetail, openDetail, closeDetail } = useMobileDetailPanel();
 
-  const selectedClient = useMemo(
-    () => clients.find((client) => client.id === selectedClientId) ?? null,
-    [clients, selectedClientId],
-  );
+  const selectedClient = useMemo(() => {
+    if (isNewClientDraftId(selectedClientId)) return newClientDraft;
+    return clients.find((client) => client.id === selectedClientId) ?? null;
+  }, [clients, newClientDraft, selectedClientId]);
 
-  const detailClient = useMemo(
-    () => clients.find((client) => client.id === detailClientId) ?? null,
-    [clients, detailClientId],
-  );
+  const detailClient = useMemo(() => {
+    if (isNewClientDraftId(detailClientId)) return newClientDraft;
+    return clients.find((client) => client.id === detailClientId) ?? null;
+  }, [clients, detailClientId, newClientDraft]);
 
   const isDirty = useMemo(() => {
     if (!selectedClient) return false;
+    if (isNewClientDraftId(selectedClient.id)) return true;
     if (!savedSnapshot || savedSnapshot.id !== selectedClient.id) return true;
     return !clientFieldsEqual(selectedClient, savedSnapshot);
   }, [selectedClient, savedSnapshot]);
@@ -183,8 +191,8 @@ export default function ClientManagementLegacyDirectoryView({
   }, [clients, isGreenDesert]);
 
   const recordCountryOptions = useMemo(() => {
-    if (!isGreenDesert) return [...CLIENT_COUNTRY_OPTIONS];
-    return [...GREENDESERT_CLIENT_COUNTRY_OPTIONS];
+    if (isGreenDesert) return [...GREENDESERT_CLIENT_COUNTRY_OPTIONS];
+    return CLIENT_RECORD_COUNTRY_OPTIONS;
   }, [isGreenDesert]);
 
   const cityFilterOptions = useMemo(() => {
@@ -226,6 +234,19 @@ export default function ClientManagementLegacyDirectoryView({
     const target = detailTopRef.current ?? detailSectionRef.current;
     if (!target) return;
     target.scrollIntoView({ behavior: "auto", block: "start", inline: "nearest" });
+  }
+
+  function startNewClientDraft() {
+    const draft = createNewClientDraft();
+    setNewClientDraft(draft);
+    setCompanyNameError(null);
+    setSaveMessage(null);
+    setError(null);
+    setSelectedClientId(NEW_CLIENT_DRAFT_ID);
+    setDetailClientId(NEW_CLIENT_DRAFT_ID);
+    snapshottedIdRef.current = null;
+    setSavedSnapshot(null);
+    openClient(NEW_CLIENT_DRAFT_ID);
   }
 
   function openClient(clientId: string) {
@@ -321,7 +342,14 @@ export default function ClientManagementLegacyDirectoryView({
 
   useEffect(() => {
     const deepLinkId = searchParams.get("clientId");
-    if (!deepLinkId || loading || clients.length === 0) return;
+    if (!deepLinkId || loading) return;
+    if (deepLinkId === "new") {
+      if (deepLinkedClientRef.current === "new") return;
+      deepLinkedClientRef.current = "new";
+      startNewClientDraft();
+      return;
+    }
+    if (clients.length === 0) return;
     if (deepLinkedClientRef.current === deepLinkId) return;
     if (!clients.some((client) => client.id === deepLinkId)) return;
     deepLinkedClientRef.current = deepLinkId;
@@ -335,6 +363,7 @@ export default function ClientManagementLegacyDirectoryView({
         setSavedSnapshot(null);
         return;
       }
+      if (isNewClientDraftId(selectedClientId)) return;
       if (snapshottedIdRef.current === selectedClientId) return;
       const client = clients.find((item) => item.id === selectedClientId);
       if (client) {
@@ -345,7 +374,7 @@ export default function ClientManagementLegacyDirectoryView({
   }, [selectedClientId, clients]);
 
   useEffect(() => {
-    if (!selectedClient?.id) {
+    if (!selectedClient?.id || isNewClientDraftId(selectedClient.id)) {
       startTransition(() => {
         setFinanceSummary(null);
         setFinanceError(null);
@@ -400,6 +429,12 @@ export default function ClientManagementLegacyDirectoryView({
   function patchSelected(patch: Partial<ManagedClient>) {
     if (!selectedClient) return;
     const next = { ...selectedClient, ...patch };
+    if (isNewClientDraftId(next.id)) {
+      setNewClientDraft(next);
+      if ("companyName" in patch) setCompanyNameError(null);
+      setSaveMessage(null);
+      return;
+    }
     syncClients(clients.map((client) => (client.id === next.id ? next : client)));
     setSaveMessage(null);
   }
@@ -431,10 +466,76 @@ export default function ClientManagementLegacyDirectoryView({
     }
   }
 
+  async function createClientFromDraft(draft: ManagedClient) {
+    const companyName = draft.companyName.trim();
+    if (!companyName) {
+      setCompanyNameError("Company name is required.");
+      return;
+    }
+    if (createInFlightRef.current) return;
+    createInFlightRef.current = true;
+    setBusy(true);
+    setError(null);
+    setSaveMessage(null);
+    setCompanyNameError(null);
+
+    const location = resolveClientLocation(draft);
+
+    try {
+      const response = await fetch("/api/clients", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          companyName,
+          industry: draft.industry,
+          primaryContact: draft.primaryContact,
+          email: draft.email,
+          phone: draft.phone,
+          region: composeLegacyRegion(location.country, location.city),
+          companyCountry: location.country,
+          companyCity: location.city,
+          companyPostcode: draft.companyPostcode,
+          companyAddress: draft.companyAddress,
+          contractType: draft.contractType,
+          taxId: draft.taxId,
+          billingAddress: draft.billingAddress,
+          notes: draft.notes,
+          platformUrl: draft.platformUrl,
+          jobTitle: draft.jobTitle,
+          accountsPayableEmail: draft.accountsPayableEmail ?? draft.invoiceEmail,
+          billingSameAsCompany: draft.billingSameAsCompany,
+          primaryContactFirstName: draft.primaryContactFirstName,
+          primaryContactSurname: draft.primaryContactSurname,
+        }),
+      });
+
+      const data = await readApiJson<{ client?: ManagedClient; error?: string }>(response);
+      if (!response.ok || !data.client) throw new Error(data.error ?? "Failed to create client");
+
+      invalidateCachedJson(PLATFORM_CACHE_KEYS.clients);
+      setNewClientDraft(null);
+      syncClients([data.client, ...clients]);
+      snapshottedIdRef.current = data.client.id;
+      setSavedSnapshot(data.client);
+      setSaveMessage("Client created");
+      deepLinkedClientRef.current = data.client.id;
+      openClient(data.client.id);
+    } catch (createError) {
+      setError(createError instanceof Error ? createError.message : "Failed to create client");
+    } finally {
+      createInFlightRef.current = false;
+      setBusy(false);
+    }
+  }
+
   async function handleSaveClient() {
     if (!selectedClient) return;
     setError(null);
     setSaveMessage(null);
+    if (isNewClientDraftId(selectedClient.id)) {
+      await createClientFromDraft(selectedClient);
+      return;
+    }
     await saveClient(selectedClient);
   }
 
@@ -513,37 +614,21 @@ export default function ClientManagementLegacyDirectoryView({
     }
   }
 
-  async function handleAddClient() {
-    setBusy(true);
-    setError(null);
-
-    try {
-      const response = await fetch("/api/clients", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ companyName: "New Client" }),
-      });
-
-      const data = await readApiJson<{ client?: ManagedClient; error?: string }>(response);
-      if (!response.ok || !data.client) throw new Error(data.error ?? "Failed to create client");
-
-      invalidateCachedJson(PLATFORM_CACHE_KEYS.clients);
-      syncClients([data.client, ...clients]);
-      setSelectedClientId(data.client.id);
-      setDetailClientId(data.client.id);
-      snapshottedIdRef.current = data.client.id;
-      setSavedSnapshot(data.client);
-      setSaveMessage("Client created");
-    } catch (createError) {
-      setError(createError instanceof Error ? createError.message : "Failed to create client");
-    } finally {
-      setBusy(false);
-    }
+  function handleAddClient() {
+    startNewClientDraft();
   }
 
   async function handleDeleteClient(client?: ManagedClient) {
     const target = client ?? selectedClient;
     if (!target) return;
+    if (isNewClientDraftId(target.id)) {
+      setNewClientDraft(null);
+      setCompanyNameError(null);
+      setDetailClientId(null);
+      setSelectedClientId(null);
+      closeDetail();
+      return;
+    }
     if (!window.confirm(
       `Delete client "${target.companyName}"?\n\nUnpaid invoices linked to this client will also be removed. Paid invoices cannot be deleted.`,
     )) return;
@@ -820,13 +905,16 @@ export default function ClientManagementLegacyDirectoryView({
                         alt=""
                         className="mr-2 inline-block h-8 w-8 rounded-lg border border-white/10 bg-white/90 object-cover align-middle"
                       />
-                      {selectedClient.companyName || "New Client"}
+                      {selectedClient.companyName ||
+                        (isNewClientDraftId(selectedClient.id) ? "New client record" : "Client")}
                     </h2>
                     <p className="mt-1 text-sm text-white/50">
                       {formatClientLocation(selectedClient) || "—"}
                     </p>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
+                    {!isNewClientDraftId(selectedClient.id) ? (
+                      <>
                     <Link
                       href={`${basePath}?view=projects-external&clientId=${encodeURIComponent(selectedClient.id)}`}
                       className="inline-flex h-9 items-center gap-2 rounded-xl border border-amber-500/40 bg-amber-500/15 px-3 text-xs font-semibold text-amber-200 transition-colors hover:border-amber-400/60 hover:bg-amber-500/25"
@@ -929,7 +1017,10 @@ export default function ClientManagementLegacyDirectoryView({
                       <Link2 className="h-3.5 w-3.5" />
                       Copy Support Lounge link
                     </button>
-                    {/fotheringham/i.test(selectedClient.companyName) && (
+                      </>
+                    ) : null}
+                    {!isNewClientDraftId(selectedClient.id) &&
+                    /fotheringham/i.test(selectedClient.companyName) && (
                       <button
                         type="button"
                         onClick={() => void handleResetWorkspaceOnboarding()}
@@ -955,16 +1046,22 @@ export default function ClientManagementLegacyDirectoryView({
                       className="inline-flex items-center gap-2 rounded-xl border border-red-400/30 bg-red-500/10 px-3 py-2 text-xs font-semibold text-red-200 transition-colors hover:bg-red-500/20 disabled:opacity-60"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
-                      Delete
+                      {isNewClientDraftId(selectedClient.id) ? "Cancel" : "Delete"}
                     </button>
-                    <span
-                      className={cn(
-                        "rounded-full border px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em]",
-                        clientStatusClass(selectedClient.accountStatus),
-                      )}
-                    >
-                      {selectedClient.accountStatus}
-                    </span>
+                    {isNewClientDraftId(selectedClient.id) ? (
+                      <span className="rounded-full border border-white/20 bg-white/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/60">
+                        Unsaved draft
+                      </span>
+                    ) : (
+                      <span
+                        className={cn(
+                          "rounded-full border px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em]",
+                          clientStatusClass(selectedClient.accountStatus),
+                        )}
+                      >
+                        {selectedClient.accountStatus}
+                      </span>
+                    )}
                   </div>
                 </div>
 
@@ -982,7 +1079,11 @@ export default function ClientManagementLegacyDirectoryView({
                       value={selectedClient.companyName}
                       onChange={(event) => patchSelected({ companyName: event.target.value })}
                       disabled={busy}
+                      aria-invalid={companyNameError ? true : undefined}
                     />
+                    {companyNameError ? (
+                      <p className="mt-1.5 text-xs text-red-300">{companyNameError}</p>
+                    ) : null}
                   </div>
                   <div>
                     <FieldLabel>Industry</FieldLabel>

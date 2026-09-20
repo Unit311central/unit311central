@@ -417,7 +417,7 @@ export default function ClientsDashboardWorkspace({
 
         <div className="mt-2.5 flex flex-wrap gap-2">
           <Link
-            href={clientDirectoryHref()}
+            href={clientDirectoryHref("new")}
             className="inline-flex h-9 items-center gap-2 rounded-xl border border-sky-500/40 bg-sky-500/15 px-3 text-xs font-semibold text-sky-200 transition-colors hover:border-sky-400/60 hover:bg-sky-500/25"
           >
             <Plus className="h-3.5 w-3.5" />

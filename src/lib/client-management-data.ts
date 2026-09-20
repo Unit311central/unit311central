@@ -1,3 +1,4 @@
+import { PARTNER_COUNTRY_NAMES } from "@/lib/partners/countries";
 import { resolveSupportLoungeOrigin } from "@/lib/app-domains";
 
 export type ClientIndustry =
@@ -289,6 +290,18 @@ export const CLIENT_COUNTRY_OPTIONS = [
   "Europe",
 ] as const;
 
+/** Full country list for Client Record forms (Partners canonical list). */
+export const CLIENT_RECORD_COUNTRY_OPTIONS = [...PARTNER_COUNTRY_NAMES].sort((a, b) =>
+  a.localeCompare(b),
+);
+
+/** Local-only id for unsaved new-client forms — never persisted. */
+export const NEW_CLIENT_DRAFT_ID = "__new-client-draft__";
+
+export function isNewClientDraftId(clientId: string | null | undefined): boolean {
+  return clientId === NEW_CLIENT_DRAFT_ID;
+}
+
 export function parseRegionToLocation(region: string | null | undefined): ClientLocation {
   const trimmed = String(region ?? "").trim();
   if (!trimmed) return { country: "", city: "" };
@@ -481,6 +494,46 @@ export function createInitialClients(): ManagedClient[] {
       platformUrl: "/test1",
     },
   ];
+}
+
+/** Unsaved new-client form state — not in the database until Save (POST). */
+export function createNewClientDraft(): ManagedClient {
+  return {
+    id: NEW_CLIENT_DRAFT_ID,
+    companyName: "",
+    industry: "Construction",
+    primaryContact: "",
+    email: "",
+    phone: "",
+    region: "United Kingdom",
+    accountStatus: "Client Created",
+    contractType: "Project-based",
+    taxId: "",
+    billingAddress: "",
+    companyAddress: "",
+    companyCity: "",
+    companyPostcode: "",
+    companyCountry: "",
+    accountsPayableEmail: "",
+    invoiceEmail: "",
+    billingSameAsCompany: true,
+    primaryContactFirstName: "",
+    primaryContactSurname: "",
+    jobTitle: "",
+    activeProjects: 0,
+    notes: "",
+    subscriptionStatus: null,
+    billingFrequency: null,
+    renewalDate: null,
+    paymentMethod: null,
+    crmLeadId: null,
+    provisioningStatus: "none",
+    onboardingStage: null,
+    activationDate: null,
+    paymentMatchedAt: null,
+    lastPaidInvoiceNumber: null,
+    lastWiseTransactionId: null,
+  };
 }
 
 export function createBlankClient(): ManagedClient {
