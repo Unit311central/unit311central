@@ -1069,6 +1069,13 @@ export async function deleteSalesActivity(workspaceId: string, activityId: strin
   if (error) throw new Error(error.message);
 }
 
+export async function listSalesActivitiesForCrmLead(
+  workspaceId: string,
+  crmLeadId: string,
+): Promise<CrmActivity[]> {
+  return loadCrmActivities(workspaceId, [crmLeadId]);
+}
+
 export async function createSalesDiscoverySession(input: {
   workspaceId: string;
   name: string;
@@ -1080,6 +1087,7 @@ export async function createSalesDiscoverySession(input: {
   clientTimezone?: string | null;
   status?: string;
   crmLeadId?: string | null;
+  videoLink?: string | null;
 }) {
   const supabase = requireSupabase();
   const startsAt = input.startsAt;
@@ -1103,7 +1111,9 @@ export async function createSalesDiscoverySession(input: {
       email: input.email.trim().toLowerCase(),
       starts_at: startsAt,
       ends_at: endsAt,
-      video_link: `https://meet.demo.unit311central.com/${meetingSlug}`,
+      video_link:
+        input.videoLink?.trim() ||
+        `https://meet.demo.unit311central.com/${meetingSlug}`,
       meeting_slug: meetingSlug,
       status: input.status ?? "scheduled",
       client_timezone: input.clientTimezone?.trim() || "Europe/London",

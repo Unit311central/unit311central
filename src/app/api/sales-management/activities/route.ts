@@ -4,6 +4,7 @@ import { assertDemoMutationAllowedForRequest } from "@/lib/demo/mutation-guard";
 import {
   createSalesActivity,
   deleteSalesActivity,
+  listSalesActivitiesForCrmLead,
   updateSalesActivity,
 } from "@/lib/sales-management-service";
 import { salesManagementErrorResponse } from "@/lib/sales-management-api";
@@ -12,6 +13,24 @@ import { isSupabaseConfigured } from "@/lib/supabase/server";
 import { requireCurrentWorkspace } from "@/lib/workspace-context";
 
 export const dynamic = "force-dynamic";
+
+export async function GET(request: Request) {
+  try {
+    if (!(await isSupabaseConfigured())) {
+      return NextResponse.json({ error: "Supabase is not configured." }, { status: 503 });
+    }
+    await requirePlatformSession();
+    const workspace = await requireCurrentWorkspace();
+    const crmLeadId = new URL(request.url).searchParams.get("crmLeadId")?.trim();
+    if (!crmLeadId) {
+      return NextResponse.json({ error: "crmLeadId is required." }, { status: 400 });
+    }
+    const activities = await listSalesActivitiesForCrmLead(workspace.id, crmLeadId);
+    return NextResponse.json({ activities });
+  } catch (error) {
+    return salesManagementErrorResponse(error);
+  }
+}
 
 export async function POST(request: Request) {
   try {

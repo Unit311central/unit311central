@@ -52,10 +52,13 @@ export type SalesQuotesOpportunityContext = {
 
 export default function SalesQuotesWorkspace({
   embedded = false,
+  opportunityListOnly = false,
   title = "Sales quotes",
   opportunityContext,
 }: {
   embedded?: boolean;
+  /** Opportunity record tab: table-first list without pipeline KPI cards. */
+  opportunityListOnly?: boolean;
   title?: string;
   /** When set, list is scoped to this CRM lead and new quotes link opportunity (+ client when provided). */
   opportunityContext?: SalesQuotesOpportunityContext;
@@ -67,8 +70,8 @@ export default function SalesQuotesWorkspace({
   const [notice, setNotice] = useState<string | null>(null);
   const [composeOpen, setComposeOpen] = useState(false);
   const [composeTitle, setComposeTitle] = useState("");
-  const [composeDescription, setComposeDescription] = useState("Platform proposal — Phase 1");
-  const [composeUnitPrice, setComposeUnitPrice] = useState("50000");
+  const [composeDescription, setComposeDescription] = useState("");
+  const [composeUnitPrice, setComposeUnitPrice] = useState("");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -185,9 +188,9 @@ export default function SalesQuotesWorkspace({
   function openComposeForm() {
     setError(null);
     setNotice(null);
-    if (opportunityContext?.prefill) {
-      setComposeTitle(`${opportunityContext.prefill.companyName} — proposal`);
-    }
+    setComposeTitle("");
+    setComposeDescription("");
+    setComposeUnitPrice("");
     setComposeOpen(true);
   }
 
@@ -201,6 +204,10 @@ export default function SalesQuotesWorkspace({
       return;
     }
     const unitPrice = Number(composeUnitPrice);
+    if (!composeTitle.trim()) {
+      setError("Enter a quote title.");
+      return;
+    }
     if (!Number.isFinite(unitPrice) || unitPrice <= 0) {
       setError("Enter a valid line item amount.");
       return;
@@ -219,7 +226,7 @@ export default function SalesQuotesWorkspace({
           companyName,
           contactName: opportunityContext?.prefill?.contactName ?? null,
           contactEmail: opportunityContext?.prefill?.contactEmail ?? null,
-          title: composeTitle.trim() || "Sales quote",
+          title: composeTitle.trim(),
           currency: isBrowserGreenDesertSurface() ? "USD" : resolveBrowserReportingCurrency(),
           lineItems: [
             {
@@ -311,22 +318,24 @@ export default function SalesQuotesWorkspace({
         </div>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-3">
-        <div className="rounded-xl border border-white/10 bg-gradient-to-br from-white/[0.05] to-white/[0.02] p-4">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-white/45">Open quotes</p>
-          <p className="mt-2 text-3xl font-semibold tabular-nums text-white">{totals.openCount}</p>
+      {!opportunityListOnly ? (
+        <div className="grid gap-3 sm:grid-cols-3">
+          <div className="rounded-xl border border-white/10 bg-gradient-to-br from-white/[0.05] to-white/[0.02] p-4">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-white/45">Open quotes</p>
+            <p className="mt-2 text-3xl font-semibold tabular-nums text-white">{totals.openCount}</p>
+          </div>
+          <div className="rounded-xl border border-white/10 bg-gradient-to-br from-white/[0.05] to-white/[0.02] p-4">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-white/45">Open pipeline value</p>
+            <p className="mt-2 text-3xl font-semibold tabular-nums text-white">
+              {money(totals.openValue, resolveBrowserReportingCurrency())}
+            </p>
+          </div>
+          <div className="rounded-xl border border-white/10 bg-gradient-to-br from-white/[0.05] to-white/[0.02] p-4">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-white/45">Accepted</p>
+            <p className="mt-2 text-3xl font-semibold tabular-nums text-white">{totals.acceptedCount}</p>
+          </div>
         </div>
-        <div className="rounded-xl border border-white/10 bg-gradient-to-br from-white/[0.05] to-white/[0.02] p-4">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-white/45">Open pipeline value</p>
-          <p className="mt-2 text-3xl font-semibold tabular-nums text-white">
-            {money(totals.openValue, resolveBrowserReportingCurrency())}
-          </p>
-        </div>
-        <div className="rounded-xl border border-white/10 bg-gradient-to-br from-white/[0.05] to-white/[0.02] p-4">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-white/45">Accepted</p>
-          <p className="mt-2 text-3xl font-semibold tabular-nums text-white">{totals.acceptedCount}</p>
-        </div>
-      </div>
+      ) : null}
 
       {notice ? (
         <div className="rounded-lg border border-emerald-400/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
@@ -391,7 +400,7 @@ export default function SalesQuotesWorkspace({
               className="rounded-lg bg-sky-600 px-4 py-2 text-sm font-medium text-white hover:bg-sky-500 disabled:opacity-60"
             >
               {busyId === "create" ? <Loader2 className="inline h-4 w-4 animate-spin" /> : null}
-              Save quote
+              SAVE QUOTE
             </button>
             <button
               type="button"
@@ -404,8 +413,8 @@ export default function SalesQuotesWorkspace({
         </div>
       ) : null}
 
-      <div className="min-h-0 flex-1 overflow-auto rounded-xl border border-white/10 bg-[#07111f]/50">
-        <table className="min-w-full text-left text-sm">
+      <div className="min-h-0 min-w-0 flex-1 overflow-x-auto rounded-xl border border-white/10 bg-[#07111f]/50">
+        <table className="w-full min-w-0 text-left text-sm">
           <thead className="sticky top-0 bg-[#0b1220] text-[11px] uppercase tracking-[0.12em] text-white/45">
             <tr>
               <th className="px-4 py-3 font-semibold">Quote</th>

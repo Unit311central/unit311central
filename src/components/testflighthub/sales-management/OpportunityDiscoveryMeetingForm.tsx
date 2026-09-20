@@ -24,6 +24,24 @@ async function readApiJson<T>(response: Response): Promise<T> {
   return JSON.parse(text) as T;
 }
 
+function combineDateAndTime(datePart: string, timePart: string): string | null {
+  if (!datePart?.trim() || !timePart?.trim()) return null;
+  const combined = new Date(`${datePart}T${timePart}`);
+  if (Number.isNaN(combined.getTime())) return null;
+  return combined.toISOString();
+}
+
+function isValidMeetingUrl(value: string): boolean {
+  const trimmed = value.trim();
+  if (!trimmed) return false;
+  try {
+    const url = new URL(trimmed);
+    return url.protocol === "http:" || url.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
 export function OpportunityDiscoveryMeetingForm({
   lead,
   client,
@@ -39,9 +57,10 @@ export function OpportunityDiscoveryMeetingForm({
 }) {
   const [draftName, setDraftName] = useState(lead.contactName?.trim() || client?.primaryContact?.trim() || "");
   const [draftOrg, setDraftOrg] = useState(lead.companyName?.trim() || client?.companyName?.trim() || "");
-  const [draftRole, setDraftRole] = useState(client?.jobTitle?.trim() || "");
   const [draftEmail, setDraftEmail] = useState(lead.email?.trim() || client?.email?.trim() || "");
-  const [draftStartsAt, setDraftStartsAt] = useState("");
+  const [draftMeetingDate, setDraftMeetingDate] = useState("");
+  const [draftMeetingTime, setDraftMeetingTime] = useState("");
+  const [draftMeetingLink, setDraftMeetingLink] = useState("");
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -49,15 +68,25 @@ export function OpportunityDiscoveryMeetingForm({
     setCreating(true);
     setError(null);
     try {
+      const startsAt = combineDateAndTime(draftMeetingDate, draftMeetingTime);
+      if (!startsAt) {
+        setError("Select a valid meeting date and time.");
+        return;
+      }
+      if (!isValidMeetingUrl(draftMeetingLink)) {
+        setError("Enter a valid meeting link URL (https://…).");
+        return;
+      }
+
       const response = await fetch("/api/crm/meetings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: draftName,
           organization: draftOrg,
-          role: draftRole || null,
           email: draftEmail,
-          startsAt: new Date(draftStartsAt).toISOString(),
+          startsAt,
+          meetingLink: draftMeetingLink.trim(),
           crmLeadId: lead.id,
         }),
       });
@@ -102,15 +131,7 @@ export function OpportunityDiscoveryMeetingForm({
             onChange={(e) => setDraftOrg(e.target.value)}
           />
         </label>
-        <label className="block text-[10px] font-medium uppercase tracking-[0.12em] text-white/45">
-          Role
-          <input
-            className="mt-1.5 w-full rounded-lg border border-white/10 bg-[#0b1524] px-3 py-2 text-sm text-white"
-            value={draftRole}
-            onChange={(e) => setDraftRole(e.target.value)}
-          />
-        </label>
-        <label className="block text-[10px] font-medium uppercase tracking-[0.12em] text-white/45">
+        <label className="block text-[10px] font-medium uppercase tracking-[0.12em] text-white/45 sm:col-span-2">
           Email
           <input
             type="email"
@@ -119,13 +140,32 @@ export function OpportunityDiscoveryMeetingForm({
             onChange={(e) => setDraftEmail(e.target.value)}
           />
         </label>
-        <label className="block text-[10px] font-medium uppercase tracking-[0.12em] text-white/45 sm:col-span-2">
-          Date / time
+        <label className="block text-[10px] font-medium uppercase tracking-[0.12em] text-white/45">
+          Meeting date
           <input
-            type="datetime-local"
+            type="date"
+            className="mt-1.5 w-full rounded-lg border border-white/10 bg-[#0b1524] px-3 py-2 text-sm text-white [color-scheme:dark]"
+            value={draftMeetingDate}
+            onChange={(e) => setDraftMeetingDate(e.target.value)}
+          />
+        </label>
+        <label className="block text-[10px] font-medium uppercase tracking-[0.12em] text-white/45">
+          Meeting time
+          <input
+            type="time"
+            className="mt-1.5 w-full rounded-lg border border-white/10 bg-[#0b1524] px-3 py-2 text-sm text-white [color-scheme:dark]"
+            value={draftMeetingTime}
+            onChange={(e) => setDraftMeetingTime(e.target.value)}
+          />
+        </label>
+        <label className="block text-[10px] font-medium uppercase tracking-[0.12em] text-white/45 sm:col-span-2">
+          Meeting link
+          <input
+            type="url"
+            placeholder="https://zoom.us/… or https://teams.microsoft.com/…"
             className="mt-1.5 w-full rounded-lg border border-white/10 bg-[#0b1524] px-3 py-2 text-sm text-white"
-            value={draftStartsAt}
-            onChange={(e) => setDraftStartsAt(e.target.value)}
+            value={draftMeetingLink}
+            onChange={(e) => setDraftMeetingLink(e.target.value)}
           />
         </label>
       </div>

@@ -20,7 +20,7 @@ const hub = readFileSync(
 assert.match(hub, /Create Opportunity/);
 assert.match(hub, /Select existing client/);
 assert.match(hub, /Create new client/);
-assert.match(hub, /File Explorer/);
+assert.match(hub, /FILE EXPLORER/);
 assert.match(hub, /Sales Quotes/);
 
 console.log("ok  internal-sales-opportunities-architecture");

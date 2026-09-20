@@ -97,6 +97,8 @@ export async function POST(request: Request) {
       endsAt?: string | null;
       clientTimezone?: string | null;
       crmLeadId?: string | null;
+      meetingLink?: string | null;
+      videoLink?: string | null;
     };
 
     if (!body.name?.trim() || !body.organization?.trim() || !body.email?.trim() || !body.startsAt) {
@@ -116,6 +118,7 @@ export async function POST(request: Request) {
       endsAt: body.endsAt,
       clientTimezone: body.clientTimezone,
       crmLeadId: body.crmLeadId,
+      videoLink: body.meetingLink ?? body.videoLink,
     });
 
     return NextResponse.json({ booking });

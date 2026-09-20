@@ -11,6 +11,7 @@ import {
   type OpportunityDiscoveryMeetingSummary,
 } from "@/components/testflighthub/sales-management/OpportunityDiscoveryMeetingForm";
 import { useInternalOperationsBasePath } from "@/components/testflighthub/InternalOperationsBasePathContext";
+import type { CrmActivity } from "@/lib/crm-contact-data";
 import type { CrmLead, LeadStatus } from "@/lib/crm-data";
 import { LEAD_STATUS_OPTIONS } from "@/lib/crm-data";
 import { ClientRecordEditableFields } from "@/components/testflighthub/client-directory/ClientRecordEditableFields";
@@ -67,7 +68,8 @@ function resolveLinkedClient(lead: CrmLead, clients: ManagedClient[]): ManagedCl
 
 function workflowIndexForLead(lead: CrmLead): number {
   if (lead.status === "Lost" || lead.status === "Won" || lead.status === "Active Customer") {
-    return INTERNAL_OPPORTUNITY_WORKFLOW_FRAMEWORK.length - 1;
+    const followUpIdx = INTERNAL_OPPORTUNITY_WORKFLOW_FRAMEWORK.findIndex((step) => step.id === "follow-up");
+    return followUpIdx >= 0 ? followUpIdx : 0;
   }
   if (lead.discoveryNotes?.trim()) return 1;
   if (lead.status === "Hot") return 3;
@@ -76,8 +78,17 @@ function workflowIndexForLead(lead: CrmLead): number {
 }
 
 const VISIBLE_OPPORTUNITY_WORKFLOW_STEPS = INTERNAL_OPPORTUNITY_WORKFLOW_FRAMEWORK.filter(
-  (step) => step.id !== "engagement",
+  (step) => step.id !== "engagement" && step.id !== "outcome",
 );
+
+const OPPORTUNITY_FOLLOW_UP_TYPES = [
+  "Phone call",
+  "Email",
+  "Meeting",
+  "Send proposal",
+  "Send document",
+  "Other",
+] as const;
 
 function visibleWorkflowIndexForLead(lead: CrmLead, hasDiscoveryMeetings: boolean): number {
   let fullIdx = workflowIndexForLead(lead);
@@ -867,7 +878,6 @@ function OpportunityRecordShell({
   const summaryRef = useRef<HTMLDivElement>(null);
   const discoveryRef = useRef<HTMLDivElement>(null);
   const followUpRef = useRef<HTMLDivElement>(null);
-  const outcomeRef = useRef<HTMLDivElement>(null);
 
   const [recordTab, setRecordTab] = useState<"workflow" | "quotes">("workflow");
   const [meetings, setMeetings] = useState<OpportunityDiscoveryMeetingSummary[]>([]);
@@ -883,8 +893,8 @@ function OpportunityRecordShell({
     ? getInternalNavHref("files-client", basePath, { folderId: client.filesFolderId })
     : null;
   const fileExplorerLabel = client?.companyName
-    ? `${client.companyName} — File Explorer`
-    : "File Explorer";
+    ? `${client.companyName.toUpperCase()} — FILE EXPLORER`
+    : "FILE EXPLORER";
 
   const loadMeetings = useCallback(async () => {
     setMeetingsLoading(true);
@@ -949,10 +959,6 @@ function OpportunityRecordShell({
         setRecordTab("workflow");
         scrollToRef(followUpRef);
         return;
-      case "outcome":
-        setRecordTab("workflow");
-        scrollToRef(outcomeRef);
-        return;
       default:
         return;
     }
@@ -965,7 +971,7 @@ function OpportunityRecordShell({
   };
 
   return (
-    <section className="space-y-4 rounded-2xl border border-white/10 bg-white/[0.03] p-4 sm:p-5">
+    <section className="min-w-0 max-w-full space-y-4 overflow-x-hidden rounded-2xl border border-white/10 bg-white/[0.03] p-4 sm:p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <button type="button" onClick={onBack} className="text-xs text-white/45 hover:text-white/70">
@@ -1006,7 +1012,7 @@ function OpportunityRecordShell({
               href={getInternalNavHref("clients", basePath, { clientId: client.id })}
               className="rounded-xl border border-white/15 bg-white/[0.04] px-3 py-2 text-xs font-semibold uppercase tracking-[0.04em] text-white/75 hover:bg-white/[0.08]"
             >
-              View client
+              Client directory
             </Link>
           ) : null}
         </div>
@@ -1025,6 +1031,7 @@ function OpportunityRecordShell({
         <div className="space-y-2">
           <SalesQuotesWorkspace
             embedded
+            opportunityListOnly
             title="SALES QUOTES"
             opportunityContext={{
               crmLeadId: lead.id,
@@ -1088,32 +1095,36 @@ function OpportunityRecordShell({
               {meetingsLoading ? (
                 <p className="text-sm text-white/45">Loading discovery meetings…</p>
               ) : nextMeeting ? (
-                <div className="space-y-1 text-sm text-white/75">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/40">
-                    Next / scheduled discovery
-                  </p>
-                  <p>
-                    {nextMeeting.name} · {nextMeeting.organization}
-                  </p>
-                  <p className="text-white/55">
-                    {nextMeeting.formattedWhenClient ?? nextMeeting.formattedWhenGmt} ·{" "}
-                    {nextMeeting.statusLabel}
-                  </p>
-                </div>
+                <dl className="grid gap-3 sm:grid-cols-2">
+                  <SummaryField label="Name" value={nextMeeting.name} />
+                  <SummaryField label="Organisation" value={nextMeeting.organization} />
+                  <SummaryField label="Email" value={nextMeeting.email} />
+                  <SummaryField
+                    label="Date / time"
+                    value={`${nextMeeting.formattedWhenClient ?? nextMeeting.formattedWhenGmt} · ${nextMeeting.statusLabel}`}
+                  />
+                  {nextMeeting.meetingLink?.trim() ? (
+                    <div className="sm:col-span-2">
+                      <dt className="text-[10px] font-medium uppercase tracking-[0.12em] text-white/40">
+                        Meeting link
+                      </dt>
+                      <dd className="mt-1">
+                        <a
+                          href={nextMeeting.meetingLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex rounded-lg border border-violet-400/35 bg-violet-500/15 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.06em] text-violet-200 hover:bg-violet-500/25"
+                        >
+                          Join meeting
+                        </a>
+                      </dd>
+                    </div>
+                  ) : null}
+                </dl>
               ) : (
                 <p className="text-sm text-white/55">No discovery meeting scheduled for this opportunity yet.</p>
               )}
               <div className="mt-3 flex flex-wrap gap-3">
-                {nextMeeting ? (
-                  <a
-                    href={nextMeeting.meetingLink}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-xs font-semibold text-violet-300 underline-offset-2 hover:underline"
-                  >
-                    View discovery
-                  </a>
-                ) : null}
                 <button
                   type="button"
                   onClick={openDiscoveryCreate}
@@ -1139,25 +1150,186 @@ function OpportunityRecordShell({
           ) : null}
 
           <div ref={followUpRef}>
-            <CompactRecordSection title="Follow-up">
-              <p className="text-sm text-white/70">{lead.nextAction?.trim() || "No follow-up recorded yet."}</p>
-              <p className="mt-2 text-xs text-white/40">
-                Detailed activity logging will be specified in a later phase.
-              </p>
-            </CompactRecordSection>
-          </div>
-
-          <div ref={outcomeRef}>
-            <CompactRecordSection title="Outcome">
-              <SummaryField label="CRM outcome stage" value={lead.status} />
-              <p className="mt-2 text-xs text-white/40">
-                Won, lost, and closed-won handling continues to use the existing CRM opportunity status.
-              </p>
-            </CompactRecordSection>
+            <OpportunityFollowUpSection crmLeadId={lead.id} />
           </div>
         </>
       )}
     </section>
+  );
+}
+
+function formatFollowUpDate(iso: string) {
+  try {
+    return new Intl.DateTimeFormat("en-GB", {
+      dateStyle: "medium",
+      timeStyle: "short",
+    }).format(new Date(iso));
+  } catch {
+    return iso;
+  }
+}
+
+function OpportunityFollowUpSection({ crmLeadId }: { crmLeadId: string }) {
+  const [activities, setActivities] = useState<CrmActivity[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [formOpen, setFormOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [draftDate, setDraftDate] = useState("");
+  const [draftType, setDraftType] = useState<(typeof OPPORTUNITY_FOLLOW_UP_TYPES)[number]>("Phone call");
+  const [draftNotes, setDraftNotes] = useState("");
+
+  const loadFollowUps = useCallback(async () => {
+    setLoading(true);
+    try {
+      const response = await fetch(
+        `/api/sales-management/activities?crmLeadId=${encodeURIComponent(crmLeadId)}`,
+        { cache: "no-store" },
+      );
+      const data = await readApiJson<{ activities?: CrmActivity[] }>(response);
+      if (!response.ok) throw new Error("Failed to load follow-ups");
+      const rows = (data.activities ?? []).filter((row) => row.activityType === "opportunity_follow_up");
+      setActivities(rows);
+    } catch {
+      setActivities([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [crmLeadId]);
+
+  useEffect(() => {
+    void loadFollowUps();
+  }, [loadFollowUps]);
+
+  async function handleSaveFollowUp() {
+    setSaving(true);
+    setFormError(null);
+    try {
+      if (!draftDate.trim()) {
+        setFormError("Select a follow-up date.");
+        return;
+      }
+      const occurredAt = new Date(`${draftDate}T12:00:00`).toISOString();
+      const response = await fetch("/api/sales-management/activities", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          crmLeadId,
+          title: draftType,
+          activityType: "opportunity_follow_up",
+          subject: draftType,
+          message: draftNotes.trim() || null,
+          occurredAt,
+        }),
+      });
+      const body = await readApiJson<{ error?: string }>(response);
+      if (!response.ok) throw new Error(body.error ?? "Failed to save follow-up");
+      setFormOpen(false);
+      setDraftDate("");
+      setDraftNotes("");
+      setDraftType("Phone call");
+      await loadFollowUps();
+    } catch (err) {
+      setFormError(err instanceof Error ? err.message : "Failed to save follow-up");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <CompactRecordSection title="Follow-up">
+      {loading ? (
+        <p className="text-sm text-white/45">Loading follow-ups…</p>
+      ) : activities.length === 0 ? (
+        <p className="text-sm text-white/55">No follow-up recorded yet.</p>
+      ) : (
+        <ul className="space-y-3">
+          {activities.map((item) => (
+            <li
+              key={item.id}
+              className="rounded-lg border border-white/10 bg-[#0b1524]/60 px-3 py-2.5 text-sm text-white/80"
+            >
+              <div className="flex flex-wrap items-baseline justify-between gap-2">
+                <span className="font-medium text-white">{item.title}</span>
+                <span className="text-xs text-white/45">{formatFollowUpDate(item.occurredAt)}</span>
+              </div>
+              {item.message?.trim() ? (
+                <p className="mt-1.5 text-xs text-white/55 whitespace-pre-wrap">{item.message.trim()}</p>
+              ) : null}
+            </li>
+          ))}
+        </ul>
+      )}
+      <div className="mt-3">
+        {!formOpen ? (
+          <button
+            type="button"
+            onClick={() => setFormOpen(true)}
+            className="text-xs font-semibold uppercase tracking-[0.06em] text-violet-300 underline-offset-2 hover:underline"
+          >
+            Add follow-up
+          </button>
+        ) : (
+          <div className="rounded-lg border border-white/10 bg-[#0b1524]/40 p-3">
+            {formError ? <p className="mb-2 text-sm text-red-300">{formError}</p> : null}
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label className="block text-[10px] font-medium uppercase tracking-[0.12em] text-white/45">
+                Follow-up date
+                <input
+                  type="date"
+                  className="mt-1.5 w-full rounded-lg border border-white/10 bg-[#0b1524] px-3 py-2 text-sm text-white [color-scheme:dark]"
+                  value={draftDate}
+                  onChange={(e) => setDraftDate(e.target.value)}
+                />
+              </label>
+              <label className="block text-[10px] font-medium uppercase tracking-[0.12em] text-white/45">
+                Type / action
+                <select
+                  className="mt-1.5 w-full rounded-lg border border-white/10 bg-[#0b1524] px-3 py-2 text-sm text-white"
+                  value={draftType}
+                  onChange={(e) =>
+                    setDraftType(e.target.value as (typeof OPPORTUNITY_FOLLOW_UP_TYPES)[number])
+                  }
+                >
+                  {OPPORTUNITY_FOLLOW_UP_TYPES.map((option) => (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="block text-[10px] font-medium uppercase tracking-[0.12em] text-white/45 sm:col-span-2">
+                Notes
+                <textarea
+                  rows={3}
+                  className="mt-1.5 w-full rounded-lg border border-white/10 bg-[#0b1524] px-3 py-2 text-sm text-white"
+                  value={draftNotes}
+                  onChange={(e) => setDraftNotes(e.target.value)}
+                />
+              </label>
+            </div>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <button
+                type="button"
+                disabled={saving}
+                onClick={() => void handleSaveFollowUp()}
+                className="inline-flex items-center gap-2 rounded-lg bg-violet-600 px-3 py-2 text-xs font-semibold text-white hover:bg-violet-500 disabled:opacity-60"
+              >
+                {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+                Save follow-up
+              </button>
+              <button
+                type="button"
+                onClick={() => setFormOpen(false)}
+                className="rounded-lg border border-white/10 px-3 py-2 text-xs text-white/70"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </CompactRecordSection>
   );
 }
 
