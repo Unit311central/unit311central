@@ -17,7 +17,10 @@ import {
 export const SALES_MANAGEMENT_MODULE_LABEL = "Sales Management";
 
 /** Shell chrome for Sales Management deep links (`?view=sales-management&tab=`). */
-export function resolveSalesManagementShellTitles(tabParam: string | null | undefined): {
+export function resolveSalesManagementShellTitles(
+  tabParam: string | null | undefined,
+  options?: { opportunityRecordName?: string | null },
+): {
   title: string;
   subtitle: string;
   breadcrumb: readonly string[];
@@ -25,6 +28,7 @@ export function resolveSalesManagementShellTitles(tabParam: string | null | unde
   const tab = isSalesManagementTab(tabParam) ? tabParam : DEFAULT_SALES_MANAGEMENT_TAB;
   const tabLabel = getSalesManagementTabLabel(tab);
   const groupLabel = getSalesManagementNavGroupForTab(tab);
+  const recordName = options?.opportunityRecordName?.trim() || null;
   if (tab === "dashboard") {
     return {
       title: "Dashboard",
@@ -32,10 +36,18 @@ export function resolveSalesManagementShellTitles(tabParam: string | null | unde
       breadcrumb: [SALES_MANAGEMENT_MODULE_LABEL, "Dashboard"],
     };
   }
+  const breadcrumbBase = [SALES_MANAGEMENT_MODULE_LABEL, groupLabel, tabLabel] as const;
+  if (tab === "opportunities" && recordName) {
+    return {
+      title: recordName,
+      subtitle: SALES_MANAGEMENT_MODULE_LABEL,
+      breadcrumb: [...breadcrumbBase, recordName],
+    };
+  }
   return {
     title: tabLabel,
     subtitle: SALES_MANAGEMENT_MODULE_LABEL,
-    breadcrumb: [SALES_MANAGEMENT_MODULE_LABEL, groupLabel, tabLabel],
+    breadcrumb: breadcrumbBase,
   };
 }
 

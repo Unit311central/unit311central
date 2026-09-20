@@ -66,6 +66,12 @@ export default function SurveyOperationsShell({
   const { workspaceSlug } = useOperatorEntitlements();
   const searchParams = useSearchParams();
   const salesTab = searchParams.get("tab");
+  const opportunityRecordName =
+    salesTab === "opportunities" ? searchParams.get("recordName")?.trim() || null : null;
+  const salesManagementChromeOptions = useMemo(
+    () => ({ opportunityRecordName }),
+    [opportunityRecordName],
+  );
   const workbenchTab =
     activeView === "realtime-video-pipeline" ? searchParams.get("tab") : null;
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
@@ -133,7 +139,7 @@ export default function SurveyOperationsShell({
         ? activeView === "billing" && !isInternalHost
           ? "Billing"
           : activeView === "sales-management"
-            ? resolveSalesManagementShellTitles(salesTab).title
+            ? resolveSalesManagementShellTitles(salesTab, salesManagementChromeOptions).title
             : activeView === "realtime-video-pipeline"
               ? resolveRealtimeVideoWorkbenchShellTitles(workbenchTab).title
               : resolveInternalViewTitles(activeView).title
@@ -145,7 +151,7 @@ export default function SurveyOperationsShell({
         ? activeView === "billing" && !isInternalHost
           ? "Your subscription"
           : activeView === "sales-management"
-            ? resolveSalesManagementShellTitles(salesTab).subtitle
+            ? resolveSalesManagementShellTitles(salesTab, salesManagementChromeOptions).subtitle
             : activeView === "realtime-video-pipeline"
               ? resolveRealtimeVideoWorkbenchShellTitles(workbenchTab).subtitle
               : resolveInternalViewTitles(activeView).subtitle
@@ -159,7 +165,7 @@ export default function SurveyOperationsShell({
     activeView != null &&
     isInternalOperationsView(activeView)
       ? activeView === "sales-management"
-        ? resolveSalesManagementShellTitles(salesTab).breadcrumb
+        ? resolveSalesManagementShellTitles(salesTab, salesManagementChromeOptions).breadcrumb
         : activeView === "realtime-video-pipeline"
           ? resolveRealtimeVideoWorkbenchShellTitles(workbenchTab).breadcrumb
           : getInternalNavBreadcrumb(activeView)

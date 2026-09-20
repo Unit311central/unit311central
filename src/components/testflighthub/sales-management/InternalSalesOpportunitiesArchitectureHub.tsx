@@ -3,11 +3,10 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Building2, Loader2, Plus, Save, Search } from "lucide-react";
+import { FolderOpen, Loader2, Plus, Save, Search } from "lucide-react";
 
 import CrmLeadDiscoveryEditor from "@/components/testflighthub/CrmLeadDiscoveryEditor";
 import SalesQuotesWorkspace from "@/components/testflighthub/SalesQuotesWorkspace";
-import MeetingsWorkspace from "@/components/testflighthub/MeetingsWorkspace";
 import { useInternalOperationsBasePath } from "@/components/testflighthub/InternalOperationsBasePathContext";
 import type { CrmLead, LeadStatus } from "@/lib/crm-data";
 import { LEAD_STATUS_OPTIONS } from "@/lib/crm-data";
@@ -33,8 +32,6 @@ import {
   SalesFilterBar,
   SalesFilterButton,
   SalesTabHeader,
-  SalesKpiTile,
-  SalesKpiGrid,
 } from "./sales-management-ui";
 
 type HubPanel = "opportunities" | "quotes";
@@ -73,6 +70,22 @@ function workflowIndexForLead(lead: CrmLead): number {
   if (lead.status === "Hot") return 3;
   if (lead.status === "Warm") return 2;
   return 0;
+}
+
+const VISIBLE_OPPORTUNITY_WORKFLOW_STEPS = INTERNAL_OPPORTUNITY_WORKFLOW_FRAMEWORK.filter(
+  (step) => step.id !== "engagement",
+);
+
+function visibleWorkflowIndexForLead(lead: CrmLead): number {
+  const fullIdx = workflowIndexForLead(lead);
+  const fullStep = INTERNAL_OPPORTUNITY_WORKFLOW_FRAMEWORK[fullIdx];
+  if (!fullStep) return 0;
+  if (fullStep.id === "engagement") {
+    const documentsIdx = VISIBLE_OPPORTUNITY_WORKFLOW_STEPS.findIndex((step) => step.id === "documents");
+    return documentsIdx >= 0 ? documentsIdx : 0;
+  }
+  const visibleIdx = VISIBLE_OPPORTUNITY_WORKFLOW_STEPS.findIndex((step) => step.id === fullStep.id);
+  return visibleIdx >= 0 ? visibleIdx : 0;
 }
 
 export default function InternalSalesOpportunitiesArchitectureHub({
@@ -194,6 +207,14 @@ export default function InternalSalesOpportunitiesArchitectureHub({
     [activeLead, clients],
   );
 
+  useEffect(() => {
+    if (flow !== "record" || !activeLead) return;
+    if (searchParams.get("recordName")?.trim()) return;
+    const url = new URL(window.location.href);
+    url.searchParams.set("recordName", activeLead.companyName);
+    router.replace(`${url.pathname}?${url.searchParams.toString()}`, { scroll: false });
+  }, [flow, activeLead, searchParams, router]);
+
   function syncUrl(params: Record<string, string | null>) {
     const url = new URL(window.location.href);
     for (const [key, value] of Object.entries(params)) {
@@ -245,10 +266,14 @@ export default function InternalSalesOpportunitiesArchitectureHub({
     }
   }
 
-  function openRecord(leadId: string) {
+  function openRecord(leadId: string, recordName?: string) {
     setActiveLeadId(leadId);
     setFlow("record");
-    syncUrl({ leadId, opportunityId: leadId });
+    syncUrl({
+      leadId,
+      opportunityId: leadId,
+      recordName: recordName?.trim() || null,
+    });
   }
 
   async function saveOpportunityFromDraft() {
@@ -287,7 +312,11 @@ export default function InternalSalesOpportunitiesArchitectureHub({
       await load();
       setActiveLeadId(data.lead.id);
       setFlow("discovery-prompt");
-      syncUrl({ leadId: data.lead.id, opportunityId: data.lead.id });
+      syncUrl({
+        leadId: data.lead.id,
+        opportunityId: data.lead.id,
+        recordName: data.lead.companyName,
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to save opportunity");
     } finally {
@@ -328,10 +357,12 @@ export default function InternalSalesOpportunitiesArchitectureHub({
 
   return (
     <div className="space-y-4">
-      <SalesTabHeader
-        title="Opportunities"
-        description="Central sales working record — client-linked opportunities with discovery, activities, documents, and quotes in one place (internal architecture)."
-      />
+      {flow !== "record" ? (
+        <SalesTabHeader
+          title="Opportunities"
+          description="Central sales working record — client-linked opportunities with discovery, activities, documents, and quotes in one place (internal architecture)."
+        />
+      ) : null}
 
       <SalesFilterBar>
         {tabs.map((tab) => (
@@ -355,12 +386,13 @@ export default function InternalSalesOpportunitiesArchitectureHub({
           basePath={basePath}
           quotesReturnHref={quotesReturnHref}
           showDiscoveryEditor={showDiscoveryEditor}
-          onToggleDiscovery={() => setShowDiscoveryEditor((v) => !v)}
+          onOpenDiscovery={() => setShowDiscoveryEditor(true)}
+          onCloseDiscovery={() => setShowDiscoveryEditor(false)}
           onBack={() => {
             setFlow("list");
             setActiveLeadId(null);
             setShowDiscoveryEditor(false);
-            syncUrl({ leadId: null, opportunityId: null });
+            syncUrl({ leadId: null, opportunityId: null, recordName: null });
           }}
           onReload={() => void load()}
         />
@@ -454,7 +486,7 @@ export default function InternalSalesOpportunitiesArchitectureHub({
                         <tr
                           key={lead.id}
                           className="cursor-pointer border-t border-white/8 hover:bg-white/[0.03]"
-                          onClick={() => openRecord(lead.id)}
+                          onClick={() => openRecord(lead.id, lead.companyName)}
                         >
                           <td className="px-3 py-2.5 font-medium text-white">{lead.companyName}</td>
                           <td className="px-3 py-2.5 text-white/65">{lead.contactName}</td>
@@ -468,7 +500,7 @@ export default function InternalSalesOpportunitiesArchitectureHub({
                               className="text-xs text-violet-300 underline-offset-2 hover:underline"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                openRecord(lead.id);
+                                openRecord(lead.id, lead.companyName);
                                 setShowDiscoveryEditor(true);
                               }}
                             >
@@ -814,7 +846,8 @@ function OpportunityRecordShell({
   basePath,
   quotesReturnHref,
   showDiscoveryEditor,
-  onToggleDiscovery,
+  onOpenDiscovery,
+  onCloseDiscovery,
   onBack,
   onReload,
 }: {
@@ -823,37 +856,60 @@ function OpportunityRecordShell({
   basePath: SurveyOperationsBasePath;
   quotesReturnHref: string;
   showDiscoveryEditor: boolean;
-  onToggleDiscovery: () => void;
+  onOpenDiscovery: () => void;
+  onCloseDiscovery: () => void;
   onBack: () => void;
   onReload: () => void;
 }) {
-  const workflowIdx = workflowIndexForLead(lead);
+  const workflowIdx = visibleWorkflowIndexForLead(lead);
   const [recordTab, setRecordTab] = useState<"workflow" | "quotes">("workflow");
+  const discoveryCaptured = Boolean(lead.discoveryNotes?.trim());
+  const fileExplorerHref = client?.filesFolderId
+    ? getInternalNavHref("files-client", basePath, { folderId: client.filesFolderId })
+    : null;
 
   return (
     <section className="space-y-4 rounded-2xl border border-white/10 bg-white/[0.03] p-4 sm:p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
+        <div className="min-w-0 flex-1">
           <button type="button" onClick={onBack} className="text-xs text-white/45 hover:text-white/70">
             ← All opportunities
           </button>
-          <h2 className="mt-2 text-lg font-semibold text-white">{lead.companyName}</h2>
-          <p className="text-sm text-white/50">{lead.contactName}</p>
+          <h2 className="mt-2 text-xl font-semibold text-white">{lead.companyName}</h2>
+          {lead.contactName?.trim() ? (
+            <p className="mt-1 text-sm text-white/55">{lead.contactName}</p>
+          ) : null}
         </div>
-        {client ? (
-          <Link
-            href={getInternalNavHref("clients", basePath, { clientId: client.id })}
-            className="inline-flex items-center gap-2 rounded-xl border border-sky-500/35 bg-sky-500/10 px-3 py-2 text-xs font-semibold text-sky-200"
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          <button
+            type="button"
+            onClick={onOpenDiscovery}
+            className="rounded-xl border border-violet-500/40 bg-violet-500/15 px-3 py-2 text-xs font-semibold uppercase tracking-[0.06em] text-violet-200"
           >
-            <Building2 className="h-3.5 w-3.5" />
-            Client Directory
-          </Link>
-        ) : null}
+            Create discovery
+          </button>
+          {fileExplorerHref ? (
+            <Link
+              href={fileExplorerHref}
+              className="inline-flex items-center gap-2 rounded-xl border border-sky-500/35 bg-sky-500/10 px-3 py-2 text-xs font-semibold uppercase tracking-[0.06em] text-sky-200"
+            >
+              <FolderOpen className="h-3.5 w-3.5" />
+              File Explorer
+            </Link>
+          ) : (
+            <span
+              className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-white/35"
+              title="Link a Client Directory record with a files folder to open File Explorer"
+            >
+              File Explorer
+            </span>
+          )}
+        </div>
       </div>
 
       <SalesFilterBar>
         <SalesFilterButton active={recordTab === "workflow"} onClick={() => setRecordTab("workflow")}>
-          Workflow
+          Overview
         </SalesFilterButton>
         <SalesFilterButton active={recordTab === "quotes"} onClick={() => setRecordTab("quotes")}>
           SALES QUOTES
@@ -874,11 +930,9 @@ function OpportunityRecordShell({
       ) : (
         <>
           <div>
-            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/40">
-              Pipeline position (framework)
-            </p>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/40">Workflow</p>
             <ol className="mt-2 flex flex-wrap gap-2">
-              {INTERNAL_OPPORTUNITY_WORKFLOW_FRAMEWORK.map((step, index) => (
+              {VISIBLE_OPPORTUNITY_WORKFLOW_STEPS.map((step, index) => (
                 <li
                   key={step.id}
                   className={cn(
@@ -896,94 +950,84 @@ function OpportunityRecordShell({
             </ol>
           </div>
 
-          <SalesKpiGrid>
-            <SalesKpiTile label="Next action" value={lead.nextAction?.trim() || "—"} hint="Workflow / next step" />
-            <SalesKpiTile label="Stage" value={lead.status} hint="CRM pipeline stage" />
-          </SalesKpiGrid>
+          <CompactRecordSection title="Opportunity summary">
+            <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              <SummaryField label="CRM stage" value={lead.status} />
+              <SummaryField label="Email" value={lead.email?.trim() || "—"} />
+              <SummaryField label="Phone" value={lead.phone?.trim() || "—"} />
+              <SummaryField label="Source" value={lead.source?.trim() || "—"} />
+              <SummaryField label="Client directory" value={client?.companyName ?? "—"} />
+              <SummaryField label="Next action" value={lead.nextAction?.trim() || "—"} />
+              {lead.notes?.trim() ? (
+                <div className="sm:col-span-2 lg:col-span-3">
+                  <SummaryField label="Notes" value={lead.notes.trim()} />
+                </div>
+              ) : null}
+            </dl>
+          </CompactRecordSection>
 
-          <ArchitectureSection
-            title="Workflow / next action"
-            description="Where we are and what happens next — detailed activity UI in a later phase."
-          >
-            <p className="text-sm text-white/70">{lead.nextAction || "No next action recorded yet."}</p>
-          </ArchitectureSection>
-
-          <ArchitectureSection title="Discovery" description="Discovery meetings live inside the opportunity (not a separate top-level module).">
+          <CompactRecordSection title="Discovery">
+            <p className="text-sm text-white/70">
+              {discoveryCaptured
+                ? "Discovery notes are saved on this opportunity."
+                : "No discovery notes captured yet."}
+            </p>
             <button
               type="button"
-              onClick={onToggleDiscovery}
-              className="rounded-xl border border-violet-500/40 bg-violet-500/15 px-3 py-2 text-xs font-semibold text-violet-200"
+              onClick={onOpenDiscovery}
+              className="mt-2 text-xs font-semibold text-violet-300 underline-offset-2 hover:underline"
             >
-              {showDiscoveryEditor ? "Hide discovery editor" : "Create / edit discovery"}
+              {discoveryCaptured ? "View or edit discovery" : "Create discovery"}
             </button>
-            {showDiscoveryEditor ? (
-              <div className="mt-3">
-                <CrmLeadDiscoveryEditor
-                  companyName={lead.companyName}
-                  initialHtml={lead.discoveryNotes ?? ""}
-                  onBack={onToggleDiscovery}
-                  onSave={async (html) => {
-                    await fetch(`/api/crm/leads/${encodeURIComponent(lead.id)}`, {
-                      method: "PATCH",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ discoveryNotes: html }),
-                    });
-                    onReload();
-                  }}
-                  onCommit={async (html) => {
-                    await fetch(`/api/crm/leads/${encodeURIComponent(lead.id)}/commit-discovery`, {
-                      method: "POST",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ discoveryNotes: html }),
-                    });
-                    onReload();
-                    return { meetingsCompleted: 0, alertsCleared: 0 };
-                  }}
-                />
-              </div>
-            ) : (
-              <MeetingsWorkspace salesEmbedded />
-            )}
-          </ArchitectureSection>
+          </CompactRecordSection>
 
-          <ArchitectureSection title="Activities" description="Phone calls and follow-ups — reuses Sales Management activities data.">
-            <p className="text-xs text-white/45">Activity logging UI to be specified; API: /api/sales-management/activities</p>
-          </ArchitectureSection>
-
-          <ArchitectureSection title="Documents / File Explorer" description="Client documents must link to File Explorer — not an orphan upload field.">
-            {client?.filesFolderId ? (
-              <Link
-                href={getInternalNavHref("files-client", basePath, { folderId: client.filesFolderId })}
-                className="text-sm text-sky-300 underline-offset-2 hover:underline"
-              >
-                Open client folder in File Explorer
-              </Link>
-            ) : (
-              <p className="text-sm text-white/50">
-                Link a Client Directory record with a files folder to attach documents here.
-              </p>
-            )}
-          </ArchitectureSection>
+          {showDiscoveryEditor ? (
+            <div className="rounded-xl border border-violet-400/25 bg-violet-500/5 p-3">
+              <CrmLeadDiscoveryEditor
+                companyName={lead.companyName}
+                initialHtml={lead.discoveryNotes ?? ""}
+                onBack={onCloseDiscovery}
+                onSave={async (html) => {
+                  await fetch(`/api/crm/leads/${encodeURIComponent(lead.id)}`, {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ discoveryNotes: html }),
+                  });
+                  onReload();
+                }}
+                onCommit={async (html) => {
+                  await fetch(`/api/crm/leads/${encodeURIComponent(lead.id)}/commit-discovery`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ discoveryNotes: html }),
+                  });
+                  onReload();
+                  return { meetingsCompleted: 0, alertsCleared: 0 };
+                }}
+              />
+            </div>
+          ) : null}
         </>
       )}
     </section>
   );
 }
 
-function ArchitectureSection({
-  title,
-  description,
-  children,
-}: {
-  title: string;
-  description: string;
-  children: React.ReactNode;
-}) {
+function CompactRecordSection({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="rounded-xl border border-white/10 bg-[#0b1524]/40 p-4">
-      <h3 className="text-sm font-semibold text-white">{title}</h3>
-      <p className="mt-1 text-xs text-white/45">{description}</p>
+      <h3 className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/45">{title}</h3>
       <div className="mt-3">{children}</div>
     </div>
   );
 }
+
+function SummaryField({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <dt className="text-[10px] font-medium uppercase tracking-[0.12em] text-white/40">{label}</dt>
+      <dd className="mt-1 text-sm text-white/80">{value}</dd>
+    </div>
+  );
+}
+
