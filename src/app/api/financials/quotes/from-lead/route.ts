@@ -15,6 +15,7 @@ export async function POST(request: NextRequest) {
   try {
     const body = (await request.json()) as {
       leadId?: string;
+      clientId?: string | null;
       title?: string;
       currency?: string;
     };
@@ -33,6 +34,7 @@ export async function POST(request: NextRequest) {
 
     const quote = await createSalesQuoteFromLead(scope, {
       leadId: body.leadId.trim(),
+      clientId: body.clientId ?? null,
       title: body.title,
       currency: body.currency,
     });

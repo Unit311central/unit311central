@@ -727,16 +727,17 @@ function OpportunityRecordShell({
           Workflow
         </SalesFilterButton>
         <SalesFilterButton active={recordTab === "quotes"} onClick={() => setRecordTab("quotes")}>
-          Sales Quotes
+          SALES QUOTES
         </SalesFilterButton>
       </SalesFilterBar>
 
       {recordTab === "quotes" ? (
         <div className="space-y-2">
-          <p className="text-xs text-white/45">
-            Create quotes via the existing Sales Quote system — linked to this opportunity&apos;s CRM lead id.
-          </p>
-          <SalesQuotesWorkspace embedded title={`Quotes — ${lead.companyName}`} />
+          <SalesQuotesWorkspace
+            embedded
+            title="SALES QUOTES"
+            opportunityContext={{ crmLeadId: lead.id, clientId: client?.id ?? null }}
+          />
           <Link href={quotesReturnHref} className="text-xs text-violet-300 hover:underline">
             Open full Sales Quotes area
           </Link>

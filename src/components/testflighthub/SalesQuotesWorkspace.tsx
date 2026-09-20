@@ -40,12 +40,20 @@ function money(amount: number, currency?: ReportingCurrency) {
   }
 }
 
+export type SalesQuotesOpportunityContext = {
+  crmLeadId: string;
+  clientId?: string | null;
+};
+
 export default function SalesQuotesWorkspace({
   embedded = false,
   title = "Sales quotes",
+  opportunityContext,
 }: {
   embedded?: boolean;
   title?: string;
+  /** When set, list is scoped to this CRM lead and new quotes link opportunity (+ client when provided). */
+  opportunityContext?: SalesQuotesOpportunityContext;
 }) {
   const [quotes, setQuotes] = useState<SalesQuote[]>([]);
   const [loading, setLoading] = useState(true);
@@ -73,15 +81,20 @@ export default function SalesQuotesWorkspace({
     void load();
   }, [load]);
 
+  const visibleQuotes = useMemo(() => {
+    if (!opportunityContext?.crmLeadId) return quotes;
+    return quotes.filter((quote) => quote.crmLeadId === opportunityContext.crmLeadId);
+  }, [quotes, opportunityContext?.crmLeadId]);
+
   const totals = useMemo(() => {
-    const open = quotes.filter((quote) => quote.status === "draft" || quote.status === "sent");
-    const accepted = quotes.filter((quote) => quote.status === "accepted");
+    const open = visibleQuotes.filter((quote) => quote.status === "draft" || quote.status === "sent");
+    const accepted = visibleQuotes.filter((quote) => quote.status === "accepted");
     return {
       openCount: open.length,
       openValue: open.reduce((sum, quote) => sum + quote.totalAmount, 0),
       acceptedCount: accepted.length,
     };
-  }, [quotes]);
+  }, [visibleQuotes]);
 
   async function runAction(
     id: string,
@@ -160,11 +173,26 @@ export default function SalesQuotesWorkspace({
     }
   }
 
-  async function createSampleQuote() {
+  async function createNewQuote() {
     setBusyId("create");
     setError(null);
     setNotice(null);
     try {
+      if (opportunityContext?.crmLeadId) {
+        const response = await fetch("/api/financials/quotes/from-lead", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            leadId: opportunityContext.crmLeadId,
+            clientId: opportunityContext.clientId ?? null,
+          }),
+        });
+        const body = (await response.json()) as { quote?: SalesQuote; error?: string };
+        if (!response.ok) throw new Error(body.error ?? "Create failed");
+        if (body.quote) setQuotes((rows) => [body.quote!, ...rows]);
+        return;
+      }
+
       const response = await fetch("/api/financials/quotes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -196,9 +224,11 @@ export default function SalesQuotesWorkspace({
         <div>
           <h1 className={cn("font-semibold text-white", embedded ? "text-lg" : "text-xl")}>{title}</h1>
           <p className={cn("mt-1 text-white/60", embedded ? "text-sm" : "text-sm")}>
-            {embedded
-              ? "Shared sales quote register linked to CRM opportunities and Financials invoicing."
-              : "CRM opportunity → quote PDF → accept → client invoice (Track C)."}
+            {opportunityContext
+              ? "Quotes for this opportunity use the shared Sales Quotes system — opportunity and client stay linked."
+              : embedded
+                ? "Shared sales quote register linked to CRM opportunities and Financials invoicing."
+                : "CRM opportunity → quote PDF → accept → client invoice (Track C)."}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -213,11 +243,11 @@ export default function SalesQuotesWorkspace({
           <button
             type="button"
             disabled={busyId === "create"}
-            onClick={() => void createSampleQuote()}
+            onClick={() => void createNewQuote()}
             className="inline-flex items-center gap-2 rounded-lg bg-sky-600 px-3 py-2 text-sm font-medium text-white hover:bg-sky-500 disabled:opacity-60"
           >
             {busyId === "create" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-            New quote
+            CREATE NEW QUOTE
           </button>
         </div>
       </div>
@@ -270,14 +300,14 @@ export default function SalesQuotesWorkspace({
                   <Loader2 className="mx-auto h-5 w-5 animate-spin" />
                 </td>
               </tr>
-            ) : quotes.length === 0 ? (
+            ) : visibleQuotes.length === 0 ? (
               <tr>
                 <td colSpan={6} className="px-4 py-8 text-center text-white/50">
-                  No quotes yet.
+                  {opportunityContext ? "No quotes linked to this opportunity yet." : "No quotes yet."}
                 </td>
               </tr>
             ) : (
-              quotes.map((quote) => (
+              visibleQuotes.map((quote) => (
                 <tr key={quote.id} className="border-t border-white/5 text-white/80">
                   <td className="px-4 py-3">
                     <div className="font-medium text-white">{quote.quoteNumber}</div>

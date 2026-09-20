@@ -236,7 +236,7 @@ export async function createSalesQuote(
 
 export async function createSalesQuoteFromLead(
   scope: FinancialsWorkspaceScope,
-  input: { leadId: string; title?: string; currency?: string },
+  input: { leadId: string; clientId?: string | null; title?: string; currency?: string },
 ): Promise<SalesQuote> {
   const fixture = resolveAccountingFixtureSource(scope.workspaceSlug);
   const lead =
@@ -252,6 +252,7 @@ export async function createSalesQuoteFromLead(
 
   return createSalesQuote(scope, {
     crmLeadId: lead.id,
+    clientId: input.clientId ?? null,
     companyName: lead.companyName,
     contactName: lead.contactName,
     contactEmail: lead.email,
