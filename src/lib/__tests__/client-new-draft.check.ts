@@ -1,9 +1,13 @@
 import assert from "node:assert/strict";
 
-import { buildCreateClientRequestBody } from "@/lib/client-create-from-draft";
+import {
+  buildCreateClientRequestBody,
+  buildUpdateClientRequestBody,
+} from "@/lib/client-create-from-draft";
 import {
   CLIENT_RECORD_COUNTRY_OPTIONS,
   NEW_CLIENT_DRAFT_ID,
+  clientFieldsEqual,
   createNewClientDraft,
   isNewClientDraftId,
 } from "@/lib/client-management-data";
@@ -19,6 +23,16 @@ assert.equal(draft.supportLoungeUrl, undefined);
 
 const createBody = buildCreateClientRequestBody({ ...draft, companyName: "Test 1" });
 assert.equal(createBody.companyName, "Test 1");
+
+const saved = { ...draft, id: "client-1", companyName: "CorpCentre", jobTitle: "CEO" };
+const updateBody = buildUpdateClientRequestBody(saved);
+assert.equal(updateBody.jobTitle, "CEO");
+assert.equal(updateBody.accountStatus, saved.accountStatus);
+assert.equal(
+  clientFieldsEqual(saved, { ...saved, jobTitle: "CTO" }),
+  false,
+  "jobTitle edits must mark client dirty",
+);
 
 for (const country of [
   "United Kingdom",

@@ -4,7 +4,7 @@ import {
   type ManagedClient,
 } from "@/lib/client-management-data";
 
-export function buildCreateClientRequestBody(draft: ManagedClient) {
+function sharedClientWriteFields(draft: ManagedClient) {
   const location = resolveClientLocation(draft);
   return {
     companyName: draft.companyName.trim(),
@@ -27,6 +27,18 @@ export function buildCreateClientRequestBody(draft: ManagedClient) {
     billingSameAsCompany: draft.billingSameAsCompany,
     primaryContactFirstName: draft.primaryContactFirstName,
     primaryContactSurname: draft.primaryContactSurname,
+  };
+}
+
+export function buildCreateClientRequestBody(draft: ManagedClient) {
+  return sharedClientWriteFields(draft);
+}
+
+/** PATCH body for Client Directory save — omits read-only / server-derived fields. */
+export function buildUpdateClientRequestBody(client: ManagedClient) {
+  return {
+    ...sharedClientWriteFields(client),
+    accountStatus: client.accountStatus,
   };
 }
 

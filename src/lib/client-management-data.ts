@@ -717,6 +717,10 @@ export function clientFieldsEqual(a: ManagedClient, b: ManagedClient) {
     (a.companyCountry ?? "") === (b.companyCountry ?? "") &&
     (a.accountsPayableEmail ?? a.invoiceEmail ?? "") ===
       (b.accountsPayableEmail ?? b.invoiceEmail ?? "") &&
+    (a.primaryContactFirstName ?? "") === (b.primaryContactFirstName ?? "") &&
+    (a.primaryContactSurname ?? "") === (b.primaryContactSurname ?? "") &&
+    (a.jobTitle ?? "") === (b.jobTitle ?? "") &&
+    a.billingSameAsCompany === b.billingSameAsCompany &&
     a.activeProjects === b.activeProjects &&
     a.notes === b.notes &&
     (a.filesFolderId ?? "") === (b.filesFolderId ?? "") &&

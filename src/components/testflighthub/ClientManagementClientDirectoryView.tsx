@@ -22,7 +22,10 @@ import {
   type ClientAccountStatus,
   type ManagedClient,
 } from "@/lib/client-management-data";
-import { createClientFromDraftRequest } from "@/lib/client-create-from-draft";
+import {
+  buildUpdateClientRequestBody,
+  createClientFromDraftRequest,
+} from "@/lib/client-create-from-draft";
 import { centralLoginUrl } from "@/lib/app-domains";
 import { ClientRecordEditableFields } from "@/components/testflighthub/client-directory/ClientRecordEditableFields";
 import { copyTextToClipboard } from "@/lib/clipboard";
@@ -47,16 +50,18 @@ import { isBrowserCorpCentreSurface } from "@/lib/corpcentre-surface";
 import { isBrowserGreenDesertSurface } from "@/lib/greendesert-surface";
 import { GREENDESERT_CLIENT_COUNTRY_OPTIONS } from "@/lib/greendesert/greendesert-client-countries";
 import {
+  Archive,
   ArrowLeft,
   ExternalLink,
+  Eye,
   FolderOpen,
   FolderPlus,
   Link2,
   Loader2,
+  Pencil,
   Plus,
   Save,
   Search,
-  Trash2,
 } from "lucide-react";
 
 async function readApiJson<T>(response: Response): Promise<T> {
@@ -243,6 +248,10 @@ export default function ClientManagementClientDirectoryView({
   }
 
   function openClient(clientId: string) {
+    if (!isNewClientDraftId(clientId)) {
+      setNewClientDraft(null);
+      setCompanyNameError(null);
+    }
     setSelectedClientId(clientId);
     setDetailClientId(clientId);
     syncClientIdToUrl(clientId);
@@ -424,7 +433,7 @@ export default function ClientManagementClientDirectoryView({
       const response = await fetch(`/api/clients/${client.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(client),
+        body: JSON.stringify(buildUpdateClientRequestBody(client)),
       });
 
       const data = await readApiJson<{ client?: ManagedClient; error?: string }>(response);
@@ -435,6 +444,7 @@ export default function ClientManagementClientDirectoryView({
       snapshottedIdRef.current = data.client.id;
       setSavedSnapshot(data.client);
       setSaveMessage("Client saved");
+      window.dispatchEvent(new Event("unit311:clients-changed"));
       return data.client;
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : "Failed to save client");
@@ -574,33 +584,45 @@ export default function ClientManagementClientDirectoryView({
     startNewClientDraft();
   }
 
-  async function handleDeleteClient(client?: ManagedClient) {
+  async function handleArchiveClient(client?: ManagedClient) {
     const target = client ?? selectedClient;
     if (!target) return;
     if (isNewClientDraftId(target.id)) {
       backToDirectory();
       return;
     }
-    if (!window.confirm(
-      `Delete client "${target.companyName}"?\n\nUnpaid invoices linked to this client will also be removed. Paid invoices cannot be deleted.`,
-    )) return;
+    if (target.accountStatus === "Archived") {
+      setError("This client is already archived.");
+      return;
+    }
+    if (
+      !window.confirm(
+        `Archive client "${target.companyName}"?\n\nThe client will be removed from the active Client Directory list. Records, invoices, and relationships are preserved.`,
+      )
+    ) {
+      return;
+    }
 
     setBusy(true);
     setError(null);
 
     try {
-      const response = await fetch(`/api/clients/${target.id}`, { method: "DELETE" });
-      const data = await readApiJson<{ error?: string }>(response);
-      if (!response.ok) throw new Error(data.error ?? "Failed to delete client");
+      const response = await fetch(`/api/clients/${target.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ accountStatus: "Archived" }),
+      });
+      const data = await readApiJson<{ client?: ManagedClient; error?: string }>(response);
+      if (!response.ok || !data.client) throw new Error(data.error ?? "Failed to archive client");
 
       invalidateCachedJson(PLATFORM_CACHE_KEYS.clients);
-      const remaining = clients.filter((item) => item.id !== target.id);
-      syncClients(remaining);
+      syncClients(clients.map((item) => (item.id === target.id ? data.client! : item)));
       if (detailClientId === target.id) backToDirectory();
       else if (selectedClientId === target.id) setSelectedClientId(null);
       setSaveMessage(null);
-    } catch (deleteError) {
-      setError(deleteError instanceof Error ? deleteError.message : "Failed to delete client");
+      window.dispatchEvent(new Event("unit311:clients-changed"));
+    } catch (archiveError) {
+      setError(archiveError instanceof Error ? archiveError.message : "Failed to archive client");
     } finally {
       setBusy(false);
     }
@@ -813,15 +835,26 @@ export default function ClientManagementClientDirectoryView({
                       <Save className="h-3.5 w-3.5" />
                       Save
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => void handleDeleteClient()}
-                      disabled={busy}
-                      className="inline-flex items-center gap-2 rounded-xl border border-red-400/30 bg-red-500/10 px-3 py-2 text-xs font-semibold text-red-200 transition-colors hover:bg-red-500/20 disabled:opacity-60"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                      {isNewClientDraftId(selectedClient.id) ? "Cancel" : "Delete"}
-                    </button>
+                    {isNewClientDraftId(selectedClient.id) ? (
+                      <button
+                        type="button"
+                        onClick={() => backToDirectory()}
+                        disabled={busy}
+                        className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/[0.04] px-3 py-2 text-xs font-semibold text-white/70 transition-colors hover:bg-white/[0.08] disabled:opacity-60"
+                      >
+                        Cancel
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => void handleArchiveClient()}
+                        disabled={busy || selectedClient.accountStatus === "Archived"}
+                        className="inline-flex items-center gap-2 rounded-xl border border-red-400/30 bg-red-500/10 px-3 py-2 text-xs font-semibold text-red-200 transition-colors hover:bg-red-500/20 disabled:opacity-60"
+                      >
+                        <Archive className="h-3.5 w-3.5" />
+                        Archive
+                      </button>
+                    )}
                     {isNewClientDraftId(selectedClient.id) ? (
                       <span className="rounded-full border border-white/20 bg-white/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/60">
                         Unsaved draft
@@ -994,7 +1027,7 @@ export default function ClientManagementClientDirectoryView({
                     <col className="w-[12%]" />
                     <col className="w-[14%]" />
                     <col className="w-[15%]" />
-                    <col className="w-[3rem]" />
+                    <col className="w-[7.5rem]" />
                   </colgroup>
                   <thead className="sticky top-0 z-[1] bg-[#0b1524]/95 text-[10px] font-semibold uppercase tracking-[0.12em] text-white/45">
                     <tr>
@@ -1056,18 +1089,47 @@ export default function ClientManagementClientDirectoryView({
                           {client.primaryContact || "—"}
                         </td>
                         <td className="border-b border-white/8 px-3 py-3 align-top">
-                          <button
-                            type="button"
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              void handleDeleteClient(client);
-                            }}
-                            disabled={busy}
-                            aria-label={`Delete ${client.companyName}`}
-                            className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-red-400/30 bg-red-500/10 text-red-200 hover:bg-red-500/20 disabled:opacity-60"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </button>
+                          <div className="flex items-center gap-1">
+                            <button
+                              type="button"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                openClient(client.id);
+                              }}
+                              disabled={busy}
+                              aria-label={`View ${client.companyName}`}
+                              title="View client"
+                              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-white/15 bg-white/[0.04] text-white/75 hover:bg-white/[0.08] disabled:opacity-60"
+                            >
+                              <Eye className="h-3.5 w-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                openClient(client.id);
+                              }}
+                              disabled={busy}
+                              aria-label={`Edit ${client.companyName}`}
+                              title="Edit client"
+                              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-sky-400/30 bg-sky-500/10 text-sky-200 hover:bg-sky-500/20 disabled:opacity-60"
+                            >
+                              <Pencil className="h-3.5 w-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                void handleArchiveClient(client);
+                              }}
+                              disabled={busy || client.accountStatus === "Archived"}
+                              aria-label={`Archive ${client.companyName}`}
+                              title="Archive client"
+                              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-red-400/30 bg-red-500/10 text-red-200 hover:bg-red-500/20 disabled:opacity-60"
+                            >
+                              <Archive className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     );
