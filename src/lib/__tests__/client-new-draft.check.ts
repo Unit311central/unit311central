@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 
+import { buildCreateClientRequestBody } from "@/lib/client-create-from-draft";
 import {
   CLIENT_RECORD_COUNTRY_OPTIONS,
   NEW_CLIENT_DRAFT_ID,
@@ -15,6 +16,9 @@ assert.equal(draft.id, NEW_CLIENT_DRAFT_ID);
 assert.equal(draft.companyName, "");
 assert.equal(draft.companyCountry, "");
 assert.equal(draft.supportLoungeUrl, undefined);
+
+const createBody = buildCreateClientRequestBody({ ...draft, companyName: "Test 1" });
+assert.equal(createBody.companyName, "Test 1");
 
 for (const country of [
   "United Kingdom",
