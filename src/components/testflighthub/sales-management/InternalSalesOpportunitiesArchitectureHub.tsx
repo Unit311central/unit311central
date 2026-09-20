@@ -16,6 +16,7 @@ import type { CrmLead, LeadStatus } from "@/lib/crm-data";
 import { LEAD_STATUS_OPTIONS } from "@/lib/crm-data";
 import { ClientRecordEditableFields } from "@/components/testflighthub/client-directory/ClientRecordEditableFields";
 import {
+  CLIENT_INDUSTRY_OPTIONS,
   CLIENT_RECORD_COUNTRY_OPTIONS,
   clientCitiesForCountry,
   createNewClientDraft,
@@ -35,11 +36,10 @@ import { cn } from "@/lib/utils";
 import {
   SalesFilterBar,
   SalesFilterButton,
-  SalesTabHeader,
 } from "./sales-management-ui";
 
-type HubPanel = "opportunities" | "quotes";
 type FlowStep =
+  | "edit-opportunity"
   | "list"
   | "create-choose"
   | "pick-client"
@@ -114,9 +114,6 @@ export default function InternalSalesOpportunitiesArchitectureHub({
   const searchParams = useSearchParams();
   const basePath = useInternalOperationsBasePath();
 
-  const [panel, setPanel] = useState<HubPanel>(() =>
-    searchParams.get("panel") === "quotes" ? "quotes" : "opportunities",
-  );
   const [leads, setLeads] = useState<CrmLead[]>([]);
   const [clients, setClients] = useState<ManagedClient[]>([]);
   const [loading, setLoading] = useState(true);
@@ -134,12 +131,15 @@ export default function InternalSalesOpportunitiesArchitectureHub({
     null,
   );
   const [newClientCompanyNameError, setNewClientCompanyNameError] = useState<string | null>(null);
+  const [editingLeadId, setEditingLeadId] = useState<string | null>(null);
 
-  const [filters, setFilters] = useState({
+  const [filterDraft, setFilterDraft] = useState({
     company: "",
-    contact: "",
-    country: "",
-    city: "",
+    sector: "",
+    stage: "all" as LeadStatus | "all",
+  });
+  const [filterApplied, setFilterApplied] = useState({
+    company: "",
     sector: "",
     stage: "all" as LeadStatus | "all",
   });
@@ -170,7 +170,10 @@ export default function InternalSalesOpportunitiesArchitectureHub({
   }, [load]);
 
   useEffect(() => {
-    setPanel(searchParams.get("panel") === "quotes" ? "quotes" : "opportunities");
+    if (searchParams.get("panel") === "quotes" && quotesReturnHref) {
+      router.replace(quotesReturnHref);
+      return;
+    }
     const id = searchParams.get("leadId") ?? searchParams.get("opportunityId");
     if (id) {
       setActiveLeadId(id);
@@ -182,37 +185,40 @@ export default function InternalSalesOpportunitiesArchitectureHub({
       const client = clients.find((c) => c.id === clientCreated);
       if (client) applyClientToOpportunityDraft(client);
     }
-  }, [searchParams, clients]);
+  }, [searchParams, clients, quotesReturnHref, router]);
 
   const opportunities = useMemo(
     () => filterLeadsBySalesSegment(leads, "opportunities"),
     [leads],
   );
 
+  const companyOptions = useMemo(() => {
+    const names = new Set<string>();
+    for (const client of clients) {
+      const name = client.companyName.trim();
+      if (name) names.add(name);
+    }
+    for (const lead of opportunities) {
+      const name = lead.companyName.trim();
+      if (name) names.add(name);
+    }
+    return Array.from(names).sort((a, b) => a.localeCompare(b));
+  }, [clients, opportunities]);
+
   const filtered = useMemo(() => {
     return opportunities.filter((lead) => {
       const client = resolveLinkedClient(lead, clients);
-      const locationCountry = client?.companyCountry ?? "";
-      const locationCity = client?.companyCity ?? "";
-      if (filters.company && !lead.companyName.toLowerCase().includes(filters.company.toLowerCase())) {
+      if (filterApplied.company && lead.companyName.trim() !== filterApplied.company) {
         return false;
       }
-      if (filters.contact && !lead.contactName.toLowerCase().includes(filters.contact.toLowerCase())) {
-        return false;
+      if (filterApplied.sector) {
+        const sector = client?.industry ?? "";
+        if (sector !== filterApplied.sector) return false;
       }
-      if (filters.country && !locationCountry.toLowerCase().includes(filters.country.toLowerCase())) {
-        return false;
-      }
-      if (filters.city && !locationCity.toLowerCase().includes(filters.city.toLowerCase())) {
-        return false;
-      }
-      if (filters.sector && !(lead.source ?? "").toLowerCase().includes(filters.sector.toLowerCase())) {
-        return false;
-      }
-      if (filters.stage !== "all" && lead.status !== filters.stage) return false;
+      if (filterApplied.stage !== "all" && lead.status !== filterApplied.stage) return false;
       return true;
     });
-  }, [opportunities, clients, filters]);
+  }, [opportunities, clients, filterApplied]);
 
   const activeLead = useMemo(
     () => leads.find((l) => l.id === activeLeadId) ?? null,
@@ -290,7 +296,54 @@ export default function InternalSalesOpportunitiesArchitectureHub({
       leadId,
       opportunityId: leadId,
       recordName: recordName?.trim() || null,
+      panel: null,
     });
+  }
+
+  function openEditOpportunity(lead: CrmLead) {
+    const linked = resolveLinkedClient(lead, clients);
+    setEditingLeadId(lead.id);
+    setSelectedClientId(linked?.id ?? null);
+    setDraftLead({
+      companyName: lead.companyName,
+      contactName: lead.contactName,
+      email: lead.email,
+      phone: lead.phone,
+      status: lead.status,
+      source: lead.source,
+      notes: lead.notes,
+      nextAction: lead.nextAction,
+    });
+    setFlow("edit-opportunity");
+  }
+
+  async function deleteOpportunity(lead: CrmLead) {
+    if (
+      !window.confirm(
+        `Delete opportunity "${lead.companyName}"? The linked Client Directory record will not be removed.`,
+      )
+    ) {
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      const response = await fetch(`/api/crm/leads/${encodeURIComponent(lead.id)}`, {
+        method: "DELETE",
+      });
+      const data = await readApiJson<{ error?: string }>(response);
+      if (!response.ok) throw new Error(data.error ?? "Failed to delete opportunity");
+      if (activeLeadId === lead.id) {
+        setActiveLeadId(null);
+        setFlow("list");
+        syncUrl({ leadId: null, opportunityId: null, recordName: null });
+      }
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to delete opportunity");
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function saveOpportunityFromDraft() {
@@ -301,19 +354,36 @@ export default function InternalSalesOpportunitiesArchitectureHub({
     setBusy(true);
     setError(null);
     try {
+      const payload = {
+        companyName: draftLead.companyName.trim(),
+        contactName: draftLead.contactName.trim(),
+        email: draftLead.email,
+        phone: draftLead.phone,
+        status: draftLead.status ?? "Warm",
+        source: draftLead.source,
+        notes: draftLead.notes,
+        nextAction: draftLead.nextAction,
+      };
+
+      if (editingLeadId) {
+        const response = await fetch(`/api/crm/leads/${encodeURIComponent(editingLeadId)}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        const data = await readApiJson<{ lead?: CrmLead; error?: string }>(response);
+        if (!response.ok || !data.lead) throw new Error(data.error ?? "Failed to update opportunity");
+        await load();
+        setEditingLeadId(null);
+        setDraftLead(null);
+        setFlow("list");
+        return;
+      }
+
       const response = await fetch("/api/crm/leads", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          companyName: draftLead.companyName.trim(),
-          contactName: draftLead.contactName.trim(),
-          email: draftLead.email,
-          phone: draftLead.phone,
-          status: draftLead.status ?? "Warm",
-          source: draftLead.source,
-          notes: draftLead.notes,
-          nextAction: draftLead.nextAction,
-        }),
+        body: JSON.stringify(payload),
       });
       const data = await readApiJson<{ lead?: CrmLead; error?: string }>(response);
       if (!response.ok || !data.lead) throw new Error(data.error ?? "Failed to save opportunity");
@@ -341,61 +411,8 @@ export default function InternalSalesOpportunitiesArchitectureHub({
     }
   }
 
-  const tabs = [
-    { id: "opportunities" as const, label: "Opportunities" },
-    { id: "quotes" as const, label: "Sales Quotes" },
-  ];
-
-  if (panel === "quotes") {
-    return (
-      <div className="space-y-4">
-        <SalesTabHeader
-          title="Sales Quotes"
-          description="Independent quote creation remains available here — quotes do not require an opportunity."
-        />
-        <SalesFilterBar>
-          {tabs.map((tab) => (
-            <SalesFilterButton
-              key={tab.id}
-              active={panel === tab.id}
-              onClick={() => {
-                setPanel(tab.id);
-                syncUrl({ panel: tab.id === "quotes" ? "quotes" : null });
-              }}
-            >
-              {tab.label}
-            </SalesFilterButton>
-          ))}
-        </SalesFilterBar>
-        <SalesQuotesWorkspace embedded title="Sales Quotes" />
-      </div>
-    );
-  }
-
   return (
-    <div className="space-y-4">
-      {flow !== "record" ? (
-        <SalesTabHeader
-          title="Opportunities"
-          description="Central sales working record — client-linked opportunities with discovery, activities, documents, and quotes in one place (internal architecture)."
-        />
-      ) : null}
-
-      <SalesFilterBar>
-        {tabs.map((tab) => (
-          <SalesFilterButton
-            key={tab.id}
-            active={panel === tab.id}
-            onClick={() => {
-              setPanel(tab.id);
-              syncUrl({ panel: tab.id === "quotes" ? "quotes" : null });
-            }}
-          >
-            {tab.label}
-          </SalesFilterButton>
-        ))}
-      </SalesFilterBar>
-
+    <div className="min-w-0 max-w-full space-y-4 overflow-x-hidden">
       {flow === "record" && activeLead ? (
         <OpportunityRecordShell
           lead={activeLead}
@@ -418,54 +435,51 @@ export default function InternalSalesOpportunitiesArchitectureHub({
         <>
           {flow === "list" ? (
             <>
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <p className="text-xs text-white/45">
-                  {filtered.length} opportunit{filtered.length === 1 ? "y" : "ies"}
-                </p>
-                <button
-                  type="button"
-                  onClick={() => setFlow("create-choose")}
-                  className="inline-flex h-9 items-center gap-2 rounded-xl border border-violet-500/40 bg-violet-500/15 px-3 text-xs font-semibold text-violet-200"
-                >
-                  <Plus className="h-3.5 w-3.5" />
-                  Create Opportunity
-                </button>
-              </div>
-
               <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
                 <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/40">
                   Search opportunities
                 </p>
-                <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                  {(
-                    [
-                      ["company", "Company name"],
-                      ["contact", "Contact name"],
-                      ["country", "Country"],
-                      ["city", "City"],
-                      ["sector", "Sector"],
-                    ] as const
-                  ).map(([key, label]) => (
-                    <div key={key}>
-                      <label className="text-[10px] uppercase tracking-[0.12em] text-white/45">
-                        {label}
-                      </label>
-                      <input
-                        className={inputClass()}
-                        value={filters[key]}
-                        onChange={(e) => setFilters((f) => ({ ...f, [key]: e.target.value }))}
-                      />
-                    </div>
-                  ))}
-                  <div>
-                    <label className="text-[10px] uppercase tracking-[0.12em] text-white/45">
-                      Stage
-                    </label>
+                <div className="mt-3 flex flex-wrap items-end gap-2">
+                  <label className="min-w-[10rem] flex-1 text-[10px] font-medium uppercase tracking-[0.12em] text-white/45">
+                    Company name
                     <select
                       className={inputClass()}
-                      value={filters.stage}
+                      value={filterDraft.company}
+                      onChange={(e) => setFilterDraft((f) => ({ ...f, company: e.target.value }))}
+                    >
+                      <option value="">All companies</option>
+                      {companyOptions.map((name) => (
+                        <option key={name} value={name}>
+                          {name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="min-w-[10rem] flex-1 text-[10px] font-medium uppercase tracking-[0.12em] text-white/45">
+                    Sector
+                    <select
+                      className={inputClass()}
+                      value={filterDraft.sector}
+                      onChange={(e) => setFilterDraft((f) => ({ ...f, sector: e.target.value }))}
+                    >
+                      <option value="">All sectors</option>
+                      {CLIENT_INDUSTRY_OPTIONS.map((sector) => (
+                        <option key={sector} value={sector}>
+                          {sector}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="min-w-[10rem] flex-1 text-[10px] font-medium uppercase tracking-[0.12em] text-white/45">
+                    Stage
+                    <select
+                      className={inputClass()}
+                      value={filterDraft.stage}
                       onChange={(e) =>
-                        setFilters((f) => ({ ...f, stage: e.target.value as LeadStatus | "all" }))
+                        setFilterDraft((f) => ({
+                          ...f,
+                          stage: e.target.value as LeadStatus | "all",
+                        }))
                       }
                     >
                       <option value="all">All stages</option>
@@ -475,60 +489,113 @@ export default function InternalSalesOpportunitiesArchitectureHub({
                         </option>
                       ))}
                     </select>
-                  </div>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setFilterApplied({ ...filterDraft })}
+                    className="inline-flex h-[42px] items-center gap-2 rounded-xl border border-white/15 bg-white/[0.06] px-4 text-xs font-semibold uppercase tracking-[0.06em] text-white/85 hover:bg-white/[0.1]"
+                  >
+                    <Search className="h-3.5 w-3.5" />
+                    Search
+                  </button>
                 </div>
               </section>
 
-              {loading ? (
-                <p className="flex items-center gap-2 text-sm text-white/50">
-                  <Loader2 className="h-4 w-4 animate-spin" /> Loading…
-                </p>
-              ) : error ? (
-                <p className="text-sm text-red-300">{error}</p>
-              ) : (
-                <div className="overflow-x-auto rounded-2xl border border-white/10">
-                  <table className="w-full min-w-[640px] text-left text-sm">
-                    <thead className="bg-white/[0.04] text-[10px] uppercase tracking-[0.12em] text-white/45">
-                      <tr>
-                        <th className="px-3 py-2">Company</th>
-                        <th className="px-3 py-2">Contact</th>
-                        <th className="px-3 py-2">Stage</th>
-                        <th className="px-3 py-2">Description</th>
-                        <th className="px-3 py-2">Discovery</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {filtered.map((lead) => (
-                        <tr
-                          key={lead.id}
-                          className="cursor-pointer border-t border-white/8 hover:bg-white/[0.03]"
-                          onClick={() => openRecord(lead.id, lead.companyName)}
-                        >
-                          <td className="px-3 py-2.5 font-medium text-white">{lead.companyName}</td>
-                          <td className="px-3 py-2.5 text-white/65">{lead.contactName}</td>
-                          <td className="px-3 py-2.5 text-white/65">{lead.status}</td>
-                          <td className="px-3 py-2.5 text-white/55">
-                            {lead.notes?.slice(0, 80) || lead.nextAction || "—"}
-                          </td>
-                          <td className="px-3 py-2.5">
-                            <button
-                              type="button"
-                              className="text-xs text-violet-300 underline-offset-2 hover:underline"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                openRecord(lead.id, lead.companyName);
-                                setPendingDiscoveryCreate(true);
-                              }}
-                            >
-                              {lead.discoveryNotes?.trim() ? "View" : "Add"}
-                            </button>
-                          </td>
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditingLeadId(null);
+                    setFlow("create-choose");
+                  }}
+                  className="inline-flex h-9 items-center gap-2 rounded-xl border border-violet-500/40 bg-violet-500/15 px-3 text-xs font-semibold uppercase tracking-[0.04em] text-violet-200"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  CREATE OPPORTUNITY
+                </button>
+              </div>
+
+              <div>
+                <h2 className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/40">
+                  Opportunities
+                </h2>
+                {loading ? (
+                  <p className="mt-3 flex items-center gap-2 text-sm text-white/50">
+                    <Loader2 className="h-4 w-4 animate-spin" /> Loading…
+                  </p>
+                ) : error ? (
+                  <p className="mt-3 text-sm text-red-300">{error}</p>
+                ) : (
+                  <div className="mt-3 min-w-0 overflow-x-auto rounded-2xl border border-white/10">
+                    <table className="w-full text-left text-sm">
+                      <thead className="bg-white/[0.04] text-[10px] uppercase tracking-[0.12em] text-white/45">
+                        <tr>
+                          <th className="px-3 py-2">Company</th>
+                          <th className="px-3 py-2">Contact</th>
+                          <th className="px-3 py-2">Stage</th>
+                          <th className="px-3 py-2">Actions</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
+                      </thead>
+                      <tbody>
+                        {filtered.length === 0 ? (
+                          <tr>
+                            <td colSpan={4} className="px-3 py-8 text-center text-white/45">
+                              No opportunities match your search.
+                            </td>
+                          </tr>
+                        ) : (
+                          filtered.map((lead) => (
+                            <tr
+                              key={lead.id}
+                              className="cursor-pointer border-t border-white/8 hover:bg-white/[0.03]"
+                              onClick={() => openRecord(lead.id, lead.companyName)}
+                            >
+                              <td className="px-3 py-2.5 font-medium text-white">{lead.companyName}</td>
+                              <td className="px-3 py-2.5 text-white/65">{lead.contactName}</td>
+                              <td className="px-3 py-2.5 text-white/65">{lead.status}</td>
+                              <td className="px-3 py-2.5">
+                                <div className="flex flex-wrap gap-2">
+                                  <button
+                                    type="button"
+                                    className="text-[10px] font-semibold uppercase tracking-[0.08em] text-violet-300 hover:text-violet-200"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      openRecord(lead.id, lead.companyName);
+                                    }}
+                                  >
+                                    View
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="text-[10px] font-semibold uppercase tracking-[0.08em] text-sky-300 hover:text-sky-200"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      openEditOpportunity(lead);
+                                    }}
+                                  >
+                                    Edit
+                                  </button>
+                                  <button
+                                    type="button"
+                                    disabled={busy}
+                                    className="text-[10px] font-semibold uppercase tracking-[0.08em] text-rose-300 hover:text-rose-200 disabled:opacity-50"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      void deleteOpportunity(lead);
+                                    }}
+                                  >
+                                    Delete
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
             </>
           ) : null}
 
@@ -582,9 +649,10 @@ export default function InternalSalesOpportunitiesArchitectureHub({
             />
           ) : null}
 
-          {flow === "opportunity-form" && draftLead ? (
+          {(flow === "opportunity-form" || flow === "edit-opportunity") && draftLead ? (
             <OpportunityFormPanel
               draft={draftLead}
+              mode={flow === "edit-opportunity" ? "edit" : "create"}
               linkedClient={
                 selectedClientId ? (clients.find((c) => c.id === selectedClientId) ?? null) : null
               }
@@ -592,7 +660,11 @@ export default function InternalSalesOpportunitiesArchitectureHub({
               error={error}
               onChange={setDraftLead}
               onSave={() => void saveOpportunityFromDraft()}
-              onCancel={() => setFlow("list")}
+              onCancel={() => {
+                setEditingLeadId(null);
+                setDraftLead(null);
+                setFlow("list");
+              }}
             />
           ) : null}
 
@@ -754,6 +826,7 @@ function OpportunityCreateNewClientPanel({
 
 function OpportunityFormPanel({
   draft,
+  mode,
   linkedClient,
   busy,
   error,
@@ -762,6 +835,7 @@ function OpportunityFormPanel({
   onCancel,
 }: {
   draft: Partial<CrmLead>;
+  mode: "create" | "edit";
   linkedClient: ManagedClient | null;
   busy: boolean;
   error: string | null;
@@ -771,7 +845,9 @@ function OpportunityFormPanel({
 }) {
   return (
     <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-      <h2 className="text-base font-semibold text-white">Opportunity creation</h2>
+      <h2 className="text-base font-semibold text-white">
+        {mode === "edit" ? "Edit opportunity" : "Opportunity creation"}
+      </h2>
       {linkedClient ? (
         <p className="mt-2 rounded-lg border border-sky-400/25 bg-sky-500/10 px-3 py-2 text-xs text-sky-100">
           Client Directory: <span className="font-semibold">{linkedClient.companyName}</span>
@@ -818,7 +894,7 @@ function OpportunityFormPanel({
           onClick={onSave}
           className="rounded-xl border border-emerald-400/30 bg-emerald-500/10 px-3 py-2 text-xs font-semibold text-emerald-200 disabled:opacity-60"
         >
-          Save opportunity
+          {mode === "edit" ? "Save changes" : "Save opportunity"}
         </button>
         <button type="button" onClick={onCancel} className="text-xs text-white/45">
           Cancel

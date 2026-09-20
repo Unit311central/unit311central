@@ -17,7 +17,9 @@ const hub = readFileSync(
   join(process.cwd(), "src/components/testflighthub/sales-management/InternalSalesOpportunitiesArchitectureHub.tsx"),
   "utf8",
 );
-assert.match(hub, /Create Opportunity/);
+assert.match(hub, /CREATE OPPORTUNITY/);
+assert.match(hub, /Search opportunities/);
+assert.doesNotMatch(hub, /Central sales working record/);
 assert.match(hub, /Select existing client/);
 assert.match(hub, /Create new client/);
 assert.match(hub, /FILE EXPLORER/);
