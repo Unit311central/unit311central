@@ -938,7 +938,12 @@ export default function InternalOperationsDashboard({
 
           {isWarm("clients") && (
             <WorkspacePane view="clients" activeView={activeView} keepMounted={isWarm("clients")}>
-              <ClientManagementWorkspace onClientsChange={setClients} />
+              <ClientManagementWorkspace
+                onClientsChange={setClients}
+                surfaceVariant={
+                  isBrowserAbhiSurface() ? "legacy" : "client-directory"
+                }
+              />
             </WorkspacePane>
           )}
 
