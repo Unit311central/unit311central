@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Building2, Loader2, Plus, Search } from "lucide-react";
+import { Building2, Loader2, Plus, Save, Search } from "lucide-react";
 
 import CrmLeadDiscoveryEditor from "@/components/testflighthub/CrmLeadDiscoveryEditor";
 import SalesQuotesWorkspace from "@/components/testflighthub/SalesQuotesWorkspace";
@@ -11,7 +11,16 @@ import MeetingsWorkspace from "@/components/testflighthub/MeetingsWorkspace";
 import { useInternalOperationsBasePath } from "@/components/testflighthub/InternalOperationsBasePathContext";
 import type { CrmLead, LeadStatus } from "@/lib/crm-data";
 import { LEAD_STATUS_OPTIONS } from "@/lib/crm-data";
-import type { ManagedClient } from "@/lib/client-management-data";
+import { ClientRecordEditableFields } from "@/components/testflighthub/client-directory/ClientRecordEditableFields";
+import {
+  CLIENT_RECORD_COUNTRY_OPTIONS,
+  clientCitiesForCountry,
+  createNewClientDraft,
+  resolveClientLocation,
+  type ManagedClient,
+} from "@/lib/client-management-data";
+import { createClientFromDraftRequest } from "@/lib/client-create-from-draft";
+import { invalidateCachedJson, PLATFORM_CACHE_KEYS } from "@/lib/platform-fetch-cache";
 import { getInternalNavHref } from "@/lib/internal-operations-data";
 import type { SurveyOperationsBasePath } from "@/lib/survey-operations-mock-data";
 import {
@@ -33,6 +42,7 @@ type FlowStep =
   | "list"
   | "create-choose"
   | "pick-client"
+  | "create-new-client"
   | "opportunity-form"
   | "discovery-prompt"
   | "record";
@@ -90,6 +100,10 @@ export default function InternalSalesOpportunitiesArchitectureHub({
     () => searchParams.get("leadId") ?? searchParams.get("opportunityId"),
   );
   const [showDiscoveryEditor, setShowDiscoveryEditor] = useState(false);
+  const [opportunityNewClientDraft, setOpportunityNewClientDraft] = useState<ManagedClient | null>(
+    null,
+  );
+  const [newClientCompanyNameError, setNewClientCompanyNameError] = useState<string | null>(null);
 
   const [filters, setFilters] = useState({
     company: "",
@@ -136,16 +150,7 @@ export default function InternalSalesOpportunitiesArchitectureHub({
     if (clientCreated) {
       setSelectedClientId(clientCreated);
       const client = clients.find((c) => c.id === clientCreated);
-      if (client) {
-        setDraftLead({
-          companyName: client.companyName,
-          contactName: client.primaryContact || "",
-          email: client.email,
-          phone: client.phone,
-          status: "Warm",
-        });
-        setFlow("opportunity-form");
-      }
+      if (client) applyClientToOpportunityDraft(client);
     }
   }, [searchParams, clients]);
 
@@ -196,6 +201,48 @@ export default function InternalSalesOpportunitiesArchitectureHub({
       else url.searchParams.delete(key);
     }
     router.replace(`${url.pathname}?${url.searchParams.toString()}`, { scroll: false });
+  }
+
+  function applyClientToOpportunityDraft(client: ManagedClient) {
+    const contactFromParts = [client.primaryContactFirstName, client.primaryContactSurname]
+      .filter(Boolean)
+      .join(" ")
+      .trim();
+    setSelectedClientId(client.id);
+    setDraftLead({
+      companyName: client.companyName,
+      contactName: client.primaryContact?.trim() || contactFromParts,
+      email: client.email,
+      phone: client.phone,
+      status: "Warm",
+    });
+    setFlow("opportunity-form");
+  }
+
+  async function saveOpportunityNewClient() {
+    if (!opportunityNewClientDraft) return;
+    const companyName = opportunityNewClientDraft.companyName.trim();
+    if (!companyName) {
+      setNewClientCompanyNameError("Company name is required.");
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    setNewClientCompanyNameError(null);
+    try {
+      const client = await createClientFromDraftRequest({
+        ...opportunityNewClientDraft,
+        companyName,
+      });
+      invalidateCachedJson(PLATFORM_CACHE_KEYS.clients);
+      setClients((rows) => [client, ...rows]);
+      setOpportunityNewClientDraft(null);
+      applyClientToOpportunityDraft(client);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to create client");
+    } finally {
+      setBusy(false);
+    }
   }
 
   function openRecord(leadId: string) {
@@ -441,13 +488,32 @@ export default function InternalSalesOpportunitiesArchitectureHub({
             <CreateChoosePanel
               onExisting={() => setFlow("pick-client")}
               onNewClient={() => {
-                const href = getInternalNavHref("clients", basePath, {
-                  clientId: "new",
-                  salesOpportunityReturn: "1",
-                });
-                router.push(href);
+                setError(null);
+                setNewClientCompanyNameError(null);
+                setOpportunityNewClientDraft(createNewClientDraft());
+                setFlow("create-new-client");
               }}
               onCancel={() => setFlow("list")}
+            />
+          ) : null}
+
+          {flow === "create-new-client" && opportunityNewClientDraft ? (
+            <OpportunityCreateNewClientPanel
+              draft={opportunityNewClientDraft}
+              busy={busy}
+              error={error}
+              companyNameError={newClientCompanyNameError}
+              onChange={(patch) => {
+                setOpportunityNewClientDraft((current) =>
+                  current ? { ...current, ...patch } : current,
+                );
+                if ("companyName" in patch) setNewClientCompanyNameError(null);
+              }}
+              onSave={() => void saveOpportunityNewClient()}
+              onBack={() => {
+                setOpportunityNewClientDraft(null);
+                setFlow("create-choose");
+              }}
             />
           ) : null}
 
@@ -462,14 +528,7 @@ export default function InternalSalesOpportunitiesArchitectureHub({
                   setError("Select a client from the directory.");
                   return;
                 }
-                setDraftLead({
-                  companyName: client.companyName,
-                  contactName: client.primaryContact,
-                  email: client.email,
-                  phone: client.phone,
-                  status: "Warm",
-                });
-                setFlow("opportunity-form");
+                applyClientToOpportunityDraft(client);
               }}
               onCancel={() => setFlow("create-choose")}
             />
@@ -478,6 +537,9 @@ export default function InternalSalesOpportunitiesArchitectureHub({
           {flow === "opportunity-form" && draftLead ? (
             <OpportunityFormPanel
               draft={draftLead}
+              linkedClient={
+                selectedClientId ? (clients.find((c) => c.id === selectedClientId) ?? null) : null
+              }
               busy={busy}
               error={error}
               onChange={setDraftLead}
@@ -582,8 +644,69 @@ function PickClientPanel({
   );
 }
 
+function OpportunityCreateNewClientPanel({
+  draft,
+  busy,
+  error,
+  companyNameError,
+  onChange,
+  onSave,
+  onBack,
+}: {
+  draft: ManagedClient;
+  busy: boolean;
+  error: string | null;
+  companyNameError: string | null;
+  onChange: (patch: Partial<ManagedClient>) => void;
+  onSave: () => void;
+  onBack: () => void;
+}) {
+  const selectedLocation = resolveClientLocation(draft);
+  const selectedCityOptions = useMemo(() => {
+    const cities = new Set(clientCitiesForCountry(selectedLocation.country));
+    if (selectedLocation.city) cities.add(selectedLocation.city);
+    return Array.from(cities).sort((a, b) => a.localeCompare(b));
+  }, [selectedLocation.country, selectedLocation.city]);
+
+  return (
+    <section className="rounded-2xl border border-sky-500/25 bg-sky-500/5 p-4 sm:p-6">
+      <button type="button" onClick={onBack} className="text-xs text-white/45 hover:text-white/70">
+        ← Create Opportunity
+      </button>
+      <h2 className="mt-2 text-lg font-semibold text-white">New client</h2>
+      <p className="mt-1 text-sm text-white/55">
+        Same Client Directory record fields — saved to the directory when you continue to the opportunity.
+      </p>
+      {error ? <p className="mt-3 text-sm text-red-300">{error}</p> : null}
+      <ClientRecordEditableFields
+        client={draft}
+        busy={busy}
+        companyNameError={companyNameError}
+        recordCountryOptions={CLIENT_RECORD_COUNTRY_OPTIONS}
+        selectedCityOptions={selectedCityOptions}
+        onPatch={onChange}
+      />
+      <div className="mt-4 flex flex-wrap gap-2">
+        <button
+          type="button"
+          disabled={busy}
+          onClick={onSave}
+          className="inline-flex items-center gap-2 rounded-xl border border-emerald-400/30 bg-emerald-500/10 px-3 py-2 text-xs font-semibold text-emerald-200 disabled:opacity-60"
+        >
+          {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+          Save new client
+        </button>
+        <button type="button" onClick={onBack} className="text-xs text-white/45">
+          Back
+        </button>
+      </div>
+    </section>
+  );
+}
+
 function OpportunityFormPanel({
   draft,
+  linkedClient,
   busy,
   error,
   onChange,
@@ -591,6 +714,7 @@ function OpportunityFormPanel({
   onCancel,
 }: {
   draft: Partial<CrmLead>;
+  linkedClient: ManagedClient | null;
   busy: boolean;
   error: string | null;
   onChange: (next: Partial<CrmLead>) => void;
@@ -600,6 +724,11 @@ function OpportunityFormPanel({
   return (
     <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
       <h2 className="text-base font-semibold text-white">Opportunity creation</h2>
+      {linkedClient ? (
+        <p className="mt-2 rounded-lg border border-sky-400/25 bg-sky-500/10 px-3 py-2 text-xs text-sky-100">
+          Client Directory: <span className="font-semibold">{linkedClient.companyName}</span>
+        </p>
+      ) : null}
       <p className="mt-1 text-xs text-white/45">High-level fields only — detailed specification follows in a later phase.</p>
       {error ? <p className="mt-2 text-sm text-red-300">{error}</p> : null}
       <div className="mt-4 grid gap-3 sm:grid-cols-2">

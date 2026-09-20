@@ -14,18 +14,17 @@ import {
   createNewClientDraft,
   isNewClientDraftId,
   NEW_CLIENT_DRAFT_ID,
-  canTransitionClientAccountStatus,
   clientCitiesForCountry,
   clientFieldsEqual,
   clientStatusClass,
-  composeLegacyRegion,
   formatClientLocation,
   resolveClientLocation,
   type ClientAccountStatus,
   type ManagedClient,
 } from "@/lib/client-management-data";
-import { isCrmLinkedClientNotes } from "@/lib/crm-lead-client-data";
+import { createClientFromDraftRequest } from "@/lib/client-create-from-draft";
 import { centralLoginUrl } from "@/lib/app-domains";
+import { ClientRecordEditableFields } from "@/components/testflighthub/client-directory/ClientRecordEditableFields";
 import { copyTextToClipboard } from "@/lib/clipboard";
 import { clientLogoUrl } from "@/lib/support-email-html";
 import { useInternalOperationsBasePath } from "./InternalOperationsBasePathContext";
@@ -59,20 +58,6 @@ import {
   Search,
   Trash2,
 } from "lucide-react";
-
-function formatFinanceMoney(amount: number, currency = "EUR") {
-  const { withPreferredCurrencySymbol } =
-    require("@/lib/accounting/chart-of-accounts") as typeof import("@/lib/accounting/chart-of-accounts");
-  const code = String(currency || "EUR").toUpperCase();
-  return withPreferredCurrencySymbol(
-    new Intl.NumberFormat("en-GB", {
-      style: "currency",
-      currency: code,
-      minimumFractionDigits: 2,
-    }).format(amount),
-    code,
-  );
-}
 
 async function readApiJson<T>(response: Response): Promise<T> {
   const text = await response.text();
@@ -213,17 +198,6 @@ export default function ClientManagementClientDirectoryView({
     if (selectedLocation.city) cities.add(selectedLocation.city);
     return Array.from(cities).sort((a, b) => a.localeCompare(b));
   }, [selectedLocation.country, selectedLocation.city]);
-
-  function patchSelectedLocation(next: { country?: string; city?: string }) {
-    if (!selectedClient) return;
-    const country = next.country !== undefined ? next.country : selectedLocation.country;
-    const city = next.city !== undefined ? next.city : selectedLocation.city;
-    patchSelected({
-      companyCountry: country,
-      companyCity: city,
-      region: composeLegacyRegion(country, city),
-    });
-  }
 
   function pinClientRecordTop() {
     const target = detailTopRef.current ?? detailSectionRef.current;
@@ -482,38 +456,8 @@ export default function ClientManagementClientDirectoryView({
     setSaveMessage(null);
     setCompanyNameError(null);
 
-    const location = resolveClientLocation(draft);
-
     try {
-      const response = await fetch("/api/clients", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          companyName,
-          industry: draft.industry,
-          primaryContact: draft.primaryContact,
-          email: draft.email,
-          phone: draft.phone,
-          region: composeLegacyRegion(location.country, location.city),
-          companyCountry: location.country,
-          companyCity: location.city,
-          companyPostcode: draft.companyPostcode,
-          companyAddress: draft.companyAddress,
-          contractType: draft.contractType,
-          taxId: draft.taxId,
-          billingAddress: draft.billingAddress,
-          notes: draft.notes,
-          platformUrl: draft.platformUrl,
-          jobTitle: draft.jobTitle,
-          accountsPayableEmail: draft.accountsPayableEmail ?? draft.invoiceEmail,
-          billingSameAsCompany: draft.billingSameAsCompany,
-          primaryContactFirstName: draft.primaryContactFirstName,
-          primaryContactSurname: draft.primaryContactSurname,
-        }),
-      });
-
-      const data = await readApiJson<{ client?: ManagedClient; error?: string }>(response);
-      if (!response.ok || !data.client) throw new Error(data.error ?? "Failed to create client");
+      const data = { client: await createClientFromDraftRequest({ ...draft, companyName }) };
 
       invalidateCachedJson(PLATFORM_CACHE_KEYS.clients);
       setNewClientDraft(null);
@@ -901,402 +845,21 @@ export default function ClientManagementClientDirectoryView({
                   </p>
                 )}
 
-                <div className="mt-6 grid gap-4 sm:grid-cols-2">
-                  <div className="sm:col-span-2">
-                    <FieldLabel>Company Name</FieldLabel>
-                    <input
-                      className={inputClassName()}
-                      value={selectedClient.companyName}
-                      onChange={(event) => patchSelected({ companyName: event.target.value })}
-                      disabled={busy}
-                      aria-invalid={companyNameError ? true : undefined}
-                    />
-                    {companyNameError ? (
-                      <p className="mt-1.5 text-xs text-red-300">{companyNameError}</p>
-                    ) : null}
-                  </div>
-                  <div>
-                    <FieldLabel>Industry</FieldLabel>
-                    <select
-                      className={inputClassName()}
-                      value={selectedClient.industry}
-                      onChange={(event) =>
-                        patchSelected({ industry: event.target.value as ManagedClient["industry"] })
-                      }
-                      disabled={busy}
-                    >
-                      {CLIENT_INDUSTRY_OPTIONS.map((option) => (
-                        <option key={option} value={option}>
-                          {option}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <FieldLabel>Country</FieldLabel>
-                    <select
-                      className={inputClassName()}
-                      value={selectedLocation.country}
-                      onChange={(event) =>
-                        patchSelectedLocation({ country: event.target.value, city: "" })
-                      }
-                      disabled={busy}
-                    >
-                      <option value="">Select country</option>
-                      {Array.from(
-                        new Set([
-                          ...recordCountryOptions,
-                          ...(selectedLocation.country ? [selectedLocation.country] : []),
-                        ]),
-                      ).map((option) => (
-                        <option key={option} value={option}>
-                          {option}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <FieldLabel>City</FieldLabel>
-                    <input
-                      className={inputClassName()}
-                      list="member-city-suggestions"
-                      value={selectedLocation.city}
-                      onChange={(event) => patchSelectedLocation({ city: event.target.value })}
-                      disabled={busy || !selectedLocation.country}
-                      placeholder="City"
-                    />
-                    <datalist id="member-city-suggestions">
-                      {selectedCityOptions.map((option) => (
-                        <option key={option} value={option} />
-                      ))}
-                    </datalist>
-                  </div>
-                  <div>
-                    <FieldLabel>Primary Contact</FieldLabel>
-                    <input
-                      className={inputClassName()}
-                      value={selectedClient.primaryContact}
-                      onChange={(event) => patchSelected({ primaryContact: event.target.value })}
-                      disabled={busy}
-                    />
-                  </div>
-                  <div>
-                    <FieldLabel>Primary Contact First Name</FieldLabel>
-                    <input
-                      className={inputClassName()}
-                      value={selectedClient.primaryContactFirstName ?? ""}
-                      onChange={(event) =>
-                        patchSelected({ primaryContactFirstName: event.target.value })
-                      }
-                      disabled={busy}
-                    />
-                  </div>
-                  <div>
-                    <FieldLabel>Primary Contact Surname</FieldLabel>
-                    <input
-                      className={inputClassName()}
-                      value={selectedClient.primaryContactSurname ?? ""}
-                      onChange={(event) =>
-                        patchSelected({ primaryContactSurname: event.target.value })
-                      }
-                      disabled={busy}
-                    />
-                  </div>
-                  <div>
-                    <FieldLabel>Email</FieldLabel>
-                    <input
-                      type="email"
-                      className={inputClassName()}
-                      value={selectedClient.email}
-                      onChange={(event) => patchSelected({ email: event.target.value })}
-                      disabled={busy}
-                    />
-                  </div>
-                  <div>
-                    <FieldLabel>Phone</FieldLabel>
-                    <input
-                      className={inputClassName()}
-                      value={selectedClient.phone}
-                      onChange={(event) => patchSelected({ phone: event.target.value })}
-                      disabled={busy}
-                    />
-                  </div>
-                  <div>
-                    <FieldLabel>Role</FieldLabel>
-                    <input
-                      className={inputClassName()}
-                      value={selectedClient.jobTitle ?? ""}
-                      onChange={(event) => patchSelected({ jobTitle: event.target.value })}
-                      disabled={busy}
-                    />
-                  </div>
-                  <div>
-                    <FieldLabel>Account Status</FieldLabel>
-                    <select
-                      className={inputClassName()}
-                      value={selectedClient.accountStatus}
-                      onChange={(event) =>
-                        patchSelected({
-                          accountStatus: event.target.value as ManagedClient["accountStatus"],
-                        })
-                      }
-                      disabled={busy || selectedClient.accountStatus === "Archived"}
-                    >
-                      {CLIENT_STATUS_OPTIONS.filter(
-                        (option) =>
-                          option === selectedClient.accountStatus ||
-                          canTransitionClientAccountStatus(
-                            selectedClient.accountStatus as ClientAccountStatus,
-                            option,
-                          ),
-                      ).map((option) => (
-                        <option key={option} value={option}>
-                          {option}
-                        </option>
-                      ))}
-                    </select>
-                    {selectedClient.crmLeadId ||
-                    isCrmLinkedClientNotes(selectedClient.notes) ? (
-                      <p className="mt-1 text-[11px] text-white/45">
-                        CRM lineage linked — Directory owns lifecycle (Prospect remains in CRM).
-                      </p>
-                    ) : null}
-                    {selectedClient.accountStatus === "Archived" ? (
-                      <p className="mt-1 text-[11px] text-white/45">
-                        Archived is terminal and cannot transition to another status.
-                      </p>
-                    ) : null}
-                  </div>
-                  <div>
-                    <FieldLabel>Contract Type</FieldLabel>
-                    <select
-                      className={inputClassName()}
-                      value={selectedClient.contractType}
-                      onChange={(event) =>
-                        patchSelected({
-                          contractType: event.target.value as ManagedClient["contractType"],
-                        })
-                      }
-                      disabled={busy}
-                    >
-                      {CLIENT_CONTRACT_OPTIONS.map((option) => (
-                        <option key={option} value={option}>
-                          {option}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <FieldLabel>Tax / VAT ID</FieldLabel>
-                    <input
-                      className={inputClassName()}
-                      value={selectedClient.taxId}
-                      onChange={(event) => patchSelected({ taxId: event.target.value })}
-                      disabled={busy}
-                    />
-                  </div>
-                  <div>
-                    <FieldLabel>Projects</FieldLabel>
-                    <input
-                      type="number"
-                      min={0}
-                      className={inputClassName()}
-                      value={selectedClient.activeProjects}
-                      readOnly
-                      disabled
-                      title="Derived from linked projects — not edited here"
-                    />
-                  </div>
-                  <div className="sm:col-span-2">
-                    <FieldLabel>Company Address</FieldLabel>
-                    <textarea
-                      rows={3}
-                      className={inputClassName()}
-                      value={selectedClient.companyAddress ?? ""}
-                      onChange={(event) => patchSelected({ companyAddress: event.target.value })}
-                      disabled={busy}
-                    />
-                  </div>
-                  <div>
-                    <FieldLabel>Company Postcode</FieldLabel>
-                    <input
-                      className={inputClassName()}
-                      value={selectedClient.companyPostcode ?? ""}
-                      onChange={(event) => patchSelected({ companyPostcode: event.target.value })}
-                      disabled={busy}
-                    />
-                  </div>
-                  <div className="sm:col-span-2">
-                    <FieldLabel>Accounts Payable Email</FieldLabel>
-                    <input
-                      type="email"
-                      className={inputClassName()}
-                      value={
-                        selectedClient.accountsPayableEmail ??
-                        selectedClient.invoiceEmail ??
-                        ""
-                      }
-                      onChange={(event) =>
-                        patchSelected({
-                          accountsPayableEmail: event.target.value,
-                          invoiceEmail: event.target.value,
-                        })
-                      }
-                      disabled={busy}
-                    />
-                  </div>
-                  <div className="sm:col-span-2">
-                    <FieldLabel>Billing Address</FieldLabel>
-                    <input
-                      className={inputClassName()}
-                      value={selectedClient.billingAddress}
-                      onChange={(event) => patchSelected({ billingAddress: event.target.value })}
-                      disabled={busy}
-                    />
-                  </div>
-                  <div>
-                    <FieldLabel>Subscription Status</FieldLabel>
-                    <p className={cn(inputClassName(), "mt-1.5 text-white/75")}>
-                      {selectedClient.subscriptionStatus ?? "—"}
-                    </p>
-                  </div>
-                  <div>
-                    <FieldLabel>Billing Frequency</FieldLabel>
-                    <p className={cn(inputClassName(), "mt-1.5 text-white/75")}>
-                      {selectedClient.billingFrequency ?? "—"}
-                    </p>
-                  </div>
-                  <div className="sm:col-span-2">
-                    <FieldLabel>Renewal Date</FieldLabel>
-                    <p className={cn(inputClassName(), "mt-1.5 text-white/75")}>
-                      {selectedClient.renewalDate ?? "—"}
-                    </p>
-                  </div>
-                  <div className="sm:col-span-2 rounded-xl border border-white/10 bg-[#0b1524]/60 p-4">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#60a5fa]">
-                        Finance
-                      </p>
-                      {financeLoading && (
-                        <span className="inline-flex items-center gap-1.5 text-xs text-white/45">
-                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                          Loading…
-                        </span>
-                      )}
-                    </div>
-                    {financeError && (
-                      <div className="mt-3 space-y-1 text-xs text-red-300">
-                        <p>{financeError}</p>
-                        {/unauthorized|authentication required/i.test(financeError) ? (
-                          <p className="text-red-200/80">
-                            <a
-                              href={centralLoginUrl()}
-                              className="font-semibold underline underline-offset-2 hover:text-white"
-                            >
-                              Sign in again
-                            </a>{" "}
-                            to load invoices and payments.
-                          </p>
-                        ) : null}
-                      </div>
-                    )}
-                    <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                      <div className="rounded-lg border border-white/10 px-3 py-2.5">
-                        <p className="text-[10px] uppercase tracking-[0.12em] text-white/40">
-                          Outstanding Balance
-                        </p>
-                        <p className="mt-1 font-mono text-sm text-white/90">
-                          {formatFinanceMoney(financeSummary?.outstandingBalance ?? 0)}
-                        </p>
-                      </div>
-                      <div className="rounded-lg border border-white/10 px-3 py-2.5">
-                        <p className="text-[10px] uppercase tracking-[0.12em] text-white/40">
-                          Financial Summary
-                        </p>
-                        <p className="mt-1 text-sm text-white/75">
-                          {(financeSummary?.invoices.length ?? 0)} invoices ·{" "}
-                          {(financeSummary?.payments.length ?? 0)} payments ·{" "}
-                          {
-                            (financeSummary?.invoices.filter(
-                              (invoice) =>
-                                invoice.status === "issued" || invoice.status === "overdue",
-                            ).length ?? 0)
-                          }{" "}
-                          open
-                        </p>
-                      </div>
-                    </div>
-                    <div className="mt-4 grid gap-4 lg:grid-cols-2">
-                      <div>
-                        <p className="text-[10px] font-medium uppercase tracking-[0.12em] text-white/45">
-                          Invoices
-                        </p>
-                        {(financeSummary?.invoices.length ?? 0) === 0 ? (
-                          <p className="mt-2 text-xs text-white/40">No invoices</p>
-                        ) : (
-                          <ul className="mt-2 space-y-1.5">
-                            {financeSummary!.invoices.map((invoice) => (
-                              <li
-                                key={invoice.id}
-                                className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-white/10 px-2.5 py-2 text-xs"
-                              >
-                                <div>
-                                  <Link
-                                    href={`${basePath}?view=accounts-receivable`}
-                                    className="font-medium text-sky-300 hover:text-sky-200"
-                                  >
-                                    {invoice.invoiceNumber}
-                                  </Link>
-                                  <span className="ml-2 text-white/45">{invoice.status}</span>
-                                </div>
-                                <span className="font-mono text-white/80">
-                                  {formatFinanceMoney(invoice.amount, invoice.currency)}
-                                </span>
-                              </li>
-                            ))}
-                          </ul>
-                        )}
-                      </div>
-                      <div>
-                        <p className="text-[10px] font-medium uppercase tracking-[0.12em] text-white/45">
-                          Payments
-                        </p>
-                        {(financeSummary?.payments.length ?? 0) === 0 ? (
-                          <p className="mt-2 text-xs text-white/40">No payments</p>
-                        ) : (
-                          <ul className="mt-2 space-y-1.5">
-                            {financeSummary!.payments.map((payment) => (
-                              <li
-                                key={payment.id}
-                                className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-white/10 px-2.5 py-2 text-xs"
-                              >
-                                <div>
-                                  <span className="font-medium text-white/85">
-                                    {payment.invoiceNumber}
-                                  </span>
-                                  <span className="ml-2 text-white/45">{payment.paidAt.slice(0, 10)}</span>
-                                </div>
-                                <span className="font-mono text-emerald-300/90">
-                                  {formatFinanceMoney(payment.amount, payment.currency)}
-                                </span>
-                              </li>
-                            ))}
-                          </ul>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="sm:col-span-2">
-                    <FieldLabel>Notes</FieldLabel>
-                    <textarea
-                      rows={3}
-                      className={cn(inputClassName(), "resize-y")}
-                      value={selectedClient.notes}
-                      onChange={(event) => patchSelected({ notes: event.target.value })}
-                      disabled={busy}
-                    />
-                  </div>
-                </div>
+                <ClientRecordEditableFields
+                  client={selectedClient}
+                  busy={busy}
+                  companyNameError={companyNameError}
+                  recordCountryOptions={recordCountryOptions}
+                  selectedCityOptions={selectedCityOptions}
+                  onPatch={(patch) => patchSelected(patch)}
+                  financeSection={{
+                    basePath,
+                    financeSummary,
+                    financeLoading,
+                    financeError,
+                    loginUrl: centralLoginUrl(),
+                  }}
+                />
           </section>
         </div>
       ) : (
