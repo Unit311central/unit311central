@@ -1,11 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Copy, FileText, Link2, Loader2, Mail, Plus, RefreshCw } from "lucide-react";
+import { Copy, FileText, Link2, Loader2, Mail, Plus, RefreshCw, Trash2 } from "lucide-react";
 
-import type { SalesQuote } from "@/lib/accounting/types";
+import { SalesQuoteComposeForm } from "@/components/testflighthub/sales-management/SalesQuoteComposeForm";
+import type { SalesQuote, SalesQuoteSellerProfile } from "@/lib/accounting/types";
+import type { ManagedClient } from "@/lib/client-management-data";
 import { resolveBrowserReportingCurrency, type ReportingCurrency } from "@/lib/financial-reporting-currency";
-import { isBrowserGreenDesertSurface } from "@/lib/greendesert-surface";
+import { isInternalOpportunitiesArchitectureEnabled } from "@/lib/internal-sales-opportunities-architecture";
 import { cn } from "@/lib/utils";
 
 function statusClass(status: SalesQuote["status"]) {
@@ -57,31 +59,38 @@ export default function SalesQuotesWorkspace({
   opportunityContext,
 }: {
   embedded?: boolean;
-  /** Opportunity record tab: table-first list without pipeline KPI cards. */
   opportunityListOnly?: boolean;
   title?: string;
-  /** When set, list is scoped to this CRM lead and new quotes link opportunity (+ client when provided). */
   opportunityContext?: SalesQuotesOpportunityContext;
 }) {
+  const listOnly = opportunityListOnly || (embedded && isInternalOpportunitiesArchitectureEnabled());
+
   const [quotes, setQuotes] = useState<SalesQuote[]>([]);
+  const [clients, setClients] = useState<ManagedClient[]>([]);
+  const [seller, setSeller] = useState<SalesQuoteSellerProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [composeOpen, setComposeOpen] = useState(false);
-  const [composeTitle, setComposeTitle] = useState("");
-  const [composeDescription, setComposeDescription] = useState("");
-  const [composeUnitPrice, setComposeUnitPrice] = useState("");
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     setNotice(null);
     try {
-      const response = await fetch("/api/financials/quotes", { cache: "no-store" });
-      const body = (await response.json()) as { quotes?: SalesQuote[]; error?: string };
-      if (!response.ok) throw new Error(body.error ?? "Failed to load quotes");
-      setQuotes(body.quotes ?? []);
+      const [quotesRes, clientsRes, contextRes] = await Promise.all([
+        fetch("/api/financials/quotes", { cache: "no-store" }),
+        fetch("/api/clients", { cache: "no-store" }),
+        fetch("/api/financials/quotes/compose-context", { cache: "no-store" }),
+      ]);
+      const quotesBody = (await quotesRes.json()) as { quotes?: SalesQuote[]; error?: string };
+      const clientsBody = (await clientsRes.json()) as { clients?: ManagedClient[] };
+      const contextBody = (await contextRes.json()) as { seller?: SalesQuoteSellerProfile; error?: string };
+      if (!quotesRes.ok) throw new Error(quotesBody.error ?? "Failed to load quotes");
+      setQuotes(quotesBody.quotes ?? []);
+      setClients(clientsBody.clients ?? []);
+      setSeller(contextBody.seller ?? null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load quotes");
     } finally {
@@ -98,24 +107,24 @@ export default function SalesQuotesWorkspace({
     return quotes.filter((quote) => quote.crmLeadId === opportunityContext.crmLeadId);
   }, [quotes, opportunityContext?.crmLeadId]);
 
-  const totals = useMemo(() => {
-    const open = visibleQuotes.filter((quote) => quote.status === "draft" || quote.status === "sent");
-    const accepted = visibleQuotes.filter((quote) => quote.status === "accepted");
-    return {
-      openCount: open.length,
-      openValue: open.reduce((sum, quote) => sum + quote.totalAmount, 0),
-      acceptedCount: accepted.length,
-    };
-  }, [visibleQuotes]);
-
   async function runAction(
     id: string,
-    action: "send" | "accept" | "pdf" | "send-invoice" | "payment-link" | "invoice-pdf",
+    action: "send" | "accept" | "pdf" | "send-invoice" | "payment-link" | "invoice-pdf" | "delete",
   ) {
     setBusyId(id);
     setError(null);
     setNotice(null);
     try {
+      if (action === "delete") {
+        if (!window.confirm("Delete this quote? This cannot be undone.")) return;
+        const response = await fetch(`/api/financials/quotes/${id}`, { method: "DELETE" });
+        const body = (await response.json().catch(() => ({}))) as { error?: string };
+        if (!response.ok) throw new Error(body.error ?? "Delete failed");
+        setQuotes((rows) => rows.filter((row) => row.id !== id));
+        setNotice("Quote deleted.");
+        return;
+      }
+
       if (action === "pdf" || action === "invoice-pdf") {
         const response = await fetch(`/api/financials/quotes/${id}`, {
           method: "POST",
@@ -188,31 +197,10 @@ export default function SalesQuotesWorkspace({
   function openComposeForm() {
     setError(null);
     setNotice(null);
-    setComposeTitle("");
-    setComposeDescription("");
-    setComposeUnitPrice("");
     setComposeOpen(true);
   }
 
-  async function saveComposedQuote() {
-    const companyName =
-      opportunityContext?.prefill?.companyName?.trim() ||
-      opportunityContext?.prefill?.companyName ||
-      "";
-    if (!companyName) {
-      setError("Company name is required to create a quote.");
-      return;
-    }
-    const unitPrice = Number(composeUnitPrice);
-    if (!composeTitle.trim()) {
-      setError("Enter a quote title.");
-      return;
-    }
-    if (!Number.isFinite(unitPrice) || unitPrice <= 0) {
-      setError("Enter a valid line item amount.");
-      return;
-    }
-
+  async function saveComposedQuote(payload: Record<string, unknown>) {
     setBusyId("create");
     setError(null);
     setNotice(null);
@@ -220,22 +208,7 @@ export default function SalesQuotesWorkspace({
       const response = await fetch("/api/financials/quotes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          crmLeadId: opportunityContext?.crmLeadId ?? null,
-          clientId: opportunityContext?.clientId ?? null,
-          companyName,
-          contactName: opportunityContext?.prefill?.contactName ?? null,
-          contactEmail: opportunityContext?.prefill?.contactEmail ?? null,
-          title: composeTitle.trim(),
-          currency: isBrowserGreenDesertSurface() ? "USD" : resolveBrowserReportingCurrency(),
-          lineItems: [
-            {
-              description: composeDescription.trim() || "Services",
-              quantity: 1,
-              unitPrice,
-            },
-          ],
-        }),
+        body: JSON.stringify(payload),
       });
       const body = (await response.json()) as { quote?: SalesQuote; error?: string };
       if (!response.ok) throw new Error(body.error ?? "Create failed");
@@ -249,54 +222,16 @@ export default function SalesQuotesWorkspace({
     }
   }
 
-  async function createNewQuote() {
-    if (opportunityContext?.crmLeadId) {
-      openComposeForm();
-      return;
-    }
-
-    setBusyId("create");
-    setError(null);
-    setNotice(null);
-    try {
-      const response = await fetch("/api/financials/quotes", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          companyName: "Peak District Breweries",
-          contactName: "Marcus Reed",
-          contactEmail: "m.reed@peakbrew.demo",
-          title: "Condition monitoring rollout — Phase 1",
-          currency: isBrowserGreenDesertSurface() ? "USD" : resolveBrowserReportingCurrency(),
-          lineItems: [
-            { description: "Sensor kit (48 units)", quantity: 1, unitPrice: 24_000 },
-            { description: "Installation services", quantity: 1, unitPrice: 6_500 },
-          ],
-        }),
-      });
-      const body = (await response.json()) as { quote?: SalesQuote; error?: string };
-      if (!response.ok) throw new Error(body.error ?? "Create failed");
-      if (body.quote) setQuotes((rows) => [body.quote!, ...rows]);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Create failed");
-    } finally {
-      setBusyId(null);
-    }
-  }
-
   return (
     <div className={cn("flex h-full min-h-0 flex-col", embedded ? "gap-3" : "gap-4 p-4 md:p-6")}>
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className={cn("font-semibold text-white", embedded ? "text-lg" : "text-xl")}>{title}</h1>
-          <p className={cn("mt-1 text-white/60", embedded ? "text-sm" : "text-sm")}>
-            {opportunityContext
-              ? "Quotes for this opportunity use the shared Sales Quotes system — opportunity and client stay linked."
-              : embedded
-                ? "Shared sales quote register linked to CRM opportunities and Financials invoicing."
-                : "CRM opportunity → quote PDF → accept → client invoice (Track C)."}
-          </p>
-        </div>
+        {!listOnly ? (
+          <div>
+            <h1 className={cn("font-semibold text-white", embedded ? "text-lg" : "text-xl")}>{title}</h1>
+          </div>
+        ) : (
+          <div className="min-w-0 flex-1" />
+        )}
         <div className="flex flex-wrap gap-2">
           <button
             type="button"
@@ -309,7 +244,7 @@ export default function SalesQuotesWorkspace({
           <button
             type="button"
             disabled={busyId === "create"}
-            onClick={() => void createNewQuote()}
+            onClick={openComposeForm}
             className="inline-flex items-center gap-2 rounded-lg bg-sky-600 px-3 py-2 text-sm font-medium text-white hover:bg-sky-500 disabled:opacity-60"
           >
             {busyId === "create" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
@@ -317,25 +252,6 @@ export default function SalesQuotesWorkspace({
           </button>
         </div>
       </div>
-
-      {!opportunityListOnly ? (
-        <div className="grid gap-3 sm:grid-cols-3">
-          <div className="rounded-xl border border-white/10 bg-gradient-to-br from-white/[0.05] to-white/[0.02] p-4">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-white/45">Open quotes</p>
-            <p className="mt-2 text-3xl font-semibold tabular-nums text-white">{totals.openCount}</p>
-          </div>
-          <div className="rounded-xl border border-white/10 bg-gradient-to-br from-white/[0.05] to-white/[0.02] p-4">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-white/45">Open pipeline value</p>
-            <p className="mt-2 text-3xl font-semibold tabular-nums text-white">
-              {money(totals.openValue, resolveBrowserReportingCurrency())}
-            </p>
-          </div>
-          <div className="rounded-xl border border-white/10 bg-gradient-to-br from-white/[0.05] to-white/[0.02] p-4">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-white/45">Accepted</p>
-            <p className="mt-2 text-3xl font-semibold tabular-nums text-white">{totals.acceptedCount}</p>
-          </div>
-        </div>
-      ) : null}
 
       {notice ? (
         <div className="rounded-lg border border-emerald-400/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
@@ -349,68 +265,15 @@ export default function SalesQuotesWorkspace({
         </div>
       ) : null}
 
-      {composeOpen && opportunityContext ? (
-        <div className="rounded-xl border border-sky-400/25 bg-sky-500/5 p-4">
-          <h2 className="text-sm font-semibold text-white">Create new quote</h2>
-          <p className="mt-1 text-xs text-white/50">
-            Linked to {opportunityContext.prefill?.companyName ?? "this opportunity"}. Save when ready —
-            nothing is created until you confirm.
-          </p>
-          <div className="mt-3 grid gap-3 sm:grid-cols-2">
-            <label className="text-[10px] uppercase text-white/45 sm:col-span-2">
-              Customer
-              <input
-                readOnly
-                className="mt-1.5 w-full rounded-lg border border-white/10 bg-[#0b1524] px-3 py-2 text-sm text-white/80"
-                value={opportunityContext.prefill?.companyName ?? ""}
-              />
-            </label>
-            <label className="text-[10px] uppercase text-white/45 sm:col-span-2">
-              Quote title
-              <input
-                className="mt-1.5 w-full rounded-lg border border-white/10 bg-[#0b1524] px-3 py-2 text-sm text-white"
-                value={composeTitle}
-                onChange={(e) => setComposeTitle(e.target.value)}
-              />
-            </label>
-            <label className="text-[10px] uppercase text-white/45 sm:col-span-2">
-              Line description
-              <input
-                className="mt-1.5 w-full rounded-lg border border-white/10 bg-[#0b1524] px-3 py-2 text-sm text-white"
-                value={composeDescription}
-                onChange={(e) => setComposeDescription(e.target.value)}
-              />
-            </label>
-            <label className="text-[10px] uppercase text-white/45">
-              Amount
-              <input
-                type="number"
-                min={0}
-                className="mt-1.5 w-full rounded-lg border border-white/10 bg-[#0b1524] px-3 py-2 text-sm text-white"
-                value={composeUnitPrice}
-                onChange={(e) => setComposeUnitPrice(e.target.value)}
-              />
-            </label>
-          </div>
-          <div className="mt-4 flex flex-wrap gap-2">
-            <button
-              type="button"
-              disabled={busyId === "create"}
-              onClick={() => void saveComposedQuote()}
-              className="rounded-lg bg-sky-600 px-4 py-2 text-sm font-medium text-white hover:bg-sky-500 disabled:opacity-60"
-            >
-              {busyId === "create" ? <Loader2 className="inline h-4 w-4 animate-spin" /> : null}
-              SAVE QUOTE
-            </button>
-            <button
-              type="button"
-              onClick={() => setComposeOpen(false)}
-              className="rounded-lg border border-white/10 px-4 py-2 text-sm text-white/70"
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
+      {composeOpen ? (
+        <SalesQuoteComposeForm
+          opportunityContext={opportunityContext}
+          clients={clients}
+          seller={seller}
+          busy={busyId === "create"}
+          onCancel={() => setComposeOpen(false)}
+          onSave={(payload) => void saveComposedQuote(payload)}
+        />
       ) : null}
 
       <div className="min-h-0 min-w-0 flex-1 overflow-x-auto rounded-xl border border-white/10 bg-[#07111f]/50">
@@ -534,6 +397,17 @@ export default function SalesQuotesWorkspace({
                           <span className="text-xs text-emerald-300">Invoiced</span>
                         </>
                       )}
+                      {quote.status !== "accepted" ? (
+                        <button
+                          type="button"
+                          disabled={busyId === quote.id}
+                          onClick={() => void runAction(quote.id, "delete")}
+                          className="inline-flex items-center gap-1 rounded border border-rose-400/30 bg-rose-500/10 px-2 py-1 text-xs text-rose-200 hover:bg-rose-500/20"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                          Delete
+                        </button>
+                      ) : null}
                     </div>
                   </td>
                 </tr>

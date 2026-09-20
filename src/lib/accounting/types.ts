@@ -91,7 +91,11 @@ export type SalesQuoteLineItem = {
   lineNumber: number;
   description: string;
   quantity: number;
+  unit: string | null;
   unitPrice: number;
+  discountAmount: number;
+  taxRate: number | null;
+  taxAmount: number;
   amount: number;
 };
 
@@ -117,9 +121,26 @@ export type SalesQuote = {
   paymentReference?: string | null;
   invoiceSentAt?: string | null;
   notes: string | null;
+  issueDate: string | null;
+  reference: string | null;
+  paymentTerms: string | null;
+  termsAndConditions: string | null;
+  discountAmount: number;
   lineItems: SalesQuoteLineItem[];
   createdAt: string;
   updatedAt: string;
+};
+
+export type SalesQuoteSellerProfile = {
+  companyName: string;
+  contactName: string | null;
+  email: string | null;
+  phone: string | null;
+  address: string | null;
+  city: string | null;
+  region: string | null;
+  country: string | null;
+  website: string | null;
 };
 
 export type SupplierInvoiceDraftStatus = "draft" | "approved";

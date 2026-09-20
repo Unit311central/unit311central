@@ -41,13 +41,28 @@ export async function POST(request: NextRequest) {
       contactEmail?: string | null;
       title?: string;
       currency?: string;
+      issueDate?: string | null;
       validUntil?: string | null;
+      reference?: string | null;
+      paymentTerms?: string | null;
+      termsAndConditions?: string | null;
       notes?: string | null;
-      lineItems?: Array<{ description: string; quantity: number; unitPrice: number }>;
+      discountAmount?: number;
+      lineItems?: Array<{
+        description: string;
+        quantity: number;
+        unitPrice: number;
+        unit?: string | null;
+        discountAmount?: number;
+        taxRate?: number | null;
+      }>;
     };
 
     if (!body.companyName?.trim()) {
       return NextResponse.json({ error: "companyName is required." }, { status: 400 });
+    }
+    if (!body.title?.trim()) {
+      return NextResponse.json({ error: "title is required." }, { status: 400 });
     }
     if (!body.lineItems?.length) {
       return NextResponse.json({ error: "At least one line item is required." }, { status: 400 });
@@ -71,8 +86,13 @@ export async function POST(request: NextRequest) {
       contactEmail: body.contactEmail ?? null,
       title: body.title,
       currency: body.currency,
+      issueDate: body.issueDate ?? null,
       validUntil: body.validUntil ?? null,
+      reference: body.reference ?? null,
+      paymentTerms: body.paymentTerms ?? null,
+      termsAndConditions: body.termsAndConditions ?? null,
       notes: body.notes ?? null,
+      discountAmount: body.discountAmount ?? 0,
       lineItems: body.lineItems,
     });
     return NextResponse.json({ quote }, { status: 201 });

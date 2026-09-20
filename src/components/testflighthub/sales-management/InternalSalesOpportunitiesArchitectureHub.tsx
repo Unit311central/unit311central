@@ -516,17 +516,14 @@ export default function InternalSalesOpportunitiesArchitectureHub({
               </div>
 
               <div>
-                <h2 className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/40">
-                  Opportunities
-                </h2>
                 {loading ? (
-                  <p className="mt-3 flex items-center gap-2 text-sm text-white/50">
+                  <p className="flex items-center gap-2 text-sm text-white/50">
                     <Loader2 className="h-4 w-4 animate-spin" /> Loading…
                   </p>
                 ) : error ? (
                   <p className="mt-3 text-sm text-red-300">{error}</p>
                 ) : (
-                  <div className="mt-3 min-w-0 overflow-x-auto rounded-2xl border border-white/10">
+                  <div className="min-w-0 overflow-x-auto rounded-2xl border border-white/10">
                     <table className="w-full text-left text-sm">
                       <thead className="bg-white/[0.04] text-[10px] uppercase tracking-[0.12em] text-white/45">
                         <tr>

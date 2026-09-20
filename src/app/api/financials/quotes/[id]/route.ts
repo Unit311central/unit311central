@@ -2,7 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 
 import {
   acceptSalesQuote,
+  deleteSalesQuote,
   getSalesQuoteById,
+  getSalesQuoteSellerProfile,
   markSalesQuoteSent,
   renderSalesQuotePdf,
 } from "@/lib/accounting/sales-quotes-service";
@@ -47,6 +49,33 @@ export async function GET(
   }
 }
 
+export async function DELETE(
+  _request: NextRequest,
+  context: { params: Promise<{ id: string }> },
+) {
+  const demoMutationBlock = await assertDemoMutationAllowedForRequest(_request);
+  if (demoMutationBlock) return demoMutationBlock;
+
+  try {
+    const { id } = await context.params;
+    const scope = await resolveScope();
+    const quote = await getSalesQuoteById(id, scope);
+    if (!quote) {
+      return NextResponse.json({ error: "Quote not found." }, { status: 404 });
+    }
+    if (quote.status === "accepted") {
+      return NextResponse.json({ error: "Accepted quotes cannot be deleted." }, { status: 400 });
+    }
+    await deleteSalesQuote(id, scope);
+    return NextResponse.json({ ok: true });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unable to delete quote.";
+    const status =
+      message.includes("Authentication required") || message.includes("Workspace context") ? 401 : 500;
+    return NextResponse.json({ error: message }, { status });
+  }
+}
+
 export async function POST(
   request: NextRequest,
   context: { params: Promise<{ id: string }> },
@@ -70,7 +99,11 @@ export async function POST(
       if (!quote) {
         return NextResponse.json({ error: "Quote not found." }, { status: 404 });
       }
-      const pdf = renderSalesQuotePdf(quote);
+      const seller =
+        "workspaceId" in scope && scope.workspaceId
+          ? await getSalesQuoteSellerProfile(scope.workspaceId)
+          : null;
+      const pdf = renderSalesQuotePdf(quote, seller ?? undefined);
       return new NextResponse(Buffer.from(pdf), {
         headers: {
           "Content-Type": "application/pdf",

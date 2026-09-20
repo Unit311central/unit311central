@@ -1,6 +1,13 @@
 import { postInvoiceIssueJournal } from "@/lib/accounting/posting-rules";
+import { computeSalesQuoteTotals, type SalesQuoteLineInput } from "@/lib/accounting/sales-quote-calculations";
 import { buildSalesQuotePdf } from "@/lib/accounting/sales-quote-pdf";
-import type { LedgerInvoice, SalesQuote, SalesQuoteLineItem, SalesQuoteStatus } from "@/lib/accounting/types";
+import type {
+  LedgerInvoice,
+  SalesQuote,
+  SalesQuoteLineItem,
+  SalesQuoteSellerProfile,
+  SalesQuoteStatus,
+} from "@/lib/accounting/types";
 import { getNorthstarCrmLeads } from "@/lib/demo/module-fixtures";
 import {
   getNorthstarSalesQuoteById,
@@ -40,7 +47,11 @@ function mapLineItem(row: Record<string, unknown>): SalesQuoteLineItem {
     lineNumber: Number(row.line_number) || 0,
     description: String(row.description),
     quantity: Number(row.quantity) || 0,
+    unit: row.unit ? String(row.unit) : null,
     unitPrice: Number(row.unit_price) || 0,
+    discountAmount: Number(row.discount_amount) || 0,
+    taxRate: row.tax_rate != null ? Number(row.tax_rate) : null,
+    taxAmount: Number(row.tax_amount) || 0,
     amount: Number(row.amount) || 0,
   };
 }
@@ -66,14 +77,43 @@ function mapQuote(row: Record<string, unknown>, lineItems: SalesQuoteLineItem[])
     invoiceId: row.invoice_id ? String(row.invoice_id) : null,
     stripePaymentLinkUrl: row.stripe_payment_link_url ? String(row.stripe_payment_link_url) : null,
     notes: row.notes ? String(row.notes) : null,
+    issueDate: row.issue_date ? String(row.issue_date) : null,
+    reference: row.reference ? String(row.reference) : null,
+    paymentTerms: row.payment_terms ? String(row.payment_terms) : null,
+    termsAndConditions: row.terms_and_conditions ? String(row.terms_and_conditions) : null,
+    discountAmount: Number(row.discount_amount) || 0,
     lineItems,
     createdAt: String(row.created_at),
     updatedAt: String(row.updated_at),
   };
 }
 
-function sumLines(lines: Array<{ quantity: number; unitPrice: number }>) {
-  return lines.reduce((sum, line) => sum + line.quantity * line.unitPrice, 0);
+export async function getSalesQuoteSellerProfile(
+  workspaceId: string,
+): Promise<SalesQuoteSellerProfile> {
+  const supabase = requireSupabase();
+  const { data: workspace } = await supabase
+    .from("workspaces")
+    .select("name")
+    .eq("id", workspaceId)
+    .maybeSingle();
+  const { data: meta } = await supabase
+    .from("workspace_admin_metadata")
+    .select("company_name, contact_name, contact_email, country, description")
+    .eq("workspace_id", workspaceId)
+    .maybeSingle();
+
+  return {
+    companyName: meta?.company_name?.trim() || workspace?.name?.trim() || "Unit311 Central",
+    contactName: meta?.contact_name?.trim() || null,
+    email: meta?.contact_email?.trim() || null,
+    phone: null,
+    address: null,
+    city: null,
+    region: null,
+    country: meta?.country?.trim() || null,
+    website: null,
+  };
 }
 
 async function loadQuoteLines(quoteIds: string[], workspaceId: string) {
@@ -133,6 +173,21 @@ export async function getSalesQuoteById(id: string, scope: FinancialsWorkspaceSc
   return mapQuote(data as Record<string, unknown>, grouped.get(id) ?? []);
 }
 
+export async function deleteSalesQuote(id: string, scope: FinancialsWorkspaceScope): Promise<void> {
+  const fixture = resolveAccountingFixtureSource(scope.workspaceSlug);
+  if (fixture === "northstar" || fixture === "saec") {
+    throw new Error("Quote deletion is not available in demo fixture mode.");
+  }
+  const workspaceId = await resolveFinancialsWorkspaceId(scope);
+  const supabase = requireSupabase();
+  const { error } = await supabase
+    .from("sales_quotes")
+    .delete()
+    .eq("workspace_id", workspaceId)
+    .eq("id", id);
+  if (error) throw new Error(error.message);
+}
+
 export async function createSalesQuote(
   scope: FinancialsWorkspaceScope,
   input: {
@@ -143,15 +198,38 @@ export async function createSalesQuote(
     contactEmail?: string | null;
     title?: string;
     currency?: string;
+    issueDate?: string | null;
     validUntil?: string | null;
+    reference?: string | null;
+    paymentTerms?: string | null;
+    termsAndConditions?: string | null;
     notes?: string | null;
-    lineItems: Array<{ description: string; quantity: number; unitPrice: number }>;
+    discountAmount?: number;
+    lineItems: SalesQuoteLineInput[];
   },
 ): Promise<SalesQuote> {
-  const subtotal = sumLines(input.lineItems);
-  const taxAmount = Math.round(subtotal * 0.2 * 100) / 100;
-  const totalAmount = subtotal + taxAmount;
+  if (!input.title?.trim()) {
+    throw new Error("Quote title is required.");
+  }
+  if (!input.lineItems.length) {
+    throw new Error("At least one line item is required.");
+  }
+  for (const line of input.lineItems) {
+    if (!line.description?.trim()) throw new Error("Each line item requires a description.");
+    if (!Number.isFinite(line.quantity) || line.quantity <= 0) {
+      throw new Error("Each line item requires a quantity greater than zero.");
+    }
+    if (!Number.isFinite(line.unitPrice) || line.unitPrice < 0) {
+      throw new Error("Each line item requires a valid rate.");
+    }
+  }
+
+  const totals = computeSalesQuoteTotals(input.lineItems, input.discountAmount ?? 0);
+  const subtotal = totals.subtotal;
+  const taxAmount = totals.taxAmount;
+  const totalAmount = totals.totalAmount;
   const now = new Date().toISOString();
+  const issueDate = input.issueDate?.trim() || now.slice(0, 10);
   const fixture = resolveAccountingFixtureSource(scope.workspaceSlug);
 
   if (fixture === "northstar" || fixture === "saec") {
@@ -168,24 +246,33 @@ export async function createSalesQuote(
       companyName: input.companyName,
       contactName: input.contactName ?? null,
       contactEmail: input.contactEmail ?? null,
-      title: input.title ?? "Sales quote",
+      title: input.title.trim(),
       currency: input.currency ?? (fixture === "saec" ? SAEC_REPORTING_CURRENCY : "GBP"),
       subtotal,
       taxAmount,
       totalAmount,
       status: "draft",
-      validUntil: input.validUntil ?? addDays(now.slice(0, 10), 30),
+      issueDate,
+      validUntil: input.validUntil ?? addDays(issueDate, 30),
+      reference: input.reference ?? null,
+      paymentTerms: input.paymentTerms ?? null,
+      termsAndConditions: input.termsAndConditions ?? null,
+      discountAmount: totals.discountAmount,
       pdfPath: null,
       invoiceId: null,
       stripePaymentLinkUrl: null,
       notes: input.notes ?? null,
-      lineItems: input.lineItems.map((line, index) => ({
+      lineItems: totals.lines.map((line, index) => ({
         id: `${id}-line-${index + 1}`,
         lineNumber: index + 1,
-        description: line.description,
+        description: line.description.trim(),
         quantity: line.quantity,
+        unit: line.unit ?? null,
         unitPrice: line.unitPrice,
-        amount: line.quantity * line.unitPrice,
+        discountAmount: line.discountAmount ?? 0,
+        taxRate: line.taxRate ?? null,
+        taxAmount: line.taxAmount,
+        amount: line.amount,
       })),
       createdAt: now,
       updatedAt: now,
@@ -206,13 +293,18 @@ export async function createSalesQuote(
       company_name: input.companyName,
       contact_name: input.contactName ?? null,
       contact_email: input.contactEmail ?? null,
-      title: input.title ?? "Sales quote",
+      title: input.title.trim(),
       currency: input.currency ?? "GBP",
       subtotal,
       tax_amount: taxAmount,
       total_amount: totalAmount,
+      discount_amount: totals.discountAmount,
       status: "draft",
-      valid_until: input.validUntil ?? addDays(now.slice(0, 10), 30),
+      issue_date: issueDate,
+      valid_until: input.validUntil ?? addDays(issueDate, 30),
+      reference: input.reference?.trim() || null,
+      payment_terms: input.paymentTerms?.trim() || null,
+      terms_and_conditions: input.termsAndConditions?.trim() || null,
       notes: input.notes ?? null,
     })
     .select("*")
@@ -220,13 +312,17 @@ export async function createSalesQuote(
   if (error) throw new Error(error.message);
 
   const quoteId = String(quoteRow.id);
-  const lineRows = input.lineItems.map((line, index) => ({
+  const lineRows = totals.lines.map((line, index) => ({
     quote_id: quoteId,
     line_number: index + 1,
-    description: line.description,
+    description: line.description.trim(),
     quantity: line.quantity,
+    unit: line.unit?.trim() || null,
     unit_price: line.unitPrice,
-    amount: line.quantity * line.unitPrice,
+    discount_amount: line.discountAmount ?? 0,
+    tax_rate: line.taxRate ?? null,
+    tax_amount: line.taxAmount,
+    amount: line.amount,
   }));
   const { error: lineError } = await supabase.from("sales_quote_line_items").insert(lineRows);
   if (lineError) throw new Error(lineError.message);
@@ -419,8 +515,8 @@ export async function acceptSalesQuote(
   return { quote: (await getSalesQuoteById(id, scope))!, invoice };
 }
 
-export function renderSalesQuotePdf(quote: SalesQuote) {
-  return buildSalesQuotePdf(quote);
+export function renderSalesQuotePdf(quote: SalesQuote, seller?: SalesQuoteSellerProfile) {
+  return buildSalesQuotePdf(quote, seller);
 }
 
 export async function markSalesQuoteSent(id: string, scope: FinancialsWorkspaceScope) {

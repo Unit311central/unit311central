@@ -4,7 +4,7 @@ import { SAEC_REPORTING_CURRENCY } from "@/lib/saec-surface";
 const WS = "saec-workspace";
 const NOW = "2026-08-16T10:00:00.000Z";
 
-const SEED_QUOTES: SalesQuote[] = [
+const SEED_QUOTES = [
   {
     id: "saec-quote-001",
     workspaceId: WS,
@@ -112,7 +112,7 @@ const SEED_QUOTES: SalesQuote[] = [
     createdAt: NOW,
     updatedAt: NOW,
   },
-];
+] as SalesQuote[];
 
 export function getSaecSalesQuotes(): SalesQuote[] {
   return SEED_QUOTES.map((row) => ({ ...row, lineItems: row.lineItems.map((line) => ({ ...line })) }));

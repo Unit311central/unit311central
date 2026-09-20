@@ -561,7 +561,11 @@ export async function loadSalesQuotesForWorkspace(input: {
       lineNumber: Number(row.line_number) || 0,
       description: String(row.description),
       quantity: Number(row.quantity) || 0,
+      unit: row.unit ? String(row.unit) : null,
       unitPrice: Number(row.unit_price) || 0,
+      discountAmount: Number(row.discount_amount) || 0,
+      taxRate: row.tax_rate != null ? Number(row.tax_rate) : null,
+      taxAmount: Number(row.tax_amount) || 0,
       amount: Number(row.amount) || 0,
     });
     linesByQuote.set(quoteId, items);
@@ -589,6 +593,11 @@ export async function loadSalesQuotesForWorkspace(input: {
     invoiceId: row.invoice_id ? String(row.invoice_id) : null,
     stripePaymentLinkUrl: row.stripe_payment_link_url ? String(row.stripe_payment_link_url) : null,
     notes: row.notes ? String(row.notes) : null,
+    issueDate: row.issue_date ? String(row.issue_date) : null,
+    reference: row.reference ? String(row.reference) : null,
+    paymentTerms: row.payment_terms ? String(row.payment_terms) : null,
+    termsAndConditions: row.terms_and_conditions ? String(row.terms_and_conditions) : null,
+    discountAmount: Number(row.discount_amount) || 0,
     lineItems: linesByQuote.get(String(row.id)) ?? [],
     createdAt: String(row.created_at),
     updatedAt: String(row.updated_at),
