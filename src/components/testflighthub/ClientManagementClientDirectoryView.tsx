@@ -591,7 +591,7 @@ export default function ClientManagementClientDirectoryView({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="box-border w-full min-w-0 max-w-full space-y-6">
       {error && (
         <p className="rounded-xl border border-red-400/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">
           {error}
@@ -608,7 +608,7 @@ export default function ClientManagementClientDirectoryView({
       {loading ? (
         <WorkspaceLoadingFallback variant="list" label="Loading clients" />
       ) : detailClient && selectedClient ? (
-        <div className="space-y-4">
+        <div className="box-border w-full min-w-0 max-w-full space-y-4">
           <button
             type="button"
             onClick={backToDirectory}
@@ -1183,8 +1183,8 @@ export default function ClientManagementClientDirectoryView({
           </section>
         </div>
       ) : (
-        <section className="flex min-h-[70vh] flex-col rounded-2xl border border-white/15 bg-white/[0.04] shadow-[0_24px_64px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl">
-          <div className="sticky top-0 z-10 space-y-3 border-b border-white/10 bg-[#0b1524]/95 px-4 py-4 backdrop-blur-md sm:px-5">
+        <section className="box-border flex min-h-[70vh] w-full min-w-0 max-w-full flex-col overflow-hidden rounded-2xl border border-white/15 bg-white/[0.04] shadow-[0_24px_64px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl">
+          <div className="sticky top-0 z-10 box-border w-full min-w-0 max-w-full space-y-3 border-b border-white/10 bg-[#0b1524]/95 px-4 py-4 backdrop-blur-md sm:px-5">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#60a5fa]">
@@ -1205,8 +1205,8 @@ export default function ClientManagementClientDirectoryView({
                 </button>
               </div>
 
-            <div className="flex flex-col gap-3 lg:flex-row lg:flex-wrap lg:items-end">
-              <div className="relative min-w-[14rem] flex-1 lg:min-w-[18rem]">
+            <div className="flex w-full min-w-0 max-w-full flex-col gap-3 lg:flex-row lg:flex-wrap lg:items-end">
+              <div className="relative min-w-0 flex-1 basis-48">
                 <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/35" />
                 <input
                   value={search}
@@ -1215,11 +1215,11 @@ export default function ClientManagementClientDirectoryView({
                   className={cn(inputClassName(), "mt-0 pl-10")}
                 />
               </div>
-              <div className="grid flex-1 grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
-                <div>
+              <div className="grid min-w-0 w-full max-w-full flex-1 grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
+                <div className="min-w-0">
                   <FieldLabel>Industry</FieldLabel>
                   <select
-                    className={inputClassName()}
+                    className={cn(inputClassName(), "min-w-0 max-w-full")}
                     value={filterIndustry}
                     onChange={(event) => setFilterIndustry(event.target.value)}
                   >
@@ -1231,10 +1231,10 @@ export default function ClientManagementClientDirectoryView({
                     ))}
                   </select>
                 </div>
-                <div>
+                <div className="min-w-0">
                   <FieldLabel>Country</FieldLabel>
                   <select
-                    className={inputClassName()}
+                    className={cn(inputClassName(), "min-w-0 max-w-full")}
                     value={filterCountry}
                     onChange={(event) => {
                       setFilterCountry(event.target.value);
@@ -1249,10 +1249,10 @@ export default function ClientManagementClientDirectoryView({
                     ))}
                   </select>
                 </div>
-                <div>
+                <div className="min-w-0">
                   <FieldLabel>City</FieldLabel>
                   <select
-                    className={inputClassName()}
+                    className={cn(inputClassName(), "min-w-0 max-w-full")}
                     value={filterCity}
                     onChange={(event) => setFilterCity(event.target.value)}
                   >
@@ -1264,10 +1264,10 @@ export default function ClientManagementClientDirectoryView({
                     ))}
                   </select>
                 </div>
-                <div>
+                <div className="min-w-0">
                   <FieldLabel>Status</FieldLabel>
                   <select
-                    className={inputClassName()}
+                    className={cn(inputClassName(), "min-w-0 max-w-full")}
                     value={filterStatus}
                     onChange={(event) => setFilterStatus(event.target.value as ClientAccountStatus | "all")}
                   >
@@ -1279,10 +1279,10 @@ export default function ClientManagementClientDirectoryView({
                     ))}
                   </select>
                 </div>
-                <div>
+                <div className="min-w-0">
                   <FieldLabel>Contract</FieldLabel>
                   <select
-                    className={inputClassName()}
+                    className={cn(inputClassName(), "min-w-0 max-w-full")}
                     value={filterContract}
                     onChange={(event) => setFilterContract(event.target.value)}
                   >
@@ -1297,7 +1297,7 @@ export default function ClientManagementClientDirectoryView({
               </div>
             </div>
           </div>
-          <div className="min-h-0 flex-1 overflow-auto px-2 pb-4 sm:px-3">
+          <div className="min-h-0 min-w-0 w-full max-w-full flex-1 overflow-x-auto overflow-y-auto px-2 pb-4 sm:px-3">
               {filteredClients.length === 0 ? (
                 <p className="px-3 py-8 text-sm text-white/45">
                   {clients.length === 0
@@ -1305,7 +1305,17 @@ export default function ClientManagementClientDirectoryView({
                     : "No clients match your search or filters."}
                 </p>
               ) : (
-                <table className="mt-2 w-full min-w-[720px] border-separate border-spacing-0 text-left text-sm">
+                <table className="mt-2 w-full min-w-[56rem] table-fixed border-separate border-spacing-0 text-left text-sm">
+                  <colgroup>
+                    <col className="w-[16%]" />
+                    <col className="w-[17%]" />
+                    <col className="w-[10%]" />
+                    <col className="w-[10%]" />
+                    <col className="w-[12%]" />
+                    <col className="w-[14%]" />
+                    <col className="w-[15%]" />
+                    <col className="w-[3rem]" />
+                  </colgroup>
                   <thead className="sticky top-0 z-[1] bg-[#0b1524]/95 text-[10px] font-semibold uppercase tracking-[0.12em] text-white/45">
                     <tr>
                       <th className="border-b border-white/10 px-3 py-2.5">Client</th>
@@ -1315,7 +1325,7 @@ export default function ClientManagementClientDirectoryView({
                       <th className="border-b border-white/10 px-3 py-2.5">Status</th>
                       <th className="border-b border-white/10 px-3 py-2.5">Contract</th>
                       <th className="border-b border-white/10 px-3 py-2.5">Primary contact</th>
-                      <th className="border-b border-white/10 px-3 py-2.5 w-12" aria-label="Actions" />
+                      <th className="border-b border-white/10 px-3 py-2.5" aria-label="Actions" />
                     </tr>
                   </thead>
                   <tbody>
@@ -1327,8 +1337,8 @@ export default function ClientManagementClientDirectoryView({
                         className="cursor-pointer transition hover:bg-white/[0.04]"
                         onClick={() => openClient(client.id)}
                       >
-                        <td className="border-b border-white/8 px-3 py-3 font-medium text-white">
-                          <span className="inline-flex items-center gap-2">
+                        <td className="border-b border-white/8 px-3 py-3 font-medium text-white align-top">
+                          <span className="flex min-w-0 items-start gap-2 break-words">
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img
                               src={clientLogoUrl(client.companyName, client.id)}
@@ -1337,25 +1347,35 @@ export default function ClientManagementClientDirectoryView({
                               decoding="async"
                               className="h-7 w-7 shrink-0 rounded-md border border-white/10 bg-white/90 object-cover"
                             />
-                            {client.companyName}
+                            <span className="min-w-0 break-words">{client.companyName}</span>
                           </span>
                         </td>
-                        <td className="border-b border-white/8 px-3 py-3 text-white/65">{client.industry || "—"}</td>
-                        <td className="border-b border-white/8 px-3 py-3 text-white/65">{location.country || "—"}</td>
-                        <td className="border-b border-white/8 px-3 py-3 text-white/65">{location.city || "—"}</td>
-                        <td className="border-b border-white/8 px-3 py-3">
+                        <td className="border-b border-white/8 px-3 py-3 align-top text-white/65 break-words">
+                          {client.industry || "—"}
+                        </td>
+                        <td className="border-b border-white/8 px-3 py-3 align-top text-white/65 break-words">
+                          {location.country || "—"}
+                        </td>
+                        <td className="border-b border-white/8 px-3 py-3 align-top text-white/65 break-words">
+                          {location.city || "—"}
+                        </td>
+                        <td className="border-b border-white/8 px-3 py-3 align-top">
                           <span
                             className={cn(
-                              "rounded-full border px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.1em]",
+                              "inline-block max-w-full whitespace-normal rounded-full border px-1.5 py-0.5 text-[9px] font-semibold uppercase leading-snug tracking-[0.1em]",
                               clientStatusClass(client.accountStatus),
                             )}
                           >
                             {client.accountStatus}
                           </span>
                         </td>
-                        <td className="border-b border-white/8 px-3 py-3 text-white/65">{client.contractType || "—"}</td>
-                        <td className="border-b border-white/8 px-3 py-3 text-white/65">{client.primaryContact || "—"}</td>
-                        <td className="border-b border-white/8 px-3 py-3">
+                        <td className="border-b border-white/8 px-3 py-3 align-top text-white/65 break-words">
+                          {client.contractType || "—"}
+                        </td>
+                        <td className="border-b border-white/8 px-3 py-3 align-top text-white/65 break-words">
+                          {client.primaryContact || "—"}
+                        </td>
+                        <td className="border-b border-white/8 px-3 py-3 align-top">
                           <button
                             type="button"
                             onClick={(event) => {

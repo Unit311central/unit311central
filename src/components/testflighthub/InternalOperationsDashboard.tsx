@@ -937,7 +937,12 @@ export default function InternalOperationsDashboard({
           )}
 
           {isWarm("clients") && (
-            <WorkspacePane view="clients" activeView={activeView} keepMounted={isWarm("clients")}>
+            <WorkspacePane
+              view="clients"
+              activeView={activeView}
+              keepMounted={isWarm("clients")}
+              className="w-full max-w-full"
+            >
               <ClientManagementWorkspace
                 onClientsChange={setClients}
                 surfaceVariant={
