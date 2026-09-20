@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState, startTransition } from "react";
 
 import type { ClientFinanceSummary } from "@/lib/accounting/client-finance";
@@ -33,15 +33,24 @@ import {
   PLATFORM_CACHE_KEYS,
 } from "@/lib/platform-fetch-cache";
 import WorkspaceLoadingFallback from "@/components/testflighthub/WorkspaceLoadingFallback";
-import ResponsiveMasterDetail, {
-  useMobileDetailPanel,
-} from "@/components/ui/ResponsiveMasterDetail";
+import { clientDirectoryRows } from "@/lib/business-central/workspace-dashboard-summary";
 import { resolveAbhiMemberPortalAbsoluteUrl } from "@/lib/abhi/member-portal-routes";
 import { resolveOnwardAirClientPortalAbsoluteUrl } from "@/lib/onwardair/client-portal-routes";
 import { isBrowserAbhiSurface } from "@/lib/abhi-surface";
 import { isBrowserOnwardAirSurface } from "@/lib/onwardair-surface";
 import { isBrowserCorpCentreSurface } from "@/lib/corpcentre-surface";
-import { ExternalLink, FolderOpen, FolderPlus, Link2, Loader2, Plus, Save, Search, Trash2 } from "lucide-react";
+import {
+  ArrowLeft,
+  ExternalLink,
+  FolderOpen,
+  FolderPlus,
+  Link2,
+  Loader2,
+  Plus,
+  Save,
+  Search,
+  Trash2,
+} from "lucide-react";
 
 function formatFinanceMoney(amount: number, currency = "EUR") {
   const { withPreferredCurrencySymbol } =
@@ -93,6 +102,7 @@ export default function ClientManagementWorkspace({
   onClientsChange,
 }: ClientManagementWorkspaceProps) {
   const basePath = useInternalOperationsBasePath();
+  const router = useRouter();
   const searchParams = useSearchParams();
   const [clients, setClients] = useState<ManagedClient[]>([]);
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
@@ -105,7 +115,7 @@ export default function ClientManagementWorkspace({
   const [filterIndustry, setFilterIndustry] = useState("all");
   const [filterCountry, setFilterCountry] = useState("all");
   const [filterCity, setFilterCity] = useState("all");
-  const [filterStatus, setFilterStatus] = useState("all");
+  const [filterStatus, setFilterStatus] = useState<ClientAccountStatus | "all">("Active");
   const [filterContract, setFilterContract] = useState("all");
   const [detailClientId, setDetailClientId] = useState<string | null>(null);
   const [financeSummary, setFinanceSummary] = useState<ClientFinanceSummary | null>(null);
@@ -120,7 +130,7 @@ export default function ClientManagementWorkspace({
     typeof window !== "undefined" ? isBrowserCorpCentreSurface() : false;
   const isAbhi = typeof window !== "undefined" ? isBrowserAbhiSurface() : false;
   const isOnwardAir = typeof window !== "undefined" ? isBrowserOnwardAirSurface() : false;
-  const { showDetail, openDetail, closeDetail } = useMobileDetailPanel();
+  const directoryClients = useMemo(() => clientDirectoryRows(clients), [clients]);
 
   const selectedClient = useMemo(
     () => clients.find((client) => client.id === selectedClientId) ?? null,
@@ -219,10 +229,25 @@ export default function ClientManagementWorkspace({
     target.scrollIntoView({ behavior: "auto", block: "start", inline: "nearest" });
   }
 
+  function syncClientIdToUrl(clientId: string | null) {
+    const url = new URL(window.location.href);
+    if (clientId) url.searchParams.set("clientId", clientId);
+    else url.searchParams.delete("clientId");
+    router.replace(`${url.pathname}?${url.searchParams.toString()}`, { scroll: false });
+  }
+
+  function backToDirectory() {
+    setDetailClientId(null);
+    setSelectedClientId(null);
+    snapshottedIdRef.current = null;
+    setSavedSnapshot(null);
+    syncClientIdToUrl(null);
+  }
+
   function openClient(clientId: string) {
     setSelectedClientId(clientId);
     setDetailClientId(clientId);
-    openDetail();
+    syncClientIdToUrl(clientId);
     pinDetailTopRef.current = true;
     // Keep the detail pane at its top (list stays on the left — no page jump to a stacked form).
     window.requestAnimationFrame(() => {
@@ -252,14 +277,6 @@ export default function ClientManagementWorkspace({
     const cached = peekCachedJson<{ clients?: ManagedClient[] }>(PLATFORM_CACHE_KEYS.clients);
     if (cached?.clients?.length) {
       syncClients(cached.clients);
-      setSelectedClientId((current) => {
-        if (current && cached.clients!.some((client) => client.id === current)) return current;
-        return cached.clients![0]?.id ?? null;
-      });
-      setDetailClientId((current) => {
-        if (current && cached.clients!.some((client) => client.id === current)) return current;
-        return cached.clients![0]?.id ?? null;
-      });
       setLoading(false);
     } else {
       setLoading(true);
@@ -275,14 +292,6 @@ export default function ClientManagementWorkspace({
 
       const nextClients = data.clients ?? [];
       syncClients(nextClients);
-      setSelectedClientId((current) => {
-        if (current && nextClients.some((client) => client.id === current)) return current;
-        return nextClients[0]?.id ?? null;
-      });
-      setDetailClientId((current) => {
-        if (current && nextClients.some((client) => client.id === current)) return current;
-        return nextClients[0]?.id ?? null;
-      });
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : "Failed to load clients");
       if (!cached?.clients?.length) {
@@ -520,11 +529,10 @@ export default function ClientManagementWorkspace({
 
       invalidateCachedJson(PLATFORM_CACHE_KEYS.clients);
       syncClients([data.client, ...clients]);
-      setSelectedClientId(data.client.id);
-      setDetailClientId(data.client.id);
       snapshottedIdRef.current = data.client.id;
       setSavedSnapshot(data.client);
       setSaveMessage("Client created");
+      openClient(data.client.id);
     } catch (createError) {
       setError(createError instanceof Error ? createError.message : "Failed to create client");
     } finally {
@@ -550,8 +558,8 @@ export default function ClientManagementWorkspace({
       invalidateCachedJson(PLATFORM_CACHE_KEYS.clients);
       const remaining = clients.filter((item) => item.id !== target.id);
       syncClients(remaining);
-      if (detailClientId === target.id) setDetailClientId(null);
-      if (selectedClientId === target.id) setSelectedClientId(remaining[0]?.id ?? null);
+      if (detailClientId === target.id) backToDirectory();
+      else if (selectedClientId === target.id) setSelectedClientId(null);
       setSaveMessage(null);
     } catch (deleteError) {
       setError(deleteError instanceof Error ? deleteError.message : "Failed to delete client");
@@ -606,200 +614,22 @@ export default function ClientManagementWorkspace({
 
       {loading ? (
         <WorkspaceLoadingFallback variant="list" label="Loading clients" />
-      ) : (
-        <ResponsiveMasterDetail
-          showDetail={showDetail}
-          onBack={() => {
-            closeDetail();
-            setDetailClientId(null);
-          }}
-          backLabel="Back to clients"
-          columnsClassName="xl:grid-cols-[minmax(280px,360px)_minmax(0,1fr)]"
-          className="min-h-[70vh] xl:items-start"
-          master={
-            <section className="flex max-h-[78vh] flex-col rounded-2xl border border-white/15 bg-white/[0.04] p-4 shadow-[0_24px_64px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl sm:p-5">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <p className="text-xs text-white/45">{clients.length} accounts</p>
-                <button
-                  type="button"
-                  onClick={() => void handleAddClient()}
-                  disabled={busy}
-                  className="inline-flex h-9 items-center gap-2 rounded-xl border border-sky-500/40 bg-sky-500/15 px-3 text-xs font-semibold text-sky-300 transition-colors hover:border-sky-400/60 hover:bg-sky-500/25 disabled:opacity-60"
-                >
-                  <Plus className="h-3.5 w-3.5" />
-                  Add Client
-                </button>
-              </div>
-
-              <div className="relative mt-4">
-                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/35" />
-                <input
-                  value={search}
-                  onChange={(event) => setSearch(event.target.value)}
-                  placeholder="Search clients…"
-                  className={cn(inputClassName(), "mt-0 pl-10")}
-                />
-              </div>
-
-              <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-1">
-                <div>
-                  <FieldLabel>Industry</FieldLabel>
-                  <select
-                    className={inputClassName()}
-                    value={filterIndustry}
-                    onChange={(event) => setFilterIndustry(event.target.value)}
-                  >
-                    <option value="all">All industries</option>
-                    {CLIENT_INDUSTRY_OPTIONS.map((option) => (
-                      <option key={option} value={option}>
-                        {option}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <FieldLabel>Country</FieldLabel>
-                  <select
-                    className={inputClassName()}
-                    value={filterCountry}
-                    onChange={(event) => {
-                      setFilterCountry(event.target.value);
-                      setFilterCity("all");
-                    }}
-                  >
-                    <option value="all">All countries</option>
-                    {countryFilterOptions.map((option) => (
-                      <option key={option} value={option}>
-                        {option}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <FieldLabel>City</FieldLabel>
-                  <select
-                    className={inputClassName()}
-                    value={filterCity}
-                    onChange={(event) => setFilterCity(event.target.value)}
-                  >
-                    <option value="all">All cities</option>
-                    {cityFilterOptions.map((option) => (
-                      <option key={option} value={option}>
-                        {option}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <FieldLabel>Status</FieldLabel>
-                  <select
-                    className={inputClassName()}
-                    value={filterStatus}
-                    onChange={(event) => setFilterStatus(event.target.value)}
-                  >
-                    <option value="all">All statuses</option>
-                    {CLIENT_STATUS_OPTIONS.map((option) => (
-                      <option key={option} value={option}>
-                        {option}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <FieldLabel>Contract</FieldLabel>
-                  <select
-                    className={inputClassName()}
-                    value={filterContract}
-                    onChange={(event) => setFilterContract(event.target.value)}
-                  >
-                    <option value="all">All contract types</option>
-                    {CLIENT_CONTRACT_OPTIONS.map((option) => (
-                      <option key={option} value={option}>
-                        {option}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              {filteredClients.length === 0 ? (
-                <p className="mt-4 text-sm text-white/45">
-                  {clients.length === 0
-                    ? "No clients in this workspace yet. Create a client to get started."
-                    : "No clients match your search."}
-                </p>
-              ) : (
-                <ul className="mt-4 min-h-0 flex-1 space-y-1 overflow-y-auto rounded-xl border border-white/10 bg-[#0b1524]/40 p-1">
-                  {filteredClients.map((client) => {
-                    const selected = client.id === detailClientId;
-                    return (
-                      <li key={client.id}>
-                        <div
-                          className={cn(
-                            "flex items-center gap-2 rounded-xl px-2.5 py-2.5 transition-colors",
-                            selected
-                              ? "bg-sky-500/15 ring-1 ring-sky-400/30"
-                              : "hover:bg-white/[0.04]",
-                          )}
-                        >
-                          <button
-                            type="button"
-                            onClick={() => openClient(client.id)}
-                            className="flex min-w-0 flex-1 items-center gap-2.5 text-left"
-                          >
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img
-                              src={clientLogoUrl(client.companyName, client.id)}
-                              alt=""
-                              loading="lazy"
-                              decoding="async"
-                              className="h-8 w-8 shrink-0 rounded-lg border border-white/10 bg-white/90 object-cover"
-                            />
-                            <span className="min-w-0 flex-1">
-                              <span className="block truncate text-sm font-semibold text-white">
-                                {client.companyName}
-                              </span>
-                              <span className="mt-0.5 block truncate text-[11px] text-white/45">
-                                {formatClientLocation(client) ||
-                                  client.primaryContact ||
-                                  client.industry}
-                              </span>
-                            </span>
-                            <span
-                              className={cn(
-                                "shrink-0 rounded-full border px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.1em]",
-                                clientStatusClass(client.accountStatus),
-                              )}
-                            >
-                              {client.accountStatus}
-                            </span>
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => void handleDeleteClient(client)}
-                            disabled={busy}
-                            aria-label={`Delete ${client.companyName}`}
-                            title={`Delete ${client.companyName}`}
-                            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-red-400/30 bg-red-500/10 text-red-200 transition-colors hover:border-red-400/50 hover:bg-red-500/20 disabled:opacity-60"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </button>
-                        </div>
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
-            </section>
-          }
-          detail={
-            detailClient && selectedClient ? (
-              <section
-                ref={detailSectionRef}
-                className="max-h-[78vh] overflow-y-auto rounded-2xl border border-white/15 bg-white/[0.04] p-4 shadow-[0_24px_64px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl [overflow-anchor:none] sm:p-6"
-              >
-                <div ref={detailTopRef} tabIndex={-1} className="h-0 outline-none" aria-hidden />
-                <div className="flex flex-wrap items-start justify-between gap-3">
+      ) : detailClient && selectedClient ? (
+        <div className="space-y-4">
+          <button
+            type="button"
+            onClick={backToDirectory}
+            className="inline-flex items-center gap-2 rounded-xl border border-white/12 bg-white/[0.04] px-3 py-2 text-sm font-medium text-white/80 transition hover:bg-white/[0.07]"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to Client Directory
+          </button>
+          <section
+            ref={detailSectionRef}
+            className="rounded-2xl border border-white/15 bg-white/[0.04] p-4 shadow-[0_24px_64px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl sm:p-6"
+          >
+            <div ref={detailTopRef} tabIndex={-1} className="h-0 outline-none" aria-hidden />
+<div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#60a5fa]">
                       Client Record
@@ -1357,14 +1187,203 @@ export default function ClientManagementWorkspace({
                     />
                   </div>
                 </div>
-              </section>
-            ) : (
-              <section className="flex min-h-[20rem] items-center justify-center rounded-2xl border border-dashed border-white/10 bg-white/[0.02] px-4 py-12 text-center text-sm text-white/45">
-                Select a client from the list to view details.
-              </section>
-            )
-          }
-        />
+          </section>
+        </div>
+      ) : (
+        <section className="flex min-h-[70vh] flex-col rounded-2xl border border-white/15 bg-white/[0.04] shadow-[0_24px_64px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl">
+          <div className="sticky top-0 z-10 space-y-3 border-b border-white/10 bg-[#0b1524]/95 px-4 py-4 backdrop-blur-md sm:px-5">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#60a5fa]">
+                  Client Directory
+                </p>
+                <p className="mt-1 text-xs text-white/45">
+                  {directoryClients.length} in directory · {filteredClients.length} shown
+                </p>
+              </div>
+                <button
+                  type="button"
+                  onClick={() => void handleAddClient()}
+                  disabled={busy}
+                  className="inline-flex h-9 items-center gap-2 rounded-xl border border-sky-500/40 bg-sky-500/15 px-3 text-xs font-semibold text-sky-300 transition-colors hover:border-sky-400/60 hover:bg-sky-500/25 disabled:opacity-60"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  Add Client
+                </button>
+              </div>
+
+            <div className="flex flex-col gap-3 lg:flex-row lg:flex-wrap lg:items-end">
+              <div className="relative min-w-[14rem] flex-1 lg:min-w-[18rem]">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/35" />
+                <input
+                  value={search}
+                  onChange={(event) => setSearch(event.target.value)}
+                  placeholder="Search clients…"
+                  className={cn(inputClassName(), "mt-0 pl-10")}
+                />
+              </div>
+              <div className="grid flex-1 grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
+                <div>
+                  <FieldLabel>Industry</FieldLabel>
+                  <select
+                    className={inputClassName()}
+                    value={filterIndustry}
+                    onChange={(event) => setFilterIndustry(event.target.value)}
+                  >
+                    <option value="all">All industries</option>
+                    {CLIENT_INDUSTRY_OPTIONS.map((option) => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <FieldLabel>Country</FieldLabel>
+                  <select
+                    className={inputClassName()}
+                    value={filterCountry}
+                    onChange={(event) => {
+                      setFilterCountry(event.target.value);
+                      setFilterCity("all");
+                    }}
+                  >
+                    <option value="all">All countries</option>
+                    {countryFilterOptions.map((option) => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <FieldLabel>City</FieldLabel>
+                  <select
+                    className={inputClassName()}
+                    value={filterCity}
+                    onChange={(event) => setFilterCity(event.target.value)}
+                  >
+                    <option value="all">All cities</option>
+                    {cityFilterOptions.map((option) => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <FieldLabel>Status</FieldLabel>
+                  <select
+                    className={inputClassName()}
+                    value={filterStatus}
+                    onChange={(event) => setFilterStatus(event.target.value as ClientAccountStatus | "all")}
+                  >
+                    <option value="all">All statuses</option>
+                    {CLIENT_STATUS_OPTIONS.map((option) => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <FieldLabel>Contract</FieldLabel>
+                  <select
+                    className={inputClassName()}
+                    value={filterContract}
+                    onChange={(event) => setFilterContract(event.target.value)}
+                  >
+                    <option value="all">All contract types</option>
+                    {CLIENT_CONTRACT_OPTIONS.map((option) => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="min-h-0 flex-1 overflow-auto px-2 pb-4 sm:px-3">
+              {filteredClients.length === 0 ? (
+                <p className="px-3 py-8 text-sm text-white/45">
+                  {clients.length === 0
+                    ? "No clients in this workspace yet. Create a client to get started."
+                    : "No clients match your search or filters."}
+                </p>
+              ) : (
+                <table className="mt-2 w-full min-w-[720px] border-separate border-spacing-0 text-left text-sm">
+                  <thead className="sticky top-0 z-[1] bg-[#0b1524]/95 text-[10px] font-semibold uppercase tracking-[0.12em] text-white/45">
+                    <tr>
+                      <th className="border-b border-white/10 px-3 py-2.5">Client</th>
+                      <th className="border-b border-white/10 px-3 py-2.5">Industry</th>
+                      <th className="border-b border-white/10 px-3 py-2.5">Country</th>
+                      <th className="border-b border-white/10 px-3 py-2.5">City</th>
+                      <th className="border-b border-white/10 px-3 py-2.5">Status</th>
+                      <th className="border-b border-white/10 px-3 py-2.5">Contract</th>
+                      <th className="border-b border-white/10 px-3 py-2.5">Primary contact</th>
+                      <th className="border-b border-white/10 px-3 py-2.5 w-12" aria-label="Actions" />
+                    </tr>
+                  </thead>
+                  <tbody>
+                  {filteredClients.map((client) => {
+                    const location = resolveClientLocation(client);
+                    return (
+                      <tr
+                        key={client.id}
+                        className="cursor-pointer transition hover:bg-white/[0.04]"
+                        onClick={() => openClient(client.id)}
+                      >
+                        <td className="border-b border-white/8 px-3 py-3 font-medium text-white">
+                          <span className="inline-flex items-center gap-2">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={clientLogoUrl(client.companyName, client.id)}
+                              alt=""
+                              loading="lazy"
+                              decoding="async"
+                              className="h-7 w-7 shrink-0 rounded-md border border-white/10 bg-white/90 object-cover"
+                            />
+                            {client.companyName}
+                          </span>
+                        </td>
+                        <td className="border-b border-white/8 px-3 py-3 text-white/65">{client.industry || "—"}</td>
+                        <td className="border-b border-white/8 px-3 py-3 text-white/65">{location.country || "—"}</td>
+                        <td className="border-b border-white/8 px-3 py-3 text-white/65">{location.city || "—"}</td>
+                        <td className="border-b border-white/8 px-3 py-3">
+                          <span
+                            className={cn(
+                              "rounded-full border px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.1em]",
+                              clientStatusClass(client.accountStatus),
+                            )}
+                          >
+                            {client.accountStatus}
+                          </span>
+                        </td>
+                        <td className="border-b border-white/8 px-3 py-3 text-white/65">{client.contractType || "—"}</td>
+                        <td className="border-b border-white/8 px-3 py-3 text-white/65">{client.primaryContact || "—"}</td>
+                        <td className="border-b border-white/8 px-3 py-3">
+                          <button
+                            type="button"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              void handleDeleteClient(client);
+                            }}
+                            disabled={busy}
+                            aria-label={`Delete ${client.companyName}`}
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-red-400/30 bg-red-500/10 text-red-200 hover:bg-red-500/20 disabled:opacity-60"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                  </tbody>
+                </table>
+              )}
+          </div>
+        </section>
       )}
     </div>
   );
