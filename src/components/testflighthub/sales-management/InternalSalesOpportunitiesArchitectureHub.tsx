@@ -2,11 +2,14 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { FolderOpen, Loader2, Plus, Save, Search } from "lucide-react";
 
-import CrmLeadDiscoveryEditor from "@/components/testflighthub/CrmLeadDiscoveryEditor";
 import SalesQuotesWorkspace from "@/components/testflighthub/SalesQuotesWorkspace";
+import {
+  OpportunityDiscoveryMeetingForm,
+  type OpportunityDiscoveryMeetingSummary,
+} from "@/components/testflighthub/sales-management/OpportunityDiscoveryMeetingForm";
 import { useInternalOperationsBasePath } from "@/components/testflighthub/InternalOperationsBasePathContext";
 import type { CrmLead, LeadStatus } from "@/lib/crm-data";
 import { LEAD_STATUS_OPTIONS } from "@/lib/crm-data";
@@ -76,8 +79,9 @@ const VISIBLE_OPPORTUNITY_WORKFLOW_STEPS = INTERNAL_OPPORTUNITY_WORKFLOW_FRAMEWO
   (step) => step.id !== "engagement",
 );
 
-function visibleWorkflowIndexForLead(lead: CrmLead): number {
-  const fullIdx = workflowIndexForLead(lead);
+function visibleWorkflowIndexForLead(lead: CrmLead, hasDiscoveryMeetings: boolean): number {
+  let fullIdx = workflowIndexForLead(lead);
+  if (hasDiscoveryMeetings && fullIdx < 1) fullIdx = 1;
   const fullStep = INTERNAL_OPPORTUNITY_WORKFLOW_FRAMEWORK[fullIdx];
   if (!fullStep) return 0;
   if (fullStep.id === "engagement") {
@@ -87,6 +91,8 @@ function visibleWorkflowIndexForLead(lead: CrmLead): number {
   const visibleIdx = VISIBLE_OPPORTUNITY_WORKFLOW_STEPS.findIndex((step) => step.id === fullStep.id);
   return visibleIdx >= 0 ? visibleIdx : 0;
 }
+
+type OpportunityWorkflowStageId = (typeof VISIBLE_OPPORTUNITY_WORKFLOW_STEPS)[number]["id"];
 
 export default function InternalSalesOpportunitiesArchitectureHub({
   quotesReturnHref,
@@ -112,7 +118,7 @@ export default function InternalSalesOpportunitiesArchitectureHub({
   const [activeLeadId, setActiveLeadId] = useState<string | null>(
     () => searchParams.get("leadId") ?? searchParams.get("opportunityId"),
   );
-  const [showDiscoveryEditor, setShowDiscoveryEditor] = useState(false);
+  const [pendingDiscoveryCreate, setPendingDiscoveryCreate] = useState(false);
   const [opportunityNewClientDraft, setOpportunityNewClientDraft] = useState<ManagedClient | null>(
     null,
   );
@@ -385,13 +391,12 @@ export default function InternalSalesOpportunitiesArchitectureHub({
           client={activeClient}
           basePath={basePath}
           quotesReturnHref={quotesReturnHref}
-          showDiscoveryEditor={showDiscoveryEditor}
-          onOpenDiscovery={() => setShowDiscoveryEditor(true)}
-          onCloseDiscovery={() => setShowDiscoveryEditor(false)}
+          initialDiscoveryCreate={pendingDiscoveryCreate}
+          onDiscoveryCreateConsumed={() => setPendingDiscoveryCreate(false)}
           onBack={() => {
             setFlow("list");
             setActiveLeadId(null);
-            setShowDiscoveryEditor(false);
+            setPendingDiscoveryCreate(false);
             syncUrl({ leadId: null, opportunityId: null, recordName: null });
           }}
           onReload={() => void load()}
@@ -501,7 +506,7 @@ export default function InternalSalesOpportunitiesArchitectureHub({
                               onClick={(e) => {
                                 e.stopPropagation();
                                 openRecord(lead.id, lead.companyName);
-                                setShowDiscoveryEditor(true);
+                                setPendingDiscoveryCreate(true);
                               }}
                             >
                               {lead.discoveryNotes?.trim() ? "View" : "Add"}
@@ -586,7 +591,7 @@ export default function InternalSalesOpportunitiesArchitectureHub({
               onOpenRecord={() => setFlow("record")}
               onDiscovery={() => {
                 setFlow("record");
-                setShowDiscoveryEditor(true);
+                setPendingDiscoveryCreate(true);
               }}
             />
           ) : null}
@@ -845,9 +850,8 @@ function OpportunityRecordShell({
   client,
   basePath,
   quotesReturnHref,
-  showDiscoveryEditor,
-  onOpenDiscovery,
-  onCloseDiscovery,
+  initialDiscoveryCreate,
+  onDiscoveryCreateConsumed,
   onBack,
   onReload,
 }: {
@@ -855,18 +859,110 @@ function OpportunityRecordShell({
   client: ManagedClient | null;
   basePath: SurveyOperationsBasePath;
   quotesReturnHref: string;
-  showDiscoveryEditor: boolean;
-  onOpenDiscovery: () => void;
-  onCloseDiscovery: () => void;
+  initialDiscoveryCreate: boolean;
+  onDiscoveryCreateConsumed: () => void;
   onBack: () => void;
   onReload: () => void;
 }) {
-  const workflowIdx = visibleWorkflowIndexForLead(lead);
+  const summaryRef = useRef<HTMLDivElement>(null);
+  const discoveryRef = useRef<HTMLDivElement>(null);
+  const followUpRef = useRef<HTMLDivElement>(null);
+  const outcomeRef = useRef<HTMLDivElement>(null);
+
   const [recordTab, setRecordTab] = useState<"workflow" | "quotes">("workflow");
-  const discoveryCaptured = Boolean(lead.discoveryNotes?.trim());
+  const [meetings, setMeetings] = useState<OpportunityDiscoveryMeetingSummary[]>([]);
+  const [meetingsLoading, setMeetingsLoading] = useState(true);
+  const [discoveryFormOpen, setDiscoveryFormOpen] = useState(false);
+  const [activeWorkflowStage, setActiveWorkflowStage] = useState<OpportunityWorkflowStageId>("created");
+
+  const hasDiscoveryMeetings = meetings.length > 0;
+  const workflowIdx = visibleWorkflowIndexForLead(lead, hasDiscoveryMeetings);
+  const nextMeeting = meetings[0] ?? null;
+
   const fileExplorerHref = client?.filesFolderId
     ? getInternalNavHref("files-client", basePath, { folderId: client.filesFolderId })
     : null;
+  const fileExplorerLabel = client?.companyName
+    ? `${client.companyName} — File Explorer`
+    : "File Explorer";
+
+  const loadMeetings = useCallback(async () => {
+    setMeetingsLoading(true);
+    try {
+      const response = await fetch(
+        `/api/crm/meetings?crmLeadId=${encodeURIComponent(lead.id)}`,
+        { cache: "no-store" },
+      );
+      const data = await readApiJson<{ meetings?: OpportunityDiscoveryMeetingSummary[] }>(response);
+      if (!response.ok) throw new Error("Failed to load discovery meetings");
+      setMeetings(data.meetings ?? []);
+    } catch {
+      setMeetings([]);
+    } finally {
+      setMeetingsLoading(false);
+    }
+  }, [lead.id]);
+
+  useEffect(() => {
+    void loadMeetings();
+  }, [loadMeetings]);
+
+  useEffect(() => {
+    if (initialDiscoveryCreate) {
+      setRecordTab("workflow");
+      setDiscoveryFormOpen(true);
+      setActiveWorkflowStage("discovery");
+      onDiscoveryCreateConsumed();
+    }
+  }, [initialDiscoveryCreate, onDiscoveryCreateConsumed]);
+
+  function scrollToRef(target: React.RefObject<HTMLDivElement | null>) {
+    target.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  function openDiscoveryCreate() {
+    setRecordTab("workflow");
+    setDiscoveryFormOpen(true);
+    setActiveWorkflowStage("discovery");
+    scrollToRef(discoveryRef);
+  }
+
+  function handleWorkflowStageClick(stageId: OpportunityWorkflowStageId) {
+    setActiveWorkflowStage(stageId);
+    switch (stageId) {
+      case "created":
+        setRecordTab("workflow");
+        scrollToRef(summaryRef);
+        return;
+      case "discovery":
+        setRecordTab("workflow");
+        scrollToRef(discoveryRef);
+        return;
+      case "documents":
+        if (fileExplorerHref) window.location.href = fileExplorerHref;
+        else scrollToRef(summaryRef);
+        return;
+      case "quote":
+        setRecordTab("quotes");
+        return;
+      case "follow-up":
+        setRecordTab("workflow");
+        scrollToRef(followUpRef);
+        return;
+      case "outcome":
+        setRecordTab("workflow");
+        scrollToRef(outcomeRef);
+        return;
+      default:
+        return;
+    }
+  }
+
+  const quotePrefill = {
+    companyName: lead.companyName,
+    contactName: lead.contactName,
+    contactEmail: lead.email,
+  };
 
   return (
     <section className="space-y-4 rounded-2xl border border-white/10 bg-white/[0.03] p-4 sm:p-5">
@@ -880,30 +976,39 @@ function OpportunityRecordShell({
             <p className="mt-1 text-sm text-white/55">{lead.contactName}</p>
           ) : null}
         </div>
-        <div className="flex flex-wrap items-center justify-end gap-2">
+        <div className="flex max-w-full flex-wrap items-center justify-end gap-2">
           <button
             type="button"
-            onClick={onOpenDiscovery}
-            className="rounded-xl border border-violet-500/40 bg-violet-500/15 px-3 py-2 text-xs font-semibold uppercase tracking-[0.06em] text-violet-200"
+            onClick={openDiscoveryCreate}
+            className="max-w-full rounded-xl border border-violet-500/40 bg-violet-500/15 px-3 py-2 text-xs font-semibold uppercase tracking-[0.04em] text-violet-200"
           >
             Create discovery
           </button>
           {fileExplorerHref ? (
             <Link
               href={fileExplorerHref}
-              className="inline-flex items-center gap-2 rounded-xl border border-sky-500/35 bg-sky-500/10 px-3 py-2 text-xs font-semibold uppercase tracking-[0.06em] text-sky-200"
+              title={fileExplorerLabel}
+              className="inline-flex max-w-full items-center gap-2 truncate rounded-xl border border-sky-500/35 bg-sky-500/10 px-3 py-2 text-xs font-semibold uppercase tracking-[0.04em] text-sky-200"
             >
-              <FolderOpen className="h-3.5 w-3.5" />
-              File Explorer
+              <FolderOpen className="h-3.5 w-3.5 shrink-0" />
+              <span className="truncate">{fileExplorerLabel}</span>
             </Link>
           ) : (
             <span
               className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-white/35"
-              title="Link a Client Directory record with a files folder to open File Explorer"
+              title="Link a Client Directory record with a files folder"
             >
-              File Explorer
+              {fileExplorerLabel}
             </span>
           )}
+          {client ? (
+            <Link
+              href={getInternalNavHref("clients", basePath, { clientId: client.id })}
+              className="rounded-xl border border-white/15 bg-white/[0.04] px-3 py-2 text-xs font-semibold uppercase tracking-[0.04em] text-white/75 hover:bg-white/[0.08]"
+            >
+              View client
+            </Link>
+          ) : null}
         </div>
       </div>
 
@@ -921,7 +1026,11 @@ function OpportunityRecordShell({
           <SalesQuotesWorkspace
             embedded
             title="SALES QUOTES"
-            opportunityContext={{ crmLeadId: lead.id, clientId: client?.id ?? null }}
+            opportunityContext={{
+              crmLeadId: lead.id,
+              clientId: client?.id ?? null,
+              prefill: quotePrefill,
+            }}
           />
           <Link href={quotesReturnHref} className="text-xs text-violet-300 hover:underline">
             Open full Sales Quotes area
@@ -933,80 +1042,119 @@ function OpportunityRecordShell({
             <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/40">Workflow</p>
             <ol className="mt-2 flex flex-wrap gap-2">
               {VISIBLE_OPPORTUNITY_WORKFLOW_STEPS.map((step, index) => (
-                <li
-                  key={step.id}
-                  className={cn(
-                    "rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]",
-                    index === workflowIdx
-                      ? "border-violet-400/50 bg-violet-500/20 text-violet-100"
-                      : index < workflowIdx
-                        ? "border-emerald-400/30 bg-emerald-500/10 text-emerald-200/80"
-                        : "border-white/10 bg-white/[0.03] text-white/40",
-                  )}
-                >
-                  {step.label}
+                <li key={step.id}>
+                  <button
+                    type="button"
+                    onClick={() => handleWorkflowStageClick(step.id)}
+                    className={cn(
+                      "rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] transition-colors",
+                      activeWorkflowStage === step.id
+                        ? "ring-1 ring-violet-300/50"
+                        : "",
+                      index === workflowIdx
+                        ? "border-violet-400/50 bg-violet-500/20 text-violet-100"
+                        : index < workflowIdx
+                          ? "border-emerald-400/30 bg-emerald-500/10 text-emerald-200/80"
+                          : "border-white/10 bg-white/[0.03] text-white/40 hover:border-white/20 hover:text-white/55",
+                    )}
+                  >
+                    {step.label}
+                  </button>
                 </li>
               ))}
             </ol>
           </div>
 
-          <CompactRecordSection title="Opportunity summary">
-            <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              <SummaryField label="CRM stage" value={lead.status} />
-              <SummaryField label="Email" value={lead.email?.trim() || "—"} />
-              <SummaryField label="Phone" value={lead.phone?.trim() || "—"} />
-              <SummaryField label="Source" value={lead.source?.trim() || "—"} />
-              <SummaryField label="Client directory" value={client?.companyName ?? "—"} />
-              <SummaryField label="Next action" value={lead.nextAction?.trim() || "—"} />
-              {lead.notes?.trim() ? (
-                <div className="sm:col-span-2 lg:col-span-3">
-                  <SummaryField label="Notes" value={lead.notes.trim()} />
+          <div ref={summaryRef}>
+            <CompactRecordSection title="Opportunity summary">
+              <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                <SummaryField label="CRM stage" value={lead.status} />
+                <SummaryField label="Email" value={lead.email?.trim() || "—"} />
+                <SummaryField label="Phone" value={lead.phone?.trim() || "—"} />
+                <SummaryField label="Source" value={lead.source?.trim() || "—"} />
+                <SummaryField label="Client directory" value={client?.companyName ?? "—"} />
+                <SummaryField label="Next action" value={lead.nextAction?.trim() || "—"} />
+                {lead.notes?.trim() ? (
+                  <div className="sm:col-span-2 lg:col-span-3">
+                    <SummaryField label="Notes" value={lead.notes.trim()} />
+                  </div>
+                ) : null}
+              </dl>
+            </CompactRecordSection>
+          </div>
+
+          <div ref={discoveryRef}>
+            <CompactRecordSection title="Discovery">
+              {meetingsLoading ? (
+                <p className="text-sm text-white/45">Loading discovery meetings…</p>
+              ) : nextMeeting ? (
+                <div className="space-y-1 text-sm text-white/75">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/40">
+                    Next / scheduled discovery
+                  </p>
+                  <p>
+                    {nextMeeting.name} · {nextMeeting.organization}
+                  </p>
+                  <p className="text-white/55">
+                    {nextMeeting.formattedWhenClient ?? nextMeeting.formattedWhenGmt} ·{" "}
+                    {nextMeeting.statusLabel}
+                  </p>
                 </div>
-              ) : null}
-            </dl>
-          </CompactRecordSection>
+              ) : (
+                <p className="text-sm text-white/55">No discovery meeting scheduled for this opportunity yet.</p>
+              )}
+              <div className="mt-3 flex flex-wrap gap-3">
+                {nextMeeting ? (
+                  <a
+                    href={nextMeeting.meetingLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs font-semibold text-violet-300 underline-offset-2 hover:underline"
+                  >
+                    View discovery
+                  </a>
+                ) : null}
+                <button
+                  type="button"
+                  onClick={openDiscoveryCreate}
+                  className="text-xs font-semibold text-violet-300 underline-offset-2 hover:underline"
+                >
+                  {nextMeeting ? "Add discovery" : "Create discovery"}
+                </button>
+              </div>
+            </CompactRecordSection>
+          </div>
 
-          <CompactRecordSection title="Discovery">
-            <p className="text-sm text-white/70">
-              {discoveryCaptured
-                ? "Discovery notes are saved on this opportunity."
-                : "No discovery notes captured yet."}
-            </p>
-            <button
-              type="button"
-              onClick={onOpenDiscovery}
-              className="mt-2 text-xs font-semibold text-violet-300 underline-offset-2 hover:underline"
-            >
-              {discoveryCaptured ? "View or edit discovery" : "Create discovery"}
-            </button>
-          </CompactRecordSection>
-
-          {showDiscoveryEditor ? (
-            <div className="rounded-xl border border-violet-400/25 bg-violet-500/5 p-3">
-              <CrmLeadDiscoveryEditor
-                companyName={lead.companyName}
-                initialHtml={lead.discoveryNotes ?? ""}
-                onBack={onCloseDiscovery}
-                onSave={async (html) => {
-                  await fetch(`/api/crm/leads/${encodeURIComponent(lead.id)}`, {
-                    method: "PATCH",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ discoveryNotes: html }),
-                  });
-                  onReload();
-                }}
-                onCommit={async (html) => {
-                  await fetch(`/api/crm/leads/${encodeURIComponent(lead.id)}/commit-discovery`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ discoveryNotes: html }),
-                  });
-                  onReload();
-                  return { meetingsCompleted: 0, alertsCleared: 0 };
-                }}
-              />
-            </div>
+          {discoveryFormOpen ? (
+            <OpportunityDiscoveryMeetingForm
+              lead={lead}
+              client={client}
+              onCancel={() => setDiscoveryFormOpen(false)}
+              onSaved={() => {
+                setDiscoveryFormOpen(false);
+                void loadMeetings();
+                void onReload();
+              }}
+            />
           ) : null}
+
+          <div ref={followUpRef}>
+            <CompactRecordSection title="Follow-up">
+              <p className="text-sm text-white/70">{lead.nextAction?.trim() || "No follow-up recorded yet."}</p>
+              <p className="mt-2 text-xs text-white/40">
+                Detailed activity logging will be specified in a later phase.
+              </p>
+            </CompactRecordSection>
+          </div>
+
+          <div ref={outcomeRef}>
+            <CompactRecordSection title="Outcome">
+              <SummaryField label="CRM outcome stage" value={lead.status} />
+              <p className="mt-2 text-xs text-white/40">
+                Won, lost, and closed-won handling continues to use the existing CRM opportunity status.
+              </p>
+            </CompactRecordSection>
+          </div>
         </>
       )}
     </section>

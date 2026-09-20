@@ -43,6 +43,11 @@ function money(amount: number, currency?: ReportingCurrency) {
 export type SalesQuotesOpportunityContext = {
   crmLeadId: string;
   clientId?: string | null;
+  prefill?: {
+    companyName: string;
+    contactName?: string;
+    contactEmail?: string | null;
+  };
 };
 
 export default function SalesQuotesWorkspace({
@@ -60,6 +65,10 @@ export default function SalesQuotesWorkspace({
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [composeOpen, setComposeOpen] = useState(false);
+  const [composeTitle, setComposeTitle] = useState("");
+  const [composeDescription, setComposeDescription] = useState("Platform proposal — Phase 1");
+  const [composeUnitPrice, setComposeUnitPrice] = useState("50000");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -173,26 +182,76 @@ export default function SalesQuotesWorkspace({
     }
   }
 
-  async function createNewQuote() {
+  function openComposeForm() {
+    setError(null);
+    setNotice(null);
+    if (opportunityContext?.prefill) {
+      setComposeTitle(`${opportunityContext.prefill.companyName} — proposal`);
+    }
+    setComposeOpen(true);
+  }
+
+  async function saveComposedQuote() {
+    const companyName =
+      opportunityContext?.prefill?.companyName?.trim() ||
+      opportunityContext?.prefill?.companyName ||
+      "";
+    if (!companyName) {
+      setError("Company name is required to create a quote.");
+      return;
+    }
+    const unitPrice = Number(composeUnitPrice);
+    if (!Number.isFinite(unitPrice) || unitPrice <= 0) {
+      setError("Enter a valid line item amount.");
+      return;
+    }
+
     setBusyId("create");
     setError(null);
     setNotice(null);
     try {
-      if (opportunityContext?.crmLeadId) {
-        const response = await fetch("/api/financials/quotes/from-lead", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            leadId: opportunityContext.crmLeadId,
-            clientId: opportunityContext.clientId ?? null,
-          }),
-        });
-        const body = (await response.json()) as { quote?: SalesQuote; error?: string };
-        if (!response.ok) throw new Error(body.error ?? "Create failed");
-        if (body.quote) setQuotes((rows) => [body.quote!, ...rows]);
-        return;
-      }
+      const response = await fetch("/api/financials/quotes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          crmLeadId: opportunityContext?.crmLeadId ?? null,
+          clientId: opportunityContext?.clientId ?? null,
+          companyName,
+          contactName: opportunityContext?.prefill?.contactName ?? null,
+          contactEmail: opportunityContext?.prefill?.contactEmail ?? null,
+          title: composeTitle.trim() || "Sales quote",
+          currency: isBrowserGreenDesertSurface() ? "USD" : resolveBrowserReportingCurrency(),
+          lineItems: [
+            {
+              description: composeDescription.trim() || "Services",
+              quantity: 1,
+              unitPrice,
+            },
+          ],
+        }),
+      });
+      const body = (await response.json()) as { quote?: SalesQuote; error?: string };
+      if (!response.ok) throw new Error(body.error ?? "Create failed");
+      if (body.quote) setQuotes((rows) => [body.quote!, ...rows]);
+      setComposeOpen(false);
+      setNotice("Quote saved.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Create failed");
+    } finally {
+      setBusyId(null);
+    }
+  }
 
+  async function createNewQuote() {
+    if (opportunityContext?.crmLeadId) {
+      openComposeForm();
+      return;
+    }
+
+    setBusyId("create");
+    setError(null);
+    setNotice(null);
+    try {
       const response = await fetch("/api/financials/quotes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -278,6 +337,70 @@ export default function SalesQuotesWorkspace({
       {error ? (
         <div className="rounded-lg border border-rose-400/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
           {error}
+        </div>
+      ) : null}
+
+      {composeOpen && opportunityContext ? (
+        <div className="rounded-xl border border-sky-400/25 bg-sky-500/5 p-4">
+          <h2 className="text-sm font-semibold text-white">Create new quote</h2>
+          <p className="mt-1 text-xs text-white/50">
+            Linked to {opportunityContext.prefill?.companyName ?? "this opportunity"}. Save when ready —
+            nothing is created until you confirm.
+          </p>
+          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            <label className="text-[10px] uppercase text-white/45 sm:col-span-2">
+              Customer
+              <input
+                readOnly
+                className="mt-1.5 w-full rounded-lg border border-white/10 bg-[#0b1524] px-3 py-2 text-sm text-white/80"
+                value={opportunityContext.prefill?.companyName ?? ""}
+              />
+            </label>
+            <label className="text-[10px] uppercase text-white/45 sm:col-span-2">
+              Quote title
+              <input
+                className="mt-1.5 w-full rounded-lg border border-white/10 bg-[#0b1524] px-3 py-2 text-sm text-white"
+                value={composeTitle}
+                onChange={(e) => setComposeTitle(e.target.value)}
+              />
+            </label>
+            <label className="text-[10px] uppercase text-white/45 sm:col-span-2">
+              Line description
+              <input
+                className="mt-1.5 w-full rounded-lg border border-white/10 bg-[#0b1524] px-3 py-2 text-sm text-white"
+                value={composeDescription}
+                onChange={(e) => setComposeDescription(e.target.value)}
+              />
+            </label>
+            <label className="text-[10px] uppercase text-white/45">
+              Amount
+              <input
+                type="number"
+                min={0}
+                className="mt-1.5 w-full rounded-lg border border-white/10 bg-[#0b1524] px-3 py-2 text-sm text-white"
+                value={composeUnitPrice}
+                onChange={(e) => setComposeUnitPrice(e.target.value)}
+              />
+            </label>
+          </div>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <button
+              type="button"
+              disabled={busyId === "create"}
+              onClick={() => void saveComposedQuote()}
+              className="rounded-lg bg-sky-600 px-4 py-2 text-sm font-medium text-white hover:bg-sky-500 disabled:opacity-60"
+            >
+              {busyId === "create" ? <Loader2 className="inline h-4 w-4 animate-spin" /> : null}
+              Save quote
+            </button>
+            <button
+              type="button"
+              onClick={() => setComposeOpen(false)}
+              className="rounded-lg border border-white/10 px-4 py-2 text-sm text-white/70"
+            >
+              Cancel
+            </button>
+          </div>
         </div>
       ) : null}
 
