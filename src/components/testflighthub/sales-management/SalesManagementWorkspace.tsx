@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Target } from "lucide-react";
 
 import {
@@ -33,6 +33,10 @@ import {
   SalesManagementTargetsTab,
 } from "./SalesManagementManagementTabs";
 import { SalesTabHeader } from "./sales-management-ui";
+import {
+  isInternalOpportunitiesArchitectureEnabled,
+  isSalesTabHiddenInInternalOpportunitiesArchitecture,
+} from "@/lib/internal-sales-opportunities-architecture";
 
 function resolveTab(searchParams: URLSearchParams): SalesManagementTabId {
   const fromTab = searchParams.get("tab");
@@ -41,8 +45,17 @@ function resolveTab(searchParams: URLSearchParams): SalesManagementTabId {
 }
 
 export default function SalesManagementWorkspace() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const activeTab = useMemo(() => resolveTab(searchParams), [searchParams]);
+  const basePath = useInternalOperationsBasePath();
+
+  useEffect(() => {
+    if (!isInternalOpportunitiesArchitectureEnabled()) return;
+    if (!isSalesTabHiddenInInternalOpportunitiesArchitecture(activeTab)) return;
+    const href = getInternalNavHref("sales-management", basePath, { tab: "opportunities" });
+    router.replace(href);
+  }, [activeTab, basePath, router]);
   const [representatives, setRepresentatives] = useState<Representative[]>([]);
   const [selectedRepresentativeId, setSelectedRepresentativeId] = useState("rep-1");
 
@@ -53,7 +66,6 @@ export default function SalesManagementWorkspace() {
     if (seeded[0]) setSelectedRepresentativeId(seeded[0].id);
   }, [activeTab, representatives.length]);
 
-  const basePath = useInternalOperationsBasePath();
   const quotesReturnHref = useMemo(
     () => getInternalNavHref("sales-management", basePath, { tab: "sales-quotes" }),
     [basePath],

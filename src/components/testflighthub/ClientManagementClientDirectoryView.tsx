@@ -29,6 +29,7 @@ import { centralLoginUrl } from "@/lib/app-domains";
 import { copyTextToClipboard } from "@/lib/clipboard";
 import { clientLogoUrl } from "@/lib/support-email-html";
 import { useInternalOperationsBasePath } from "./InternalOperationsBasePathContext";
+import { getInternalNavHref } from "@/lib/internal-operations-data";
 import { cn } from "@/lib/utils";
 import {
   fetchCachedJson,
@@ -521,6 +522,15 @@ export default function ClientManagementClientDirectoryView({
       setSavedSnapshot(data.client);
       setSaveMessage("Client created");
       deepLinkedClientRef.current = data.client.id;
+      if (searchParams.get("salesOpportunityReturn") === "1") {
+        router.replace(
+          getInternalNavHref("sales-management", basePath, {
+            tab: "opportunities",
+            clientCreated: data.client!.id,
+          }),
+        );
+        return;
+      }
       openClient(data.client.id);
     } catch (createError) {
       setError(createError instanceof Error ? createError.message : "Failed to create client");

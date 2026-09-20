@@ -5,6 +5,8 @@ import { useSearchParams } from "next/navigation";
 
 import CrmWorkspace from "@/components/testflighthub/CrmWorkspace";
 import SalesQuotesWorkspace from "@/components/testflighthub/SalesQuotesWorkspace";
+import { isInternalOpportunitiesArchitectureEnabled } from "@/lib/internal-sales-opportunities-architecture";
+import InternalSalesOpportunitiesArchitectureHub from "./InternalSalesOpportunitiesArchitectureHub";
 import { SalesFilterBar, SalesFilterButton, SalesTabHeader } from "./sales-management-ui";
 
 type OpportunitiesSubview = "deals" | "quotes";
@@ -14,6 +16,7 @@ export default function SalesManagementOpportunitiesTab({
 }: {
   quotesReturnHref: string;
 }) {
+  const [internalArchitecture] = useState(() => isInternalOpportunitiesArchitectureEnabled());
   const searchParams = useSearchParams();
   const [subview, setSubview] = useState<OpportunitiesSubview>(() =>
     searchParams.get("panel") === "quotes" ? "quotes" : "deals",
@@ -31,6 +34,10 @@ export default function SalesManagementOpportunitiesTab({
       ] as const,
     [],
   );
+
+  if (internalArchitecture) {
+    return <InternalSalesOpportunitiesArchitectureHub quotesReturnHref={quotesReturnHref} />;
+  }
 
   return (
     <div className="space-y-4">

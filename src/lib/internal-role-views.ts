@@ -1714,8 +1714,12 @@ function injectInternalWorkspacesNav(
 }
 
 function injectInternalOnlyNav(sections: readonly InternalNavSection[]): InternalNavSection[] {
+  const { reshapeSalesManagementNavForInternalOpportunities } =
+    require("@/lib/internal-sales-opportunities-architecture") as typeof import("@/lib/internal-sales-opportunities-architecture");
   return applyUnit311SupportNavOverlays(
-    injectInternalWorkspacesNav(injectInternalPlatformAnalytics(sections)),
+    reshapeSalesManagementNavForInternalOpportunities(
+      injectInternalWorkspacesNav(injectInternalPlatformAnalytics(sections)),
+    ),
   );
 }
 
