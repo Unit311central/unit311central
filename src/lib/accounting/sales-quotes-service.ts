@@ -27,6 +27,8 @@ import { isSupabaseConfigured } from "@/lib/supabase/server";
 import { createTenancyServerClient } from "@/lib/supabase/tenancy-server";
 import { generateInvoiceNumber } from "@/lib/subscription-invoice-pdf";
 import { getLeadById } from "@/lib/crm-leads-service";
+import type { CompanyDetails } from "@/lib/company-details-data";
+import { listCompanyDetails } from "@/lib/company-details-service";
 
 function requireSupabase() {
   if (!isSupabaseConfigured()) {
@@ -88,30 +90,71 @@ function mapQuote(row: Record<string, unknown>, lineItems: SalesQuoteLineItem[])
   };
 }
 
+function companyDisplayName(row: CompanyDetails): string {
+  const trading = row.tradingName.trim();
+  const legal = row.legalCompanyName.trim();
+  return trading || legal || "Unit311 Central";
+}
+
+function scoreQuotingEntity(row: CompanyDetails): number {
+  const label = `${row.tradingName} ${row.legalCompanyName}`.toLowerCase();
+  let score = 100 - row.displayOrder;
+  if (label.includes("unit311")) score += 200;
+  if (label.includes("unit 311")) score += 200;
+  if (label.includes("nakama")) score -= 500;
+  if (row.companyStatus !== "Active") score -= 300;
+  return score;
+}
+
+function pickQuotingCompanyEntity(companies: CompanyDetails[]): CompanyDetails | null {
+  const active = companies.filter((row) => !row.archivedAt);
+  if (!active.length) return null;
+  return [...active].sort((a, b) => scoreQuotingEntity(b) - scoreQuotingEntity(a))[0] ?? null;
+}
+
+function mapCompanyDetailsToSeller(row: CompanyDetails): SalesQuoteSellerProfile {
+  const address =
+    row.principalBusinessAddress.trim() || row.registeredOfficeAddress.trim() || null;
+  return {
+    companyName: companyDisplayName(row),
+    contactName: null,
+    email: row.primaryEmail.trim() || null,
+    phone: row.primaryTelephone.trim() || null,
+    address,
+    city: null,
+    region: null,
+    country: row.countryOfRegistration.trim() || null,
+    website: row.website.trim() || null,
+  };
+}
+
 export async function getSalesQuoteSellerProfile(
   workspaceId: string,
 ): Promise<SalesQuoteSellerProfile> {
+  try {
+    const companies = await listCompanyDetails({ workspaceId });
+    const entity = pickQuotingCompanyEntity(companies);
+    if (entity) return mapCompanyDetailsToSeller(entity);
+  } catch {
+    // Fall through when Corporate Information schema is unavailable.
+  }
+
   const supabase = requireSupabase();
   const { data: workspace } = await supabase
     .from("workspaces")
     .select("name")
     .eq("id", workspaceId)
     .maybeSingle();
-  const { data: meta } = await supabase
-    .from("workspace_admin_metadata")
-    .select("company_name, contact_name, contact_email, country, description")
-    .eq("workspace_id", workspaceId)
-    .maybeSingle();
 
   return {
-    companyName: meta?.company_name?.trim() || workspace?.name?.trim() || "Unit311 Central",
-    contactName: meta?.contact_name?.trim() || null,
-    email: meta?.contact_email?.trim() || null,
+    companyName: workspace?.name?.trim() || "Unit311 Central",
+    contactName: null,
+    email: null,
     phone: null,
     address: null,
     city: null,
     region: null,
-    country: meta?.country?.trim() || null,
+    country: null,
     website: null,
   };
 }
@@ -328,6 +371,145 @@ export async function createSalesQuote(
   if (lineError) throw new Error(lineError.message);
 
   return (await getSalesQuoteById(quoteId, scope))!;
+}
+
+export async function updateSalesQuote(
+  id: string,
+  scope: FinancialsWorkspaceScope,
+  input: {
+    crmLeadId?: string | null;
+    clientId?: string | null;
+    companyName: string;
+    contactName?: string | null;
+    contactEmail?: string | null;
+    title?: string;
+    currency?: string;
+    issueDate?: string | null;
+    validUntil?: string | null;
+    reference?: string | null;
+    paymentTerms?: string | null;
+    termsAndConditions?: string | null;
+    notes?: string | null;
+    discountAmount?: number;
+    lineItems: SalesQuoteLineInput[];
+  },
+): Promise<SalesQuote> {
+  const existing = await getSalesQuoteById(id, scope);
+  if (!existing) throw new Error("Quote not found.");
+  if (existing.status === "accepted") {
+    throw new Error("Accepted quotes cannot be edited.");
+  }
+  if (existing.status === "declined" || existing.status === "expired") {
+    throw new Error(`Quote is ${existing.status} and cannot be edited.`);
+  }
+
+  if (!input.title?.trim()) {
+    throw new Error("Quote title is required.");
+  }
+  if (!input.lineItems.length) {
+    throw new Error("At least one line item is required.");
+  }
+  for (const line of input.lineItems) {
+    if (!line.description?.trim()) throw new Error("Each line item requires a description.");
+    if (!Number.isFinite(line.quantity) || line.quantity <= 0) {
+      throw new Error("Each line item requires a quantity greater than zero.");
+    }
+    if (!Number.isFinite(line.unitPrice) || line.unitPrice < 0) {
+      throw new Error("Each line item requires a valid rate.");
+    }
+  }
+
+  const totals = computeSalesQuoteTotals(input.lineItems, input.discountAmount ?? 0);
+  const fixture = resolveAccountingFixtureSource(scope.workspaceSlug);
+
+  if (fixture === "northstar" || fixture === "saec") {
+    const updated: SalesQuote = {
+      ...existing,
+      crmLeadId: input.crmLeadId ?? null,
+      clientId: input.clientId ?? null,
+      companyName: input.companyName,
+      contactName: input.contactName ?? null,
+      contactEmail: input.contactEmail ?? null,
+      title: input.title.trim(),
+      currency: input.currency ?? existing.currency,
+      subtotal: totals.subtotal,
+      taxAmount: totals.taxAmount,
+      totalAmount: totals.totalAmount,
+      discountAmount: totals.discountAmount,
+      issueDate: input.issueDate?.trim() || existing.issueDate,
+      validUntil: input.validUntil ?? existing.validUntil,
+      reference: input.reference ?? null,
+      paymentTerms: input.paymentTerms ?? null,
+      termsAndConditions: input.termsAndConditions ?? null,
+      notes: input.notes ?? null,
+      lineItems: totals.lines.map((line, index) => ({
+        id: `${existing.id}-line-${index + 1}`,
+        lineNumber: index + 1,
+        description: line.description.trim(),
+        quantity: line.quantity,
+        unit: line.unit ?? null,
+        unitPrice: line.unitPrice,
+        discountAmount: line.discountAmount ?? 0,
+        taxRate: line.taxRate ?? null,
+        taxAmount: line.taxAmount,
+        amount: line.amount,
+      })),
+      updatedAt: new Date().toISOString(),
+    };
+    return fixture === "saec" ? upsertSaecSalesQuote(updated) : upsertNorthstarSalesQuote(updated);
+  }
+
+  const workspaceId = await resolveFinancialsWorkspaceId(scope);
+  const supabase = requireSupabase();
+  const issueDate = input.issueDate?.trim() || existing.issueDate || new Date().toISOString().slice(0, 10);
+  const { error } = await supabase
+    .from("sales_quotes")
+    .update({
+      crm_lead_id: input.crmLeadId ?? null,
+      client_id: input.clientId ?? null,
+      company_name: input.companyName,
+      contact_name: input.contactName ?? null,
+      contact_email: input.contactEmail ?? null,
+      title: input.title.trim(),
+      currency: input.currency ?? existing.currency,
+      subtotal: totals.subtotal,
+      tax_amount: totals.taxAmount,
+      total_amount: totals.totalAmount,
+      discount_amount: totals.discountAmount,
+      issue_date: issueDate,
+      valid_until: input.validUntil ?? existing.validUntil,
+      reference: input.reference?.trim() || null,
+      payment_terms: input.paymentTerms?.trim() || null,
+      terms_and_conditions: input.termsAndConditions?.trim() || null,
+      notes: input.notes ?? null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("workspace_id", workspaceId)
+    .eq("id", id);
+  if (error) throw new Error(error.message);
+
+  const { error: deleteLinesError } = await supabase
+    .from("sales_quote_line_items")
+    .delete()
+    .eq("quote_id", id);
+  if (deleteLinesError) throw new Error(deleteLinesError.message);
+
+  const lineRows = totals.lines.map((line, index) => ({
+    quote_id: id,
+    line_number: index + 1,
+    description: line.description.trim(),
+    quantity: line.quantity,
+    unit: line.unit?.trim() || null,
+    unit_price: line.unitPrice,
+    discount_amount: line.discountAmount ?? 0,
+    tax_rate: line.taxRate ?? null,
+    tax_amount: line.taxAmount,
+    amount: line.amount,
+  }));
+  const { error: lineError } = await supabase.from("sales_quote_line_items").insert(lineRows);
+  if (lineError) throw new Error(lineError.message);
+
+  return (await getSalesQuoteById(id, scope))!;
 }
 
 export async function createSalesQuoteFromLead(

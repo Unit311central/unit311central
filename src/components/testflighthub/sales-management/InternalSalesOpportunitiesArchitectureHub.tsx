@@ -178,6 +178,9 @@ export default function InternalSalesOpportunitiesArchitectureHub({
     if (id) {
       setActiveLeadId(id);
       setFlow("record");
+    } else {
+      setActiveLeadId(null);
+      setFlow((current) => (current === "record" ? "list" : current));
     }
     const clientCreated = searchParams.get("clientCreated");
     if (clientCreated) {

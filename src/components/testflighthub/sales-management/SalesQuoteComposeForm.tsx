@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Loader2, Plus, Trash2 } from "lucide-react";
 
 import { computeSalesQuoteTotals } from "@/lib/accounting/sales-quote-calculations";
-import type { SalesQuoteSellerProfile } from "@/lib/accounting/types";
+import type { SalesQuote, SalesQuoteSellerProfile } from "@/lib/accounting/types";
 import type { ManagedClient } from "@/lib/client-management-data";
 import { resolveBrowserReportingCurrency, type ReportingCurrency } from "@/lib/financial-reporting-currency";
 import { cn } from "@/lib/utils";
@@ -27,11 +27,23 @@ function emptyLine(): SalesQuoteComposeLineDraft {
   return {
     key: `line-${Math.random().toString(36).slice(2, 9)}`,
     description: "",
-    quantity: "1",
-    unit: "Unit",
+    quantity: "",
+    unit: "",
     rate: "",
-    discount: "0",
-    taxRate: "0",
+    discount: "",
+    taxRate: "",
+  };
+}
+
+function lineFromSaved(line: SalesQuote["lineItems"][number]): SalesQuoteComposeLineDraft {
+  return {
+    key: `line-${line.id}`,
+    description: line.description,
+    quantity: String(line.quantity),
+    unit: line.unit ?? "",
+    rate: String(line.unitPrice),
+    discount: String(line.discountAmount ?? 0),
+    taxRate: line.taxRate != null ? String(line.taxRate) : "",
   };
 }
 
@@ -50,7 +62,9 @@ function money(amount: number, currency: ReportingCurrency) {
 
 function clientBillTo(client: ManagedClient | null) {
   if (!client) return null;
-  const contact = client.primaryContact?.trim() || [client.primaryContactFirstName, client.primaryContactSurname].filter(Boolean).join(" ");
+  const contact =
+    client.primaryContact?.trim() ||
+    [client.primaryContactFirstName, client.primaryContactSurname].filter(Boolean).join(" ");
   return {
     companyName: client.companyName,
     contactName: contact || null,
@@ -68,6 +82,7 @@ export function SalesQuoteComposeForm({
   clients,
   seller,
   busy,
+  editingQuote,
   onCancel,
   onSave,
 }: {
@@ -75,28 +90,47 @@ export function SalesQuoteComposeForm({
   clients: ManagedClient[];
   seller: SalesQuoteSellerProfile | null;
   busy: boolean;
+  editingQuote?: SalesQuote | null;
   onCancel: () => void;
   onSave: (payload: Record<string, unknown>) => void;
 }) {
+  const isEdit = Boolean(editingQuote?.id);
+
   const linkedClient = useMemo(() => {
     if (opportunityContext?.clientId) {
       return clients.find((c) => c.id === opportunityContext.clientId) ?? null;
     }
+    if (editingQuote?.clientId) {
+      return clients.find((c) => c.id === editingQuote.clientId) ?? null;
+    }
     return null;
-  }, [clients, opportunityContext?.clientId]);
+  }, [clients, opportunityContext?.clientId, editingQuote?.clientId]);
 
-  const [selectedClientId, setSelectedClientId] = useState(opportunityContext?.clientId ?? "");
-  const [quoteDate, setQuoteDate] = useState(todayIsoDate());
-  const [validUntil, setValidUntil] = useState("");
-  const [title, setTitle] = useState("");
-  const [reference, setReference] = useState("");
-  const [currency, setCurrency] = useState<ReportingCurrency>(resolveBrowserReportingCurrency());
-  const [lines, setLines] = useState<SalesQuoteComposeLineDraft[]>([emptyLine()]);
-  const [quoteDiscount, setQuoteDiscount] = useState("0");
-  const [paymentTerms, setPaymentTerms] = useState("");
-  const [notes, setNotes] = useState("");
-  const [terms, setTerms] = useState("");
-  const [manualCompanyName, setManualCompanyName] = useState("");
+  const [selectedClientId, setSelectedClientId] = useState(
+    opportunityContext?.clientId ?? editingQuote?.clientId ?? "",
+  );
+  const [quoteDate, setQuoteDate] = useState(editingQuote?.issueDate ?? todayIsoDate());
+  const [validUntil, setValidUntil] = useState(editingQuote?.validUntil ?? "");
+  const [title, setTitle] = useState(editingQuote?.title ?? "");
+  const [reference, setReference] = useState(editingQuote?.reference ?? "");
+  const [currency, setCurrency] = useState<ReportingCurrency>(
+    (editingQuote?.currency?.trim().toUpperCase() as ReportingCurrency) ||
+      resolveBrowserReportingCurrency(),
+  );
+  const [lines, setLines] = useState<SalesQuoteComposeLineDraft[]>(() =>
+    editingQuote?.lineItems?.length
+      ? editingQuote.lineItems.map(lineFromSaved)
+      : [emptyLine()],
+  );
+  const [quoteDiscount, setQuoteDiscount] = useState(
+    editingQuote ? String(editingQuote.discountAmount ?? 0) : "",
+  );
+  const [paymentTerms, setPaymentTerms] = useState(editingQuote?.paymentTerms ?? "");
+  const [notes, setNotes] = useState(editingQuote?.notes ?? "");
+  const [terms, setTerms] = useState(editingQuote?.termsAndConditions ?? "");
+  const [manualCompanyName, setManualCompanyName] = useState(
+    !editingQuote?.clientId && editingQuote?.companyName ? editingQuote.companyName : "",
+  );
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -114,8 +148,8 @@ export function SalesQuoteComposeForm({
     if (manualCompanyName.trim()) {
       return {
         companyName: manualCompanyName.trim(),
-        contactName: null,
-        email: null,
+        contactName: editingQuote?.contactName ?? null,
+        email: editingQuote?.contactEmail ?? null,
         phone: null,
         address: null,
         city: null,
@@ -135,8 +169,20 @@ export function SalesQuoteComposeForm({
         country: null,
       };
     }
+    if (editingQuote?.companyName) {
+      return {
+        companyName: editingQuote.companyName,
+        contactName: editingQuote.contactName,
+        email: editingQuote.contactEmail,
+        phone: null,
+        address: null,
+        city: null,
+        region: null,
+        country: null,
+      };
+    }
     return null;
-  }, [activeClient, opportunityContext?.prefill, manualCompanyName]);
+  }, [activeClient, opportunityContext?.prefill, manualCompanyName, editingQuote]);
 
   const parsedLines = useMemo(() => {
     return lines.map((line) => ({
@@ -161,7 +207,7 @@ export function SalesQuoteComposeForm({
       return;
     }
     if (!billTo?.companyName?.trim()) {
-      setError("Select a client or link a customer for this quote.");
+      setError("Select a client or enter a customer for this quote.");
       return;
     }
     if (!parsedLines.length || parsedLines.some((l) => !l.description)) {
@@ -178,8 +224,8 @@ export function SalesQuoteComposeForm({
     }
 
     onSave({
-      crmLeadId: opportunityContext?.crmLeadId ?? null,
-      clientId: activeClient?.id ?? opportunityContext?.clientId ?? null,
+      crmLeadId: opportunityContext?.crmLeadId ?? editingQuote?.crmLeadId ?? null,
+      clientId: activeClient?.id ?? opportunityContext?.clientId ?? editingQuote?.clientId ?? null,
       companyName: billTo.companyName.trim(),
       contactName: billTo.contactName,
       contactEmail: billTo.email,
@@ -201,11 +247,15 @@ export function SalesQuoteComposeForm({
     "mt-1.5 w-full rounded-lg border border-white/10 bg-[#0b1524] px-3 py-2 text-sm text-white";
 
   return (
-    <div className="space-y-4 rounded-xl border border-sky-400/25 bg-sky-500/5 p-4">
+    <div className="min-w-0 space-y-4 rounded-xl border border-sky-400/25 bg-sky-500/5 p-4">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
-          <h2 className="text-sm font-semibold text-white">Create new quote</h2>
-          <p className="mt-1 text-xs text-white/50">Nothing is saved until you click SAVE QUOTE.</p>
+          <h2 className="text-sm font-semibold text-white">
+            {isEdit ? "Edit quote" : "Create new quote"}
+          </h2>
+          <p className="mt-1 text-xs text-white/50">
+            {isEdit ? "Update fields and click SAVE QUOTE." : "Nothing is saved until you click SAVE QUOTE."}
+          </p>
         </div>
         <button type="button" onClick={onCancel} className="text-xs text-white/45 hover:text-white/70">
           Cancel
@@ -219,7 +269,11 @@ export function SalesQuoteComposeForm({
         <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <label className={fieldLabel}>
             Quote number
-            <input readOnly className={cn(fieldInput, "text-white/50")} value="Assigned on save" />
+            <input
+              readOnly
+              className={cn(fieldInput, "text-white/50")}
+              value={editingQuote?.quoteNumber ?? "Assigned on save"}
+            />
           </label>
           <label className={fieldLabel}>
             Quote date
@@ -264,10 +318,28 @@ export function SalesQuoteComposeForm({
                 <dd>{seller.email}</dd>
               </div>
             ) : null}
+            {seller.phone ? (
+              <div>
+                <dt className="text-xs text-white/40">Phone</dt>
+                <dd>{seller.phone}</dd>
+              </div>
+            ) : null}
             {seller.country ? (
               <div>
                 <dt className="text-xs text-white/40">Country</dt>
                 <dd>{seller.country}</dd>
+              </div>
+            ) : null}
+            {seller.address ? (
+              <div className="sm:col-span-2">
+                <dt className="text-xs text-white/40">Address</dt>
+                <dd className="whitespace-pre-wrap">{seller.address}</dd>
+              </div>
+            ) : null}
+            {seller.website ? (
+              <div>
+                <dt className="text-xs text-white/40">Website</dt>
+                <dd>{seller.website}</dd>
               </div>
             ) : null}
           </dl>
@@ -299,6 +371,7 @@ export function SalesQuoteComposeForm({
                 <select
                   className={fieldInput}
                   value={selectedClientId}
+                  disabled={isEdit && Boolean(opportunityContext?.crmLeadId)}
                   onChange={(e) => {
                     setSelectedClientId(e.target.value);
                     if (e.target.value) setManualCompanyName("");
@@ -312,7 +385,7 @@ export function SalesQuoteComposeForm({
                   ))}
                 </select>
               </label>
-              {!selectedClientId ? (
+              {!selectedClientId && !opportunityContext?.crmLeadId ? (
                 <label className={cn(fieldLabel, "sm:col-span-2")}>
                   Customer name (when no client selected)
                   <input
@@ -363,11 +436,11 @@ export function SalesQuoteComposeForm({
             ) : null}
           </dl>
         ) : (
-          <p className="mt-2 text-xs text-white/45">Select a client or create this quote from an opportunity with a linked client.</p>
+          <p className="mt-2 text-xs text-white/45">Select a client or enter a customer name for this quote.</p>
         )}
       </section>
 
-      <section className="rounded-lg border border-white/10 bg-[#0b1524]/40 p-3">
+      <section className="min-w-0 rounded-lg border border-white/10 bg-[#0b1524]/40 p-3">
         <div className="flex items-center justify-between gap-2">
           <h3 className={fieldLabel}>Line items</h3>
           <button
@@ -380,8 +453,8 @@ export function SalesQuoteComposeForm({
         </div>
         <div className="mt-3 space-y-3">
           {lines.map((line, index) => (
-            <div key={line.key} className="grid gap-2 rounded-lg border border-white/10 p-3 sm:grid-cols-6">
-              <label className={cn(fieldLabel, "sm:col-span-6")}>
+            <div key={line.key} className="grid gap-2 rounded-lg border border-white/10 p-3 lg:grid-cols-12">
+              <label className={cn(fieldLabel, "lg:col-span-12")}>
                 Description
                 <input
                   className={fieldInput}
@@ -391,7 +464,7 @@ export function SalesQuoteComposeForm({
                   }
                 />
               </label>
-              <label className={fieldLabel}>
+              <label className={cn(fieldLabel, "lg:col-span-2")}>
                 Qty
                 <input
                   type="number"
@@ -404,15 +477,16 @@ export function SalesQuoteComposeForm({
                   }
                 />
               </label>
-              <label className={fieldLabel}>
+              <label className={cn(fieldLabel, "lg:col-span-2")}>
                 Unit
                 <select
                   className={fieldInput}
-                  value={line.unit}
+                  value={line.unit || ""}
                   onChange={(e) =>
                     setLines((rows) => rows.map((row, i) => (i === index ? { ...row, unit: e.target.value } : row)))
                   }
                 >
+                  <option value="">—</option>
                   {UNIT_OPTIONS.map((unit) => (
                     <option key={unit} value={unit}>
                       {unit}
@@ -420,7 +494,7 @@ export function SalesQuoteComposeForm({
                   ))}
                 </select>
               </label>
-              <label className={fieldLabel}>
+              <label className={cn(fieldLabel, "lg:col-span-2")}>
                 Rate
                 <input
                   type="number"
@@ -433,7 +507,7 @@ export function SalesQuoteComposeForm({
                   }
                 />
               </label>
-              <label className={fieldLabel}>
+              <label className={cn(fieldLabel, "lg:col-span-2")}>
                 Discount
                 <input
                   type="number"
@@ -446,7 +520,7 @@ export function SalesQuoteComposeForm({
                   }
                 />
               </label>
-              <label className={fieldLabel}>
+              <label className={cn(fieldLabel, "lg:col-span-2")}>
                 Tax %
                 <input
                   type="number"
@@ -459,7 +533,7 @@ export function SalesQuoteComposeForm({
                   }
                 />
               </label>
-              <div className="flex items-end justify-between sm:col-span-6">
+              <div className="flex items-end justify-between lg:col-span-12">
                 <p className="text-xs text-white/55">
                   Line total: {money(totals.lines[index]?.amount ?? 0, currency)}
                 </p>

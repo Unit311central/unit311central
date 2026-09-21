@@ -87,6 +87,17 @@ const href = getInternalNavHref("sales-management", "/internaldashboard", { tab:
 assert.ok(href.includes("view=sales-management"));
 assert.ok(href.includes("tab=pipeline"));
 
+const opportunitiesHref = getInternalNavHref("sales-management", "/", {
+  tab: "opportunities",
+  leadId: "stale-lead",
+  opportunityId: "stale-lead",
+  recordName: "Stale Co",
+  salesOpportunityReturn: "1",
+});
+assert.ok(opportunitiesHref.includes("tab=opportunities"));
+assert.ok(!opportunitiesHref.includes("leadId="), "Opportunities list nav must not carry leadId");
+assert.ok(!opportunitiesHref.includes("recordName="), "Opportunities list nav must not carry recordName");
+
 const demoEnablement = resolveWorkspaceNavEnablement({
   workspaceSlug: "demo",
   workspaceType: "Demo",

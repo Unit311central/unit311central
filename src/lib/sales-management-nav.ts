@@ -58,6 +58,15 @@ export const SALES_MANAGEMENT_QUERY_PARAM_VIEWS: ReadonlySet<InternalOperationsV
   "sales-management",
 ]);
 
+/** Strip these when opening the Opportunities list from main nav (not deep links). */
+export const SALES_OPPORTUNITY_DEEP_LINK_PARAMS = [
+  "leadId",
+  "opportunityId",
+  "recordName",
+  "salesOpportunityReturn",
+  "panel",
+] as const;
+
 function salesTabChild(tabId: SalesManagementTabId, label: string): InternalNavChildItem {
   return {
     label,

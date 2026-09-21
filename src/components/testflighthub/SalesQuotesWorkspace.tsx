@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Copy, FileText, Link2, Loader2, Mail, Plus, RefreshCw, Trash2 } from "lucide-react";
+import { Copy, FileText, Link2, Loader2, Mail, Pencil, Plus, RefreshCw, Trash2 } from "lucide-react";
 
 import { SalesQuoteComposeForm } from "@/components/testflighthub/sales-management/SalesQuoteComposeForm";
 import type { SalesQuote, SalesQuoteSellerProfile } from "@/lib/accounting/types";
@@ -73,6 +73,7 @@ export default function SalesQuotesWorkspace({
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [composeOpen, setComposeOpen] = useState(false);
+  const [editingQuote, setEditingQuote] = useState<SalesQuote | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -197,41 +198,70 @@ export default function SalesQuotesWorkspace({
   function openComposeForm() {
     setError(null);
     setNotice(null);
+    setEditingQuote(null);
     setComposeOpen(true);
   }
 
+  function openEditForm(quote: SalesQuote) {
+    if (quote.status === "accepted") return;
+    setError(null);
+    setNotice(null);
+    setEditingQuote(quote);
+    setComposeOpen(true);
+  }
+
+  function closeComposeForm() {
+    setComposeOpen(false);
+    setEditingQuote(null);
+  }
+
   async function saveComposedQuote(payload: Record<string, unknown>) {
-    setBusyId("create");
+    const editingId = editingQuote?.id;
+    setBusyId(editingId ?? "create");
     setError(null);
     setNotice(null);
     try {
-      const response = await fetch("/api/financials/quotes", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
+      const response = await fetch(
+        editingId ? `/api/financials/quotes/${editingId}` : "/api/financials/quotes",
+        {
+          method: editingId ? "PATCH" : "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        },
+      );
       const body = (await response.json()) as { quote?: SalesQuote; error?: string };
-      if (!response.ok) throw new Error(body.error ?? "Create failed");
-      if (body.quote) setQuotes((rows) => [body.quote!, ...rows]);
-      setComposeOpen(false);
-      setNotice("Quote saved.");
+      if (!response.ok) throw new Error(body.error ?? (editingId ? "Update failed" : "Create failed"));
+      if (body.quote) {
+        setQuotes((rows) =>
+          editingId ? rows.map((row) => (row.id === editingId ? body.quote! : row)) : [body.quote!, ...rows],
+        );
+      }
+      closeComposeForm();
+      setNotice(editingId ? "Quote updated." : "Quote saved.");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Create failed");
+      setError(err instanceof Error ? err.message : editingId ? "Update failed" : "Create failed");
     } finally {
       setBusyId(null);
     }
   }
 
+  function canEditQuote(quote: SalesQuote) {
+    return quote.status === "draft" || quote.status === "sent";
+  }
+
   return (
     <div className={cn("flex h-full min-h-0 flex-col", embedded ? "gap-3" : "gap-4 p-4 md:p-6")}>
       <div className="flex flex-wrap items-start justify-between gap-3">
-        {!listOnly ? (
-          <div>
-            <h1 className={cn("font-semibold text-white", embedded ? "text-lg" : "text-xl")}>{title}</h1>
-          </div>
-        ) : (
-          <div className="min-w-0 flex-1" />
-        )}
+        <div className="min-w-0">
+          <h1
+            className={cn(
+              "font-semibold uppercase tracking-[0.06em] text-white",
+              embedded || listOnly ? "text-base" : "text-xl",
+            )}
+          >
+            {title}
+          </h1>
+        </div>
         <div className="flex flex-wrap gap-2">
           <button
             type="button"
@@ -270,50 +300,54 @@ export default function SalesQuotesWorkspace({
           opportunityContext={opportunityContext}
           clients={clients}
           seller={seller}
-          busy={busyId === "create"}
-          onCancel={() => setComposeOpen(false)}
+          editingQuote={editingQuote}
+          busy={busyId === "create" || Boolean(editingQuote && busyId === editingQuote.id)}
+          onCancel={closeComposeForm}
           onSave={(payload) => void saveComposedQuote(payload)}
         />
       ) : null}
 
-      <div className="min-h-0 min-w-0 flex-1 overflow-x-auto rounded-xl border border-white/10 bg-[#07111f]/50">
-        <table className="w-full min-w-0 text-left text-sm">
+      <div className="min-h-0 min-w-0 flex-1 overflow-hidden rounded-xl border border-white/10 bg-[#07111f]/50">
+        <table className="w-full table-fixed text-left text-sm">
           <thead className="sticky top-0 bg-[#0b1220] text-[11px] uppercase tracking-[0.12em] text-white/45">
             <tr>
-              <th className="px-4 py-3 font-semibold">Quote</th>
-              <th className="px-4 py-3 font-semibold">Customer</th>
-              <th className="px-4 py-3 font-semibold">Total</th>
-              <th className="px-4 py-3 font-semibold">Status</th>
-              <th className="px-4 py-3 font-semibold">Valid until</th>
-              <th className="px-4 py-3 font-semibold">Actions</th>
+              <th className="w-[12%] px-3 py-3 font-semibold">Quote number</th>
+              <th className="w-[18%] px-3 py-3 font-semibold">Customer</th>
+              <th className="w-[22%] px-3 py-3 font-semibold">Quote title</th>
+              <th className="w-[10%] px-3 py-3 font-semibold">Total</th>
+              <th className="w-[10%] px-3 py-3 font-semibold">Status</th>
+              <th className="w-[10%] px-3 py-3 font-semibold">Valid until</th>
+              <th className="w-[18%] px-3 py-3 font-semibold">Actions</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={6} className="px-4 py-8 text-center text-white/50">
+                <td colSpan={7} className="px-4 py-8 text-center text-white/50">
                   <Loader2 className="mx-auto h-5 w-5 animate-spin" />
                 </td>
               </tr>
             ) : visibleQuotes.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-4 py-8 text-center text-white/50">
+                <td colSpan={7} className="px-4 py-8 text-center text-white/50">
                   {opportunityContext ? "No quotes linked to this opportunity yet." : "No quotes yet."}
                 </td>
               </tr>
             ) : (
               visibleQuotes.map((quote) => (
                 <tr key={quote.id} className="border-t border-white/5 text-white/80">
-                  <td className="px-4 py-3">
-                    <div className="font-medium text-white">{quote.quoteNumber}</div>
-                    <div className="text-xs text-white/45">{quote.title}</div>
+                  <td className="truncate px-3 py-3 font-medium text-white">{quote.quoteNumber}</td>
+                  <td className="px-3 py-3">
+                    <div className="truncate">{quote.companyName}</div>
+                    {quote.contactName ? (
+                      <div className="truncate text-xs text-white/45">{quote.contactName}</div>
+                    ) : null}
                   </td>
-                  <td className="px-4 py-3">
-                    <div>{quote.companyName}</div>
-                    <div className="text-xs text-white/45">{quote.contactName}</div>
+                  <td className="truncate px-3 py-3">{quote.title}</td>
+                  <td className="truncate px-3 py-3">
+                    {money(quote.totalAmount, resolveSalesQuoteCurrency(quote.currency))}
                   </td>
-                  <td className="px-4 py-3">{money(quote.totalAmount, resolveSalesQuoteCurrency(quote.currency))}</td>
-                  <td className="px-4 py-3">
+                  <td className="px-3 py-3">
                     <span
                       className={cn(
                         "inline-flex rounded-full border px-2.5 py-0.5 text-xs font-medium capitalize",
@@ -323,9 +357,20 @@ export default function SalesQuotesWorkspace({
                       {quote.status}
                     </span>
                   </td>
-                  <td className="px-4 py-3">{quote.validUntil ?? "—"}</td>
-                  <td className="px-4 py-3">
-                    <div className="flex flex-wrap gap-2">
+                  <td className="truncate px-3 py-3">{quote.validUntil ?? "—"}</td>
+                  <td className="px-3 py-3">
+                    <div className="flex flex-wrap gap-1.5">
+                      {canEditQuote(quote) ? (
+                        <button
+                          type="button"
+                          disabled={busyId === quote.id}
+                          onClick={() => openEditForm(quote)}
+                          className="inline-flex items-center gap-1 rounded border border-white/10 px-2 py-1 text-xs hover:bg-white/5"
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                          Edit
+                        </button>
+                      ) : null}
                       <button
                         type="button"
                         disabled={busyId === quote.id}

@@ -2055,16 +2055,27 @@ export function getInternalNavHref(
   }
 
   if (view === "sales-management") {
+    const tab =
+      query?.tab && isSalesManagementTab(query.tab)
+        ? query.tab
+        : DEFAULT_SALES_MANAGEMENT_TAB;
     const params = new URLSearchParams({
       view: "sales-management",
-      tab:
-        query?.tab && isSalesManagementTab(query.tab)
-          ? query.tab
-          : DEFAULT_SALES_MANAGEMENT_TAB,
+      tab,
     });
     if (query) {
       for (const [key, value] of Object.entries(query)) {
         if (key === "view" || key === "tab") continue;
+        if (
+          tab === "opportunities" &&
+          (key === "leadId" ||
+            key === "opportunityId" ||
+            key === "recordName" ||
+            key === "salesOpportunityReturn" ||
+            key === "panel")
+        ) {
+          continue;
+        }
         params.set(key, value);
       }
     }
