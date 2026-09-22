@@ -15,6 +15,10 @@ import type {
   LmsModule,
   LmsQuestion,
 } from "@/lib/lms/types";
+import {
+  buildInitialCourseCode,
+  courseCodeAfterCollision,
+} from "@/lib/lms/course-code";
 import { sanitizeCourseLessonInput, sanitizeLessonContent } from "@/lib/lms/sanitize-lesson-content";
 
 function db() {
@@ -171,6 +175,20 @@ export async function getCourseBySlug(
     .select("*")
     .eq("workspace_id", workspaceId)
     .eq("slug", slug)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  return data ? mapCourse(data as Record<string, unknown>) : null;
+}
+
+export async function getCourseByCode(
+  workspaceId: string,
+  code: string,
+): Promise<LmsCourse | null> {
+  const { data, error } = await db()
+    .from("lms_courses")
+    .select("*")
+    .eq("workspace_id", workspaceId)
+    .eq("code", code)
     .maybeSingle();
   if (error) throw new Error(error.message);
   return data ? mapCourse(data as Record<string, unknown>) : null;
@@ -891,9 +909,20 @@ export async function createCourseTree(
     slug = `${baseSlug}-${i + 2}`;
   }
 
-  const code =
-    input.code?.trim() ||
-    `ABHI-${slug.replace(/[^a-z0-9]+/g, "-").toUpperCase().slice(0, 24)}`;
+  const baseCode = buildInitialCourseCode(slug, input.code);
+  let code = baseCode;
+  for (let i = 0; i < 8; i += 1) {
+    const existingCode = await getCourseByCode(workspaceId, code);
+    if (!existingCode) break;
+    code = courseCodeAfterCollision(baseCode, i + 1);
+  }
+  const stillTaken = await getCourseByCode(workspaceId, code);
+  if (stillTaken) {
+    throw new Error(
+      "Could not allocate a unique course code for this workspace. Try a different title or course code.",
+    );
+  }
+
   const passMark = input.passMark ?? 80;
   const status = input.status ?? "draft";
   const objectivesNote =
