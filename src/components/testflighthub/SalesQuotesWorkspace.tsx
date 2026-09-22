@@ -42,6 +42,22 @@ function money(amount: number, currency?: ReportingCurrency) {
   }
 }
 
+async function readApiJson<T>(response: Response): Promise<T> {
+  const text = await response.text();
+  if (!text) {
+    throw new Error(`Request failed (${response.status})`);
+  }
+  const contentType = response.headers.get("content-type") ?? "";
+  if (!contentType.includes("application/json")) {
+    throw new Error(`Request failed (${response.status})`);
+  }
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    throw new Error(`Request failed (${response.status})`);
+  }
+}
+
 export type SalesQuotesOpportunityContext = {
   crmLeadId: string;
   clientId?: string | null;
@@ -85,10 +101,14 @@ export default function SalesQuotesWorkspace({
         fetch("/api/clients", { cache: "no-store" }),
         fetch("/api/financials/quotes/compose-context", { cache: "no-store" }),
       ]);
-      const quotesBody = (await quotesRes.json()) as { quotes?: SalesQuote[]; error?: string };
-      const clientsBody = (await clientsRes.json()) as { clients?: ManagedClient[] };
-      const contextBody = (await contextRes.json()) as { seller?: SalesQuoteSellerProfile; error?: string };
+      const quotesBody = await readApiJson<{ quotes?: SalesQuote[]; error?: string }>(quotesRes);
+      const clientsBody = await readApiJson<{ clients?: ManagedClient[]; error?: string }>(clientsRes);
+      const contextBody = await readApiJson<{ seller?: SalesQuoteSellerProfile; error?: string }>(
+        contextRes,
+      );
       if (!quotesRes.ok) throw new Error(quotesBody.error ?? "Failed to load quotes");
+      if (!clientsRes.ok) throw new Error(clientsBody.error ?? "Failed to load clients");
+      if (!contextRes.ok) throw new Error(contextBody.error ?? "Failed to load quote context");
       setQuotes(quotesBody.quotes ?? []);
       setClients(clientsBody.clients ?? []);
       setSeller(contextBody.seller ?? null);
@@ -119,7 +139,7 @@ export default function SalesQuotesWorkspace({
       if (action === "delete") {
         if (!window.confirm("Delete this quote? This cannot be undone.")) return;
         const response = await fetch(`/api/financials/quotes/${id}`, { method: "DELETE" });
-        const body = (await response.json().catch(() => ({}))) as { error?: string };
+        const body = await readApiJson<{ error?: string }>(response);
         if (!response.ok) throw new Error(body.error ?? "Delete failed");
         setQuotes((rows) => rows.filter((row) => row.id !== id));
         setNotice("Quote deleted.");
@@ -133,7 +153,7 @@ export default function SalesQuotesWorkspace({
           body: JSON.stringify({ action }),
         });
         if (!response.ok) {
-          const body = (await response.json().catch(() => ({}))) as { error?: string };
+          const body = await readApiJson<{ error?: string }>(response);
           throw new Error(body.error ?? "PDF generation failed");
         }
         const blob = await response.blob();
@@ -156,12 +176,12 @@ export default function SalesQuotesWorkspace({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ action }),
         });
-        const body = (await response.json()) as {
+        const body = await readApiJson<{
           quote?: SalesQuote;
           simulated?: boolean;
           messageId?: string | null;
           error?: string;
-        };
+        }>(response);
         if (!response.ok) throw new Error(body.error ?? "Action failed");
         if (body.quote) {
           setQuotes((rows) => rows.map((row) => (row.id === id ? body.quote! : row)));
@@ -181,7 +201,7 @@ export default function SalesQuotesWorkspace({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action }),
       });
-      const body = (await response.json()) as { quote?: SalesQuote; error?: string };
+      const body = await readApiJson<{ quote?: SalesQuote; error?: string }>(response);
       if (!response.ok) throw new Error(body.error ?? "Action failed");
       if (body.quote) {
         setQuotes((rows) => rows.map((row) => (row.id === id ? body.quote! : row)));
@@ -229,7 +249,7 @@ export default function SalesQuotesWorkspace({
           body: JSON.stringify(payload),
         },
       );
-      const body = (await response.json()) as { quote?: SalesQuote; error?: string };
+      const body = await readApiJson<{ quote?: SalesQuote; error?: string }>(response);
       if (!response.ok) throw new Error(body.error ?? (editingId ? "Update failed" : "Create failed"));
       if (body.quote) {
         setQuotes((rows) =>

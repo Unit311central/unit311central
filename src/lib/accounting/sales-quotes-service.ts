@@ -4,10 +4,6 @@ import {
   type SalesQuoteLineInput,
 } from "@/lib/accounting/sales-quote-calculations";
 import {
-  appendTermsPdfToQuote,
-  buildSalesQuotePdfDocument,
-} from "@/lib/accounting/sales-quote-pdf-build";
-import {
   DEFAULT_SALES_QUOTE_LINE_COLUMN_VISIBILITY,
   normalizeBankDetails,
   normalizeLineColumnVisibility,
@@ -773,6 +769,9 @@ export async function acceptSalesQuote(
 }
 
 export async function renderSalesQuotePdf(quote: SalesQuote, seller?: SalesQuoteSellerProfile) {
+  const { appendTermsPdfToQuote, buildSalesQuotePdfDocument } = await import(
+    "@/lib/accounting/sales-quote-pdf-build"
+  );
   const main = await buildSalesQuotePdfDocument(quote, seller);
   if (!quote.termsPdfStoragePath) return main;
   const terms = await downloadSalesQuoteTermsPdf(quote.termsPdfStoragePath);
