@@ -11,10 +11,6 @@ import { resolveWorkspaceNavEnablement } from "@/lib/platform-workspaces/workspa
 import { createInitialUsers, type ManagedUser } from "@/lib/user-management-data";
 import { cn } from "@/lib/utils";
 import {
-  fetchCachedJson,
-  PLATFORM_CACHE_KEYS,
-} from "@/lib/platform-fetch-cache";
-import {
   Bell,
   ChevronDown,
   Globe,
