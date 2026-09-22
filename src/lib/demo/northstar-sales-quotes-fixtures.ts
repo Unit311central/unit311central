@@ -2,6 +2,7 @@
  * Northstar demo — sales quote fixtures for Track C money workflows.
  */
 
+import { DEFAULT_SALES_QUOTE_LINE_COLUMN_VISIBILITY } from "@/lib/accounting/sales-quote-display";
 import type { SalesQuote } from "@/lib/accounting/types";
 
 const WS = "demo-workspace";
@@ -33,11 +34,17 @@ const SEED_QUOTES: SalesQuote[] = [
     paymentTerms: null,
     termsAndConditions: null,
     discountAmount: 0,
+    pricingStyle: "detailed",
+    lineColumnVisibility: DEFAULT_SALES_QUOTE_LINE_COLUMN_VISIBILITY,
+    bankDetails: null,
+    termsPdfStoragePath: null,
+    termsPdfFilename: null,
     lineItems: [
       {
         id: "nst-quote-001-line-1",
         lineNumber: 1,
         description: "Atlas platform licence (250 sensors)",
+        detailText: null,
         quantity: 1,
         unit: "Project",
         unitPrice: 72_000,
@@ -50,6 +57,7 @@ const SEED_QUOTES: SalesQuote[] = [
         id: "nst-quote-001-line-2",
         lineNumber: 2,
         description: "Implementation & onboarding",
+        detailText: null,
         quantity: 1,
         unit: "Project",
         unitPrice: 12_000,
@@ -87,11 +95,17 @@ const SEED_QUOTES: SalesQuote[] = [
     paymentTerms: null,
     termsAndConditions: null,
     discountAmount: 0,
+    pricingStyle: "detailed",
+    lineColumnVisibility: DEFAULT_SALES_QUOTE_LINE_COLUMN_VISIBILITY,
+    bankDetails: null,
+    termsPdfStoragePath: null,
+    termsPdfFilename: null,
     lineItems: [
       {
         id: "nst-quote-002-line-1",
         lineNumber: 1,
         description: "Pilot edge kit (12 sensors + gateway)",
+        detailText: null,
         quantity: 1,
         unit: "Unit",
         unitPrice: 14_000,
@@ -104,6 +118,7 @@ const SEED_QUOTES: SalesQuote[] = [
         id: "nst-quote-002-line-2",
         lineNumber: 2,
         description: "Professional services — install & training",
+        detailText: null,
         quantity: 1,
         unit: "Project",
         unitPrice: 4_500,

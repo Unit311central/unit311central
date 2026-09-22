@@ -90,6 +90,7 @@ export type SalesQuoteLineItem = {
   id: string;
   lineNumber: number;
   description: string;
+  detailText: string | null;
   quantity: number;
   unit: string | null;
   unitPrice: number;
@@ -126,12 +127,36 @@ export type SalesQuote = {
   paymentTerms: string | null;
   termsAndConditions: string | null;
   discountAmount: number;
+  pricingStyle: "detailed" | "scope_total";
+  lineColumnVisibility: {
+    showQuantity: boolean;
+    showUnit: boolean;
+    showRate: boolean;
+    showDiscount: boolean;
+    showTax: boolean;
+  };
+  bankDetails: {
+    accountName?: string;
+    bankName?: string;
+    accountNumber?: string;
+    iban?: string;
+    swiftBic?: string;
+    sortCode?: string;
+    other?: string;
+  } | null;
+  termsPdfStoragePath: string | null;
+  termsPdfFilename: string | null;
   lineItems: SalesQuoteLineItem[];
   createdAt: string;
   updatedAt: string;
 };
 
 export type SalesQuoteSellerProfile = {
+  brandName: string;
+  legalCompanyName: string | null;
+  tradingName: string | null;
+  companyNumber: string | null;
+  vatTaxNumber: string | null;
   companyName: string;
   contactName: string | null;
   email: string | null;

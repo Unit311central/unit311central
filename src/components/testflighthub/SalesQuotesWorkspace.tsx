@@ -235,8 +235,15 @@ export default function SalesQuotesWorkspace({
         setQuotes((rows) =>
           editingId ? rows.map((row) => (row.id === editingId ? body.quote! : row)) : [body.quote!, ...rows],
         );
+        if (!editingId) {
+          setEditingQuote(body.quote);
+          setComposeOpen(true);
+        } else {
+          closeComposeForm();
+        }
+      } else {
+        closeComposeForm();
       }
-      closeComposeForm();
       setNotice(editingId ? "Quote updated." : "Quote saved.");
     } catch (err) {
       setError(err instanceof Error ? err.message : editingId ? "Update failed" : "Create failed");

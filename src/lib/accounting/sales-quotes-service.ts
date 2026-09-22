@@ -1,6 +1,21 @@
 import { postInvoiceIssueJournal } from "@/lib/accounting/posting-rules";
-import { computeSalesQuoteTotals, type SalesQuoteLineInput } from "@/lib/accounting/sales-quote-calculations";
-import { buildSalesQuotePdf } from "@/lib/accounting/sales-quote-pdf";
+import {
+  resolveSalesQuoteFinancials,
+  type SalesQuoteLineInput,
+} from "@/lib/accounting/sales-quote-calculations";
+import {
+  appendTermsPdfToQuote,
+  buildSalesQuotePdfDocument,
+} from "@/lib/accounting/sales-quote-pdf-build";
+import {
+  DEFAULT_SALES_QUOTE_LINE_COLUMN_VISIBILITY,
+  normalizeBankDetails,
+  normalizeLineColumnVisibility,
+  type SalesQuoteBankDetails,
+  type SalesQuoteLineColumnVisibility,
+  type SalesQuotePricingStyle,
+} from "@/lib/accounting/sales-quote-display";
+import { downloadSalesQuoteTermsPdf } from "@/lib/accounting/sales-quote-terms-storage";
 import type {
   LedgerInvoice,
   SalesQuote,
@@ -48,6 +63,7 @@ function mapLineItem(row: Record<string, unknown>): SalesQuoteLineItem {
     id: String(row.id),
     lineNumber: Number(row.line_number) || 0,
     description: String(row.description),
+    detailText: row.detail_text ? String(row.detail_text) : null,
     quantity: Number(row.quantity) || 0,
     unit: row.unit ? String(row.unit) : null,
     unitPrice: Number(row.unit_price) || 0,
@@ -84,47 +100,73 @@ function mapQuote(row: Record<string, unknown>, lineItems: SalesQuoteLineItem[])
     paymentTerms: row.payment_terms ? String(row.payment_terms) : null,
     termsAndConditions: row.terms_and_conditions ? String(row.terms_and_conditions) : null,
     discountAmount: Number(row.discount_amount) || 0,
+    pricingStyle: (row.pricing_style === "scope_total" ? "scope_total" : "detailed") as SalesQuotePricingStyle,
+    lineColumnVisibility: normalizeLineColumnVisibility(row.line_column_visibility),
+    bankDetails: normalizeBankDetails(row.bank_details),
+    termsPdfStoragePath: row.terms_pdf_storage_path ? String(row.terms_pdf_storage_path) : null,
+    termsPdfFilename: row.terms_pdf_filename ? String(row.terms_pdf_filename) : null,
     lineItems,
     createdAt: String(row.created_at),
     updatedAt: String(row.updated_at),
   };
 }
 
-function companyDisplayName(row: CompanyDetails): string {
-  const trading = row.tradingName.trim();
-  const legal = row.legalCompanyName.trim();
-  return trading || legal || "Unit311 Central";
+function entityLabel(row: CompanyDetails) {
+  return `${row.tradingName} ${row.legalCompanyName}`.toLowerCase();
 }
 
-function scoreQuotingEntity(row: CompanyDetails): number {
-  const label = `${row.tradingName} ${row.legalCompanyName}`.toLowerCase();
-  let score = 100 - row.displayOrder;
-  if (label.includes("unit311")) score += 200;
-  if (label.includes("unit 311")) score += 200;
-  if (label.includes("nakama")) score -= 500;
-  if (row.companyStatus !== "Active") score -= 300;
-  return score;
-}
-
-function pickQuotingCompanyEntity(companies: CompanyDetails[]): CompanyDetails | null {
+function pickBrandEntity(companies: CompanyDetails[]): CompanyDetails | null {
   const active = companies.filter((row) => !row.archivedAt);
-  if (!active.length) return null;
-  return [...active].sort((a, b) => scoreQuotingEntity(b) - scoreQuotingEntity(a))[0] ?? null;
+  return (
+    active.find((row) => /unit311|unit 311/.test(entityLabel(row))) ??
+    active.find((row) => row.tradingName.trim()) ??
+    null
+  );
 }
 
-function mapCompanyDetailsToSeller(row: CompanyDetails): SalesQuoteSellerProfile {
-  const address =
-    row.principalBusinessAddress.trim() || row.registeredOfficeAddress.trim() || null;
+function pickLegalEntity(companies: CompanyDetails[]): CompanyDetails | null {
+  const active = companies.filter((row) => !row.archivedAt);
+  return (
+    active.find((row) => /nakama/.test(entityLabel(row))) ??
+    active.find((row) => /holdings/.test(entityLabel(row))) ??
+    active[0] ??
+    null
+  );
+}
+
+function mapCompanyDetailsToSeller(
+  brand: CompanyDetails | null,
+  legal: CompanyDetails | null,
+): SalesQuoteSellerProfile {
+  const brandName =
+    brand?.tradingName.trim() ||
+    brand?.legalCompanyName.trim() ||
+    "Unit311 Central";
+  const addressSource = legal ?? brand;
+  const address = addressSource
+    ? addressSource.registeredOfficeAddress.trim() ||
+      addressSource.principalBusinessAddress.trim() ||
+      null
+    : null;
+  const email =
+    legal?.primaryEmail.trim() ||
+    brand?.primaryEmail.trim() ||
+    null;
   return {
-    companyName: companyDisplayName(row),
+    brandName,
+    legalCompanyName: legal?.legalCompanyName.trim() || null,
+    tradingName: brand?.tradingName.trim() || null,
+    companyNumber: legal?.companyNumber.trim() || brand?.companyNumber.trim() || null,
+    vatTaxNumber: legal?.vatTaxNumber.trim() || brand?.vatTaxNumber.trim() || null,
+    companyName: brandName,
     contactName: null,
-    email: row.primaryEmail.trim() || null,
-    phone: row.primaryTelephone.trim() || null,
+    email,
+    phone: legal?.primaryTelephone.trim() || brand?.primaryTelephone.trim() || null,
     address,
     city: null,
     region: null,
-    country: row.countryOfRegistration.trim() || null,
-    website: row.website.trim() || null,
+    country: legal?.countryOfRegistration.trim() || brand?.countryOfRegistration.trim() || null,
+    website: brand?.website.trim() || legal?.website.trim() || null,
   };
 }
 
@@ -133,8 +175,9 @@ export async function getSalesQuoteSellerProfile(
 ): Promise<SalesQuoteSellerProfile> {
   try {
     const companies = await listCompanyDetails({ workspaceId });
-    const entity = pickQuotingCompanyEntity(companies);
-    if (entity) return mapCompanyDetailsToSeller(entity);
+    const brand = pickBrandEntity(companies);
+    const legal = pickLegalEntity(companies);
+    if (brand || legal) return mapCompanyDetailsToSeller(brand, legal);
   } catch {
     // Fall through when Corporate Information schema is unavailable.
   }
@@ -146,8 +189,14 @@ export async function getSalesQuoteSellerProfile(
     .eq("id", workspaceId)
     .maybeSingle();
 
+  const fallback = workspace?.name?.trim() || "Unit311 Central";
   return {
-    companyName: workspace?.name?.trim() || "Unit311 Central",
+    brandName: fallback,
+    legalCompanyName: null,
+    tradingName: null,
+    companyNumber: null,
+    vatTaxNumber: null,
+    companyName: fallback,
     contactName: null,
     email: null,
     phone: null,
@@ -156,6 +205,63 @@ export async function getSalesQuoteSellerProfile(
     region: null,
     country: null,
     website: null,
+  };
+}
+
+type SalesQuoteWriteInput = {
+  crmLeadId?: string | null;
+  clientId?: string | null;
+  companyName: string;
+  contactName?: string | null;
+  contactEmail?: string | null;
+  title?: string;
+  currency?: string;
+  issueDate?: string | null;
+  validUntil?: string | null;
+  reference?: string | null;
+  paymentTerms?: string | null;
+  termsAndConditions?: string | null;
+  notes?: string | null;
+  discountAmount?: number;
+  commercialTotal?: number | null;
+  pricingStyle?: SalesQuotePricingStyle;
+  lineColumnVisibility?: SalesQuoteLineColumnVisibility;
+  bankDetails?: SalesQuoteBankDetails | null;
+  termsPdfStoragePath?: string | null;
+  termsPdfFilename?: string | null;
+  lineItems: SalesQuoteLineInput[];
+};
+
+function validateLineDescriptions(lineItems: SalesQuoteLineInput[]) {
+  if (!lineItems.length) throw new Error("At least one line item is required.");
+  for (const line of lineItems) {
+    if (!line.description?.trim()) throw new Error("Each line item requires a description.");
+  }
+}
+
+function prepareQuoteFinancials(input: SalesQuoteWriteInput) {
+  validateLineDescriptions(input.lineItems);
+  return resolveSalesQuoteFinancials({
+    pricingStyle: input.pricingStyle,
+    lineColumnVisibility: input.lineColumnVisibility,
+    commercialTotal: input.commercialTotal,
+    quoteDiscountAmount: input.discountAmount ?? 0,
+    lineItems: input.lineItems,
+  });
+}
+
+function quoteDefaultsForFixture(quote: SalesQuote): SalesQuote {
+  return {
+    ...quote,
+    pricingStyle: quote.pricingStyle ?? "detailed",
+    lineColumnVisibility: quote.lineColumnVisibility ?? DEFAULT_SALES_QUOTE_LINE_COLUMN_VISIBILITY,
+    bankDetails: quote.bankDetails ?? null,
+    termsPdfStoragePath: quote.termsPdfStoragePath ?? null,
+    termsPdfFilename: quote.termsPdfFilename ?? null,
+    lineItems: quote.lineItems.map((line) => ({
+      ...line,
+      detailText: line.detailText ?? null,
+    })),
   };
 }
 
@@ -199,8 +305,14 @@ export async function listSalesQuotes(scope: FinancialsWorkspaceScope): Promise<
 
 export async function getSalesQuoteById(id: string, scope: FinancialsWorkspaceScope): Promise<SalesQuote | null> {
   const fixture = resolveAccountingFixtureSource(scope.workspaceSlug);
-  if (fixture === "northstar") return getNorthstarSalesQuoteById(id);
-  if (fixture === "saec") return getSaecSalesQuoteById(id);
+  if (fixture === "northstar") {
+    const quote = getNorthstarSalesQuoteById(id);
+    return quote ? quoteDefaultsForFixture(quote) : null;
+  }
+  if (fixture === "saec") {
+    const quote = getSaecSalesQuoteById(id);
+    return quote ? quoteDefaultsForFixture(quote) : null;
+  }
 
   const workspaceId = await resolveFinancialsWorkspaceId(scope);
   const supabase = requireSupabase();
@@ -231,46 +343,55 @@ export async function deleteSalesQuote(id: string, scope: FinancialsWorkspaceSco
   if (error) throw new Error(error.message);
 }
 
+function mapComputedLinesToQuoteItems(
+  quoteId: string,
+  lines: Awaited<ReturnType<typeof prepareQuoteFinancials>>["lines"],
+): SalesQuoteLineItem[] {
+  return lines.map((line, index) => ({
+    id: `${quoteId}-line-${index + 1}`,
+    lineNumber: index + 1,
+    description: line.description.trim(),
+    detailText: line.detailText?.trim() || null,
+    quantity: line.quantity,
+    unit: line.unit ?? null,
+    unitPrice: line.unitPrice,
+    discountAmount: line.discountAmount ?? 0,
+    taxRate: line.taxRate ?? null,
+    taxAmount: line.taxAmount,
+    amount: line.amount,
+  }));
+}
+
+function mapComputedLinesToDbRows(quoteId: string, lines: Awaited<ReturnType<typeof prepareQuoteFinancials>>["lines"]) {
+  return lines.map((line, index) => ({
+    quote_id: quoteId,
+    line_number: index + 1,
+    description: line.description.trim(),
+    detail_text: line.detailText?.trim() || null,
+    quantity: line.quantity,
+    unit: line.unit?.trim() || null,
+    unit_price: line.unitPrice,
+    discount_amount: line.discountAmount ?? 0,
+    tax_rate: line.taxRate ?? null,
+    tax_amount: line.taxAmount,
+    amount: line.amount,
+  }));
+}
+
 export async function createSalesQuote(
   scope: FinancialsWorkspaceScope,
-  input: {
-    crmLeadId?: string | null;
-    clientId?: string | null;
-    companyName: string;
-    contactName?: string | null;
-    contactEmail?: string | null;
-    title?: string;
-    currency?: string;
-    issueDate?: string | null;
-    validUntil?: string | null;
-    reference?: string | null;
-    paymentTerms?: string | null;
-    termsAndConditions?: string | null;
-    notes?: string | null;
-    discountAmount?: number;
-    lineItems: SalesQuoteLineInput[];
-  },
+  input: SalesQuoteWriteInput,
 ): Promise<SalesQuote> {
   if (!input.title?.trim()) {
     throw new Error("Quote title is required.");
   }
-  if (!input.lineItems.length) {
-    throw new Error("At least one line item is required.");
-  }
-  for (const line of input.lineItems) {
-    if (!line.description?.trim()) throw new Error("Each line item requires a description.");
-    if (!Number.isFinite(line.quantity) || line.quantity <= 0) {
-      throw new Error("Each line item requires a quantity greater than zero.");
-    }
-    if (!Number.isFinite(line.unitPrice) || line.unitPrice < 0) {
-      throw new Error("Each line item requires a valid rate.");
-    }
-  }
 
-  const totals = computeSalesQuoteTotals(input.lineItems, input.discountAmount ?? 0);
+  const totals = prepareQuoteFinancials(input);
   const subtotal = totals.subtotal;
   const taxAmount = totals.taxAmount;
   const totalAmount = totals.totalAmount;
+  const visibility = normalizeLineColumnVisibility(input.lineColumnVisibility);
+  const bankDetails = normalizeBankDetails(input.bankDetails);
   const now = new Date().toISOString();
   const issueDate = input.issueDate?.trim() || now.slice(0, 10);
   const fixture = resolveAccountingFixtureSource(scope.workspaceSlug);
@@ -301,26 +422,22 @@ export async function createSalesQuote(
       paymentTerms: input.paymentTerms ?? null,
       termsAndConditions: input.termsAndConditions ?? null,
       discountAmount: totals.discountAmount,
+      pricingStyle: totals.pricingStyle,
+      lineColumnVisibility: visibility,
+      bankDetails,
+      termsPdfStoragePath: input.termsPdfStoragePath ?? null,
+      termsPdfFilename: input.termsPdfFilename ?? null,
       pdfPath: null,
       invoiceId: null,
       stripePaymentLinkUrl: null,
       notes: input.notes ?? null,
-      lineItems: totals.lines.map((line, index) => ({
-        id: `${id}-line-${index + 1}`,
-        lineNumber: index + 1,
-        description: line.description.trim(),
-        quantity: line.quantity,
-        unit: line.unit ?? null,
-        unitPrice: line.unitPrice,
-        discountAmount: line.discountAmount ?? 0,
-        taxRate: line.taxRate ?? null,
-        taxAmount: line.taxAmount,
-        amount: line.amount,
-      })),
+      lineItems: mapComputedLinesToQuoteItems(id, totals.lines),
       createdAt: now,
       updatedAt: now,
     };
-    return fixture === "saec" ? upsertSaecSalesQuote(quote) : upsertNorthstarSalesQuote(quote);
+    return quoteDefaultsForFixture(
+      fixture === "saec" ? upsertSaecSalesQuote(quote) : upsertNorthstarSalesQuote(quote),
+    );
   }
 
   const workspaceId = await resolveFinancialsWorkspaceId(scope);
@@ -349,24 +466,18 @@ export async function createSalesQuote(
       payment_terms: input.paymentTerms?.trim() || null,
       terms_and_conditions: input.termsAndConditions?.trim() || null,
       notes: input.notes ?? null,
+      pricing_style: totals.pricingStyle,
+      line_column_visibility: visibility,
+      bank_details: bankDetails,
+      terms_pdf_storage_path: input.termsPdfStoragePath ?? null,
+      terms_pdf_filename: input.termsPdfFilename ?? null,
     })
     .select("*")
     .single();
   if (error) throw new Error(error.message);
 
   const quoteId = String(quoteRow.id);
-  const lineRows = totals.lines.map((line, index) => ({
-    quote_id: quoteId,
-    line_number: index + 1,
-    description: line.description.trim(),
-    quantity: line.quantity,
-    unit: line.unit?.trim() || null,
-    unit_price: line.unitPrice,
-    discount_amount: line.discountAmount ?? 0,
-    tax_rate: line.taxRate ?? null,
-    tax_amount: line.taxAmount,
-    amount: line.amount,
-  }));
+  const lineRows = mapComputedLinesToDbRows(quoteId, totals.lines);
   const { error: lineError } = await supabase.from("sales_quote_line_items").insert(lineRows);
   if (lineError) throw new Error(lineError.message);
 
@@ -376,23 +487,7 @@ export async function createSalesQuote(
 export async function updateSalesQuote(
   id: string,
   scope: FinancialsWorkspaceScope,
-  input: {
-    crmLeadId?: string | null;
-    clientId?: string | null;
-    companyName: string;
-    contactName?: string | null;
-    contactEmail?: string | null;
-    title?: string;
-    currency?: string;
-    issueDate?: string | null;
-    validUntil?: string | null;
-    reference?: string | null;
-    paymentTerms?: string | null;
-    termsAndConditions?: string | null;
-    notes?: string | null;
-    discountAmount?: number;
-    lineItems: SalesQuoteLineInput[];
-  },
+  input: SalesQuoteWriteInput,
 ): Promise<SalesQuote> {
   const existing = await getSalesQuoteById(id, scope);
   if (!existing) throw new Error("Quote not found.");
@@ -406,20 +501,10 @@ export async function updateSalesQuote(
   if (!input.title?.trim()) {
     throw new Error("Quote title is required.");
   }
-  if (!input.lineItems.length) {
-    throw new Error("At least one line item is required.");
-  }
-  for (const line of input.lineItems) {
-    if (!line.description?.trim()) throw new Error("Each line item requires a description.");
-    if (!Number.isFinite(line.quantity) || line.quantity <= 0) {
-      throw new Error("Each line item requires a quantity greater than zero.");
-    }
-    if (!Number.isFinite(line.unitPrice) || line.unitPrice < 0) {
-      throw new Error("Each line item requires a valid rate.");
-    }
-  }
 
-  const totals = computeSalesQuoteTotals(input.lineItems, input.discountAmount ?? 0);
+  const totals = prepareQuoteFinancials(input);
+  const visibility = normalizeLineColumnVisibility(input.lineColumnVisibility);
+  const bankDetails = normalizeBankDetails(input.bankDetails);
   const fixture = resolveAccountingFixtureSource(scope.workspaceSlug);
 
   if (fixture === "northstar" || fixture === "saec") {
@@ -442,21 +527,17 @@ export async function updateSalesQuote(
       paymentTerms: input.paymentTerms ?? null,
       termsAndConditions: input.termsAndConditions ?? null,
       notes: input.notes ?? null,
-      lineItems: totals.lines.map((line, index) => ({
-        id: `${existing.id}-line-${index + 1}`,
-        lineNumber: index + 1,
-        description: line.description.trim(),
-        quantity: line.quantity,
-        unit: line.unit ?? null,
-        unitPrice: line.unitPrice,
-        discountAmount: line.discountAmount ?? 0,
-        taxRate: line.taxRate ?? null,
-        taxAmount: line.taxAmount,
-        amount: line.amount,
-      })),
+      pricingStyle: totals.pricingStyle,
+      lineColumnVisibility: visibility,
+      bankDetails,
+      termsPdfStoragePath: input.termsPdfStoragePath ?? existing.termsPdfStoragePath,
+      termsPdfFilename: input.termsPdfFilename ?? existing.termsPdfFilename,
+      lineItems: mapComputedLinesToQuoteItems(existing.id, totals.lines),
       updatedAt: new Date().toISOString(),
     };
-    return fixture === "saec" ? upsertSaecSalesQuote(updated) : upsertNorthstarSalesQuote(updated);
+    return quoteDefaultsForFixture(
+      fixture === "saec" ? upsertSaecSalesQuote(updated) : upsertNorthstarSalesQuote(updated),
+    );
   }
 
   const workspaceId = await resolveFinancialsWorkspaceId(scope);
@@ -482,6 +563,11 @@ export async function updateSalesQuote(
       payment_terms: input.paymentTerms?.trim() || null,
       terms_and_conditions: input.termsAndConditions?.trim() || null,
       notes: input.notes ?? null,
+      pricing_style: totals.pricingStyle,
+      line_column_visibility: visibility,
+      bank_details: bankDetails,
+      terms_pdf_storage_path: input.termsPdfStoragePath ?? existing.termsPdfStoragePath,
+      terms_pdf_filename: input.termsPdfFilename ?? existing.termsPdfFilename,
       updated_at: new Date().toISOString(),
     })
     .eq("workspace_id", workspaceId)
@@ -494,18 +580,7 @@ export async function updateSalesQuote(
     .eq("quote_id", id);
   if (deleteLinesError) throw new Error(deleteLinesError.message);
 
-  const lineRows = totals.lines.map((line, index) => ({
-    quote_id: id,
-    line_number: index + 1,
-    description: line.description.trim(),
-    quantity: line.quantity,
-    unit: line.unit?.trim() || null,
-    unit_price: line.unitPrice,
-    discount_amount: line.discountAmount ?? 0,
-    tax_rate: line.taxRate ?? null,
-    tax_amount: line.taxAmount,
-    amount: line.amount,
-  }));
+  const lineRows = mapComputedLinesToDbRows(id, totals.lines);
   const { error: lineError } = await supabase.from("sales_quote_line_items").insert(lineRows);
   if (lineError) throw new Error(lineError.message);
 
@@ -697,8 +772,12 @@ export async function acceptSalesQuote(
   return { quote: (await getSalesQuoteById(id, scope))!, invoice };
 }
 
-export function renderSalesQuotePdf(quote: SalesQuote, seller?: SalesQuoteSellerProfile) {
-  return buildSalesQuotePdf(quote, seller);
+export async function renderSalesQuotePdf(quote: SalesQuote, seller?: SalesQuoteSellerProfile) {
+  const main = await buildSalesQuotePdfDocument(quote, seller);
+  if (!quote.termsPdfStoragePath) return main;
+  const terms = await downloadSalesQuoteTermsPdf(quote.termsPdfStoragePath);
+  if (!terms) return main;
+  return appendTermsPdfToQuote(main, terms);
 }
 
 export async function markSalesQuoteSent(id: string, scope: FinancialsWorkspaceScope) {
