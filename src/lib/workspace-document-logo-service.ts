@@ -8,11 +8,11 @@ import { Resvg } from "@resvg/resvg-js";
 import { INTERNAL_FILES_BUCKET } from "@/lib/internal-files-data";
 import { isSupabaseServiceRoleConfigured } from "@/lib/supabase/server";
 import { createTenancyServerClient } from "@/lib/supabase/tenancy-server";
+import { INTERNAL_SITE_URL } from "@/lib/app-domains";
 import {
   isPlatformDefaultDocumentLogoSlug,
   resolveWorkspaceDocumentLogoPreview,
   UNIT311_DOCUMENT_LOGO_ASPECT,
-  UNIT311_DOCUMENT_LOGO_PNG_PATH,
   UNIT311_DOCUMENT_LOGO_SVG_PATH,
   WORKSPACE_DOCUMENT_LOGO_ALLOWED_TYPES,
   WORKSPACE_DOCUMENT_LOGO_MAX_BYTES,
@@ -64,10 +64,48 @@ function rasterizeSvgToPng(svgBytes: Uint8Array, targetWidth = 1800): Uint8Array
   return resvg.render().asPng();
 }
 
-async function readPublicLogoBytes(relativePath: string): Promise<Uint8Array> {
-  const relative = relativePath.replace(/^\//, "");
-  const buffer = await readFile(join(process.cwd(), "public", relative));
-  return new Uint8Array(buffer);
+let cachedDefaultUnit311DocumentLogoRaster: WorkspaceDocumentLogoRaster | null = null;
+
+function resolveDefaultDocumentLogoAssetOrigin(): string {
+  const configured = INTERNAL_SITE_URL.trim().replace(/\/$/, "");
+  if (configured) return configured;
+  const vercelHost = process.env.VERCEL_URL?.trim();
+  if (vercelHost) return `https://${vercelHost.replace(/^https?:\/\//, "")}`;
+  return "https://internal.unit311central.com";
+}
+
+async function readPublicLogoBytesFromDisk(relativePath: string): Promise<Uint8Array | null> {
+  try {
+    const relative = relativePath.replace(/^\//, "");
+    const buffer = await readFile(join(process.cwd(), "public", relative));
+    return new Uint8Array(buffer);
+  } catch {
+    return null;
+  }
+}
+
+/** Default Unit311 artwork — SVG from public CDN (Vercel does not bundle public/ into lambdas). */
+async function loadDefaultUnit311DocumentLogoSvgBytes(): Promise<Uint8Array> {
+  const fromDisk = await readPublicLogoBytesFromDisk(UNIT311_DOCUMENT_LOGO_SVG_PATH);
+  if (fromDisk) return fromDisk;
+
+  const origin = resolveDefaultDocumentLogoAssetOrigin();
+  const response = await fetch(`${origin}${UNIT311_DOCUMENT_LOGO_SVG_PATH}`, {
+    cache: "force-cache",
+  });
+  if (!response.ok) {
+    throw new Error(`Default document logo unavailable (${response.status}).`);
+  }
+  return new Uint8Array(await response.arrayBuffer());
+}
+
+async function loadDefaultUnit311DocumentLogoRasterForPdf(): Promise<WorkspaceDocumentLogoRaster> {
+  if (cachedDefaultUnit311DocumentLogoRaster) return cachedDefaultUnit311DocumentLogoRaster;
+  const svgBytes = await loadDefaultUnit311DocumentLogoSvgBytes();
+  const png = rasterizeSvgToPng(svgBytes);
+  const dims = await pngDimensions(png);
+  cachedDefaultUnit311DocumentLogoRaster = { bytes: png, format: "PNG", ...dims };
+  return cachedDefaultUnit311DocumentLogoRaster;
 }
 
 async function pngDimensions(bytes: Uint8Array): Promise<{ widthPx: number; heightPx: number }> {
@@ -146,9 +184,7 @@ export async function loadWorkspaceDocumentLogoRasterForPdf(input: {
   }
 
   if (isPlatformDefaultDocumentLogoSlug(workspaceSlug)) {
-    const bytes = await readPublicLogoBytes(UNIT311_DOCUMENT_LOGO_PNG_PATH);
-    const dims = await pngDimensions(bytes);
-    return { bytes, format: "PNG", ...dims };
+    return loadDefaultUnit311DocumentLogoRasterForPdf();
   }
 
   return null;
@@ -167,7 +203,7 @@ export async function loadWorkspaceDocumentLogoBytesForPreview(input: {
     };
   }
   if (isPlatformDefaultDocumentLogoSlug(input.workspaceSlug)) {
-    const bytes = await readPublicLogoBytes(UNIT311_DOCUMENT_LOGO_SVG_PATH);
+    const bytes = await loadDefaultUnit311DocumentLogoSvgBytes();
     return { bytes, contentType: "image/svg+xml" };
   }
   return null;
