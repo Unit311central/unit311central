@@ -10,6 +10,7 @@ import {
   type SalesQuoteBankDetails,
 } from "@/lib/accounting/sales-quote-display";
 import type { SalesQuote, SalesQuoteSellerProfile } from "@/lib/accounting/types";
+import { loadWorkspaceDocumentLogoRasterForPdf } from "@/lib/workspace-document-logo-service";
 
 const MARGIN = 18;
 const PAGE_W = 210;
@@ -27,30 +28,24 @@ function money(amount: number, currency: string) {
   }
 }
 
-/** Vector draw of public/images/unit311central.svg — no native image deps (Vercel-safe). */
-function drawUnit311CentralLogo(doc: jsPDF, x: number, y: number, widthMm = 52, heightMm = 12) {
-  doc.setFillColor(11, 21, 36);
-  doc.roundedRect(x, y, widthMm, heightMm, 1.2, 1.2, "F");
-
-  const unitX = x + 2.2;
-  const baselineY = y + heightMm * 0.52;
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(11);
-  doc.setTextColor(255, 255, 255);
-  doc.text("UNIT", unitX, baselineY);
-  const unitWidth = doc.getTextWidth("UNIT");
-  doc.setTextColor(96, 165, 250);
-  doc.text("311", unitX + unitWidth + 0.4, baselineY);
-
-  doc.setFontSize(5.5);
-  doc.setTextColor(96, 165, 250);
-  doc.text("CENTRAL", x + widthMm / 2, y + heightMm * 0.82, { align: "center" });
-
-  doc.setDrawColor(37, 99, 235);
-  doc.setLineWidth(0.35);
-  const lineY = y + heightMm * 0.72;
-  doc.line(x + 3.5, lineY, x + 9.5, lineY);
-  doc.line(x + widthMm - 9.5, lineY, x + widthMm - 3.5, lineY);
+async function embedWorkspaceDocumentLogo(
+  doc: jsPDF,
+  quote: SalesQuote,
+  x: number,
+  y: number,
+  widthMm = 52,
+): Promise<number> {
+  const raster = await loadWorkspaceDocumentLogoRasterForPdf({
+    workspaceId: quote.workspaceId,
+    workspaceSlug: null,
+  });
+  if (!raster) return y;
+  const aspect = raster.widthPx / Math.max(raster.heightPx, 1);
+  const heightMm = widthMm / aspect;
+  const base64 = Buffer.from(raster.bytes).toString("base64");
+  const dataUrl = `data:image/${raster.format.toLowerCase()};base64,${base64}`;
+  doc.addImage(dataUrl, raster.format, x, y, widthMm, heightMm);
+  return y + heightMm + 2;
 }
 
 function footerText(seller?: SalesQuoteSellerProfile) {
@@ -148,8 +143,8 @@ export async function buildSalesQuotePdfDocument(
   const visibility = normalizeLineColumnVisibility(quote.lineColumnVisibility);
   const scopeStyle = isScopeStyleQuote(quote.pricingStyle, visibility);
   let y = MARGIN;
-  drawUnit311CentralLogo(doc, MARGIN, y - 2, 52, 12);
-  y += 14;
+  const afterLogo = await embedWorkspaceDocumentLogo(doc, quote, MARGIN, y - 2, 52);
+  y = afterLogo > MARGIN ? afterLogo : MARGIN + 14;
 
   doc.setFont("helvetica", "bold");
   doc.setFontSize(11);

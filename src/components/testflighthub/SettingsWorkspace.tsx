@@ -15,11 +15,6 @@ import {
   PLATFORM_CACHE_KEYS,
 } from "@/lib/platform-fetch-cache";
 import {
-  isPerformanceModeEnabled,
-  setPerformanceModeEnabled,
-} from "@/lib/platform-performance";
-import {
-  Activity,
   Bell,
   ChevronDown,
   Globe,
@@ -55,6 +50,7 @@ import {
   type SidebarNavLeafItem,
 } from "@/lib/sidebar-nav-custom";
 import { SettingsWorkspaceSidebarModulesPanel } from "./SettingsWorkspaceSidebarModulesPanel";
+import { WorkspaceDocumentBrandingSection } from "./WorkspaceDocumentBrandingSection";
 import { useOperatorEntitlements } from "./OperatorEntitlementsProvider";
 
 const MOCK_USERS = createInitialUsers();
@@ -715,34 +711,6 @@ export default function SettingsWorkspace() {
   const [frameworkLoadState, setFrameworkLoadState] = useState<
     "idle" | "loading" | "ready" | "error"
   >("idle");
-  const [showPerfControls, setShowPerfControls] = useState(false);
-  const [perfModeOn, setPerfModeOn] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-    void fetchCachedJson<{ role?: string | null; username?: string; userType?: string }>(
-      PLATFORM_CACHE_KEYS.whoami,
-      "/api/auth/whoami",
-      { ttlMs: 120_000 },
-    )
-      .then((data) => {
-        if (cancelled) return;
-        const role = (data.role ?? "").toLowerCase();
-        const admin =
-          role === "admin" ||
-          role === "administrator" ||
-          role === "c-suite" ||
-          data.username === "scott.parazynski";
-        setShowPerfControls(admin);
-        setPerfModeOn(isPerformanceModeEnabled());
-      })
-      .catch(() => {
-        if (!cancelled) setShowPerfControls(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -927,40 +895,7 @@ export default function SettingsWorkspace() {
 
   return (
     <div className="space-y-4">
-      {showPerfControls && !wolfSurface ? (
-        <section className="rounded-2xl border border-emerald-400/20 bg-emerald-500/[0.06] px-4 py-4 sm:px-5">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div className="flex items-start gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-emerald-400/25 bg-emerald-500/10 text-emerald-200">
-                <Activity className="h-5 w-5" />
-              </div>
-              <div>
-                <h2 className="text-sm font-semibold text-white">Performance Mode</h2>
-                <p className="mt-1 max-w-xl text-xs leading-relaxed text-white/50">
-                  Admin-only overlay for page load, API timings, cache hit rate, and JS weight.
-                  Toggle anytime from the floating control.
-                </p>
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={() => {
-                const next = !perfModeOn;
-                setPerformanceModeEnabled(next);
-                setPerfModeOn(next);
-              }}
-              className={cn(
-                "inline-flex h-9 items-center rounded-xl border px-3 text-xs font-semibold transition-colors",
-                perfModeOn
-                  ? "border-emerald-400/40 bg-emerald-500/20 text-emerald-100"
-                  : "border-white/15 bg-white/[0.04] text-white/70 hover:bg-white/[0.08]",
-              )}
-            >
-              {perfModeOn ? "Enabled" : "Enable"}
-            </button>
-          </div>
-        </section>
-      ) : null}
+      <WorkspaceDocumentBrandingSection />
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4 xl:items-stretch">
         <SettingsColumn
