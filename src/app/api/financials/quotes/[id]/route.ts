@@ -151,7 +151,9 @@ export async function POST(
         "workspaceId" in scope && scope.workspaceId
           ? await getSalesQuoteSellerProfile(scope.workspaceId)
           : null;
-      const pdf = await renderSalesQuotePdf(quote, seller ?? undefined);
+      const pdf = await renderSalesQuotePdf(quote, seller ?? undefined, {
+        workspaceSlug: "workspaceSlug" in scope ? scope.workspaceSlug : null,
+      });
       return new NextResponse(Buffer.from(pdf), {
         headers: {
           "Content-Type": "application/pdf",

@@ -768,11 +768,17 @@ export async function acceptSalesQuote(
   return { quote: (await getSalesQuoteById(id, scope))!, invoice };
 }
 
-export async function renderSalesQuotePdf(quote: SalesQuote, seller?: SalesQuoteSellerProfile) {
+export async function renderSalesQuotePdf(
+  quote: SalesQuote,
+  seller?: SalesQuoteSellerProfile,
+  options?: { workspaceSlug?: string | null },
+) {
   const { appendTermsPdfToQuote, buildSalesQuotePdfDocument } = await import(
     "@/lib/accounting/sales-quote-pdf-build"
   );
-  const main = await buildSalesQuotePdfDocument(quote, seller);
+  const main = await buildSalesQuotePdfDocument(quote, seller, {
+    workspaceSlug: options?.workspaceSlug ?? null,
+  });
   if (!quote.termsPdfStoragePath) return main;
   const terms = await downloadSalesQuoteTermsPdf(quote.termsPdfStoragePath);
   if (!terms) return main;
