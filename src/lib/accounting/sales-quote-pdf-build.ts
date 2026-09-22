@@ -1,11 +1,7 @@
 import "server-only";
 
-import { readFile } from "node:fs/promises";
-import { join } from "node:path";
-
 import { jsPDF } from "jspdf";
 import { PDFDocument } from "pdf-lib";
-import sharp from "sharp";
 
 import {
   isScopeStyleQuote,
@@ -14,7 +10,6 @@ import {
   type SalesQuoteBankDetails,
 } from "@/lib/accounting/sales-quote-display";
 import type { SalesQuote, SalesQuoteSellerProfile } from "@/lib/accounting/types";
-const UNIT311_LOGO_PATH = "images/unit311central.svg";
 
 const MARGIN = 18;
 const PAGE_W = 210;
@@ -32,18 +27,30 @@ function money(amount: number, currency: string) {
   }
 }
 
-async function loadUnit311LogoDataUrl(): Promise<string | null> {
-  try {
-    const bytes = await readFile(join(process.cwd(), "public", UNIT311_LOGO_PATH));
-    const jpeg = await sharp(bytes)
-      .resize(640, null, { fit: "inside" })
-      .flatten({ background: { r: 11, g: 21, b: 36 } })
-      .jpeg({ quality: 92 })
-      .toBuffer();
-    return `data:image/jpeg;base64,${jpeg.toString("base64")}`;
-  } catch {
-    return null;
-  }
+/** Vector draw of public/images/unit311central.svg — no native image deps (Vercel-safe). */
+function drawUnit311CentralLogo(doc: jsPDF, x: number, y: number, widthMm = 52, heightMm = 12) {
+  doc.setFillColor(11, 21, 36);
+  doc.roundedRect(x, y, widthMm, heightMm, 1.2, 1.2, "F");
+
+  const unitX = x + 2.2;
+  const baselineY = y + heightMm * 0.52;
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(11);
+  doc.setTextColor(255, 255, 255);
+  doc.text("UNIT", unitX, baselineY);
+  const unitWidth = doc.getTextWidth("UNIT");
+  doc.setTextColor(96, 165, 250);
+  doc.text("311", unitX + unitWidth + 0.4, baselineY);
+
+  doc.setFontSize(5.5);
+  doc.setTextColor(96, 165, 250);
+  doc.text("CENTRAL", x + widthMm / 2, y + heightMm * 0.82, { align: "center" });
+
+  doc.setDrawColor(37, 99, 235);
+  doc.setLineWidth(0.35);
+  const lineY = y + heightMm * 0.72;
+  doc.line(x + 3.5, lineY, x + 9.5, lineY);
+  doc.line(x + widthMm - 9.5, lineY, x + widthMm - 3.5, lineY);
 }
 
 function footerText(seller?: SalesQuoteSellerProfile) {
@@ -140,13 +147,9 @@ export async function buildSalesQuotePdfDocument(
   const doc = new jsPDF({ unit: "mm", format: "a4" });
   const visibility = normalizeLineColumnVisibility(quote.lineColumnVisibility);
   const scopeStyle = isScopeStyleQuote(quote.pricingStyle, visibility);
-  const logo = await loadUnit311LogoDataUrl();
-
   let y = MARGIN;
-  if (logo) {
-    doc.addImage(logo, "JPEG", MARGIN, y - 2, 52, 12);
-    y += 14;
-  }
+  drawUnit311CentralLogo(doc, MARGIN, y - 2, 52, 12);
+  y += 14;
 
   doc.setFont("helvetica", "bold");
   doc.setFontSize(11);

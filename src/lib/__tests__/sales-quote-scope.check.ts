@@ -6,6 +6,7 @@ import {
 } from "@/lib/accounting/sales-quote-calculations";
 import {
   DEFAULT_SALES_QUOTE_LINE_COLUMN_VISIBILITY,
+  formatSalesQuoteCustomerLocation,
   isScopeStyleQuote,
   normalizeBankDetails,
 } from "@/lib/accounting/sales-quote-display";
@@ -48,5 +49,18 @@ assert.ok(bank?.iban);
 
 const scopeLines = buildScopeStyleLineRows([{ description: "A", detailText: "B" }]);
 assert.equal(scopeLines[0]?.unitPrice, 0);
+
+assert.equal(
+  formatSalesQuoteCustomerLocation({
+    city: "Casablanca",
+    region: "Casablanca",
+    country: "Morocco",
+  }),
+  "Casablanca, Morocco",
+);
+assert.equal(
+  formatSalesQuoteCustomerLocation({ city: "Casablanca", region: "Morocco", country: "Morocco" }),
+  "Casablanca, Morocco",
+);
 
 console.log("ok  sales-quote-scope");

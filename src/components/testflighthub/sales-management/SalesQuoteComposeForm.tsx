@@ -9,11 +9,13 @@ import {
 } from "@/lib/accounting/sales-quote-calculations";
 import {
   DEFAULT_SALES_QUOTE_LINE_COLUMN_VISIBILITY,
+  formatSalesQuoteCustomerLocation,
   isScopeStyleQuote,
   normalizeBankDetails,
   type SalesQuoteBankDetails,
   type SalesQuoteLineColumnVisibility,
 } from "@/lib/accounting/sales-quote-display";
+import { resolveClientLocation } from "@/lib/client-management-data";
 import type { SalesQuote, SalesQuoteSellerProfile } from "@/lib/accounting/types";
 import type { ManagedClient } from "@/lib/client-management-data";
 import { resolveBrowserReportingCurrency, type ReportingCurrency } from "@/lib/financial-reporting-currency";
@@ -78,16 +80,24 @@ function clientBillTo(client: ManagedClient | null) {
   const contact =
     client.primaryContact?.trim() ||
     [client.primaryContactFirstName, client.primaryContactSurname].filter(Boolean).join(" ");
+  const resolved = resolveClientLocation(client);
   return {
     companyName: client.companyName,
     contactName: contact || null,
     email: client.email?.trim() || null,
     phone: client.phone?.trim() || null,
     address: client.companyAddress?.trim() || null,
-    city: client.companyCity?.trim() || null,
+    city: resolved.city || null,
     region: client.region?.trim() || null,
-    country: client.companyCountry?.trim() || null,
+    country: resolved.country || null,
   };
+}
+
+function initialCommercialTotal(quote: SalesQuote | null | undefined): string {
+  if (!quote) return "";
+  const visibility = quote.lineColumnVisibility ?? DEFAULT_SALES_QUOTE_LINE_COLUMN_VISIBILITY;
+  if (!isScopeStyleQuote(quote.pricingStyle, visibility)) return "";
+  return quote.totalAmount > 0 ? String(quote.totalAmount) : "";
 }
 
 export function SalesQuoteComposeForm({
@@ -147,9 +157,7 @@ export function SalesQuoteComposeForm({
   const [columnVisibility, setColumnVisibility] = useState<SalesQuoteLineColumnVisibility>(
     editingQuote?.lineColumnVisibility ?? DEFAULT_SALES_QUOTE_LINE_COLUMN_VISIBILITY,
   );
-  const [commercialTotal, setCommercialTotal] = useState(
-    editingQuote?.pricingStyle === "scope_total" ? String(editingQuote.totalAmount) : "",
-  );
+  const [commercialTotal, setCommercialTotal] = useState(() => initialCommercialTotal(editingQuote));
   const [bankDetails, setBankDetails] = useState<SalesQuoteBankDetails>(
     editingQuote?.bankDetails ?? {},
   );
@@ -526,12 +534,15 @@ export function SalesQuoteComposeForm({
                 <dd>{billTo.address}</dd>
               </div>
             ) : null}
-            {[billTo.city, billTo.region, billTo.country].filter(Boolean).length ? (
-              <div className="sm:col-span-2">
-                <dt className="text-xs text-white/40">Location</dt>
-                <dd>{[billTo.city, billTo.region, billTo.country].filter(Boolean).join(", ")}</dd>
-              </div>
-            ) : null}
+            {(() => {
+              const locationLabel = formatSalesQuoteCustomerLocation(billTo);
+              return locationLabel ? (
+                <div className="sm:col-span-2">
+                  <dt className="text-xs text-white/40">Location</dt>
+                  <dd>{locationLabel}</dd>
+                </div>
+              ) : null;
+            })()}
           </dl>
         ) : (
           <p className="mt-2 text-xs text-white/45">Select a client or enter a customer name for this quote.</p>
@@ -563,9 +574,22 @@ export function SalesQuoteComposeForm({
           ))}
         </div>
         {scopeStyle ? (
-          <p className="mt-2 text-xs text-sky-200/80">
-            Scope-style quote: descriptive lines with a single commercial total (pricing columns hidden on the PDF).
-          </p>
+          <>
+            <p className="mt-2 text-xs text-sky-200/80">
+              Scope-style quote: descriptive lines with a single commercial total (pricing columns hidden on the PDF).
+            </p>
+            <label className={cn(fieldLabel, "mt-3 block max-w-xs")}>
+              COMMERCIAL TOTAL
+              <input
+                type="number"
+                min={0}
+                step="0.01"
+                className={fieldInput}
+                value={commercialTotal}
+                onChange={(e) => setCommercialTotal(e.target.value)}
+              />
+            </label>
+          </>
         ) : null}
       </section>
 
@@ -699,19 +723,7 @@ export function SalesQuoteComposeForm({
           ))}
         </div>
         <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:max-w-md lg:ml-auto">
-          {scopeStyle ? (
-            <label className={cn(fieldLabel, "sm:col-span-2")}>
-              Quote-level commercial total
-              <input
-                type="number"
-                min={0}
-                step="0.01"
-                className={fieldInput}
-                value={commercialTotal}
-                onChange={(e) => setCommercialTotal(e.target.value)}
-              />
-            </label>
-          ) : (
+          {!scopeStyle ? (
             <label className={fieldLabel}>
               Quote-level discount
               <input
@@ -723,7 +735,7 @@ export function SalesQuoteComposeForm({
                 onChange={(e) => setQuoteDiscount(e.target.value)}
               />
             </label>
-          )}
+          ) : null}
           <div className="rounded-lg border border-white/10 bg-white/[0.03] p-3 text-sm text-white/80">
             {scopeStyle ? (
               <p className="font-semibold text-white">Total: {money(totals.totalAmount, currency)}</p>

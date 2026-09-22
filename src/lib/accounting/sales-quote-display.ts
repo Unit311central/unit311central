@@ -55,6 +55,43 @@ export function isScopeStyleQuote(
   );
 }
 
+function normalizeLocationToken(value: string | null | undefined): string {
+  return value?.trim() ?? "";
+}
+
+/** City/country line for quote composer & PDF — dedupes repeated city/region/country tokens. */
+export function formatSalesQuoteCustomerLocation(parts: {
+  city?: string | null;
+  region?: string | null;
+  country?: string | null;
+}): string {
+  const segments: string[] = [];
+  for (const raw of [parts.city, parts.region, parts.country]) {
+    const token = normalizeLocationToken(raw);
+    if (!token) continue;
+    const duplicate = segments.some(
+      (existing) => existing.localeCompare(token, undefined, { sensitivity: "accent" }) === 0,
+    );
+    if (!duplicate) segments.push(token);
+  }
+  if (segments.length >= 2) {
+    const country = normalizeLocationToken(parts.country);
+    const city = normalizeLocationToken(parts.city);
+    if (city && country) {
+      const cityIndex = segments.findIndex(
+        (s) => s.localeCompare(city, undefined, { sensitivity: "accent" }) === 0,
+      );
+      const countryIndex = segments.findIndex(
+        (s) => s.localeCompare(country, undefined, { sensitivity: "accent" }) === 0,
+      );
+      if (cityIndex >= 0 && countryIndex >= 0 && cityIndex !== countryIndex) {
+        return `${segments[cityIndex]}, ${segments[countryIndex]}`;
+      }
+    }
+  }
+  return segments.join(", ");
+}
+
 export function normalizeBankDetails(value: unknown): SalesQuoteBankDetails | null {
   if (!value || typeof value !== "object") return null;
   const row = value as Record<string, unknown>;
