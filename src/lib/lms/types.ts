@@ -152,6 +152,11 @@ export type LmsCourse = {
   coverImageUrl: string | null;
 };
 
+/** Published course row for admin/library lists (optional stats from list API). */
+export type LmsCourseListItem = LmsCourse & {
+  moduleCount?: number;
+};
+
 export type LmsModule = {
   id: string;
   courseId: string;

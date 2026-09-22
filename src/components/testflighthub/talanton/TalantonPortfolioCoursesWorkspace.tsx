@@ -1,16 +1,20 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, startTransition } from "react";
 import { Loader2, Search, Sparkles, Upload } from "lucide-react";
 
 import CourseReviewScreen from "@/components/lms/CourseReviewScreen";
-import { TALANTON_COMPLIANCE_COURSES } from "@/lib/talanton/portfolio-data";
+import LmsCoursePlayerOverlay from "@/components/lms/LmsCoursePlayerOverlay";
+import {
+  fetchPublishedLmsCoursesWithStats,
+  formatLmsDurationHours,
+} from "@/lib/lms/fetch-published-courses";
+import type { LmsCourseListItem, LmsCourseTree } from "@/lib/lms/types";
 import {
   buildCompanyLearningRows,
   buildTrainingExecutiveSummary,
   type CompanyLearningRow,
 } from "@/lib/talanton/training-phase2";
-import type { LmsCourseTree } from "@/lib/lms/types";
 import { cn } from "@/lib/utils";
 import {
   TalantonImpactMetric,
@@ -52,6 +56,11 @@ export default function TalantonPortfolioCoursesWorkspace() {
   const [certFilter, setCertFilter] = useState<"all" | "has" | "none">("all");
   const [sort, setSort] = useState<"completion-asc" | "completion-desc" | "name">("completion-asc");
 
+  const [publishedCourses, setPublishedCourses] = useState<LmsCourseListItem[]>([]);
+  const [catalogLoading, setCatalogLoading] = useState(true);
+  const [catalogError, setCatalogError] = useState<string | null>(null);
+  const [launchSlug, setLaunchSlug] = useState<string | null>(null);
+
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [generating, setGenerating] = useState(false);
   const [genError, setGenError] = useState<string | null>(null);
@@ -59,6 +68,26 @@ export default function TalantonPortfolioCoursesWorkspace() {
   const [lastFile, setLastFile] = useState<File | null>(null);
   const [reviewCourse, setReviewCourse] = useState<LmsCourseTree | null>(null);
   const [reviewSummary, setReviewSummary] = useState<GenerationSummary | null>(null);
+
+  const reloadPublishedCourses = useCallback(async () => {
+    setCatalogLoading(true);
+    setCatalogError(null);
+    try {
+      const courses = await fetchPublishedLmsCoursesWithStats();
+      setPublishedCourses(courses);
+    } catch (err) {
+      setCatalogError(err instanceof Error ? err.message : "Failed to load courses.");
+      setPublishedCourses([]);
+    } finally {
+      setCatalogLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    startTransition(() => {
+      void reloadPublishedCourses();
+    });
+  }, [reloadPublishedCourses]);
 
   async function generateFromFile(file: File) {
     setGenerating(true);
@@ -90,8 +119,6 @@ export default function TalantonPortfolioCoursesWorkspace() {
     }
   }
 
-  // Companies are never hidden by course selection — filters only narrow by
-  // search text, completion status, and certification presence.
   const filteredCompanies = useMemo(() => {
     const list = rows.filter((r) => {
       if (statusFilter !== "all" && r.status !== statusFilter) return false;
@@ -122,6 +149,12 @@ export default function TalantonPortfolioCoursesWorkspace() {
       {notice ? (
         <div className="rounded-xl border border-emerald-400/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100">
           {notice}
+        </div>
+      ) : null}
+
+      {catalogError ? (
+        <div className="rounded-xl border border-rose-400/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-100">
+          {catalogError}
         </div>
       ) : null}
 
@@ -180,50 +213,63 @@ export default function TalantonPortfolioCoursesWorkspace() {
         <TalantonImpactMetric label="Certifications earned" value={summary.certificationsEarned} />
       </div>
 
-      {/* Courses */}
       <section className="rounded-2xl border border-white/10 bg-black/20 p-4">
-        <h3 className="mb-3 text-sm font-semibold text-white">
-          Courses <span className="text-white/40">({TALANTON_COMPLIANCE_COURSES.length})</span>
-        </h3>
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <h3 className="text-sm font-semibold text-white">
+            Published LMS courses{" "}
+            <span className="text-white/40">({publishedCourses.length})</span>
+          </h3>
+          {catalogLoading ? (
+            <span className="inline-flex items-center gap-2 text-xs text-white/45">
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              Loading catalogue…
+            </span>
+          ) : null}
+        </div>
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[720px] border-collapse text-sm">
+          <table className="w-full min-w-[860px] border-collapse text-sm">
             <thead>
               <tr className="border-b border-white/10 text-left text-[11px] uppercase tracking-wide text-white/40">
                 <th className="py-2 pr-4 font-medium">Title</th>
                 <th className="py-2 pr-4 font-medium">Category</th>
+                <th className="py-2 pr-4 font-medium">Duration</th>
+                <th className="py-2 pr-4 font-medium">Modules</th>
+                <th className="py-2 pr-4 font-medium">Pass mark</th>
                 <th className="py-2 pr-4 font-medium">Mandatory</th>
                 <th className="py-2 pr-4 font-medium">Assigned companies</th>
                 <th className="py-2 pr-4 font-medium">Completion</th>
+                <th className="py-2 pr-4 font-medium">Actions</th>
               </tr>
             </thead>
             <tbody>
-              {TALANTON_COMPLIANCE_COURSES.map((course) => (
+              {!catalogLoading && publishedCourses.length === 0 ? (
+                <tr>
+                  <td colSpan={9} className="py-8 text-center text-sm text-white/45">
+                    No published courses yet. Upload a document above, review, and publish to add the
+                    first course.
+                  </td>
+                </tr>
+              ) : null}
+              {publishedCourses.map((course) => (
                 <tr key={course.id} className="border-b border-white/5 last:border-0">
                   <td className="py-2.5 pr-4 text-white/85">{course.title}</td>
                   <td className="py-2.5 pr-4 text-white/60">{course.category}</td>
-                  <td className="py-2.5 pr-4">
-                    <span
-                      className={cn(
-                        "rounded-full border px-2 py-0.5 text-[10px]",
-                        course.mandatory
-                          ? "border-emerald-400/30 bg-emerald-500/10 text-emerald-100"
-                          : "border-white/15 bg-white/5 text-white/50",
-                      )}
-                    >
-                      {course.mandatory ? "Mandatory" : "Optional"}
-                    </span>
+                  <td className="py-2.5 pr-4 tabular-nums text-white/70">
+                    {formatLmsDurationHours(course.durationMinutes)}h
                   </td>
-                  <td className="py-2.5 pr-4 tabular-nums text-white/70">{course.assignedCompanies}</td>
+                  <td className="py-2.5 pr-4 tabular-nums text-white/70">{course.moduleCount ?? 0}</td>
+                  <td className="py-2.5 pr-4 tabular-nums text-white/70">{course.passMark}%</td>
+                  <td className="py-2.5 pr-4 text-white/35">—</td>
+                  <td className="py-2.5 pr-4 text-white/35">—</td>
+                  <td className="py-2.5 pr-4 text-white/35">—</td>
                   <td className="py-2.5 pr-4">
-                    <div className="flex items-center gap-2">
-                      <div className="h-1.5 w-24 overflow-hidden rounded-full bg-white/10">
-                        <div
-                          className={cn("h-full rounded-full", completionBarColor(course.completionPct))}
-                          style={{ width: `${course.completionPct}%` }}
-                        />
-                      </div>
-                      <span className="tabular-nums text-white/70">{course.completionPct}%</span>
-                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setLaunchSlug(course.slug)}
+                      className="inline-flex rounded-lg bg-emerald-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-400"
+                    >
+                      Open course
+                    </button>
                   </td>
                 </tr>
               ))}
@@ -232,7 +278,6 @@ export default function TalantonPortfolioCoursesWorkspace() {
         </div>
       </section>
 
-      {/* Portfolio companies */}
       <section className="rounded-2xl border border-white/10 bg-black/20 p-4">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
           <h3 className="text-sm font-semibold text-white">
@@ -339,11 +384,19 @@ export default function TalantonPortfolioCoursesWorkspace() {
               : undefined
           }
           onPublished={(slug) => {
+            const title = reviewCourse?.title ?? slug;
             setReviewCourse(null);
             setReviewSummary(null);
-            setNotice(`“${slug}” published. It is available in the LMS catalogue.`);
+            setNotice(
+              `“${title}” is published and listed below. Open it from this table or Learning Library.`,
+            );
+            void reloadPublishedCourses();
           }}
         />
+      ) : null}
+
+      {launchSlug ? (
+        <LmsCoursePlayerOverlay courseSlug={launchSlug} onClose={() => setLaunchSlug(null)} />
       ) : null}
     </div>
   );

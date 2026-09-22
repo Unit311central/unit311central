@@ -2,7 +2,12 @@ import { assertDemoMutationAllowedForRequest } from "@/lib/demo/mutation-guard";
 import { NextRequest, NextResponse } from "next/server";
 
 import { requireLmsWorkspaceSession } from "@/lib/lms/auth";
-import { createCourseTree, listAllCoursesForWorkspace, listPublishedCourses } from "@/lib/lms/service";
+import {
+  createCourseTree,
+  listAllCoursesForWorkspace,
+  listPublishedCourses,
+  listPublishedCoursesWithStats,
+} from "@/lib/lms/service";
 import type { LmsCourseCreateInput } from "@/lib/lms/types";
 import { allowsLmsAiCourseGeneration } from "@/lib/lms/workspace-gates";
 
@@ -15,10 +20,13 @@ export async function GET(request: NextRequest) {
 
   try {
     const all = request.nextUrl.searchParams.get("all") === "1";
+    const includeStats = request.nextUrl.searchParams.get("includeStats") === "1";
     const courses =
       all && auth.session.userType === "internal"
         ? await listAllCoursesForWorkspace(auth.workspace.id)
-        : await listPublishedCourses(auth.workspace.id);
+        : includeStats
+          ? await listPublishedCoursesWithStats(auth.workspace.id)
+          : await listPublishedCourses(auth.workspace.id);
     return NextResponse.json({ courses });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to load courses.";

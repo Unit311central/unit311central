@@ -8,6 +8,7 @@ import type {
   LmsCertificate,
   LmsCourse,
   LmsCourseCreateInput,
+  LmsCourseListItem,
   LmsCourseTree,
   LmsEnrolment,
   LmsLesson,
@@ -123,6 +124,32 @@ export async function listPublishedCourses(workspaceId: string): Promise<LmsCour
     .order("sort_order", { ascending: true });
   if (error) throw new Error(error.message);
   return (data ?? []).map((r) => mapCourse(r as Record<string, unknown>));
+}
+
+export async function listPublishedCoursesWithStats(
+  workspaceId: string,
+): Promise<LmsCourseListItem[]> {
+  const courses = await listPublishedCourses(workspaceId);
+  if (courses.length === 0) return [];
+
+  const courseIds = courses.map((course) => course.id);
+  const { data: modules, error } = await db()
+    .from("lms_modules")
+    .select("course_id")
+    .eq("workspace_id", workspaceId)
+    .in("course_id", courseIds);
+  if (error) throw new Error(error.message);
+
+  const moduleCountByCourse = new Map<string, number>();
+  for (const row of modules ?? []) {
+    const courseId = String((row as { course_id: string }).course_id);
+    moduleCountByCourse.set(courseId, (moduleCountByCourse.get(courseId) ?? 0) + 1);
+  }
+
+  return courses.map((course) => ({
+    ...course,
+    moduleCount: moduleCountByCourse.get(course.id) ?? 0,
+  }));
 }
 
 export async function listAllCoursesForWorkspace(workspaceId: string): Promise<LmsCourse[]> {
