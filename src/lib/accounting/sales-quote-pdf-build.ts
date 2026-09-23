@@ -10,10 +10,7 @@ import {
   type SalesQuoteBankDetails,
 } from "@/lib/accounting/sales-quote-display";
 import { formatSalesQuoteDisplayDate } from "@/lib/accounting/sales-quote-pdf-format";
-import {
-  formatSellerPdfCompanyLines,
-  formatSellerPdfFooterLine,
-} from "@/lib/accounting/sales-quote-pdf-seller-lines";
+import { formatSellerPdfCompanyLines } from "@/lib/accounting/sales-quote-pdf-seller-lines";
 import type { SalesQuote, SalesQuoteSellerProfile } from "@/lib/accounting/types";
 import {
   loadDefaultUnit311DocumentLogoRasterForPdf,
@@ -29,7 +26,8 @@ const RIGHT_EDGE = PAGE_W - MARGIN;
 const FOOTER_Y = PAGE_H - 11;
 const CONTENT_BOTTOM = PAGE_H - 16;
 
-const LOGO_WIDTH_MM = 38;
+const LOGO_WIDTH_MM = 40;
+const SECTION_GAP = 4;
 
 const COLOR = {
   primary: [30, 64, 175] as const,
@@ -134,7 +132,7 @@ function drawQuoteMetaGrid(doc: jsPDF, topY: number, quote: SalesQuote): number 
   const rows: Array<[string, string]> = [
     ["Quote #", quote.quoteNumber],
     ["Date", formatSalesQuoteDisplayDate(quote.issueDate)],
-    ["Valid to", formatSalesQuoteDisplayDate(quote.validUntil)],
+    ["Valid until", formatSalesQuoteDisplayDate(quote.validUntil)],
     ["Currency", quote.currency.toUpperCase()],
   ];
 
@@ -159,27 +157,28 @@ async function drawPageHeader(
   workspaceSlug: string | null | undefined,
 ): Promise<number> {
   const headerTop = MARGIN;
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(15);
+  setText(doc, COLOR.primary);
+  doc.text("SALES QUOTE", RIGHT_EDGE, headerTop + 4, { align: "right" });
+  const metaBottom = drawQuoteMetaGrid(doc, headerTop + 9, quote);
+
   const logoBottom = await embedLogo(doc, quote, workspaceSlug, MARGIN, headerTop);
   const sellerBottom = drawSellerBlock(doc, seller, logoBottom);
 
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(18);
-  setText(doc, COLOR.primary);
-  doc.text("SALES QUOTE", RIGHT_EDGE, headerTop + 5, { align: "right" });
-
-  const metaBottom = drawQuoteMetaGrid(doc, headerTop + 11, quote);
-  const headerBottom = Math.max(sellerBottom, metaBottom) + 4;
+  const headerBottom = Math.max(sellerBottom, metaBottom) + 3;
   hRule(doc, headerBottom);
-  return headerBottom + 5;
+  return headerBottom + SECTION_GAP;
 }
 
 function drawBillTo(doc: jsPDF, quote: SalesQuote, y: number): number {
-  const pad = 4;
+  const pad = 3;
   const innerX = MARGIN + pad;
-  const labelY = y + pad + 3;
-  let textY = labelY + 9;
-  if (quote.contactName?.trim()) textY += 4;
-  if (quote.contactEmail?.trim()) textY += 4;
+  const labelY = y + pad + 2.5;
+  let textY = labelY + 7.5;
+  if (quote.contactName?.trim()) textY += 3.6;
+  if (quote.contactEmail?.trim()) textY += 3.6;
   const boxBottom = textY + pad;
 
   setFill(doc, COLOR.panelFill);
@@ -192,30 +191,30 @@ function drawBillTo(doc: jsPDF, quote: SalesQuote, y: number): number {
   doc.text("BILL TO", innerX, labelY);
   doc.setFontSize(9);
   setText(doc, COLOR.charcoal);
-  doc.text(quote.companyName, innerX, labelY + 5);
+  doc.text(quote.companyName, innerX, labelY + 4.5);
 
-  textY = labelY + 9;
+  textY = labelY + 7.5;
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8.5);
   setText(doc, COLOR.text);
   if (quote.contactName?.trim()) {
     doc.text(quote.contactName.trim(), innerX, textY);
-    textY += 4;
+    textY += 3.6;
   }
   if (quote.contactEmail?.trim()) {
     setText(doc, COLOR.muted);
     doc.text(quote.contactEmail.trim(), innerX, textY);
   }
 
-  return boxBottom + 5;
+  return boxBottom + SECTION_GAP;
 }
 
 function drawProjectTitle(doc: jsPDF, title: string, y: number): number {
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(10.5);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(10);
   setText(doc, COLOR.charcoal);
   doc.text(title, MARGIN, y);
-  return y + 7;
+  return y + SECTION_GAP + 2;
 }
 
 function drawContinuation(doc: jsPDF, quote: SalesQuote): number {
@@ -240,9 +239,10 @@ function drawScopeTable(doc: jsPDF, quote: SalesQuote, y: number): number {
   const cellPadX = 3;
   const textW = CONTENT_W - cellPadX * 2;
 
-  setStroke(doc, COLOR.rule, 0.15);
+  setStroke(doc, COLOR.rule, 0.12);
+  doc.line(MARGIN, tableTop, RIGHT_EDGE, tableTop);
   setFill(doc, COLOR.tableHead);
-  doc.rect(MARGIN, tableTop, CONTENT_W, headH, "FD");
+  doc.rect(MARGIN, tableTop, CONTENT_W, headH, "F");
   doc.setFont("helvetica", "bold");
   doc.setFontSize(7.5);
   setText(doc, COLOR.primary);
@@ -263,10 +263,10 @@ function drawScopeTable(doc: jsPDF, quote: SalesQuote, y: number): number {
       detailLines = doc.splitTextToSize(line.detailText.trim(), textW);
     }
     const rowH =
-      3 +
-      titleLines.length * 3.5 +
+      4 +
+      titleLines.length * 3.6 +
       (detailLines.length ? 1.5 + detailLines.length * 3.2 : 0) +
-      3;
+      4;
     y = ensureSpace(doc, y, rowH + 1, quote);
 
     const rowTop = y;
@@ -286,12 +286,11 @@ function drawScopeTable(doc: jsPDF, quote: SalesQuote, y: number): number {
     }
 
     y = rowTop + rowH;
+    setStroke(doc, COLOR.rule, 0.1);
     doc.line(MARGIN, y, RIGHT_EDGE, y);
   }
 
-  doc.line(MARGIN, tableTop, MARGIN, y);
-  doc.line(RIGHT_EDGE, tableTop, RIGHT_EDGE, y);
-  return y + 4;
+  return y + 1;
 }
 
 function drawDetailedLineTable(doc: jsPDF, quote: SalesQuote, y: number): number {
@@ -332,40 +331,41 @@ function drawDetailedLineTable(doc: jsPDF, quote: SalesQuote, y: number): number
 }
 
 function drawTotalBlock(doc: jsPDF, quote: SalesQuote, y: number, scopeStyle: boolean): number {
-  y = ensureSpace(doc, y, 16, quote);
-  const totalBoxW = 62;
-  const boxLeft = RIGHT_EDGE - totalBoxW;
+  y = ensureSpace(doc, y, 14, quote);
+  const labelX = RIGHT_EDGE - 58;
 
-  hRule(doc, y);
+  setStroke(doc, COLOR.rule, 0.2);
+  doc.line(MARGIN, y, RIGHT_EDGE, y);
   y += 5;
 
   if (scopeStyle) {
     doc.setFont("helvetica", "bold");
     doc.setFontSize(8);
     setText(doc, COLOR.muted);
-    doc.text("TOTAL", boxLeft, y);
-    doc.setFontSize(11);
+    doc.text("TOTAL", labelX, y);
+    doc.setFontSize(10);
     setText(doc, COLOR.primary);
     doc.text(moneyWithCurrencyCode(quote.totalAmount, quote.currency), RIGHT_EDGE, y, {
       align: "right",
     });
     y += 4;
-    hRule(doc, y);
-    return y + 6;
+    setStroke(doc, COLOR.rule, 0.1);
+    doc.line(MARGIN, y, RIGHT_EDGE, y);
+    return y + SECTION_GAP + 2;
   }
 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8.5);
   setText(doc, COLOR.text);
-  doc.text("Subtotal", boxLeft, y);
+  doc.text("Subtotal", labelX, y);
   doc.text(money(quote.subtotal, quote.currency), RIGHT_EDGE, y, { align: "right" });
   y += 4.5;
-  doc.text("Tax", boxLeft, y);
+  doc.text("Tax", labelX, y);
   doc.text(money(quote.taxAmount, quote.currency), RIGHT_EDGE, y, { align: "right" });
   y += 5;
   doc.setFont("helvetica", "bold");
   setText(doc, COLOR.primary);
-  doc.text("TOTAL", boxLeft, y);
+  doc.text("TOTAL", labelX, y);
   doc.text(money(quote.totalAmount, quote.currency), RIGHT_EDGE, y, { align: "right" });
   y += 4;
   hRule(doc, y);
@@ -422,17 +422,15 @@ function drawBankDetails(doc: jsPDF, quote: SalesQuote, y: number, bank: SalesQu
   return y + 3;
 }
 
-function drawFooters(doc: jsPDF, seller?: SalesQuoteSellerProfile) {
+function drawFooters(doc: jsPDF) {
   const pages = doc.getNumberOfPages();
-  const line = formatSellerPdfFooterLine(seller);
   for (let p = 1; p <= pages; p += 1) {
     doc.setPage(p);
-    setStroke(doc, COLOR.rule, 0.1);
+    setStroke(doc, COLOR.rule, 0.08);
     doc.line(MARGIN, FOOTER_Y - 3, RIGHT_EDGE, FOOTER_Y - 3);
     doc.setFont("helvetica", "normal");
     doc.setFontSize(7);
     setText(doc, COLOR.muted);
-    doc.text(line, MARGIN, FOOTER_Y);
     doc.text(`Page ${p} of ${pages}`, RIGHT_EDGE, FOOTER_Y, { align: "right" });
   }
 }
@@ -457,7 +455,7 @@ export async function buildSalesQuotePdfDocument(
   y = drawTerms(doc, quote, y);
   const bank = normalizeBankDetails(quote.bankDetails);
   if (bank) y = drawBankDetails(doc, quote, y, bank);
-  drawFooters(doc, seller);
+  drawFooters(doc);
   return new Uint8Array(doc.output("arraybuffer"));
 }
 

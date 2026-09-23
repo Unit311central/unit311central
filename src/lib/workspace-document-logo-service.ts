@@ -59,10 +59,33 @@ function extensionForContentType(contentType: string) {
 /** ~720px is sharp at typical PDF embed widths (~45mm on A4) without bloating file size. */
 const PDF_DOCUMENT_LOGO_RASTER_WIDTH = 720;
 
+/** Nav SVG uses white “UNIT” for dark UI; on white paper that text vanishes — use document ink. */
+function prepareUnit311SvgForWhitePaperPdf(svgBytes: Uint8Array): Uint8Array {
+  const svg = Buffer.from(svgBytes).toString("utf8");
+  const adjusted = svg
+    .replace(/fill="#ffffff"/gi, 'fill="#0b2d63"')
+    .replace(/fill="#FFFFFF"/g, 'fill="#0b2d63"')
+    .replace(/fill="white"/gi, 'fill="#0b2d63"');
+  return new Uint8Array(Buffer.from(adjusted, "utf8"));
+}
+
 function rasterizeSvgToPng(svgBytes: Uint8Array, targetWidth = PDF_DOCUMENT_LOGO_RASTER_WIDTH): Uint8Array {
   const resvg = new Resvg(Buffer.from(svgBytes), {
     fitTo: { mode: "width", value: targetWidth },
     background: "rgba(0,0,0,0)",
+  });
+  return resvg.render().asPng();
+}
+
+/** Rasterize workspace document SVG for PDF / print on white A4. */
+export function rasterizeSvgToPngForPdfDocument(
+  svgBytes: Uint8Array,
+  targetWidth = PDF_DOCUMENT_LOGO_RASTER_WIDTH,
+): Uint8Array {
+  const prepared = prepareUnit311SvgForWhitePaperPdf(svgBytes);
+  const resvg = new Resvg(Buffer.from(prepared), {
+    fitTo: { mode: "width", value: targetWidth },
+    background: "white",
   });
   return resvg.render().asPng();
 }
@@ -104,8 +127,9 @@ async function loadDefaultUnit311DocumentLogoSvgBytes(): Promise<Uint8Array> {
 
 export async function loadDefaultUnit311DocumentLogoRasterForPdf(): Promise<WorkspaceDocumentLogoRaster> {
   if (cachedDefaultUnit311DocumentLogoRaster) return cachedDefaultUnit311DocumentLogoRaster;
+
   const svgBytes = await loadDefaultUnit311DocumentLogoSvgBytes();
-  const png = rasterizeSvgToPng(svgBytes);
+  const png = rasterizeSvgToPngForPdfDocument(svgBytes);
   const dims = await pngDimensions(png);
   cachedDefaultUnit311DocumentLogoRaster = { bytes: png, format: "PNG", ...dims };
   return cachedDefaultUnit311DocumentLogoRaster;
@@ -185,16 +209,6 @@ export async function loadWorkspaceDocumentLogoRasterForPdf(input: {
     if (!isPlatformDefaultDocumentLogoSlug(workspaceSlug)) return null;
   }
 
-  if (record.pdfStoragePath) {
-    try {
-      const bytes = await downloadStoragePath(record.pdfStoragePath);
-      const dims = await pngDimensions(bytes);
-      return { bytes, format: "PNG", ...dims };
-    } catch {
-      // Fall through to other sources / platform default.
-    }
-  }
-
   if (record.storagePath) {
     let bytes: Uint8Array;
     try {
@@ -202,27 +216,35 @@ export async function loadWorkspaceDocumentLogoRasterForPdf(input: {
     } catch {
       bytes = new Uint8Array();
     }
-    if (!bytes.length) {
-      // Missing upload — try platform default below.
-    } else {
-    const type = (record.contentType ?? "").toLowerCase();
-    if (type.includes("png")) {
+    if (bytes.length) {
+      const type = (record.contentType ?? "").toLowerCase();
+      if (type.includes("svg")) {
+        const png = rasterizeSvgToPngForPdfDocument(bytes);
+        const dims = await pngDimensions(png);
+        return { bytes: png, format: "PNG", ...dims };
+      }
+      if (type.includes("png")) {
+        const dims = await pngDimensions(bytes);
+        return { bytes, format: "PNG", ...dims };
+      }
+      if (type.includes("jpeg") || type.includes("jpg")) {
+        return {
+          bytes,
+          format: "JPEG",
+          widthPx: PDF_DOCUMENT_LOGO_RASTER_WIDTH,
+          heightPx: Math.round(PDF_DOCUMENT_LOGO_RASTER_WIDTH / UNIT311_DOCUMENT_LOGO_ASPECT),
+        };
+      }
+    }
+  }
+
+  if (record.pdfStoragePath) {
+    try {
+      const bytes = await downloadStoragePath(record.pdfStoragePath);
       const dims = await pngDimensions(bytes);
       return { bytes, format: "PNG", ...dims };
-    }
-    if (type.includes("jpeg") || type.includes("jpg")) {
-      return {
-        bytes,
-        format: "JPEG",
-        widthPx: PDF_DOCUMENT_LOGO_RASTER_WIDTH,
-        heightPx: Math.round(PDF_DOCUMENT_LOGO_RASTER_WIDTH / UNIT311_DOCUMENT_LOGO_ASPECT),
-      };
-    }
-    if (type.includes("svg")) {
-      const png = rasterizeSvgToPng(bytes);
-      const dims = await pngDimensions(png);
-      return { bytes: png, format: "PNG", ...dims };
-    }
+    } catch {
+      // Fall through to platform default.
     }
   }
 
@@ -283,7 +305,7 @@ export async function uploadWorkspaceDocumentLogo(workspaceId: string, file: Fil
 
   if (contentType.includes("svg")) {
     pdfStoragePath = documentLogoPdfStoragePath(workspaceId);
-    const png = rasterizeSvgToPng(bytes);
+    const png = rasterizeSvgToPngForPdfDocument(bytes);
     const { error: pdfUploadError } = await supabase.storage
       .from(INTERNAL_FILES_BUCKET)
       .upload(pdfStoragePath, png, { contentType: "image/png", upsert: true });
