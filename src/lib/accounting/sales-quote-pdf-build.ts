@@ -17,22 +17,32 @@ import {
 import type { SalesQuote, SalesQuoteSellerProfile } from "@/lib/accounting/types";
 import { loadWorkspaceDocumentLogoRasterForPdf } from "@/lib/workspace-document-logo-service";
 
-const MARGIN = 15;
+/** ~140px equivalent — clear in print without oversized header block. */
+const LOGO_WIDTH_MM = 42;
+
+const MARGIN = 14;
 const PAGE_W = 210;
 const PAGE_H = 297;
-const FOOTER_TOP = PAGE_H - 14;
-const CONTENT_BOTTOM = PAGE_H - 20;
-const GUTTER = 8;
-const LEFT_BLOCK_W = 96;
-const RIGHT_BLOCK_X = MARGIN + LEFT_BLOCK_W + GUTTER;
+const FOOTER_Y = PAGE_H - 12;
+const CONTENT_BOTTOM = PAGE_H - 18;
+const COL_GUTTER = 10;
+const LEFT_COL_W = 98;
+const RIGHT_COL_X = MARGIN + LEFT_COL_W + COL_GUTTER;
+const RIGHT_COL_W = PAGE_W - MARGIN - RIGHT_COL_X;
 
 const COLOR = {
   primary: [30, 64, 175] as const,
-  text: [31, 41, 55] as const,
-  muted: [71, 85, 105] as const,
-  secondary: [100, 116, 139] as const,
-  line: [226, 232, 240] as const,
-  tableHeadBg: [239, 246, 255] as const,
+  text: [30, 41, 59] as const,
+  charcoal: [15, 23, 42] as const,
+  muted: [100, 116, 139] as const,
+  secondary: [113, 128, 150] as const,
+  rule: [226, 232, 240] as const,
+  panelFill: [248, 250, 252] as const,
+  scopeHeadFill: [241, 245, 249] as const,
+};
+
+export type BuildSalesQuotePdfOptions = {
+  workspaceSlug?: string | null;
 };
 
 function money(amount: number, currency: string) {
@@ -45,7 +55,6 @@ function money(amount: number, currency: string) {
   }
 }
 
-/** Scope-total quotes show an explicit currency code (e.g. USD 40,000.00). */
 function moneyWithCurrencyCode(amount: number, currency: string) {
   const code = currency.toUpperCase();
   const formatted = new Intl.NumberFormat("en-US", {
@@ -55,9 +64,23 @@ function moneyWithCurrencyCode(amount: number, currency: string) {
   return `${code} ${formatted}`;
 }
 
-export type BuildSalesQuotePdfOptions = {
-  workspaceSlug?: string | null;
-};
+function setFill(doc: jsPDF, rgb: readonly [number, number, number]) {
+  doc.setFillColor(rgb[0], rgb[1], rgb[2]);
+}
+
+function setText(doc: jsPDF, rgb: readonly [number, number, number]) {
+  doc.setTextColor(rgb[0], rgb[1], rgb[2]);
+}
+
+function setStroke(doc: jsPDF, rgb: readonly [number, number, number], width = 0.15) {
+  doc.setDrawColor(rgb[0], rgb[1], rgb[2]);
+  doc.setLineWidth(width);
+}
+
+function hRule(doc: jsPDF, y: number, x1 = MARGIN, x2 = PAGE_W - MARGIN) {
+  setStroke(doc, COLOR.rule);
+  doc.line(x1, y, x2, y);
+}
 
 async function embedWorkspaceDocumentLogo(
   doc: jsPDF,
@@ -65,7 +88,6 @@ async function embedWorkspaceDocumentLogo(
   workspaceSlug: string | null | undefined,
   x: number,
   y: number,
-  widthMm = 46,
 ): Promise<number> {
   const raster = await loadWorkspaceDocumentLogoRasterForPdf({
     workspaceId: quote.workspaceId,
@@ -73,114 +95,162 @@ async function embedWorkspaceDocumentLogo(
   });
   if (!raster) return y;
   const aspect = raster.widthPx / Math.max(raster.heightPx, 1);
-  const heightMm = widthMm / aspect;
+  const heightMm = LOGO_WIDTH_MM / aspect;
   const base64 = Buffer.from(raster.bytes).toString("base64");
   const dataUrl = `data:image/${raster.format.toLowerCase()};base64,${base64}`;
-  doc.addImage(dataUrl, raster.format, x, y, widthMm, heightMm);
-  return y + heightMm + 3;
+  doc.addImage(dataUrl, raster.format, x, y, LOGO_WIDTH_MM, heightMm);
+  return y + heightMm + 2.5;
 }
 
-function setTextColor(doc: jsPDF, rgb: readonly [number, number, number]) {
-  doc.setTextColor(rgb[0], rgb[1], rgb[2]);
-}
-
-function drawHorizontalRule(doc: jsPDF, y: number) {
-  doc.setDrawColor(COLOR.line[0], COLOR.line[1], COLOR.line[2]);
-  doc.setLineWidth(0.2);
-  doc.line(MARGIN, y, PAGE_W - MARGIN, y);
-}
-
-function drawLabelValueBlock(
-  doc: jsPDF,
-  x: number,
-  y: number,
-  width: number,
-  rows: Array<{ label: string; value: string }>,
-  lineHeight = 4.2,
-): number {
+function drawCompanyUnderLogo(doc: jsPDF, seller: SalesQuoteSellerProfile | undefined, y: number): number {
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(8.5);
-  for (const row of rows) {
-    setTextColor(doc, COLOR.muted);
-    doc.text(`${row.label}`, x, y);
-    setTextColor(doc, COLOR.text);
-    const valueX = x + 22;
-    const wrapped = doc.splitTextToSize(row.value, width - 22);
-    doc.text(wrapped, valueX, y);
-    y += Math.max(lineHeight, wrapped.length * lineHeight);
-  }
-  return y;
-}
-
-function drawPanelHeading(doc: jsPDF, x: number, y: number, title: string) {
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(8);
-  setTextColor(doc, COLOR.primary);
-  doc.text(title.toUpperCase(), x, y);
-  return y + 5;
-}
-
-function drawCompanyBlock(doc: jsPDF, seller: SalesQuoteSellerProfile | undefined, startY: number): number {
-  let y = startY;
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(8.5);
-  setTextColor(doc, COLOR.text);
+  doc.setFontSize(7.5);
+  setText(doc, COLOR.text);
+  const lineGap = 3.35;
   for (const line of formatSellerPdfCompanyLines(seller)) {
-    const wrapped = doc.splitTextToSize(line, LEFT_BLOCK_W);
-    doc.text(wrapped, MARGIN, y);
-    y += wrapped.length * 3.8;
+    const isBrand = line === (seller?.brandName?.trim() || seller?.companyName?.trim());
+    if (isBrand) {
+      doc.setFont("helvetica", "bold");
+      setText(doc, COLOR.charcoal);
+    } else {
+      doc.setFont("helvetica", "normal");
+      setText(doc, COLOR.text);
+    }
+    doc.text(line, MARGIN, y);
+    y += lineGap;
   }
   return y;
 }
 
-function drawPageHeader(
+/** Label above value, right-aligned — avoids side-by-side form fields. */
+function drawRightMetaStack(
+  doc: jsPDF,
+  topY: number,
+  items: Array<{ label: string; value: string }>,
+): number {
+  const rightX = PAGE_W - MARGIN;
+  let y = topY;
+  for (const item of items) {
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7);
+    setText(doc, COLOR.muted);
+    doc.text(item.label, rightX, y, { align: "right" });
+    y += 3.2;
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9.5);
+    setText(doc, COLOR.charcoal);
+    doc.text(item.value, rightX, y, { align: "right" });
+    y += 5.2;
+  }
+  return y;
+}
+
+async function drawDocumentHeader(
   doc: jsPDF,
   quote: SalesQuote,
   seller: SalesQuoteSellerProfile | undefined,
   workspaceSlug: string | null | undefined,
 ): Promise<number> {
-  return (async () => {
-    let leftY = MARGIN;
-    leftY = await embedWorkspaceDocumentLogo(doc, quote, workspaceSlug, MARGIN, leftY, 46);
-    const companyBottom = drawCompanyBlock(doc, seller, leftY);
+  let leftY = MARGIN;
+  leftY = await embedWorkspaceDocumentLogo(doc, quote, workspaceSlug, MARGIN, leftY);
+  const leftBottom = drawCompanyUnderLogo(doc, seller, leftY);
 
-    const rightX = PAGE_W - MARGIN;
-    let rightY = MARGIN + 1;
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(17);
-    setTextColor(doc, COLOR.primary);
-    doc.text("Sales Quote", rightX, rightY, { align: "right" });
-    rightY += 7;
+  const rightX = PAGE_W - MARGIN;
+  let rightY = MARGIN;
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(24);
+  setText(doc, COLOR.primary);
+  doc.text("SALES QUOTE", rightX, rightY, { align: "right" });
+  rightY += 10;
 
-    drawHorizontalRule(doc, rightY);
-    rightY += 5;
+  rightY = drawRightMetaStack(doc, rightY, [
+    { label: "Quote #:", value: quote.quoteNumber },
+    { label: "Date:", value: formatSalesQuoteDisplayDate(quote.issueDate) },
+    { label: "Valid Until:", value: formatSalesQuoteDisplayDate(quote.validUntil) },
+    { label: "Currency:", value: quote.currency.toUpperCase() },
+  ]);
 
-    rightY = drawLabelValueBlock(
-      doc,
-      RIGHT_BLOCK_X,
-      rightY,
-      PAGE_W - MARGIN - RIGHT_BLOCK_X,
-      [
-        { label: "Quote:", value: quote.quoteNumber },
-        { label: "Date:", value: formatSalesQuoteDisplayDate(quote.issueDate) },
-        { label: "Valid until:", value: formatSalesQuoteDisplayDate(quote.validUntil) },
-        { label: "Currency:", value: quote.currency.toUpperCase() },
-      ],
-      4.5,
-    );
+  const headerBottom = Math.max(leftBottom, rightY) + 3;
+  hRule(doc, headerBottom);
+  return headerBottom + 5;
+}
 
-    const headerBottom = Math.max(companyBottom, rightY) + 4;
-    drawHorizontalRule(doc, headerBottom);
-    return headerBottom + 6;
-  })();
+function drawInfoBand(doc: jsPDF, quote: SalesQuote, y: number): number {
+  const bandTop = y;
+  const halfW = (PAGE_W - MARGIN * 2 - COL_GUTTER) / 2;
+  const leftX = MARGIN + 4;
+  const rightX = MARGIN + halfW + COL_GUTTER + 4;
+  const detailLines = [
+    `Quote # ${quote.quoteNumber}`,
+    `Date ${formatSalesQuoteDisplayDate(quote.issueDate)}`,
+    `Valid until ${formatSalesQuoteDisplayDate(quote.validUntil)}`,
+  ];
+
+  let leftBottom = bandTop + 9.5 + 4.5;
+  if (quote.contactName?.trim()) leftBottom += 4;
+  if (quote.contactEmail?.trim()) leftBottom += 4;
+  const rightBottom = bandTop + 9.5 + detailLines.length * 4;
+  const bandBottom = Math.max(leftBottom, rightBottom) + 5;
+
+  setFill(doc, COLOR.panelFill);
+  doc.rect(MARGIN, bandTop, PAGE_W - MARGIN * 2, bandBottom - bandTop, "F");
+  setStroke(doc, COLOR.primary, 0.35);
+  doc.line(leftX - 2, bandTop + 2, leftX - 2, bandBottom - 2);
+  doc.line(rightX - 2, bandTop + 2, rightX - 2, bandBottom - 2);
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(7);
+  setText(doc, COLOR.primary);
+  doc.text("PREPARED FOR", leftX, bandTop + 5);
+  doc.text("QUOTE DETAILS", rightX, bandTop + 5);
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(9.5);
+  setText(doc, COLOR.charcoal);
+  doc.text(quote.companyName, leftX, bandTop + 9.5);
+
+  let ly = bandTop + 14;
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(8.5);
+  setText(doc, COLOR.text);
+  if (quote.contactName?.trim()) {
+    doc.text(quote.contactName.trim(), leftX, ly);
+    ly += 4;
+  }
+  if (quote.contactEmail?.trim()) {
+    setText(doc, COLOR.muted);
+    doc.text(quote.contactEmail.trim(), leftX, ly);
+  }
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(8.5);
+  setText(doc, COLOR.text);
+  let ry = bandTop + 9.5;
+  for (const line of detailLines) {
+    doc.text(line, rightX, ry);
+    ry += 4;
+  }
+
+  return bandBottom + 5;
+}
+
+function drawQuoteProjectTitle(doc: jsPDF, title: string, y: number): number {
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(11);
+  setText(doc, COLOR.charcoal);
+  doc.text(title, MARGIN, y);
+  y += 2.5;
+  setStroke(doc, COLOR.primary, 0.6);
+  doc.line(MARGIN, y, MARGIN + 28, y);
+  return y + 6;
 }
 
 function drawContinuationBanner(doc: jsPDF, quote: SalesQuote): number {
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(8);
-  setTextColor(doc, COLOR.secondary);
-  doc.text(`${quote.quoteNumber} — continued`, MARGIN, MARGIN + 3);
-  drawHorizontalRule(doc, MARGIN + 5);
+  doc.setFontSize(7.5);
+  setText(doc, COLOR.muted);
+  doc.text(`${quote.quoteNumber}`, PAGE_W - MARGIN, MARGIN + 2, { align: "right" });
+  hRule(doc, MARGIN + 6);
   return MARGIN + 10;
 }
 
@@ -190,149 +260,118 @@ function ensureSpace(doc: jsPDF, y: number, needed: number, quote: SalesQuote): 
   return drawContinuationBanner(doc, quote);
 }
 
-function drawCustomerPanels(doc: jsPDF, quote: SalesQuote, y: number): number {
-  y = ensureSpace(doc, y, 34, quote);
-  const panelTop = y;
-  const panelW = (PAGE_W - MARGIN * 2 - GUTTER) / 2;
-  const leftX = MARGIN;
-  const rightX = MARGIN + panelW + GUTTER;
-
-  let leftY = drawPanelHeading(doc, leftX, panelTop, "Bill to");
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(9);
-  setTextColor(doc, COLOR.text);
-  doc.text(quote.companyName, leftX, leftY);
-  leftY += 4.5;
-  if (quote.contactName?.trim()) {
-    doc.text(quote.contactName.trim(), leftX, leftY);
-    leftY += 4.5;
-  }
-  if (quote.contactEmail?.trim()) {
-    setTextColor(doc, COLOR.muted);
-    doc.text(quote.contactEmail.trim(), leftX, leftY);
-    leftY += 4.5;
-  }
-
-  let rightY = drawPanelHeading(doc, rightX, panelTop, "Quote overview");
-  rightY = drawLabelValueBlock(
-    doc,
-    rightX,
-    rightY,
-    panelW,
-    [
-      { label: "Quote Ref:", value: quote.quoteNumber },
-      { label: "Date Issued:", value: formatSalesQuoteDisplayDate(quote.issueDate) },
-      { label: "Valid Until:", value: formatSalesQuoteDisplayDate(quote.validUntil) },
-      { label: "Currency:", value: quote.currency.toUpperCase() },
-    ],
-    4.3,
-  );
-
-  return Math.max(leftY, rightY) + 6;
+function scopeHeadingText(description: string): string {
+  return description.trim();
 }
 
-function drawScopeTable(doc: jsPDF, quote: SalesQuote, y: number, scopeStyle: boolean): number {
-  const visibility = normalizeLineColumnVisibility(quote.lineColumnVisibility);
-  if (scopeStyle) {
-    y = ensureSpace(doc, y, 14, quote);
-    const tableTop = y;
-    doc.setFillColor(COLOR.tableHeadBg[0], COLOR.tableHeadBg[1], COLOR.tableHeadBg[2]);
-    doc.rect(MARGIN, tableTop - 4, PAGE_W - MARGIN * 2, 8, "F");
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(8.5);
-    setTextColor(doc, COLOR.primary);
-    doc.text("Description / Service scope", MARGIN + 2, tableTop + 1.5);
-    y = tableTop + 9;
-
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(9);
-    const width = PAGE_W - MARGIN * 2 - 4;
-    const sorted = [...quote.lineItems].sort((a, b) => a.lineNumber - b.lineNumber);
-
-    for (const line of sorted) {
-      const descWrapped = doc.splitTextToSize(line.description.trim(), width);
-      let detailWrapped: string[] = [];
-      if (line.detailText?.trim()) {
-        doc.setFontSize(8);
-        detailWrapped = doc.splitTextToSize(line.detailText.trim(), width);
-      }
-      const rowHeight = descWrapped.length * 4.2 + detailWrapped.length * 3.4 + 6;
-      y = ensureSpace(doc, y, rowHeight, quote);
-
-      setTextColor(doc, COLOR.text);
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(9);
-      doc.text(descWrapped, MARGIN + 2, y);
-
-      let lineY = y + descWrapped.length * 4.2;
-      if (detailWrapped.length) {
-        setTextColor(doc, COLOR.secondary);
-        doc.setFontSize(8);
-        doc.text(detailWrapped, MARGIN + 2, lineY);
-        lineY += detailWrapped.length * 3.4;
-        doc.setFontSize(9);
-      }
-
-      y = lineY + 3;
-      drawHorizontalRule(doc, y);
-      y += 5;
-    }
-    return y;
-  }
-
-  y = ensureSpace(doc, y, 14, quote);
-  doc.setFillColor(COLOR.tableHeadBg[0], COLOR.tableHeadBg[1], COLOR.tableHeadBg[2]);
-  doc.rect(MARGIN, y - 4, PAGE_W - MARGIN * 2, 8, "F");
+function drawScopeServices(doc: jsPDF, quote: SalesQuote, y: number): number {
+  y = ensureSpace(doc, y, 12, quote);
+  const headH = 6.5;
+  setFill(doc, COLOR.scopeHeadFill);
+  doc.rect(MARGIN, y - 3.2, PAGE_W - MARGIN * 2, headH, "F");
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(8);
-  setTextColor(doc, COLOR.primary);
-  doc.text("Description", MARGIN + 2, y + 1.5);
-  let x = MARGIN + 92;
+  doc.setFontSize(7.5);
+  setText(doc, COLOR.primary);
+  doc.text("SERVICE / SCOPE", MARGIN + 3, y + 1);
+  y += headH + 2;
+
+  const textW = PAGE_W - MARGIN * 2 - 6;
+  const sorted = [...quote.lineItems].sort((a, b) => a.lineNumber - b.lineNumber);
+  const itemGap = 3.2;
+
+  for (let i = 0; i < sorted.length; i += 1) {
+    const line = sorted[i]!;
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(7.6);
+    const titleLines = doc.splitTextToSize(scopeHeadingText(line.description), textW);
+    let detailLines: string[] = [];
+    if (line.detailText?.trim()) {
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(7.2);
+      detailLines = doc.splitTextToSize(line.detailText.trim(), textW);
+    }
+    const blockH =
+      titleLines.length * 3.3 + (detailLines.length ? 1.2 + detailLines.length * 3 : 0) + itemGap;
+    y = ensureSpace(doc, y, blockH, quote);
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(7.6);
+    setText(doc, COLOR.charcoal);
+    doc.text(titleLines, MARGIN + 3, y);
+
+    let itemBottom = y + titleLines.length * 3.3;
+    if (detailLines.length) {
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(7.2);
+      setText(doc, COLOR.muted);
+      doc.text(detailLines, MARGIN + 3, itemBottom + 1.2);
+      itemBottom += 1.2 + detailLines.length * 3;
+    }
+
+    y = itemBottom + itemGap;
+    if (i < sorted.length - 1) {
+      setStroke(doc, COLOR.rule, 0.08);
+      doc.line(MARGIN + 3, y - itemGap / 2, PAGE_W - MARGIN - 3, y - itemGap / 2);
+    }
+  }
+  return y + 1;
+}
+
+function drawDetailedLineTable(doc: jsPDF, quote: SalesQuote, y: number): number {
+  const visibility = normalizeLineColumnVisibility(quote.lineColumnVisibility);
+  y = ensureSpace(doc, y, 12, quote);
+  setFill(doc, COLOR.scopeHeadFill);
+  doc.rect(MARGIN, y - 3.5, PAGE_W - MARGIN * 2, 7, "F");
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(7.5);
+  setText(doc, COLOR.primary);
+  doc.text("DESCRIPTION", MARGIN + 3, y + 1.2);
+  let x = MARGIN + 88;
   if (visibility.showQuantity) {
-    doc.text("Qty", x, y + 1.5);
+    doc.text("QTY", x, y + 1.2);
     x += 14;
   }
   if (visibility.showUnit) {
-    doc.text("Unit", x, y + 1.5);
+    doc.text("UNIT", x, y + 1.2);
     x += 16;
   }
   if (visibility.showRate) {
-    doc.text("Rate", x, y + 1.5);
+    doc.text("RATE", x, y + 1.2);
     x += 22;
   }
   if (visibility.showDiscount) {
-    doc.text("Disc", x, y + 1.5);
-    x += 16;
+    doc.text("DISC", x, y + 1.2);
+    x += 14;
   }
   if (visibility.showTax) {
-    doc.text("Tax", x, y + 1.5);
+    doc.text("TAX", x, y + 1.2);
   }
-  doc.text("Total", PAGE_W - MARGIN - 2, y + 1.5, { align: "right" });
-  y += 9;
+  doc.text("TOTAL", PAGE_W - MARGIN - 3, y + 1.2, { align: "right" });
+  y += 8;
 
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(9);
-  setTextColor(doc, COLOR.text);
+  doc.setFontSize(8.5);
+  setText(doc, COLOR.text);
   for (const line of quote.lineItems) {
-    const descWidth = 86;
+    const descWidth = 84;
     const wrapped = doc.splitTextToSize(line.description, descWidth);
-    const blockHeight = wrapped.length * 4.2 + (line.detailText?.trim() ? 8 : 0) + 6;
+    const blockHeight = wrapped.length * 3.8 + (line.detailText?.trim() ? 7 : 0) + 5;
     y = ensureSpace(doc, y, blockHeight, quote);
     doc.setFont("helvetica", "bold");
-    doc.text(wrapped, MARGIN + 2, y);
-    let lineY = y + wrapped.length * 4.2;
+    doc.text(wrapped, MARGIN + 3, y);
+    let lineY = y + wrapped.length * 3.8;
     if (line.detailText?.trim()) {
       doc.setFont("helvetica", "normal");
-      doc.setFontSize(8);
-      setTextColor(doc, COLOR.secondary);
-      const detail = doc.splitTextToSize(line.detailText.trim(), PAGE_W - MARGIN * 2 - 4);
-      doc.text(detail, MARGIN + 2, lineY);
-      lineY += detail.length * 3.4;
-      doc.setFontSize(9);
-      setTextColor(doc, COLOR.text);
+      doc.setFontSize(7.5);
+      setText(doc, COLOR.secondary);
+      const detail = doc.splitTextToSize(line.detailText.trim(), PAGE_W - MARGIN * 2 - 6);
+      doc.text(detail, MARGIN + 3, lineY);
+      lineY += detail.length * 3.2;
+      doc.setFontSize(8.5);
+      setText(doc, COLOR.text);
     }
     doc.setFont("helvetica", "normal");
-    let colX = MARGIN + 92;
+    let colX = MARGIN + 88;
     if (visibility.showQuantity) {
       doc.text(String(line.quantity), colX, y);
       colX += 14;
@@ -347,78 +386,92 @@ function drawScopeTable(doc: jsPDF, quote: SalesQuote, y: number, scopeStyle: bo
     }
     if (visibility.showDiscount) {
       doc.text(money(line.discountAmount ?? 0, quote.currency), colX, y);
-      colX += 16;
+      colX += 14;
     }
     if (visibility.showTax) {
       doc.text(money(line.taxAmount ?? 0, quote.currency), colX, y);
     }
-    doc.text(money(line.amount, quote.currency), PAGE_W - MARGIN - 2, y, { align: "right" });
+    doc.text(money(line.amount, quote.currency), PAGE_W - MARGIN - 3, y, { align: "right" });
     y = lineY + 3;
-    drawHorizontalRule(doc, y);
-    y += 5;
+    hRule(doc, y, MARGIN + 3, PAGE_W - MARGIN - 3);
+    y += 4;
   }
   return y;
 }
 
-function drawTotalBlock(doc: jsPDF, quote: SalesQuote, y: number, scopeStyle: boolean): number {
-  y = ensureSpace(doc, y, 22, quote);
-  const blockW = 72;
-  const blockX = PAGE_W - MARGIN - blockW;
-  drawHorizontalRule(doc, y);
-  y += 8;
+function drawCommercialTotal(doc: jsPDF, quote: SalesQuote, y: number, scopeStyle: boolean): number {
+  y = ensureSpace(doc, y, 24, quote);
+  const blockLeft = PAGE_W - MARGIN - 58;
+  const blockRight = PAGE_W - MARGIN;
+
+  hRule(doc, y, blockLeft, blockRight);
+  y += 6;
 
   if (scopeStyle) {
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(9);
-    setTextColor(doc, COLOR.muted);
-    doc.text("Total", blockX, y);
-    doc.setFontSize(13);
-    setTextColor(doc, COLOR.primary);
-    doc.text(moneyWithCurrencyCode(quote.totalAmount, quote.currency), PAGE_W - MARGIN, y, {
+    doc.setFontSize(8);
+    setText(doc, COLOR.muted);
+    doc.text("TOTAL", blockLeft, y);
+    y += 5.5;
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(15);
+    setText(doc, COLOR.primary);
+    doc.text(moneyWithCurrencyCode(quote.totalAmount, quote.currency), blockRight, y, {
       align: "right",
     });
-    return y + 10;
+    y += 3;
+    hRule(doc, y, blockLeft, blockRight);
+    return y + 4;
   }
 
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(9);
-  setTextColor(doc, COLOR.text);
-  doc.text("Subtotal", blockX, y);
-  doc.text(money(quote.subtotal, quote.currency), PAGE_W - MARGIN, y, { align: "right" });
-  y += 5;
-  if (quote.discountAmount > 0) {
-    doc.text("Discount", blockX, y);
-    doc.text(money(quote.discountAmount, quote.currency), PAGE_W - MARGIN, y, { align: "right" });
-    y += 5;
-  }
-  doc.text("Tax", blockX, y);
-  doc.text(money(quote.taxAmount, quote.currency), PAGE_W - MARGIN, y, { align: "right" });
-  y += 6;
-  doc.setFont("helvetica", "bold");
-  setTextColor(doc, COLOR.primary);
-  doc.text("Total", blockX, y);
-  doc.setFontSize(12);
-  doc.text(money(quote.totalAmount, quote.currency), PAGE_W - MARGIN, y, { align: "right" });
-  return y + 10;
-}
-
-function drawTextSection(doc: jsPDF, quote: SalesQuote, y: number, title: string, body: string): number {
-  y = ensureSpace(doc, y, 16, quote);
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(9);
-  setTextColor(doc, COLOR.text);
-  doc.text(title, MARGIN, y);
-  y += 5;
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8.5);
-  setTextColor(doc, COLOR.muted);
-  const lines = doc.splitTextToSize(body.trim(), PAGE_W - MARGIN * 2);
-  for (const chunk of lines) {
-    y = ensureSpace(doc, y, 5, quote);
-    doc.text(chunk, MARGIN, y);
-    y += 4;
+  setText(doc, COLOR.text);
+  doc.text("Subtotal", blockLeft, y);
+  doc.text(money(quote.subtotal, quote.currency), blockRight, y, { align: "right" });
+  y += 4.5;
+  if (quote.discountAmount > 0) {
+    doc.text("Discount", blockLeft, y);
+    doc.text(money(quote.discountAmount, quote.currency), blockRight, y, { align: "right" });
+    y += 4.5;
   }
-  return y + 3;
+  doc.text("Tax", blockLeft, y);
+  doc.text(money(quote.taxAmount, quote.currency), blockRight, y, { align: "right" });
+  y += 5;
+  doc.setFont("helvetica", "bold");
+  setText(doc, COLOR.primary);
+  doc.text("TOTAL", blockLeft, y);
+  doc.setFontSize(12);
+  doc.text(money(quote.totalAmount, quote.currency), blockRight, y, { align: "right" });
+  y += 4;
+  hRule(doc, y, blockLeft, blockRight);
+  return y + 8;
+}
+
+function drawTermsBlock(doc: jsPDF, quote: SalesQuote, y: number): number {
+  const chunks: string[] = [];
+  if (quote.paymentTerms?.trim()) chunks.push(quote.paymentTerms.trim());
+  if (quote.notes?.trim()) chunks.push(quote.notes.trim());
+  if (quote.termsAndConditions?.trim()) chunks.push(quote.termsAndConditions.trim());
+  if (!chunks.length) return y;
+
+  y = ensureSpace(doc, y, 14, quote);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(8);
+  setText(doc, COLOR.charcoal);
+  doc.text("TERMS & CONDITIONS", MARGIN, y);
+  y += 4.5;
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(7.5);
+  setText(doc, COLOR.muted);
+  const body = chunks.join("\n\n");
+  const lines = doc.splitTextToSize(body, PAGE_W - MARGIN * 2);
+  for (const line of lines) {
+    y = ensureSpace(doc, y, 4, quote);
+    doc.text(line, MARGIN, y);
+    y += 3.4;
+  }
+  return y + 4;
 }
 
 function drawBankDetails(doc: jsPDF, quote: SalesQuote, y: number, bank: SalesQuoteBankDetails): number {
@@ -431,7 +484,23 @@ function drawBankDetails(doc: jsPDF, quote: SalesQuote, y: number, bank: SalesQu
   if (bank.swiftBic) rows.push(`SWIFT/BIC: ${bank.swiftBic}`);
   if (bank.other) rows.push(bank.other);
   if (!rows.length) return y;
-  return drawTextSection(doc, quote, y, "Bank details", rows.join("\n"));
+
+  y = ensureSpace(doc, y, 12, quote);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(8);
+  setText(doc, COLOR.charcoal);
+  doc.text("BANK DETAILS", MARGIN, y);
+  y += 4.5;
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(7.5);
+  setText(doc, COLOR.muted);
+  const lines = doc.splitTextToSize(rows.join("\n"), PAGE_W - MARGIN * 2);
+  for (const line of lines) {
+    y = ensureSpace(doc, y, 4, quote);
+    doc.text(line, MARGIN, y);
+    y += 3.4;
+  }
+  return y + 3;
 }
 
 function drawFooters(doc: jsPDF, seller?: SalesQuoteSellerProfile) {
@@ -439,12 +508,13 @@ function drawFooters(doc: jsPDF, seller?: SalesQuoteSellerProfile) {
   const footerLine = formatSellerPdfFooterLine(seller);
   for (let page = 1; page <= pageCount; page += 1) {
     doc.setPage(page);
-    drawHorizontalRule(doc, FOOTER_TOP - 3);
+    setStroke(doc, COLOR.rule, 0.1);
+    doc.line(MARGIN, FOOTER_Y - 3.5, PAGE_W - MARGIN, FOOTER_Y - 3.5);
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(7.5);
-    setTextColor(doc, COLOR.secondary);
-    doc.text(footerLine, MARGIN, FOOTER_TOP);
-    doc.text(`Page ${page} of ${pageCount}`, PAGE_W - MARGIN, FOOTER_TOP, { align: "right" });
+    doc.setFontSize(7);
+    setText(doc, COLOR.secondary);
+    doc.text(footerLine, MARGIN, FOOTER_Y);
+    doc.text(`Page ${page} of ${pageCount}`, PAGE_W - MARGIN, FOOTER_Y, { align: "right" });
   }
 }
 
@@ -458,30 +528,17 @@ export async function buildSalesQuotePdfDocument(
   const scopeStyle = isScopeStyleQuote(quote.pricingStyle, visibility);
   const workspaceSlug = options?.workspaceSlug ?? null;
 
-  let y = await drawPageHeader(doc, quote, seller, workspaceSlug);
-  y = drawCustomerPanels(doc, quote, y);
+  let y = await drawDocumentHeader(doc, quote, seller, workspaceSlug);
+  y = drawInfoBand(doc, quote, y);
 
   if (quote.title?.trim()) {
-    y = ensureSpace(doc, y, 10, quote);
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(10.5);
-    setTextColor(doc, COLOR.text);
-    doc.text(quote.title.trim(), MARGIN, y);
-    y += 7;
+    y = ensureSpace(doc, y, 12, quote);
+    y = drawQuoteProjectTitle(doc, quote.title.trim(), y);
   }
 
-  y = drawScopeTable(doc, quote, y, scopeStyle);
-  y = drawTotalBlock(doc, quote, y, scopeStyle);
-
-  if (quote.paymentTerms?.trim()) {
-    y = drawTextSection(doc, quote, y, "Payment terms", quote.paymentTerms);
-  }
-  if (quote.notes?.trim()) {
-    y = drawTextSection(doc, quote, y, "Notes", quote.notes);
-  }
-  if (quote.termsAndConditions?.trim()) {
-    y = drawTextSection(doc, quote, y, "Terms & conditions", quote.termsAndConditions);
-  }
+  y = scopeStyle ? drawScopeServices(doc, quote, y) : drawDetailedLineTable(doc, quote, y);
+  y = drawCommercialTotal(doc, quote, y, scopeStyle);
+  y = drawTermsBlock(doc, quote, y);
 
   const bank = normalizeBankDetails(quote.bankDetails);
   if (bank) {

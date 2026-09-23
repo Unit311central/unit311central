@@ -1,5 +1,12 @@
 import type { SalesQuoteSellerProfile } from "@/lib/accounting/types";
 
+/** Presentation-only: show host without scheme in PDF body/footer. */
+export function formatWebsiteForPdfDisplay(website: string | null | undefined): string | null {
+  const trimmed = website?.trim();
+  if (!trimmed) return null;
+  return trimmed.replace(/^https?:\/\//i, "").replace(/\/$/, "");
+}
+
 function normalizeAddressLines(address: string | null | undefined): string[] {
   if (!address?.trim()) return [];
   return address
@@ -43,7 +50,7 @@ export function formatSellerPdfCompanyLines(seller?: SalesQuoteSellerProfile | n
   const email = seller.email?.trim();
   if (email) lines.push(email);
 
-  const website = seller.website?.trim();
+  const website = formatWebsiteForPdfDisplay(seller.website);
   if (website) lines.push(website);
 
   return lines;
@@ -52,7 +59,7 @@ export function formatSellerPdfCompanyLines(seller?: SalesQuoteSellerProfile | n
 export function formatSellerPdfFooterLine(seller?: SalesQuoteSellerProfile | null): string {
   const brand = seller?.brandName?.trim() || seller?.companyName?.trim() || "Unit311 Central";
   const email = seller?.email?.trim();
-  const website = seller?.website?.trim();
+  const website = formatWebsiteForPdfDisplay(seller?.website);
   const parts = [brand];
   if (email) parts.push(email);
   if (website) parts.push(website);

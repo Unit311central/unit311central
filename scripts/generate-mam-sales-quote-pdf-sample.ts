@@ -56,7 +56,7 @@ const quote: SalesQuote = {
   companyName: "Moroccan Advanced Manufacturing",
   contactName: "Paul Fotheringham",
   contactEmail: "paul@unit311central.com",
-  title: null,
+  title: "Unit311 Central — MAM",
   currency: "USD",
   subtotal: 40_000,
   taxAmount: 0,
@@ -81,7 +81,10 @@ const quote: SalesQuote = {
     id: `line-${index + 1}`,
     lineNumber: index + 1,
     description,
-    detailText: null,
+    detailText:
+      index === 0
+        ? "Commercial, engineering, qualification, manufacturing and management architecture."
+        : null,
     quantity: 0,
     unit: null,
     unitPrice: 0,
@@ -98,7 +101,7 @@ async function main() {
   const pdf = await buildSalesQuotePdfDocument(quote, seller, { workspaceSlug: "internal" });
   const outDir = "/opt/cursor/artifacts";
   mkdirSync(outDir, { recursive: true });
-  const filename = "Q-2026-974612-redesign.pdf";
+  const filename = "Q-2026-974612.pdf";
   const outPath = join(outDir, filename);
   writeFileSync(outPath, pdf);
   console.log(`Wrote ${outPath} (${pdf.byteLength} bytes)`);

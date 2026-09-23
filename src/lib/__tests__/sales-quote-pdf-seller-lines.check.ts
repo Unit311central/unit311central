@@ -33,7 +33,7 @@ assert.deepEqual(nakamaBlock, [
   "Hong Kong",
   "Company No: 78747890",
   "paul@unit311central.com",
-  "https://unit311central.com",
+  "unit311central.com",
 ]);
 
 const footer = formatSellerPdfFooterLine({
@@ -52,6 +52,6 @@ const footer = formatSellerPdfFooterLine({
   country: null,
   website: "https://unit311central.com",
 });
-assert.equal(footer, "Unit311 Central | paul@unit311central.com | https://unit311central.com");
+assert.equal(footer, "Unit311 Central | paul@unit311central.com | unit311central.com");
 
 console.log("ok  sales-quote-pdf-seller-lines");
