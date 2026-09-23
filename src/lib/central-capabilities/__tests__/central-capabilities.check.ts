@@ -30,6 +30,7 @@ import {
   getTalantonImpactNavSections,
 } from "@/lib/internal-role-views";
 import {
+  getInternalNavHref,
   internalSurveyNavSections,
   isInternalOperationsView,
   type InternalNavSection,
@@ -165,6 +166,10 @@ assertSurfaceNav("ABHI", buildAbhiNavSections(internalSurveyNavSections));
     "Dashboard",
     "Content Studio",
     "Management",
+    "Management Dashboard",
+    "Meetings",
+    "Function Packs",
+    "Actions & Decisions",
     "Email",
     "Calendar",
     "Messaging",
@@ -173,6 +178,47 @@ assertSurfaceNav("ABHI", buildAbhiNavSections(internalSurveyNavSections));
   ]) {
     assert.ok(labels.includes(expected), `Talanton Business Productivity must include ${expected}`);
   }
+
+  assert.equal(productivity[0]?.label, "Dashboard");
+  assert.equal(productivity[1]?.label, "Management");
+  assert.equal(productivity[2]?.label, "Content Studio");
+  assert.ok(
+    productivity[1]?.children?.length === 4,
+    "Talanton Management must be expandable with exactly four children",
+  );
+  assert.deepEqual(
+    productivity[1]?.children?.map((child) => child.label),
+    ["Management Dashboard", "Meetings", "Function Packs", "Actions & Decisions"],
+  );
+  assert.ok(
+    !productivity.some((item) => item.view === "management" && !item.children?.length),
+    "Talanton must not expose a flat Management leaf",
+  );
+
+  const projectMgmt = sectionItems(talanton, "Project Management");
+  assert.ok(
+    !projectMgmt.some((item) => item.label === "Management"),
+    "Talanton Project Management must not include Management",
+  );
+
+  const basePath = "/";
+  assert.equal(getInternalNavHref("management", basePath), `${basePath}?view=management`);
+  assert.equal(
+    getInternalNavHref("management", basePath, { section: "dashboard" }),
+    `${basePath}?view=management&section=dashboard`,
+  );
+  assert.equal(
+    getInternalNavHref("management", basePath, { section: "meetings" }),
+    `${basePath}?view=management&section=meetings`,
+  );
+  assert.equal(
+    getInternalNavHref("management", basePath, { section: "function-packs" }),
+    `${basePath}?view=management&section=function-packs`,
+  );
+  assert.equal(
+    getInternalNavHref("management", basePath, { section: "actions-decisions" }),
+    `${basePath}?view=management&section=actions-decisions`,
+  );
 }
 
 {

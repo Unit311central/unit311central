@@ -20,6 +20,7 @@ import {
 } from "@/lib/onwardair-surface";
 import { ONWARDAIR_LOCKED_WORKSPACE_SECTION_ORDER } from "@/lib/onwardair-nav-order";
 import { TALANTON_LOCKED_WORKSPACE_SECTION_ORDER } from "@/lib/talanton-nav-order";
+import { buildManagementNavItem } from "@/lib/central-capabilities/management-nav";
 
 import type {
   InternalNavItem,
@@ -669,6 +670,7 @@ function reshapeTalantonProductivitySection(section: InternalNavSection): Intern
     ...section,
     items: [
       { label: "Dashboard", icon: "LayoutDashboard", view: "productivity-dashboard" as const },
+      buildManagementNavItem(),
       { label: "Content Studio", icon: "Presentation", view: "content-studio" as const },
       {
         label: "File Explorer",
@@ -685,9 +687,18 @@ function reshapeTalantonProductivitySection(section: InternalNavSection): Intern
       { label: "Communications", icon: "Video", view: "communications" as const },
       { label: "Social", icon: "Share2", view: "social" as const },
       { label: "Whiteboard", icon: "PenLine", view: "whiteboard" as const },
-      { label: "Management", icon: "ClipboardList", view: "management" as const },
     ],
   };
+}
+
+/**
+ * Re-apply Talanton Business Productivity shape (nested Management via buildManagementNavItem).
+ * Used after workspace sidebar module filtering so catalogue injection cannot flatten Management.
+ */
+export function patchTalantonBusinessProductivityNavSections(
+  sections: readonly InternalNavSection[],
+): InternalNavSection[] {
+  return sections.map(reshapeTalantonProductivitySection);
 }
 
 function reshapeTalantonBusinessCentralSection(section: InternalNavSection): InternalNavSection {

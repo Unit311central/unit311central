@@ -252,6 +252,23 @@ assert.equal(
   "Project Management enabled → exactly one PM-labelled section",
 );
 
+{
+  const productivity = talantonPmEnabled.find((section) => section.label === "Business Productivity");
+  assert.ok(productivity, "Talanton must expose Business Productivity");
+  assert.equal(productivity.items[0]?.label, "Dashboard");
+  assert.equal(productivity.items[1]?.label, "Management");
+  assert.equal(productivity.items[2]?.label, "Content Studio");
+  assert.equal(productivity.items[1]?.children?.length, 4);
+  assert.deepEqual(
+    productivity.items[1]?.children?.map((child) => child.label),
+    ["Management Dashboard", "Meetings", "Function Packs", "Actions & Decisions"],
+  );
+  assert.ok(
+    !productivity.items.some((item) => item.view === "management" && !item.children?.length),
+    "Talanton Business Productivity must not include a flat Management leaf",
+  );
+}
+
 const pmDisabledConfig = buildSidebarConfigSnapshot([
   { moduleId: "project-management", enabled: false, displayOrder: 100 },
   { moduleId: "business-productivity", enabled: true, displayOrder: 110 },

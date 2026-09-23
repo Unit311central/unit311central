@@ -26,6 +26,8 @@ import {
   isSettingsSection,
 } from "@/lib/sidebar-nav-custom";
 import type { InternalNavSection } from "@/lib/internal-operations-data";
+import { patchTalantonBusinessProductivityNavSections } from "@/lib/internal-role-views";
+import { isTalantonImpactSlug } from "@/lib/talanton-surface";
 
 /** Pins and settings — always visible; not managed in Settings → Sidebar. */
 export const FIXED_SIDEBAR_MODULE_IDS = ["home", "executive-assistant", "settings"] as const;
@@ -400,7 +402,11 @@ export function applyWorkspaceSidebarModuleConfig(
     return getNavSectionKey(a).localeCompare(getNavSectionKey(b));
   });
 
-  return [...pins, ...normalizedMovable, ...(settings ? [settings] : [])];
+  const ordered = [...pins, ...normalizedMovable, ...(settings ? [settings] : [])];
+  if (isTalantonImpactSlug(workspaceSlug)) {
+    return patchTalantonBusinessProductivityNavSections(ordered);
+  }
+  return ordered;
 }
 
 /** Convert persisted rows to section keys for legacy applySidebarSectionOrder compatibility. */
