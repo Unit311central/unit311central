@@ -4,11 +4,13 @@ import {
   applyMetadataEnabledModuleHints,
   applyWolfCentralSharkSidebarRows,
   buildSidebarConfigSnapshot,
+  defaultWorkspaceSidebarModuleRows,
   deriveSidebarRowsFromLegacyEnabledModules,
   mergeCatalogueWithPersistedRows,
   resolveProvisioningKeysFromSidebarRows,
   type WorkspaceSidebarModuleRecord,
 } from "@/lib/platform-workspaces/workspace-sidebar-config";
+import { DEMO_SLUG } from "@/lib/platform-workspaces/demo-provisioning";
 import { defaultEnabledSubModules } from "@/lib/platform-workspaces/module-catalogue";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
 import { createTenancyServerClient } from "@/lib/supabase/tenancy-server";
@@ -66,6 +68,14 @@ export async function loadWorkspaceSidebarModuleRows(
 ): Promise<WorkspaceSidebarModuleRecord[]> {
   const resolvedSlug =
     workspaceSlug ?? (isSupabaseConfigured() ? await readWorkspaceSlug(workspaceId) : null);
+
+  if (resolvedSlug === DEMO_SLUG) {
+    const rows = defaultWorkspaceSidebarModuleRows(resolvedSlug).map((row) => ({
+      ...row,
+      enabled: true,
+    }));
+    return applyWolfCentralSharkSidebarRows(rows, resolvedSlug);
+  }
 
   if (!isSupabaseConfigured()) {
     return applyWolfCentralSharkSidebarRows(

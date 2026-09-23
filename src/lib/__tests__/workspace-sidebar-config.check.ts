@@ -24,6 +24,10 @@ import {
   sanitizeSidebarModulePayload,
   sidebarConfigFromEnabledModuleIds,
 } from "@/lib/platform-workspaces/workspace-sidebar-config";
+import {
+  buildWorkspaceProductNavSections,
+  resolveWorkspaceNavEnablement,
+} from "@/lib/platform-workspaces/workspace-product-nav";
 
 const catalogue = listSidebarCatalogueModules();
 assert.ok(catalogue.length >= 10, "catalogue should list configurable modules");
@@ -103,6 +107,45 @@ assert.ok(legacySubset.find((row) => row.moduleId === "business-central")?.enabl
 assert.ok(legacySubset.find((row) => row.moduleId === "board")?.enabled === false);
 assert.ok(legacySubset.find((row) => row.moduleId === "intelligence")?.enabled === false);
 
+const partialDemoWhoami = buildSidebarConfigSnapshot(
+  deriveSidebarRowsFromLegacyEnabledModules(
+    ["home", "executive-assistant", "business-central", "financials", "board"],
+    "demo",
+  ),
+);
+assert.ok(
+  partialDemoWhoami.enabledModuleIds.includes("home"),
+  "whoami sidebar snapshot must always include home pin",
+);
+assert.ok(
+  partialDemoWhoami.enabledModuleIds.includes("executive-assistant"),
+  "whoami sidebar snapshot must always include executive-assistant pin",
+);
+
+const repairedDemo = resolveWorkspaceNavEnablement({
+  workspaceSlug: "demo",
+  workspaceType: "Demo",
+  enabledModules: partialDemoWhoami.enabledModuleIds,
+  enabledSubModules: partialDemoWhoami.enabledSubModuleKeys,
+});
+const demoNav = buildWorkspaceProductNavSections({
+  workspaceSlug: "demo",
+  workspaceType: "Demo",
+  enablement: repairedDemo,
+});
+const demoTopLevel = demoNav.flatMap((section) =>
+  section.kind === "pin"
+    ? section.items.map((item) => item.label)
+    : section.label
+      ? [section.label]
+      : [],
+);
+assert.ok(demoTopLevel.includes("HOME"), "partial demo metadata must repair to HOME pin");
+assert.ok(
+  demoTopLevel.some((label) => label.toUpperCase().includes("INTELLIGENCE")),
+  "partial demo metadata must repair to Intelligence section",
+);
+
 const specialistDefault = deriveSidebarRowsFromLegacyEnabledModules(null);
 assert.ok(specialistDefault.every((row) => row.enabled));
 
@@ -114,6 +157,9 @@ const abcdRows = [
 ] as const;
 
 assert.deepEqual(buildSidebarConfigSnapshot(abcdRows).enabledModuleIds, [
+  "home",
+  "executive-assistant",
+  "settings",
   "board",
   "financials",
   "fundraising",
@@ -124,7 +170,14 @@ const disabledMiddle = abcdRows.map((row) =>
   row.moduleId === "financials" ? { ...row, enabled: false } : row,
 );
 const afterDisable = buildSidebarConfigSnapshot(disabledMiddle);
-assert.deepEqual(afterDisable.enabledModuleIds, ["board", "fundraising", "engineering"]);
+assert.deepEqual(afterDisable.enabledModuleIds, [
+  "home",
+  "executive-assistant",
+  "settings",
+  "board",
+  "fundraising",
+  "engineering",
+]);
 assert.equal(
   afterDisable.modules.find((row) => row.moduleId === "financials")?.displayOrder,
   20,
@@ -134,6 +187,9 @@ const reenabled = enableWorkspaceSidebarModule(disabledMiddle, "financials");
 assert.ok(reenabled);
 const afterReenable = buildSidebarConfigSnapshot(reenabled);
 assert.deepEqual(afterReenable.enabledModuleIds, [
+  "home",
+  "executive-assistant",
+  "settings",
   "board",
   "financials",
   "fundraising",

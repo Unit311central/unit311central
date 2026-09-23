@@ -244,15 +244,15 @@ const staleEnablement = resolveWorkspaceNavEnablement({
   enabledModules: stale161Modules,
   enabledSubModules: stale161Subs,
 });
-assert.notEqual(
+assert.equal(
   staleEnablement.enabledModules.length,
   22,
-  "Stale 161 module list must be detected as incomplete (missing sales-management)",
+  "Stale partial demo metadata must repair to the full 22-module catalogue",
 );
-assert.notEqual(
+assert.equal(
   staleEnablement.enabledSubModules.length,
-  163,
-  "Stale 161 submodule list must be detected as incomplete",
+  157,
+  "Stale partial demo metadata must repair to the filtered demo submodule catalogue",
 );
 
 console.log("ok  demo-module-structure-frozen checks passed\n");

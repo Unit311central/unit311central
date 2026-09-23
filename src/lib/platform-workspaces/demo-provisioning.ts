@@ -36,3 +36,12 @@ export function demoCatalogueEnablement(): {
 export const DEMO_CATALOGUE_MODULE_COUNT = DEMO_ENABLED_MODULES.length;
 
 export const DEMO_CATALOGUE_SUBMODULE_COUNT = demoEnabledSubModules().length;
+
+/** True when workspace metadata/sidebar config drifted from the frozen 22-module Demo catalogue. */
+export function isDemoCatalogueEnablementIncomplete(
+  enabledModules: readonly string[] | null | undefined,
+): boolean {
+  if (!enabledModules?.length) return true;
+  if (enabledModules.length < DEMO_ENABLED_MODULES.length) return true;
+  return !DEMO_ENABLED_MODULES.every((id) => enabledModules.includes(id));
+}

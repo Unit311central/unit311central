@@ -166,7 +166,11 @@ export function buildSidebarConfigSnapshot(
   rows: readonly WorkspaceSidebarModuleRecord[],
 ): WorkspaceSidebarConfigSnapshot {
   const sorted = [...rows].sort((a, b) => a.displayOrder - b.displayOrder);
-  const enabledModuleIds = sorted.filter((row) => row.enabled).map((row) => row.moduleId);
+  const enabledFromRows = sorted.filter((row) => row.enabled).map((row) => row.moduleId);
+  const enabledModuleIds = [
+    ...FIXED_SIDEBAR_MODULE_IDS.filter((id) => !enabledFromRows.includes(id)),
+    ...enabledFromRows,
+  ];
   const enabledSubModuleKeys = defaultEnabledSubModules(enabledModuleIds);
   return {
     modules: sorted,

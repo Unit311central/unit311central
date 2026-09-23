@@ -4,6 +4,10 @@
  */
 
 import { DEMO_WORKSPACE_SLUG } from "@/lib/app-domains";
+import {
+  demoCatalogueEnablement,
+  isDemoCatalogueEnablementIncomplete,
+} from "@/lib/platform-workspaces/demo-provisioning";
 import { filterIntelligenceProvisioningSubModules } from "@/lib/intelligence/intelligence-provisioning";
 import { resolveIntelligenceNavLabel } from "@/lib/intelligence/intelligence-nav-labels";
 import { filterBusinessCentralProvisioningSubModules } from "@/lib/platform-workspaces/business-central-provisioning";
@@ -169,13 +173,13 @@ export function resolveWorkspaceNavEnablement(input: {
     };
   }
 
-  if (isDemo && subModules.length === 0) {
-    const allModules = [...WORKSPACE_MODULE_IDS];
+  if (isDemo && (subModules.length === 0 || isDemoCatalogueEnablementIncomplete(modules))) {
+    const full = demoCatalogueEnablement();
     return {
-      enabledModules: allModules,
+      enabledModules: full.enabledModules,
       enabledSubModules: filterWorkspaceProvisioningSubModules(
         normalizedSlug,
-        defaultEnabledSubModules(allModules),
+        full.enabledSubModules,
       ),
     };
   }
