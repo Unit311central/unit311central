@@ -4,6 +4,7 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 
 import { Resvg } from "@resvg/resvg-js";
+import sharp from "sharp";
 
 import { INTERNAL_FILES_BUCKET } from "@/lib/internal-files-data";
 import { isSupabaseServiceRoleConfigured } from "@/lib/supabase/server";
@@ -13,6 +14,8 @@ import {
   isPlatformDefaultDocumentLogoSlug,
   resolveWorkspaceDocumentLogoPreview,
   UNIT311_DOCUMENT_LOGO_ASPECT,
+  UNIT311_DOCUMENT_LOGO_PDF_CACHE_VERSION,
+  UNIT311_DOCUMENT_LOGO_PNG_PATH,
   UNIT311_DOCUMENT_LOGO_SVG_PATH,
   WORKSPACE_DOCUMENT_LOGO_ALLOWED_TYPES,
   WORKSPACE_DOCUMENT_LOGO_MAX_BYTES,
@@ -91,6 +94,40 @@ export function rasterizeSvgToPngForPdfDocument(
 }
 
 let cachedDefaultUnit311DocumentLogoRaster: WorkspaceDocumentLogoRaster | null = null;
+let cachedDefaultUnit311DocumentLogoVersion = 0;
+
+/** True when PNG includes dark wordmark ink (not just accent lines). */
+export async function logoPngHasWordmarkInk(pngBytes: Uint8Array): Promise<boolean> {
+  if (!pngBytes.length || pngBytes[0] !== 0x89) return false;
+  try {
+    const { data, info } = await sharp(Buffer.from(pngBytes)).raw().toBuffer({ resolveWithObject: true });
+    let dark = 0;
+    const maxY = Math.floor(info.height * 0.65);
+    for (let y = 0; y < maxY; y += 1) {
+      for (let x = 0; x < info.width; x += 3) {
+        const i = (y * info.width + x) * info.channels;
+        const r = data[i]!;
+        const g = data[i + 1]!;
+        const b = data[i + 2]!;
+        if (r < 90 && g < 90 && b < 120) dark += 1;
+      }
+    }
+    return dark >= 180;
+  } catch {
+    return false;
+  }
+}
+
+async function loadDefaultUnit311DocumentLogoPngBytes(): Promise<Uint8Array | null> {
+  const fromDisk = await readPublicLogoBytesFromDisk(UNIT311_DOCUMENT_LOGO_PNG_PATH);
+  if (fromDisk?.length && fromDisk[0] === 0x89) return fromDisk;
+
+  const origin = resolveDefaultDocumentLogoAssetOrigin();
+  const response = await fetch(`${origin}${UNIT311_DOCUMENT_LOGO_PNG_PATH}`, { cache: "no-store" });
+  if (!response.ok) return null;
+  const bytes = new Uint8Array(await response.arrayBuffer());
+  return bytes.length && bytes[0] === 0x89 ? bytes : null;
+}
 
 function resolveDefaultDocumentLogoAssetOrigin(): string {
   const configured = INTERNAL_SITE_URL.trim().replace(/\/$/, "");
@@ -126,13 +163,54 @@ async function loadDefaultUnit311DocumentLogoSvgBytes(): Promise<Uint8Array> {
 }
 
 export async function loadDefaultUnit311DocumentLogoRasterForPdf(): Promise<WorkspaceDocumentLogoRaster> {
-  if (cachedDefaultUnit311DocumentLogoRaster) return cachedDefaultUnit311DocumentLogoRaster;
+  if (
+    cachedDefaultUnit311DocumentLogoRaster &&
+    cachedDefaultUnit311DocumentLogoVersion === UNIT311_DOCUMENT_LOGO_PDF_CACHE_VERSION
+  ) {
+    return cachedDefaultUnit311DocumentLogoRaster;
+  }
+
+  const pngFromAsset = await loadDefaultUnit311DocumentLogoPngBytes();
+  if (pngFromAsset && (await logoPngHasWordmarkInk(pngFromAsset))) {
+    const dims = await pngDimensions(pngFromAsset);
+    cachedDefaultUnit311DocumentLogoRaster = await normalizeLogoRasterForPdfEmbed({
+      bytes: pngFromAsset,
+      format: "PNG",
+      ...dims,
+    });
+    cachedDefaultUnit311DocumentLogoVersion = UNIT311_DOCUMENT_LOGO_PDF_CACHE_VERSION;
+    return cachedDefaultUnit311DocumentLogoRaster;
+  }
 
   const svgBytes = await loadDefaultUnit311DocumentLogoSvgBytes();
-  const png = rasterizeSvgToPngForPdfDocument(svgBytes);
+  let png = rasterizeSvgToPngForPdfDocument(svgBytes);
+  if (!(await logoPngHasWordmarkInk(png))) {
+    throw new Error("Default document logo raster is missing wordmark text.");
+  }
   const dims = await pngDimensions(png);
-  cachedDefaultUnit311DocumentLogoRaster = { bytes: png, format: "PNG", ...dims };
+  cachedDefaultUnit311DocumentLogoRaster = await normalizeLogoRasterForPdfEmbed({
+    bytes: png,
+    format: "PNG",
+    ...dims,
+  });
+  cachedDefaultUnit311DocumentLogoVersion = UNIT311_DOCUMENT_LOGO_PDF_CACHE_VERSION;
   return cachedDefaultUnit311DocumentLogoRaster;
+}
+
+/** Keeps jsPDF embeds small (avoids multi‑MB raw bitmaps from large PNGs). */
+async function normalizeLogoRasterForPdfEmbed(
+  raster: WorkspaceDocumentLogoRaster,
+): Promise<WorkspaceDocumentLogoRaster> {
+  if (raster.format !== "PNG" || raster.widthPx <= PDF_DOCUMENT_LOGO_RASTER_WIDTH) {
+    return raster;
+  }
+  const out = await sharp(Buffer.from(raster.bytes))
+    .resize({ width: PDF_DOCUMENT_LOGO_RASTER_WIDTH, withoutEnlargement: true })
+    .png({ compressionLevel: 9 })
+    .toBuffer();
+  const bytes = new Uint8Array(out);
+  const dims = await pngDimensions(bytes);
+  return { bytes, format: "PNG", ...dims };
 }
 
 async function pngDimensions(bytes: Uint8Array): Promise<{ widthPx: number; heightPx: number }> {
@@ -209,6 +287,10 @@ export async function loadWorkspaceDocumentLogoRasterForPdf(input: {
     if (!isPlatformDefaultDocumentLogoSlug(workspaceSlug)) return null;
   }
 
+  if (isPlatformDefaultDocumentLogoSlug(workspaceSlug) && !record.storagePath?.trim()) {
+    return loadDefaultUnit311DocumentLogoRasterForPdf();
+  }
+
   if (record.storagePath) {
     let bytes: Uint8Array;
     try {
@@ -220,12 +302,26 @@ export async function loadWorkspaceDocumentLogoRasterForPdf(input: {
       const type = (record.contentType ?? "").toLowerCase();
       if (type.includes("svg")) {
         const png = rasterizeSvgToPngForPdfDocument(bytes);
+        if (await logoPngHasWordmarkInk(png)) {
+          const dims = await pngDimensions(png);
+          return normalizeLogoRasterForPdfEmbed({ bytes: png, format: "PNG", ...dims });
+        }
+        if (isPlatformDefaultDocumentLogoSlug(workspaceSlug)) {
+          return loadDefaultUnit311DocumentLogoRasterForPdf();
+        }
         const dims = await pngDimensions(png);
-        return { bytes: png, format: "PNG", ...dims };
+        return normalizeLogoRasterForPdfEmbed({ bytes: png, format: "PNG", ...dims });
       }
       if (type.includes("png")) {
         const dims = await pngDimensions(bytes);
-        return { bytes, format: "PNG", ...dims };
+        const raster = { bytes, format: "PNG" as const, ...dims };
+        if (
+          isPlatformDefaultDocumentLogoSlug(workspaceSlug) &&
+          !(await logoPngHasWordmarkInk(bytes))
+        ) {
+          return loadDefaultUnit311DocumentLogoRasterForPdf();
+        }
+        return normalizeLogoRasterForPdfEmbed(raster);
       }
       if (type.includes("jpeg") || type.includes("jpg")) {
         return {
@@ -238,25 +334,17 @@ export async function loadWorkspaceDocumentLogoRasterForPdf(input: {
     }
   }
 
-  if (record.pdfStoragePath) {
+  if (record.pdfStoragePath && !isPlatformDefaultDocumentLogoSlug(workspaceSlug)) {
     try {
       const bytes = await downloadStoragePath(record.pdfStoragePath);
       const dims = await pngDimensions(bytes);
-      return { bytes, format: "PNG", ...dims };
+      return normalizeLogoRasterForPdfEmbed({ bytes, format: "PNG", ...dims });
     } catch {
       // Fall through to platform default.
     }
   }
 
   if (isPlatformDefaultDocumentLogoSlug(workspaceSlug)) {
-    return loadDefaultUnit311DocumentLogoRasterForPdf();
-  }
-
-  if (
-    !record.storagePath &&
-    !record.pdfStoragePath &&
-    isPlatformDefaultDocumentLogoSlug(input.workspaceSlug)
-  ) {
     return loadDefaultUnit311DocumentLogoRasterForPdf();
   }
 

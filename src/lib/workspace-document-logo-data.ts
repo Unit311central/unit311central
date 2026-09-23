@@ -2,6 +2,9 @@
 export const UNIT311_DOCUMENT_LOGO_SVG_PATH = "/images/unit311central.svg";
 export const UNIT311_DOCUMENT_LOGO_PNG_PATH = "/images/unit311central-document.png";
 
+/** Bumped when default document PNG bytes change — invalidates in-process PDF logo cache. */
+export const UNIT311_DOCUMENT_LOGO_PDF_CACHE_VERSION = 3;
+
 export const UNIT311_DOCUMENT_LOGO_ASPECT = 320 / 120;
 
 export const WORKSPACE_DOCUMENT_LOGO_MAX_BYTES = 2 * 1024 * 1024;

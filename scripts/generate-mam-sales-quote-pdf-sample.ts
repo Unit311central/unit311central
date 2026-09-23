@@ -110,24 +110,27 @@ async function main() {
   }
   console.log(`Wrote ${outPath} (${pdf.byteLength} bytes, logo image verified)`);
 
-  try {
-    const { execSync } = await import("node:child_process");
-    execSync(
-      `python3 -c "
+  const { execSync } = await import("node:child_process");
+  execSync(
+    `python3 -c "
 import fitz
+from pathlib import Path
 doc=fitz.open('${outPath}')
-pix=doc[0].get_pixmap(matrix=fitz.Matrix(2,2), clip=fitz.Rect(0,0,260,120))
-pix.save('/opt/cursor/artifacts/Q-2026-974612-logo-crop.png')
-samples=[pix.pixel(i,j) for i in range(0,pix.width,20) for j in range(0,pix.height,8)]
-dark=sum(1 for px in samples if px[0]<120)
-if dark < 5: raise SystemExit('logo crop lacks dark UNIT ink')
-print('logo crop ok', dark)
+page=doc[0]
+mat=fitz.Matrix(2,2)
+page.get_pixmap(matrix=mat, alpha=False).save('/opt/cursor/artifacts/Q-2026-974612-fullpage.png')
+w,h=page.rect.width*2, page.rect.height*2
+clip=fitz.Rect(0,0,w*0.22,h*0.12)
+logo=page.get_pixmap(matrix=mat, clip=clip, alpha=False)
+logo.save('/opt/cursor/artifacts/Q-2026-974612-logo-crop.png')
+samples=logo.samples
+ch=logo.n
+dark=sum(1 for i in range(0,len(samples),ch) if samples[i]<90 and samples[i+1]<90 and samples[i+2]<120)
+if dark < 400: raise SystemExit(f'PDF logo region lacks wordmark ink (dark={dark})')
+print('PDF raster verification PASS dark=', dark)
 "`,
-      { stdio: "inherit" },
-    );
-  } catch (e) {
-    console.warn("Logo crop check skipped or failed:", e);
-  }
+    { stdio: "inherit" },
+  );
 }
 
 main().catch((error) => {

@@ -84,14 +84,15 @@ async function resolveLogoRaster(
   quote: SalesQuote,
   workspaceSlug: string | null | undefined,
 ) {
-  let raster = await loadWorkspaceDocumentLogoRasterForPdf({
+  const raster = await loadWorkspaceDocumentLogoRasterForPdf({
     workspaceId: quote.workspaceId,
     workspaceSlug: workspaceSlug ?? null,
   });
-  if (!raster && isPlatformDefaultDocumentLogoSlug(workspaceSlug)) {
-    raster = await loadDefaultUnit311DocumentLogoRasterForPdf();
+  if (raster) return raster;
+  if (isPlatformDefaultDocumentLogoSlug(workspaceSlug)) {
+    return loadDefaultUnit311DocumentLogoRasterForPdf();
   }
-  return raster;
+  return null;
 }
 
 async function embedLogo(
@@ -113,11 +114,11 @@ async function embedLogo(
 }
 
 function drawSellerBlock(doc: jsPDF, seller: SalesQuoteSellerProfile | undefined, y: number): number {
-  const lineGap = 3.2;
+  const lineGap = 3.5;
   for (const line of formatSellerPdfCompanyLines(seller)) {
     const isBrand = line === (seller?.brandName?.trim() || seller?.companyName?.trim());
     doc.setFont("helvetica", isBrand ? "bold" : "normal");
-    doc.setFontSize(isBrand ? 8 : 7.5);
+    doc.setFontSize(isBrand ? 8.5 : 8);
     setText(doc, isBrand ? COLOR.charcoal : COLOR.text);
     doc.text(line, MARGIN, y);
     y += lineGap;
@@ -157,15 +158,14 @@ async function drawPageHeader(
   workspaceSlug: string | null | undefined,
 ): Promise<number> {
   const headerTop = MARGIN;
+  const logoBottom = await embedLogo(doc, quote, workspaceSlug, MARGIN, headerTop);
+  const sellerBottom = drawSellerBlock(doc, seller, logoBottom);
 
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(15);
+  doc.setFontSize(14);
   setText(doc, COLOR.primary);
   doc.text("SALES QUOTE", RIGHT_EDGE, headerTop + 4, { align: "right" });
   const metaBottom = drawQuoteMetaGrid(doc, headerTop + 9, quote);
-
-  const logoBottom = await embedLogo(doc, quote, workspaceSlug, MARGIN, headerTop);
-  const sellerBottom = drawSellerBlock(doc, seller, logoBottom);
 
   const headerBottom = Math.max(sellerBottom, metaBottom) + 3;
   hRule(doc, headerBottom);
@@ -173,12 +173,12 @@ async function drawPageHeader(
 }
 
 function drawBillTo(doc: jsPDF, quote: SalesQuote, y: number): number {
-  const pad = 3;
+  const pad = 2.5;
   const innerX = MARGIN + pad;
-  const labelY = y + pad + 2.5;
-  let textY = labelY + 7.5;
-  if (quote.contactName?.trim()) textY += 3.6;
-  if (quote.contactEmail?.trim()) textY += 3.6;
+  const labelY = y + pad + 2;
+  let textY = labelY + 6.5;
+  if (quote.contactName?.trim()) textY += 3.4;
+  if (quote.contactEmail?.trim()) textY += 3.4;
   const boxBottom = textY + pad;
 
   setFill(doc, COLOR.panelFill);
@@ -191,15 +191,15 @@ function drawBillTo(doc: jsPDF, quote: SalesQuote, y: number): number {
   doc.text("BILL TO", innerX, labelY);
   doc.setFontSize(9);
   setText(doc, COLOR.charcoal);
-  doc.text(quote.companyName, innerX, labelY + 4.5);
+  doc.text(quote.companyName, innerX, labelY + 4);
 
-  textY = labelY + 7.5;
+  textY = labelY + 6.5;
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8.5);
   setText(doc, COLOR.text);
   if (quote.contactName?.trim()) {
     doc.text(quote.contactName.trim(), innerX, textY);
-    textY += 3.6;
+    textY += 3.4;
   }
   if (quote.contactEmail?.trim()) {
     setText(doc, COLOR.muted);
@@ -209,12 +209,16 @@ function drawBillTo(doc: jsPDF, quote: SalesQuote, y: number): number {
   return boxBottom + SECTION_GAP;
 }
 
-function drawProjectTitle(doc: jsPDF, title: string, y: number): number {
-  doc.setFont("helvetica", "normal");
+function drawQuoteProjectHeading(doc: jsPDF, title: string, y: number): number {
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(7);
+  setText(doc, COLOR.primary);
+  doc.text("QUOTE / PROJECT", MARGIN, y);
+  doc.setFont("helvetica", "bold");
   doc.setFontSize(10);
   setText(doc, COLOR.charcoal);
-  doc.text(title, MARGIN, y);
-  return y + SECTION_GAP + 2;
+  doc.text(title, MARGIN, y + 5);
+  return y + 9;
 }
 
 function drawContinuation(doc: jsPDF, quote: SalesQuote): number {
@@ -263,26 +267,26 @@ function drawScopeTable(doc: jsPDF, quote: SalesQuote, y: number): number {
       detailLines = doc.splitTextToSize(line.detailText.trim(), textW);
     }
     const rowH =
-      4 +
-      titleLines.length * 3.6 +
-      (detailLines.length ? 1.5 + detailLines.length * 3.2 : 0) +
-      4;
+      2.5 +
+      titleLines.length * 3.4 +
+      (detailLines.length ? 1 + detailLines.length * 3 : 0) +
+      2.5;
     y = ensureSpace(doc, y, rowH + 1, quote);
 
     const rowTop = y;
-    let textY = rowTop + 3.5;
+    let textY = rowTop + 2.8;
     doc.setFont("helvetica", "bold");
     doc.setFontSize(8);
     setText(doc, COLOR.charcoal);
     doc.text(titleLines, MARGIN + cellPadX, textY);
-    textY += titleLines.length * 3.5;
+    textY += titleLines.length * 3.4;
 
     if (detailLines.length) {
       doc.setFont("helvetica", "normal");
       doc.setFontSize(7.5);
       setText(doc, COLOR.muted);
-      doc.text(detailLines, MARGIN + cellPadX, textY + 1);
-      textY += 1 + detailLines.length * 3.2;
+      doc.text(detailLines, MARGIN + cellPadX, textY + 0.8);
+      textY += 0.8 + detailLines.length * 3;
     }
 
     y = rowTop + rowH;
@@ -334,16 +338,16 @@ function drawTotalBlock(doc: jsPDF, quote: SalesQuote, y: number, scopeStyle: bo
   y = ensureSpace(doc, y, 14, quote);
   const labelX = RIGHT_EDGE - 58;
 
-  setStroke(doc, COLOR.rule, 0.2);
+  setStroke(doc, COLOR.charcoal, 0.35);
   doc.line(MARGIN, y, RIGHT_EDGE, y);
-  y += 5;
+  y += 4.5;
 
   if (scopeStyle) {
     doc.setFont("helvetica", "bold");
     doc.setFontSize(8);
     setText(doc, COLOR.muted);
     doc.text("TOTAL", labelX, y);
-    doc.setFontSize(10);
+    doc.setFontSize(9.5);
     setText(doc, COLOR.primary);
     doc.text(moneyWithCurrencyCode(quote.totalAmount, quote.currency), RIGHT_EDGE, y, {
       align: "right",
@@ -448,7 +452,8 @@ export async function buildSalesQuotePdfDocument(
   y = drawBillTo(doc, quote, y);
   if (quote.title?.trim()) {
     y = ensureSpace(doc, y, 10, quote);
-    y = drawProjectTitle(doc, quote.title.trim(), y);
+    y += 2;
+    y = drawQuoteProjectHeading(doc, quote.title.trim(), y);
   }
   y = scopeStyle ? drawScopeTable(doc, quote, y) : drawDetailedLineTable(doc, quote, y);
   y = drawTotalBlock(doc, quote, y, scopeStyle);
