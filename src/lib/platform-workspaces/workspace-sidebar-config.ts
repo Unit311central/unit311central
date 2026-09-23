@@ -334,7 +334,7 @@ function injectMissingFixedPinSections(pins: readonly InternalNavSection[]): Int
     pins.flatMap((section) =>
       section.items
         .map((item) => item.view)
-        .filter((view): view is InternalOperationsView => Boolean(view)),
+        .filter((view): view is InternalOperationsView => view != null),
     ),
   );
 
