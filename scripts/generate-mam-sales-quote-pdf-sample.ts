@@ -104,7 +104,11 @@ async function main() {
   const filename = "Q-2026-974612.pdf";
   const outPath = join(outDir, filename);
   writeFileSync(outPath, pdf);
-  console.log(`Wrote ${outPath} (${pdf.byteLength} bytes)`);
+  const latin = Buffer.from(pdf).toString("latin1");
+  if (!latin.includes("/Subtype/Image") && !latin.includes("/Image")) {
+    throw new Error("PDF verification failed: embedded logo image not found.");
+  }
+  console.log(`Wrote ${outPath} (${pdf.byteLength} bytes, logo image verified)`);
 }
 
 main().catch((error) => {

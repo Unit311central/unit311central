@@ -776,8 +776,22 @@ export async function renderSalesQuotePdf(
   const { appendTermsPdfToQuote, buildSalesQuotePdfDocument } = await import(
     "@/lib/accounting/sales-quote-pdf-build"
   );
+  let workspaceSlug = options?.workspaceSlug?.trim() || null;
+  if (!workspaceSlug) {
+    try {
+      const supabase = requireSupabase();
+      const { data } = await supabase
+        .from("workspaces")
+        .select("slug")
+        .eq("id", quote.workspaceId)
+        .maybeSingle();
+      workspaceSlug = data?.slug ? String(data.slug).trim() : null;
+    } catch {
+      workspaceSlug = null;
+    }
+  }
   const main = await buildSalesQuotePdfDocument(quote, seller, {
-    workspaceSlug: options?.workspaceSlug ?? null,
+    workspaceSlug,
   });
   if (!quote.termsPdfStoragePath) return main;
   const terms = await downloadSalesQuoteTermsPdf(quote.termsPdfStoragePath);

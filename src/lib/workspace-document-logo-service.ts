@@ -102,7 +102,7 @@ async function loadDefaultUnit311DocumentLogoSvgBytes(): Promise<Uint8Array> {
   return new Uint8Array(await response.arrayBuffer());
 }
 
-async function loadDefaultUnit311DocumentLogoRasterForPdf(): Promise<WorkspaceDocumentLogoRaster> {
+export async function loadDefaultUnit311DocumentLogoRasterForPdf(): Promise<WorkspaceDocumentLogoRaster> {
   if (cachedDefaultUnit311DocumentLogoRaster) return cachedDefaultUnit311DocumentLogoRaster;
   const svgBytes = await loadDefaultUnit311DocumentLogoSvgBytes();
   const png = rasterizeSvgToPng(svgBytes);
@@ -186,13 +186,25 @@ export async function loadWorkspaceDocumentLogoRasterForPdf(input: {
   }
 
   if (record.pdfStoragePath) {
-    const bytes = await downloadStoragePath(record.pdfStoragePath);
-    const dims = await pngDimensions(bytes);
-    return { bytes, format: "PNG", ...dims };
+    try {
+      const bytes = await downloadStoragePath(record.pdfStoragePath);
+      const dims = await pngDimensions(bytes);
+      return { bytes, format: "PNG", ...dims };
+    } catch {
+      // Fall through to other sources / platform default.
+    }
   }
 
   if (record.storagePath) {
-    const bytes = await downloadStoragePath(record.storagePath);
+    let bytes: Uint8Array;
+    try {
+      bytes = await downloadStoragePath(record.storagePath);
+    } catch {
+      bytes = new Uint8Array();
+    }
+    if (!bytes.length) {
+      // Missing upload — try platform default below.
+    } else {
     const type = (record.contentType ?? "").toLowerCase();
     if (type.includes("png")) {
       const dims = await pngDimensions(bytes);
@@ -211,9 +223,18 @@ export async function loadWorkspaceDocumentLogoRasterForPdf(input: {
       const dims = await pngDimensions(png);
       return { bytes: png, format: "PNG", ...dims };
     }
+    }
   }
 
   if (isPlatformDefaultDocumentLogoSlug(workspaceSlug)) {
+    return loadDefaultUnit311DocumentLogoRasterForPdf();
+  }
+
+  if (
+    !record.storagePath &&
+    !record.pdfStoragePath &&
+    isPlatformDefaultDocumentLogoSlug(input.workspaceSlug)
+  ) {
     return loadDefaultUnit311DocumentLogoRasterForPdf();
   }
 
