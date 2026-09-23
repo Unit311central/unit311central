@@ -67,7 +67,14 @@ assert.ok(!financialsOnly.enabledModuleIds.includes("board"));
 
 const filtered = applyWorkspaceSidebarModuleConfig(mockSections, financialsOnly);
 const labels = filtered.map((section) => section.label);
-assert.deepEqual(labels, ["Home", "Financials", "Settings"]);
+assert.deepEqual(labels, ["Home", null, "Financials", "Settings"]);
+assert.ok(
+  filtered
+    .filter((section) => section.kind === "pin")
+    .flatMap((section) => section.items.map((item) => item.view))
+    .includes("executive-assistant"),
+  "financials-only config must still expose Executive Assistant pin",
+);
 assert.ok(!labels.includes("Board"));
 
 const reorderSnapshot = buildSidebarConfigSnapshot([
@@ -142,8 +149,37 @@ const demoTopLevel = demoNav.flatMap((section) =>
 );
 assert.ok(demoTopLevel.includes("HOME"), "partial demo metadata must repair to HOME pin");
 assert.ok(
+  demoTopLevel.includes("EXECUTIVE ASSISTANT"),
+  "partial demo metadata must repair to Executive Assistant pin",
+);
+assert.ok(
   demoTopLevel.some((label) => label.toUpperCase().includes("INTELLIGENCE")),
   "partial demo metadata must repair to Intelligence section",
+);
+
+const homeOnlyPins: InternalNavSection[] = [
+  {
+    kind: "pin",
+    label: null,
+    color: "#2F80ED",
+    items: [{ label: "HOME", icon: "LayoutDashboard", view: "home" }],
+  },
+  {
+    kind: "workspace",
+    label: "Business Central",
+    items: [{ label: "Dashboard", icon: "LayoutDashboard", view: "business-central-dashboard" }],
+  },
+];
+const withEaPin = applyWorkspaceSidebarModuleConfig(
+  homeOnlyPins,
+  buildSidebarConfigSnapshot(defaultWorkspaceSidebarModuleRows()),
+);
+const pinViews = withEaPin
+  .filter((section) => section.kind === "pin")
+  .flatMap((section) => section.items.map((item) => item.view));
+assert.ok(
+  pinViews.includes("home") && pinViews.includes("executive-assistant"),
+  "sidebar config must inject missing HOME and Executive Assistant pins",
 );
 
 const specialistDefault = deriveSidebarRowsFromLegacyEnabledModules(null);

@@ -34,6 +34,10 @@ export const FIXED_SIDEBAR_MODULE_IDS = ["home", "executive-assistant", "setting
 
 export type FixedSidebarModuleId = (typeof FIXED_SIDEBAR_MODULE_IDS)[number];
 
+const FIXED_PIN_MODULE_IDS: readonly FixedSidebarModuleId[] = ["home", "executive-assistant"];
+
+const FIXED_PIN_VIEW_ORDER: readonly string[] = ["home", "executive-assistant"];
+
 export type WorkspaceSidebarModuleRecord = {
   moduleId: string;
   enabled: boolean;
@@ -324,6 +328,36 @@ export function dedupeNavSectionsByCatalogueModuleId(
   return deduped;
 }
 
+/** HOME and Executive Assistant pins must always render when sidebar config is applied. */
+function injectMissingFixedPinSections(pins: readonly InternalNavSection[]): InternalNavSection[] {
+  const presentViews = new Set(
+    pins.flatMap((section) =>
+      section.items.map((item) => item.view).filter((view): view is string => Boolean(view)),
+    ),
+  );
+
+  const merged = [...pins];
+  for (const moduleId of FIXED_PIN_MODULE_IDS) {
+    const spec = buildCentralProductNavSections().find((entry) => entry.id === moduleId);
+    const section = spec?.section;
+    const view = section?.items[0]?.view;
+    if (!section || section.kind !== "pin" || !view || presentViews.has(view)) continue;
+    merged.push(section);
+    presentViews.add(view);
+  }
+
+  return [...merged].sort((left, right) => {
+    const leftView = left.items[0]?.view ?? "";
+    const rightView = right.items[0]?.view ?? "";
+    const leftIdx = FIXED_PIN_VIEW_ORDER.indexOf(leftView);
+    const rightIdx = FIXED_PIN_VIEW_ORDER.indexOf(rightView);
+    if (leftIdx >= 0 && rightIdx >= 0) return leftIdx - rightIdx;
+    if (leftIdx >= 0) return -1;
+    if (rightIdx >= 0) return 1;
+    return 0;
+  });
+}
+
 function buildProductSectionForModule(
   moduleId: string,
   workspaceSlug?: string | null,
@@ -406,7 +440,11 @@ export function applyWorkspaceSidebarModuleConfig(
     return getNavSectionKey(a).localeCompare(getNavSectionKey(b));
   });
 
-  const ordered = [...pins, ...normalizedMovable, ...(settings ? [settings] : [])];
+  const ordered = [
+    ...injectMissingFixedPinSections(pins),
+    ...normalizedMovable,
+    ...(settings ? [settings] : []),
+  ];
   if (isTalantonImpactSlug(workspaceSlug)) {
     return patchTalantonBusinessProductivityNavSections(ordered);
   }
