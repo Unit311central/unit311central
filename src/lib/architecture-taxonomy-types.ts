@@ -7,6 +7,8 @@
  * database table is introduced.
  */
 
+import { buildWorkspaceArchitectureFilterOptions } from "@/lib/platform-workspaces/unit311-workspace-universe";
+
 /** Structural depth of a taxonomy node. */
 export type ArchitectureTaxonomyLevel =
   | "root"
@@ -34,19 +36,10 @@ export type ArchitectureTaxonomyNode = {
 /** Renderer selection for an Architecture Diagrams catalogue entry. */
 export type ArchitectureRenderer = "canvas" | "tree";
 
-/** Workspaces shown in the Workspace Architecture view (customer workspaces only). */
-export const WORKSPACE_ARCHITECTURE_OPTIONS = [
-  { id: "all", label: "All Workspaces" },
-  { id: "northstar", label: "Northstar" },
-  { id: "abhi", label: "ABHI" },
-  { id: "omnitransit", label: "OmniTransit" },
-  { id: "amanah", label: "Amanah" },
-  { id: "interfaceworx", label: "InterfaceWorx" },
-  { id: "greendesert", label: "GreenDesert" },
-] as const;
+/** Workspaces shown in the Workspace Architecture view — full Unit311 universe. */
+export const WORKSPACE_ARCHITECTURE_OPTIONS = buildWorkspaceArchitectureFilterOptions();
 
-export type WorkspaceArchitectureOptionId =
-  (typeof WORKSPACE_ARCHITECTURE_OPTIONS)[number]["id"];
+export type WorkspaceArchitectureOptionId = string;
 
 /** Section slugs for the three tree views. */
 export const ARCHITECTURE_TREE_SLUGS = {

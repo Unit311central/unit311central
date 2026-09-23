@@ -78,6 +78,7 @@
     "prove:external-client-access-taxonomy": "node --import tsx src/lib/__tests__/external-client-access-taxonomy.check.ts",
     "prove:settings-taxonomy": "node --import tsx src/lib/__tests__/settings-taxonomy.check.ts",
     "prove:architecture-taxonomy": "node --require ./scripts/test-server-only-hook.cjs --import tsx src/lib/__tests__/architecture-taxonomy.check.ts",
+    "prove:unit311-workspace-universe": "node --import tsx src/lib/__tests__/unit311-workspace-universe.check.ts",
     "prove:pending-migrations-runner": "node --import tsx src/lib/__tests__/pending-migrations-runner.check.ts && node --import tsx src/lib/__tests__/migration-query-client.check.ts",
     "prove:finances-nav": "node --import tsx src/lib/__tests__/finances-nav.check.ts",
     "prove:finances-acceptance": "node scripts/prove-finances-acceptance.mjs",

@@ -40,6 +40,12 @@ import {
 import { PROJECT_MANAGEMENT_CORE_FEATURES } from "@/lib/project-management/project-management-taxonomy";
 import { TRAINING_EXCLUDED_VIEW_IDS } from "@/lib/training/training-taxonomy";
 import { buildCentralProductNavSections } from "@/lib/platform-workspaces/central-product-nav";
+import {
+  UNIT311_WORKSPACE_UNIVERSE,
+  getWorkspaceUniverseEntryBySlug,
+} from "@/lib/platform-workspaces/unit311-workspace-universe";
+import { TALANTON_IMPACT_SLUG } from "@/lib/talanton-surface";
+import { INTERNAL_WORKSPACE_SLUG } from "@/lib/workspace-host";
 
 function child(node: ArchitectureTaxonomyNode, label: string): ArchitectureTaxonomyNode {
   const found = (node.children ?? []).find((c) => c.label === label);
@@ -414,14 +420,27 @@ for (const sub of installationsFeature.children ?? []) {
 // VIEW 3 — Workspace Architecture.
 // ---------------------------------------------------------------------------
 const workspaces = buildWorkspaceArchitectureTaxonomy("all");
-assert.deepEqual(labels(workspaces), [
-  "Northstar",
-  "ABHI",
-  "OmniTransit",
-  "Amanah",
-  "InterfaceWorx",
-  "GreenDesert",
-]);
+assert.equal(
+  (workspaces.children ?? []).length,
+  UNIT311_WORKSPACE_UNIVERSE.length,
+  "Workspace Architecture lists every workspace in UNIT311_WORKSPACE_UNIVERSE",
+);
+assert.deepEqual(
+  labels(workspaces),
+  UNIT311_WORKSPACE_UNIVERSE.map((entry) => entry.label),
+);
+assert.ok(
+  labels(workspaces).includes("Talanton") && labels(workspaces).includes("Unit311 Central"),
+  "Talanton and Internal must appear in Workspace Architecture",
+);
+assert.ok(
+  getWorkspaceUniverseEntryBySlug(TALANTON_IMPACT_SLUG),
+  "Talanton slug in universe registry",
+);
+assert.ok(
+  getWorkspaceUniverseEntryBySlug(INTERNAL_WORKSPACE_SLUG),
+  "Internal unit311 slug in universe registry",
+);
 
 const abhiWs = child(workspaces, "ABHI");
 const abhiCore = child(abhiWs, "CORE MODULES");
@@ -485,5 +504,5 @@ const onlyAbhi = buildWorkspaceArchitectureTaxonomy("abhi");
 assert.deepEqual(labels(onlyAbhi), ["ABHI"]);
 
 console.log(
-  "prove:architecture-taxonomy: OK — 22 audited Core Modules, stable ids, exclusions (ABHI/OmniTransit/Talanton/WOLF), EA Goal planning under Business Actions.",
+  "prove:architecture-taxonomy: OK — 22 audited Core Modules, full workspace universe, stable ids, exclusions (ABHI/OmniTransit/Talanton/WOLF), EA Goal planning under Business Actions.",
 );

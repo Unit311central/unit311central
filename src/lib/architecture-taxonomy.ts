@@ -39,7 +39,7 @@
  * - Custom (ABHI Regulatory Intelligence): src/lib/abhi/nav.ts
  * - Custom (ABHI Marketing & Events): marketing-events-taxonomy.ts + abhi/nav.ts
  * - Custom (OmniTransit Installations): operations-taxonomy.ts + saec/installations-nav.ts
- * - Workspace enablement: demo/saec provisioning constants + core catalogue (read-only)
+ * - Workspace list: unit311-workspace-universe.ts (full Unit311 tenancy catalogue)
  */
 
 import {
@@ -58,6 +58,8 @@ import type {
 import { DEMO_ENABLED_MODULES } from "@/lib/platform-workspaces/demo-provisioning";
 import { WORKSPACE_CORE_MODULE_IDS } from "@/lib/platform-workspaces/module-catalogue";
 import { SAEC_ENABLED_MODULES } from "@/lib/platform-workspaces/saec-provisioning";
+import { UNIT311_WORKSPACE_UNIVERSE } from "@/lib/platform-workspaces/unit311-workspace-universe";
+import type { LivingArchitectureEnablement } from "@/lib/platform-workspaces/unit311-workspace-universe";
 import {
   buildCentralBusinessCentralNavSection,
   buildCentralProductNavSections,
@@ -534,19 +536,19 @@ export function buildCustomProductTaxonomy(): ArchitectureTaxonomyNode {
 type WorkspaceSpec = {
   id: string;
   label: string;
-  enablement: "full-core" | "saec-core" | "db-driven";
+  enablement: LivingArchitectureEnablement;
   isAbhi?: boolean;
+  isOmniTransit?: boolean;
 };
 
-/** Customer workspaces in scope. Enablement is read from provisioning constants (read-only). */
-const WORKSPACE_SPECS: readonly WorkspaceSpec[] = [
-  { id: "northstar", label: "Northstar", enablement: "full-core" },
-  { id: "abhi", label: "ABHI", enablement: "full-core", isAbhi: true },
-  { id: "omnitransit", label: "OmniTransit", enablement: "saec-core" },
-  { id: "amanah", label: "Amanah", enablement: "db-driven" },
-  { id: "interfaceworx", label: "InterfaceWorx", enablement: "db-driven" },
-  { id: "greendesert", label: "GreenDesert", enablement: "db-driven" },
-];
+/** Living Architecture workspace nodes — derived from UNIT311_WORKSPACE_UNIVERSE (not user access). */
+const WORKSPACE_SPECS: readonly WorkspaceSpec[] = UNIT311_WORKSPACE_UNIVERSE.map((entry) => ({
+  id: entry.architectureId,
+  label: entry.label,
+  enablement: entry.livingArchitectureEnablement,
+  isAbhi: entry.isAbhi,
+  isOmniTransit: entry.isOmniTransit,
+}));
 
 const ABHI_BC_LABEL_RENAMES: Record<string, string> = {
   "Client Management": "Member Management",
@@ -605,7 +607,7 @@ function workspaceCoreModules(spec: WorkspaceSpec): ArchitectureTaxonomyNode[] {
         note: "ABHI: five standard Core Features + four Custom Features",
       };
     }
-    if (spec.id === "omnitransit" && moduleId === OPERATIONS_MODULE_ID) {
+    if (spec.isOmniTransit && moduleId === OPERATIONS_MODULE_ID) {
       return {
         ...coreModuleNode(moduleId, label, omnitransitOperationsFeatures()),
         note: "OmniTransit: Installations custom feature under Operations",
@@ -630,7 +632,7 @@ function workspaceNode(spec: WorkspaceSpec): ArchitectureTaxonomyNode {
           abhiMarketingCustomFeatureNode(`workspace::${spec.id}::custom`, feature.label),
         ),
       ]
-    : spec.id === "omnitransit"
+    : spec.isOmniTransit
       ? [saecInstallationsCustomFeature(`workspace::${spec.id}::custom`)]
       : [];
 
