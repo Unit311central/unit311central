@@ -322,11 +322,19 @@ export function ExecutionCardView({
         actions={card.actions}
         busy={busy}
         onAction={(action) => {
-          if (action.href && (action.intent === "navigate" || action.intent === "open")) {
-            if (typeof window !== "undefined") window.location.assign(action.href);
+          if (handlers.onCardAction) {
+            handlers.onCardAction(card, action);
             return;
           }
-          handlers.onCardAction?.(card, action);
+          if (action.href && typeof window !== "undefined") {
+            if (action.intent === "open") {
+              window.open(action.href, "_blank", "noopener,noreferrer");
+              return;
+            }
+            if (action.intent === "navigate") {
+              window.location.assign(action.href);
+            }
+          }
         }}
       />
       <NextActions actions={card.nextActions} onFollowUp={handlers.onFollowUp} />
