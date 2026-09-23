@@ -14,6 +14,7 @@ import {
   buildCoreProductTaxonomy,
   buildCustomProductTaxonomy,
   buildWorkspaceArchitectureTaxonomy,
+  CORE_PRODUCT_MODULE_IDS,
 } from "@/lib/architecture-taxonomy";
 import {
   ARCHITECTURE_TREE_SLUGS,
@@ -22,7 +23,13 @@ import {
 } from "@/lib/architecture-taxonomy-types";
 import { ARCHITECTURE_DIAGRAM_CATALOG } from "@/lib/architecture-diagram-data";
 import { BOARD_CORE_FEATURES } from "@/lib/board/board-taxonomy";
+import { BUSINESS_PRODUCTIVITY_CORE_FEATURES } from "@/lib/business-productivity/business-productivity-taxonomy";
 import { CORPORATE_INFORMATION_CORE_FEATURES } from "@/lib/corporate-information/corporate-information-taxonomy";
+import {
+  EXECUTIVE_ASSISTANT_CORE_FEATURES,
+  EXECUTIVE_ASSISTANT_MODULE_LABEL,
+} from "@/lib/executive-assistant/executive-assistant-taxonomy";
+import { FINANCIALS_CORE_FEATURES, FINANCIALS_MODULE_LABEL } from "@/lib/financials/financials-taxonomy";
 import { HOME_MODULE_LABEL } from "@/lib/home/home-taxonomy";
 import { MARKETING_EVENTS_CORE_FEATURES, ABHI_MARKETING_CUSTOM_FEATURES, MARKETING_EVENTS_MODULE_LABEL } from "@/lib/marketing-events/marketing-events-taxonomy";
 import {
@@ -30,6 +37,8 @@ import {
   SAEC_INSTALLATIONS_CUSTOM_FEATURE_LABEL,
   SAEC_INSTALLATIONS_CUSTOM_SUB_FEATURES,
 } from "@/lib/operations/operations-taxonomy";
+import { PROJECT_MANAGEMENT_CORE_FEATURES } from "@/lib/project-management/project-management-taxonomy";
+import { TRAINING_EXCLUDED_VIEW_IDS } from "@/lib/training/training-taxonomy";
 import { buildCentralProductNavSections } from "@/lib/platform-workspaces/central-product-nav";
 
 function child(node: ArchitectureTaxonomyNode, label: string): ArchitectureTaxonomyNode {
@@ -40,6 +49,23 @@ function child(node: ArchitectureTaxonomyNode, label: string): ArchitectureTaxon
 
 function labels(node: ArchitectureTaxonomyNode): string[] {
   return (node.children ?? []).map((c) => c.label);
+}
+
+function collectTaxonomyIds(node: ArchitectureTaxonomyNode, ids: string[] = []): string[] {
+  ids.push(node.id);
+  for (const child of node.children ?? []) {
+    collectTaxonomyIds(child, ids);
+  }
+  return ids;
+}
+
+function findModuleById(
+  coreModules: ArchitectureTaxonomyNode,
+  moduleId: string,
+): ArchitectureTaxonomyNode {
+  const found = (coreModules.children ?? []).find((mod) => mod.id === `module::${moduleId}`);
+  assert.ok(found, `expected Core module id ${moduleId}`);
+  return found!;
 }
 
 // ---------------------------------------------------------------------------
@@ -83,6 +109,21 @@ assert.equal(
   expectedCoreCount,
   "Core Product lists every standard Core Module (WOLF specialist modules excluded)",
 );
+assert.equal(expectedCoreCount, 22, "Unit311 Core Product has exactly 22 Core Modules");
+assert.equal(AUDITED_CORE_MODULE_IDS.size, 22, "all 22 Core Modules are formally audited");
+assert.equal(CORE_PRODUCT_MODULE_IDS.length, 22);
+
+for (const spec of buildCentralProductNavSections().filter((entry) => !entry.id.startsWith("wolf-"))) {
+  assert.ok(AUDITED_CORE_MODULE_IDS.has(spec.id), `${spec.id} must be audited`);
+  const mod = findModuleById(coreModules, spec.id);
+  assert.equal(mod.audited, true, `${spec.label} must be audited`);
+  assert.ok(mod.id.startsWith("module::"), `${spec.id} stable module id`);
+  assert.equal(mod.note, undefined, `${spec.label} must not show unaudited note`);
+}
+
+const allIds = collectTaxonomyIds(core);
+const uniqueIds = new Set(allIds);
+assert.equal(uniqueIds.size, allIds.length, "Core Product taxonomy must not contain duplicate ids");
 assert.ok(
   !(coreModules.children ?? []).some((mod) => /^wolf/i.test(mod.label)),
   "Core Product must not include WOLF specialist modules",
@@ -260,14 +301,73 @@ for (const custom of ABHI_MARKETING_CUSTOM_FEATURES) {
   );
 }
 
-// Every unaudited module must have zero children (only audited taxonomy is classified).
+// Executive Assistant — four Core Features; Goal planning under Business Actions.
+const ea = child(coreModules, EXECUTIVE_ASSISTANT_MODULE_LABEL);
+assert.equal(ea.audited, true);
+assert.deepEqual(
+  labels(ea),
+  EXECUTIVE_ASSISTANT_CORE_FEATURES.map((feature) => feature.label),
+);
+assert.equal(EXECUTIVE_ASSISTANT_CORE_FEATURES.length, 4, "Executive Assistant has four Core Features");
+const businessActions = child(ea, "Business Actions");
+assert.ok(
+  labels(businessActions).includes("Goal & multi-step planning"),
+  "Business Actions must include Goal & multi-step planning",
+);
+assert.ok(
+  businessActions.children?.some((sub) => sub.id === "executive-assistant::business-actions::goal-multi-step-planning"),
+  "Goal sub-feature stable id",
+);
+
+// Finances — audited feature tree matches canonical taxonomy.
+const finances = child(coreModules, FINANCIALS_MODULE_LABEL);
+assert.equal(finances.audited, true);
+assert.deepEqual(
+  labels(finances),
+  FINANCIALS_CORE_FEATURES.map((feature) => feature.label),
+);
+
+// Business Productivity — nine features, File Explorer sub-features.
+const productivity = child(coreModules, "Business Productivity");
+assert.equal(productivity.audited, true);
+assert.deepEqual(
+  labels(productivity),
+  BUSINESS_PRODUCTIVITY_CORE_FEATURES.map((feature) => feature.label),
+);
+assert.deepEqual(labels(child(productivity, "File Explorer")), [
+  "Internal Files",
+  "External Files",
+  "Client Explorer",
+]);
+
+// Project Management — three Core Features, no Grants.
+const pm = child(coreModules, "Project Management");
+assert.equal(pm.audited, true);
+assert.deepEqual(
+  labels(pm),
+  PROJECT_MANAGEMENT_CORE_FEATURES.map((feature) => feature.label),
+);
+assert.ok(!labels(pm).includes("Grants"), "Grants must not appear under Project Management");
+
+// Intelligence must not expose Member Intelligence in Core Product.
+assert.ok(!labels(intel).includes("Member Intelligence"), "Member Intelligence is custom ABHI only");
+
+// Training must not expose Talanton portfolio views.
+const training = child(coreModules, "Training");
+assert.equal(training.audited, true);
+const trainingJson = JSON.stringify(training);
+for (const excluded of TRAINING_EXCLUDED_VIEW_IDS) {
+  assert.ok(!trainingJson.includes(excluded), `Core Training must not include ${excluded}`);
+}
+
+// Every Core Module exposes its audited feature tree (Home remains 0 features).
 for (const mod of coreModules.children ?? []) {
-  if (mod.audited) continue;
-  assert.equal(
-    (mod.children ?? []).length,
-    0,
-    `unaudited module "${mod.label}" must not expose Features`,
-  );
+  assert.equal(mod.audited, true, `${mod.label} must be audited`);
+  if (mod.id === "module::home") {
+    assert.equal((mod.children ?? []).length, 0, "Home has no Core Features");
+    continue;
+  }
+  assert.ok((mod.children ?? []).length > 0, `${mod.label} must expose Core Features`);
 }
 
 // ---------------------------------------------------------------------------
@@ -385,5 +485,5 @@ const onlyAbhi = buildWorkspaceArchitectureTaxonomy("abhi");
 assert.deepEqual(labels(onlyAbhi), ["ABHI"]);
 
 console.log(
-  "prove:architecture-taxonomy: OK — Core Product (audited-only), Custom Product (ABHI + OmniTransit custom features), Workspace Architecture (6 workspaces) verified.",
+  "prove:architecture-taxonomy: OK — 22 audited Core Modules, stable ids, exclusions (ABHI/OmniTransit/Talanton/WOLF), EA Goal planning under Business Actions.",
 );

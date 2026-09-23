@@ -23,6 +23,19 @@
  * - Operations features: operations-taxonomy.ts (matches operations-taxonomy.check.ts)
  * - Marketing & Events features: marketing-events-taxonomy.ts
  *   (matches marketing-events-taxonomy.check.ts)
+ * - Executive Assistant: executive-assistant-taxonomy.ts
+ * - Finances: financials-taxonomy.ts
+ * - Project Management: project-management-taxonomy.ts
+ * - Technology Management: technology-management-taxonomy.ts
+ * - Human Resources: human-resources-taxonomy.ts
+ * - Business Productivity: business-productivity-taxonomy.ts
+ * - Support Desk: support-desk-taxonomy.ts
+ * - Engineering: engineering-taxonomy.ts
+ * - Training: training-taxonomy.ts
+ * - QMS: qms-taxonomy.ts
+ * - Tools: tools-taxonomy.ts
+ * - External Client Access: external-client-access-taxonomy.ts
+ * - Settings: settings-taxonomy.ts
  * - Custom (ABHI Regulatory Intelligence): src/lib/abhi/nav.ts
  * - Custom (ABHI Marketing & Events): marketing-events-taxonomy.ts + abhi/nav.ts
  * - Custom (OmniTransit Installations): operations-taxonomy.ts + saec/installations-nav.ts
@@ -49,7 +62,25 @@ import {
   buildCentralBusinessCentralNavSection,
   buildCentralProductNavSections,
 } from "@/lib/platform-workspaces/central-product-nav";
+import { BUSINESS_PRODUCTIVITY_CORE_FEATURES } from "@/lib/business-productivity/business-productivity-taxonomy";
+import {
+  ENGINEERING_CORE_FEATURES,
+  ENGINEERING_MODULE_ID,
+} from "@/lib/engineering/engineering-taxonomy";
+import {
+  EXECUTIVE_ASSISTANT_CORE_FEATURES,
+  EXECUTIVE_ASSISTANT_MODULE_ID,
+} from "@/lib/executive-assistant/executive-assistant-taxonomy";
+import {
+  EXTERNAL_CLIENT_ACCESS_CORE_FEATURES,
+  EXTERNAL_CLIENT_ACCESS_MODULE_ID,
+} from "@/lib/external-client-access/external-client-access-taxonomy";
+import { FINANCIALS_CORE_FEATURES, FINANCIALS_MODULE_ID } from "@/lib/financials/financials-taxonomy";
 import { FUNDRAISING_CORE_FEATURES } from "@/lib/fundraising/fundraising-taxonomy";
+import {
+  HUMAN_RESOURCES_CORE_FEATURES,
+  HUMAN_RESOURCES_MODULE_ID,
+} from "@/lib/human-resources/human-resources-taxonomy";
 import {
   ABHI_MARKETING_CUSTOM_FEATURES,
   isAbhiMarketingCustomFeatureView,
@@ -62,7 +93,23 @@ import {
   SAEC_INSTALLATIONS_CUSTOM_FEATURE_LABEL,
   SAEC_INSTALLATIONS_CUSTOM_SUB_FEATURES,
 } from "@/lib/operations/operations-taxonomy";
+import {
+  PROJECT_MANAGEMENT_CORE_FEATURES,
+  PROJECT_MANAGEMENT_MODULE_ID,
+} from "@/lib/project-management/project-management-taxonomy";
+import { QMS_CORE_FEATURES, QMS_MODULE_ID } from "@/lib/qms/qms-taxonomy";
 import { buildSalesManagementNavSection } from "@/lib/sales-management-nav";
+import { SETTINGS_CORE_FEATURES, SETTINGS_MODULE_ID } from "@/lib/settings/settings-taxonomy";
+import {
+  SUPPORT_DESK_CORE_FEATURES,
+  SUPPORT_DESK_MODULE_ID,
+} from "@/lib/support-desk/support-desk-taxonomy";
+import {
+  TECHNOLOGY_MANAGEMENT_CORE_FEATURES,
+  TECHNOLOGY_MANAGEMENT_MODULE_ID,
+} from "@/lib/technology-management/technology-management-taxonomy";
+import { TOOLS_CORE_FEATURES, TOOLS_MODULE_ID } from "@/lib/tools/tools-taxonomy";
+import { TRAINING_CORE_FEATURES, TRAINING_MODULE_ID } from "@/lib/training/training-taxonomy";
 import type { ArchitectureTaxonomyNode } from "@/lib/architecture-taxonomy-types";
 
 /**
@@ -77,15 +124,31 @@ import type { ArchitectureTaxonomyNode } from "@/lib/architecture-taxonomy-types
  */
 export const AUDITED_CORE_MODULE_IDS: ReadonlySet<string> = new Set([
   "home",
+  EXECUTIVE_ASSISTANT_MODULE_ID,
+  "intelligence",
   "business-central",
   "sales-management",
-  "intelligence",
-  "corporate-information",
+  FINANCIALS_MODULE_ID,
   "fundraising",
-  "operations",
   "board",
-  "marketing-events",
+  "corporate-information",
+  OPERATIONS_MODULE_ID,
+  MARKETING_EVENTS_MODULE_ID,
+  TECHNOLOGY_MANAGEMENT_MODULE_ID,
+  HUMAN_RESOURCES_MODULE_ID,
+  "business-productivity",
+  SUPPORT_DESK_MODULE_ID,
+  PROJECT_MANAGEMENT_MODULE_ID,
+  ENGINEERING_MODULE_ID,
+  TRAINING_MODULE_ID,
+  QMS_MODULE_ID,
+  TOOLS_MODULE_ID,
+  EXTERNAL_CLIENT_ACCESS_MODULE_ID,
+  SETTINGS_MODULE_ID,
 ]);
+
+/** Standard Core Product modules (22) — WOLF specialist extensions excluded. */
+export const CORE_PRODUCT_MODULE_IDS: readonly string[] = [...AUDITED_CORE_MODULE_IDS];
 
 /** Explicit audited Intelligence taxonomy (nav omits the Dashboard, so it is not derived from nav). */
 const INTELLIGENCE_AUDITED_FEATURES: readonly string[] = [
@@ -136,6 +199,34 @@ function slug(label: string): string {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
+}
+
+type FormalCoreFeatureSpec = {
+  label: string;
+  subFeatures?: readonly { label: string }[];
+};
+
+function formalCoreFeatureNodes(
+  moduleId: string,
+  features: readonly FormalCoreFeatureSpec[],
+): ArchitectureTaxonomyNode[] {
+  return features.map((feature) => {
+    const featureId = `${moduleId}::${slug(feature.label)}`;
+    return {
+      id: featureId,
+      label: feature.label,
+      level: "feature" as const,
+      kind: "core" as const,
+      children: feature.subFeatures?.length
+        ? feature.subFeatures.map((sub) => ({
+            id: `${featureId}::${slug(sub.label)}`,
+            label: sub.label,
+            level: "sub-feature" as const,
+            kind: "core" as const,
+          }))
+        : undefined,
+    };
+  });
 }
 
 /** Audited feature list for a Core Module, or null when the module is unaudited. */
@@ -226,6 +317,51 @@ function auditedFeaturesForModule(moduleId: string): ArchitectureTaxonomyNode[] 
       level: "feature" as const,
       kind: "core" as const,
     }));
+  }
+  if (moduleId === EXECUTIVE_ASSISTANT_MODULE_ID) {
+    return formalCoreFeatureNodes(EXECUTIVE_ASSISTANT_MODULE_ID, EXECUTIVE_ASSISTANT_CORE_FEATURES);
+  }
+  if (moduleId === FINANCIALS_MODULE_ID) {
+    return formalCoreFeatureNodes(FINANCIALS_MODULE_ID, FINANCIALS_CORE_FEATURES);
+  }
+  if (moduleId === PROJECT_MANAGEMENT_MODULE_ID) {
+    return formalCoreFeatureNodes(PROJECT_MANAGEMENT_MODULE_ID, PROJECT_MANAGEMENT_CORE_FEATURES);
+  }
+  if (moduleId === TECHNOLOGY_MANAGEMENT_MODULE_ID) {
+    return formalCoreFeatureNodes(
+      TECHNOLOGY_MANAGEMENT_MODULE_ID,
+      TECHNOLOGY_MANAGEMENT_CORE_FEATURES,
+    );
+  }
+  if (moduleId === HUMAN_RESOURCES_MODULE_ID) {
+    return formalCoreFeatureNodes(HUMAN_RESOURCES_MODULE_ID, HUMAN_RESOURCES_CORE_FEATURES);
+  }
+  if (moduleId === "business-productivity") {
+    return formalCoreFeatureNodes("business-productivity", BUSINESS_PRODUCTIVITY_CORE_FEATURES);
+  }
+  if (moduleId === SUPPORT_DESK_MODULE_ID) {
+    return formalCoreFeatureNodes(SUPPORT_DESK_MODULE_ID, SUPPORT_DESK_CORE_FEATURES);
+  }
+  if (moduleId === ENGINEERING_MODULE_ID) {
+    return formalCoreFeatureNodes(ENGINEERING_MODULE_ID, ENGINEERING_CORE_FEATURES);
+  }
+  if (moduleId === TRAINING_MODULE_ID) {
+    return formalCoreFeatureNodes(TRAINING_MODULE_ID, TRAINING_CORE_FEATURES);
+  }
+  if (moduleId === QMS_MODULE_ID) {
+    return formalCoreFeatureNodes(QMS_MODULE_ID, QMS_CORE_FEATURES);
+  }
+  if (moduleId === TOOLS_MODULE_ID) {
+    return formalCoreFeatureNodes(TOOLS_MODULE_ID, TOOLS_CORE_FEATURES);
+  }
+  if (moduleId === EXTERNAL_CLIENT_ACCESS_MODULE_ID) {
+    return formalCoreFeatureNodes(
+      EXTERNAL_CLIENT_ACCESS_MODULE_ID,
+      EXTERNAL_CLIENT_ACCESS_CORE_FEATURES,
+    );
+  }
+  if (moduleId === SETTINGS_MODULE_ID) {
+    return formalCoreFeatureNodes(SETTINGS_MODULE_ID, SETTINGS_CORE_FEATURES);
   }
   return null;
 }
