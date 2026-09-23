@@ -25,7 +25,7 @@ import {
   isMovableWorkspaceSection,
   isSettingsSection,
 } from "@/lib/sidebar-nav-custom";
-import type { InternalNavSection } from "@/lib/internal-operations-data";
+import type { InternalNavSection, InternalOperationsView } from "@/lib/internal-operations-data";
 import { patchTalantonBusinessProductivityNavSections } from "@/lib/internal-role-views";
 import { isTalantonImpactSlug } from "@/lib/talanton-surface";
 
@@ -330,9 +330,11 @@ export function dedupeNavSectionsByCatalogueModuleId(
 
 /** HOME and Executive Assistant pins must always render when sidebar config is applied. */
 function injectMissingFixedPinSections(pins: readonly InternalNavSection[]): InternalNavSection[] {
-  const presentViews = new Set(
+  const presentViews = new Set<InternalOperationsView>(
     pins.flatMap((section) =>
-      section.items.map((item) => item.view).filter((view): view is string => Boolean(view)),
+      section.items
+        .map((item) => item.view)
+        .filter((view): view is InternalOperationsView => Boolean(view)),
     ),
   );
 
