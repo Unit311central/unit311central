@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { getSalesQuoteSellerProfile } from "@/lib/accounting/sales-quotes-service";
+import { getSalesQuoteSellerProfile } from "@/lib/accounting/sales-quotes-core";
 import { requirePlatformSession } from "@/lib/platform-session";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
 import { requireCurrentWorkspace } from "@/lib/workspace-context";

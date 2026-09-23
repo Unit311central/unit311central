@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { mapSalesQuoteApiBody, type SalesQuoteApiBody } from "@/lib/accounting/sales-quotes-api-body";
-import { createSalesQuote, listSalesQuotes } from "@/lib/accounting/sales-quotes-service";
+import { createSalesQuote, listSalesQuotes } from "@/lib/accounting/sales-quotes-core";
 import { assertDemoMutationAllowedForRequest } from "@/lib/demo/mutation-guard";
 import { isDemoApiRequest } from "@/lib/demo/demo-request";
 import { requirePlatformSession } from "@/lib/platform-session";

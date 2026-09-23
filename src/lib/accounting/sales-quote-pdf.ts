@@ -4,5 +4,5 @@ import type { SalesQuote, SalesQuoteSellerProfile } from "@/lib/accounting/types
 export function buildSalesQuotePdf(quote: SalesQuote, seller?: SalesQuoteSellerProfile): Uint8Array {
   void quote;
   void seller;
-  throw new Error("buildSalesQuotePdf is server-only. Use renderSalesQuotePdf from sales-quotes-service.");
+  throw new Error("buildSalesQuotePdf is server-only. Use renderSalesQuotePdf from sales-quote-pdf-render.");
 }

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { getSalesQuoteById } from "@/lib/accounting/sales-quotes-service";
+import { getSalesQuoteById } from "@/lib/accounting/sales-quotes-core";
 import {
   deleteSalesQuoteTermsPdf,
   uploadSalesQuoteTermsPdf,

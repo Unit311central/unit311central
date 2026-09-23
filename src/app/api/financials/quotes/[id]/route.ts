@@ -1,15 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { mapSalesQuoteApiBody, type SalesQuoteApiBody } from "@/lib/accounting/sales-quotes-api-body";
+import { renderSalesQuotePdf } from "@/lib/accounting/sales-quote-pdf-render";
 import {
   acceptSalesQuote,
   deleteSalesQuote,
   getSalesQuoteById,
   getSalesQuoteSellerProfile,
   markSalesQuoteSent,
-  renderSalesQuotePdf,
   updateSalesQuote,
-} from "@/lib/accounting/sales-quotes-service";
+} from "@/lib/accounting/sales-quotes-core";
 import {
   attachPaymentLinkToQuote,
   renderClientInvoicePdfForQuote,

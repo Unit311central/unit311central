@@ -12,10 +12,6 @@ import {
 import { formatSalesQuoteDisplayDate } from "@/lib/accounting/sales-quote-pdf-format";
 import { formatSellerPdfCompanyLines } from "@/lib/accounting/sales-quote-pdf-seller-lines";
 import type { SalesQuote, SalesQuoteSellerProfile } from "@/lib/accounting/types";
-import {
-  loadDefaultUnit311DocumentLogoRasterForPdf,
-  loadWorkspaceDocumentLogoRasterForPdf,
-} from "@/lib/workspace-document-logo-service";
 import { isPlatformDefaultDocumentLogoSlug } from "@/lib/workspace-document-logo-data";
 
 const PAGE_W = 210;
@@ -84,13 +80,14 @@ async function resolveLogoRaster(
   quote: SalesQuote,
   workspaceSlug: string | null | undefined,
 ) {
-  const raster = await loadWorkspaceDocumentLogoRasterForPdf({
+  const logo = await import("@/lib/workspace-document-logo-pdf-raster");
+  const raster = await logo.loadWorkspaceDocumentLogoRasterForPdf({
     workspaceId: quote.workspaceId,
     workspaceSlug: workspaceSlug ?? null,
   });
   if (raster) return raster;
   if (isPlatformDefaultDocumentLogoSlug(workspaceSlug)) {
-    return loadDefaultUnit311DocumentLogoRasterForPdf();
+    return logo.loadDefaultUnit311DocumentLogoRasterForPdf();
   }
   return null;
 }

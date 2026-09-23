@@ -7,7 +7,7 @@ import { join } from "node:path";
 
 import sharp from "sharp";
 
-import { rasterizeSvgToPngForPdfDocument } from "@/lib/workspace-document-logo-service";
+import { rasterizeSvgToPngForPdfDocument } from "@/lib/workspace-document-logo-pdf-raster";
 
 async function darkPixelCount(png: Uint8Array): Promise<number> {
   const { data, info } = await sharp(Buffer.from(png)).raw().toBuffer({ resolveWithObject: true });

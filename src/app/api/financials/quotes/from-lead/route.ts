@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { createSalesQuoteFromLead } from "@/lib/accounting/sales-quotes-service";
+import { createSalesQuoteFromLead } from "@/lib/accounting/sales-quotes-core";
 import { assertDemoMutationAllowedForRequest } from "@/lib/demo/mutation-guard";
 import { isDemoApiRequest } from "@/lib/demo/demo-request";
 import { requirePlatformSession } from "@/lib/platform-session";
