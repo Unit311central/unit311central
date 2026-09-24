@@ -236,7 +236,6 @@ const SECTION_LABEL_TO_MODULE_ID: Record<string, string> = {
   Environment: "wolf-environment",
   "Drone Operations": "wolf-drone-operations",
   Fleet: "wolf-fleet",
-  Analytics: "wolf-analytics",
   SHARK: "wolf-shark",
   "Regulatory Intelligence": "intelligence",
 };
@@ -251,9 +250,42 @@ const VIEW_PREFIX_TO_MODULE_ID: Array<{ prefix: string; moduleId: string }> = [
   { prefix: "wolf-", moduleId: "wolf-animals" },
 ];
 
+/** Internal host analytics — not a configurable catalogue module (must not map to wolf-analytics). */
+const INTERNAL_HOST_ANALYTICS_VIEWS = new Set<InternalOperationsView>([
+  "platform-analytics",
+  "website-analytics",
+  "saec-feedback",
+]);
+
+function collectNavSectionViews(section: InternalNavSection): InternalOperationsView[] {
+  const views: InternalOperationsView[] = [];
+  for (const item of section.items) {
+    if (item.view) views.push(item.view);
+    for (const child of item.children ?? []) {
+      if (child.view) views.push(child.view);
+    }
+  }
+  return views;
+}
+
 export function resolveCatalogueModuleIdForNavSection(section: InternalNavSection): string | null {
   if (isFixedPinSection(section) || isSettingsSection(section)) return null;
   const label = String(section.label ?? "").trim();
+
+  if (label === "Analytics") {
+    const views = collectNavSectionViews(section);
+    if (views.some((view) => INTERNAL_HOST_ANALYTICS_VIEWS.has(view))) {
+      return null;
+    }
+    if (
+      views.includes("system-health") ||
+      views.includes("realtime-video-pipeline")
+    ) {
+      return "wolf-analytics";
+    }
+    return null;
+  }
+
   if (label && SECTION_LABEL_TO_MODULE_ID[label]) {
     return SECTION_LABEL_TO_MODULE_ID[label]!;
   }

@@ -4,8 +4,11 @@
  */
 import assert from "node:assert/strict";
 
-import type { InternalNavSection } from "@/lib/internal-operations-data";
-import { getTalantonImpactNavSections } from "@/lib/internal-role-views";
+import { internalSurveyNavSections, type InternalNavSection } from "@/lib/internal-operations-data";
+import {
+  filterInternalNavSectionsForDemoSurface,
+  getTalantonImpactNavSections,
+} from "@/lib/internal-role-views";
 import { buildProjectManagementNavSection } from "@/lib/project-management-nav";
 import { buildWolfCentralNavSections } from "@/lib/wolf/wolf-nav";
 import {
@@ -247,6 +250,54 @@ assert.ok(wolfCatalogue.some((entry) => entry.id === "wolf-shark"));
 const sharkSection = buildWolfCentralNavSections().find((section) => section.label === "SHARK");
 assert.ok(sharkSection);
 assert.equal(resolveCatalogueModuleIdForNavSection(sharkSection!), "wolf-shark");
+
+const wolfAnalyticsSection = buildWolfCentralNavSections().find(
+  (section) => section.label === "Analytics",
+);
+assert.ok(wolfAnalyticsSection);
+assert.equal(resolveCatalogueModuleIdForNavSection(wolfAnalyticsSection!), "wolf-analytics");
+
+(globalThis as unknown as { window: { location: { hostname: string; pathname: string }; localStorage: Storage } }).window = {
+  location: { hostname: "internal.unit311central.com", pathname: "/" },
+  localStorage: {
+    getItem: () => null,
+    setItem: () => {},
+    removeItem: () => {},
+    length: 0,
+    clear: () => {},
+    key: () => null,
+  },
+};
+
+const internalHostNav = filterInternalNavSectionsForDemoSurface(internalSurveyNavSections, {
+  allowHostSurfaces: true,
+});
+const internalAnalyticsSection = internalHostNav.find((section) => section.label === "Analytics");
+assert.ok(internalAnalyticsSection, "Internal host nav must include Analytics section");
+assert.equal(
+  resolveCatalogueModuleIdForNavSection(internalAnalyticsSection!),
+  null,
+  "Internal Platform/Website analytics must not map to wolf-analytics",
+);
+
+const limitedInternalConfig = buildSidebarConfigSnapshot([
+  { moduleId: "business-central", enabled: true, displayOrder: 10 },
+  { moduleId: "financials", enabled: true, displayOrder: 20 },
+]);
+const internalNavFiltered = applyWorkspaceSidebarModuleConfig(
+  internalHostNav,
+  limitedInternalConfig,
+  "unit311",
+);
+assert.ok(
+  internalNavFiltered.some((section) => section.label === "Analytics"),
+  "Internal Analytics must survive workspace sidebar module filtering",
+);
+assert.ok(
+  internalNavFiltered
+    .find((section) => section.label === "Analytics")
+    ?.items.some((item) => item.view === "platform-analytics"),
+);
 
 const sharkOnlyConfig = buildSidebarConfigSnapshot([
   { moduleId: "wolf-shark", enabled: true, displayOrder: 10 },
