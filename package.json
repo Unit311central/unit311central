@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "next build && node scripts/patch-sales-quote-pdf-native-trace.mjs",
     "start": "next start",
     "lint": "eslint",
     "db:setup-files": "node scripts/setup-internal-files-db.mjs",
@@ -47,6 +47,7 @@
     "prove:sales-quotes-core-no-sharp": "node --require ./scripts/test-server-only-hook.cjs --import tsx src/lib/__tests__/sales-quotes-core-no-sharp.check.ts",
     "prove:sales-quotes-list-compose-no-sharp": "node --require ./scripts/test-server-only-hook.cjs --import tsx src/lib/__tests__/sales-quotes-list-compose-no-sharp.check.ts",
     "prove:sales-quotes-api-routes-no-sharp": "node scripts/prove-sales-quotes-api-routes-no-sharp.mjs",
+    "prove:sales-quote-pdf-lambda-libvips": "node scripts/prove-sales-quote-pdf-lambda-libvips.mjs",
     "prove:northstar-demo": "node scripts/prove-northstar-demo.mjs",
     "prove:demo-readonly": "node scripts/prove-demo-readonly.mjs",
     "prove:demo-base-path": "node --import tsx src/lib/__tests__/demo-base-path.check.ts",

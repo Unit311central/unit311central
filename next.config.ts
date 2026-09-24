@@ -6,7 +6,8 @@ import type { NextConfig } from "next";
  */
 const nextConfig: NextConfig = {
   productionBrowserSourceMaps: false,
-  serverExternalPackages: ["sharp", "@resvg/resvg-js", "jspdf", "pdf-lib", "pptxgenjs", "unpdf"],
+  // Do not externalize sharp — Vercel must copy libvips-cpp.so into the PDF lambda trace.
+  serverExternalPackages: ["@resvg/resvg-js", "jspdf", "pdf-lib", "pptxgenjs", "unpdf"],
   async redirects() {
     // Public destinations must be /dashboard?... so customer-host middleware can
     // authenticate and keep Talanton externals out of the admin shell.
@@ -111,10 +112,14 @@ const nextConfig: NextConfig = {
       "./public/images/talanton/harry-turner.jpg",
     ],
     "/api/financials/quotes/[id]": [
-      "node_modules/sharp/**",
-      "node_modules/@img/sharp-linux-x64/**",
-      "node_modules/@img/sharp-libvips-linux-x64/**",
-      "node_modules/@resvg/resvg-js/**",
+      "./node_modules/sharp/**",
+      "./node_modules/@img/sharp-linux-x64/**",
+      "./node_modules/@img/sharp-libvips-linux-x64/lib/libvips-cpp.so.8.18.3",
+      "./node_modules/@img/sharp-libvips-linux-x64/lib/glib-2.0/**",
+      "./node_modules/@img/sharp-libvips-linux-x64/package.json",
+      "./node_modules/@img/sharp-libvips-linux-x64/versions.json",
+      "./node_modules/@resvg/resvg-js/**",
+      "./node_modules/@resvg/resvg-js-linux-x64-gnu/**",
     ],
     "/api/executive-assistant/**": [
       "./public/images/workspaces/abhi-logo.png",
