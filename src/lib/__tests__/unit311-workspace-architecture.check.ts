@@ -9,6 +9,7 @@ import {
   buildCoreProductTaxonomy,
   buildWorkspaceArchitectureTaxonomy,
 } from "@/lib/architecture-taxonomy";
+import type { ArchitectureTaxonomyNode } from "@/lib/architecture-taxonomy-types";
 import { ENGINEERING_MODULE_ID } from "@/lib/engineering/engineering-taxonomy";
 import { QMS_MODULE_ID } from "@/lib/qms/qms-taxonomy";
 import { OPERATIONS_CORE_FEATURES } from "@/lib/operations/operations-taxonomy";
@@ -25,14 +26,22 @@ import {
 import { INTERNAL_WORKSPACE_SLUG } from "@/lib/workspace-host";
 import { TALANTON_IMPACT_SLUG } from "@/lib/talanton-surface";
 
-function child(parent: { children?: { label: string; children?: unknown[] }[] }, label: string) {
-  const node = parent.children?.find((entry) => entry.label === label);
-  assert.ok(node, `missing child ${label}`);
-  return node!;
+function child(node: ArchitectureTaxonomyNode, label: string): ArchitectureTaxonomyNode {
+  const found = node.children?.find((entry) => entry.label === label);
+  assert.ok(found, `missing child ${label}`);
+  return found;
 }
 
-function labels(node: { children?: { label: string }[] }): string[] {
+function labels(node: ArchitectureTaxonomyNode): string[] {
   return (node.children ?? []).map((entry) => entry.label);
+}
+
+function workspaceInArchitecture(root: ArchitectureTaxonomyNode, label: string): ArchitectureTaxonomyNode {
+  for (const lifecycle of root.children ?? []) {
+    const match = lifecycle.children?.find((node) => node.label === label);
+    if (match) return match;
+  }
+  assert.fail(`missing workspace ${label}`);
 }
 
 /** Approved live Unit311 Central enablement (fixture simulating workspace_sidebar_modules / whoami). */
@@ -78,23 +87,16 @@ assert.ok(!enabledCoreIds.includes("training"));
 const unit311Tree = buildWorkspaceArchitectureTaxonomy(INTERNAL_WORKSPACE_SLUG, {
   unit311SidebarConfig: snapshot,
 });
-function workspaceInArchitecture(root: typeof unit311Tree, label: string) {
-  for (const lifecycle of root.children ?? []) {
-    const match = lifecycle.children?.find((node) => node.label === label);
-    if (match) return match;
-  }
-  assert.fail(`missing workspace ${label}`);
-}
 const unit311Ws = workspaceInArchitecture(unit311Tree, "Unit311 Central / Internal");
 
-const coreGroup = child(unit311Ws!, "CORE MODULES");
+const coreGroup = child(unit311Ws, "CORE MODULES");
 const coreLabels = labels(coreGroup);
 assert.ok(!coreLabels.includes("Engineering"));
 assert.ok(!coreLabels.includes("QMS"));
 assert.ok(coreLabels.includes("Operations"));
 assert.ok(coreLabels.includes("Intelligence"));
 
-const platformGroup = child(unit311Ws!, "PLATFORM NAVIGATION");
+const platformGroup = child(unit311Ws, "PLATFORM NAVIGATION");
 assert.deepEqual(labels(platformGroup), ["Analytics", "Support", "Workspaces"]);
 for (const platformNode of platformGroup.children ?? []) {
   assert.equal(platformNode.kind, "structural");

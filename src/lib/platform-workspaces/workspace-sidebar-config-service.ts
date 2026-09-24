@@ -15,7 +15,7 @@ import { DEMO_SLUG } from "@/lib/platform-workspaces/demo-provisioning";
 import { defaultEnabledSubModules } from "@/lib/platform-workspaces/module-catalogue";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
 import { createTenancyServerClient } from "@/lib/supabase/tenancy-server";
-import { INTERNAL_WORKSPACE_SLUG, findWorkspaceBySlug } from "@/lib/workspace-host";
+import { findWorkspaceBySlug, INTERNAL_WORKSPACE_SLUG } from "@/lib/workspace-host";
 
 type SidebarModuleRow = {
   module_id: string;

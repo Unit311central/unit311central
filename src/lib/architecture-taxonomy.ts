@@ -63,7 +63,6 @@ import { SAEC_ENABLED_MODULES } from "@/lib/platform-workspaces/saec-provisionin
 import {
   WORKSPACE_ARCHITECTURE_LIFECYCLE_LABEL,
   WORKSPACE_ARCHITECTURE_LIFECYCLE_SEQUENCE,
-  WORKSPACE_ARCHITECTURE_REGISTRY_COUNT,
   workspaceArchitectureRegistryEntries,
   type LivingArchitectureEnablement,
   type Unit311WorkspaceUniverseEntry,
