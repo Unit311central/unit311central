@@ -41,7 +41,9 @@ import { PROJECT_MANAGEMENT_CORE_FEATURES } from "@/lib/project-management/proje
 import { TRAINING_EXCLUDED_VIEW_IDS } from "@/lib/training/training-taxonomy";
 import { buildCentralProductNavSections } from "@/lib/platform-workspaces/central-product-nav";
 import {
-  UNIT311_WORKSPACE_UNIVERSE,
+  WORKSPACE_ARCHITECTURE_LIFECYCLE_LABEL,
+  WORKSPACE_ARCHITECTURE_LIFECYCLE_SEQUENCE,
+  WORKSPACE_ARCHITECTURE_REGISTRY_COUNT,
   getWorkspaceUniverseEntryBySlug,
 } from "@/lib/platform-workspaces/unit311-workspace-universe";
 import { TALANTON_IMPACT_SLUG } from "@/lib/talanton-surface";
@@ -51,6 +53,26 @@ function child(node: ArchitectureTaxonomyNode, label: string): ArchitectureTaxon
   const found = (node.children ?? []).find((c) => c.label === label);
   assert.ok(found, `expected child "${label}" under "${node.label}"`);
   return found!;
+}
+
+function workspaceInArchitecture(root: ArchitectureTaxonomyNode, label: string): ArchitectureTaxonomyNode {
+  for (const lifecycle of root.children ?? []) {
+    const match = lifecycle.children?.find((node) => node.label === label);
+    if (match) return match;
+  }
+  assert.fail(`Workspace Architecture missing workspace node: ${label}`);
+}
+
+function lifecycleGroup(
+  root: ArchitectureTaxonomyNode,
+  lifecycle: (typeof WORKSPACE_ARCHITECTURE_LIFECYCLE_SEQUENCE)[number],
+): ArchitectureTaxonomyNode {
+  const bandLabel = WORKSPACE_ARCHITECTURE_LIFECYCLE_LABEL[lifecycle];
+  return child(root, bandLabel);
+}
+
+function allWorkspaceNodes(root: ArchitectureTaxonomyNode): ArchitectureTaxonomyNode[] {
+  return (root.children ?? []).flatMap((group) => group.children ?? []);
 }
 
 function labels(node: ArchitectureTaxonomyNode): string[] {
@@ -420,18 +442,22 @@ for (const sub of installationsFeature.children ?? []) {
 // VIEW 3 — Workspace Architecture.
 // ---------------------------------------------------------------------------
 const workspaces = buildWorkspaceArchitectureTaxonomy("all");
-assert.equal(
-  (workspaces.children ?? []).length,
-  UNIT311_WORKSPACE_UNIVERSE.length,
-  "Workspace Architecture lists every workspace in UNIT311_WORKSPACE_UNIVERSE",
-);
 assert.deepEqual(
   labels(workspaces),
-  UNIT311_WORKSPACE_UNIVERSE.map((entry) => entry.label),
+  WORKSPACE_ARCHITECTURE_LIFECYCLE_SEQUENCE.map(
+    (lifecycle) => WORKSPACE_ARCHITECTURE_LIFECYCLE_LABEL[lifecycle],
+  ),
+  "Workspace Architecture uses Active → Potential → Archived lifecycle bands",
+);
+assert.equal(
+  allWorkspaceNodes(workspaces).length,
+  WORKSPACE_ARCHITECTURE_REGISTRY_COUNT,
+  "Workspace Architecture lists every workspace in the registry",
 );
 assert.ok(
-  labels(workspaces).includes("Talanton") && labels(workspaces).includes("Unit311 Central"),
-  "Talanton and Internal must appear in Workspace Architecture",
+  allWorkspaceNodes(workspaces).some((node) => node.label === "Talanton") &&
+    allWorkspaceNodes(workspaces).some((node) => node.label === "Unit311 Central / Internal"),
+  "Talanton and Unit311 Central must appear in Workspace Architecture",
 );
 assert.ok(
   getWorkspaceUniverseEntryBySlug(TALANTON_IMPACT_SLUG),
@@ -442,7 +468,7 @@ assert.ok(
   "Internal unit311 slug in universe registry",
 );
 
-const abhiWs = child(workspaces, "ABHI");
+const abhiWs = workspaceInArchitecture(workspaces, "ABHI");
 const abhiCore = child(abhiWs, "CORE MODULES");
 const abhiCustom = child(abhiWs, "CUSTOM");
 assert.ok(child(abhiCustom, "Regulatory Intelligence"), "ABHI CUSTOM has Regulatory Intelligence");
@@ -469,7 +495,7 @@ const abhiBc = child(abhiCore, "Business Central");
 assert.ok(labels(abhiBc).includes("Member Management"), "ABHI BC uses Member terminology");
 
 // Non-ABHI workspace has no custom items.
-const northstar = child(workspaces, "Northstar");
+const northstar = workspaceInArchitecture(workspaces, "Demo / Northstar");
 const northstarCustom = child(northstar, "CUSTOM");
 assert.equal((northstarCustom.children ?? []).length, 0, "Northstar has no custom items");
 const northstarOps = child(child(northstar, "CORE MODULES"), "Operations");
@@ -479,7 +505,7 @@ assert.deepEqual(
 );
 
 // OmniTransit: Installations custom feature under Operations + CUSTOM group.
-const omnitransitWs = child(workspaces, "OmniTransit");
+const omnitransitWs = workspaceInArchitecture(workspaces, "OmniTransit");
 const omnitransitCore = child(omnitransitWs, "CORE MODULES");
 const omnitransitOps = child(omnitransitCore, "Operations");
 assert.deepEqual(labels(omnitransitOps), [
@@ -501,7 +527,9 @@ assert.ok(child(omnitransitCustomGroup, SAEC_INSTALLATIONS_CUSTOM_FEATURE_LABEL)
 
 // Workspace filter narrows to a single workspace.
 const onlyAbhi = buildWorkspaceArchitectureTaxonomy("abhi");
-assert.deepEqual(labels(onlyAbhi), ["ABHI"]);
+assert.equal(onlyAbhi.children?.length, 1);
+assert.equal(onlyAbhi.children?.[0]?.label, "POTENTIAL");
+assert.deepEqual(labels(onlyAbhi.children![0]!), ["ABHI"]);
 
 console.log(
   "prove:architecture-taxonomy: OK — 22 audited Core Modules, full workspace universe, stable ids, exclusions (ABHI/OmniTransit/Talanton/WOLF), EA Goal planning under Business Actions.",

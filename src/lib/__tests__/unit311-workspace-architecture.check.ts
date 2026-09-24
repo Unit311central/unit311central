@@ -78,8 +78,14 @@ assert.ok(!enabledCoreIds.includes("training"));
 const unit311Tree = buildWorkspaceArchitectureTaxonomy(INTERNAL_WORKSPACE_SLUG, {
   unit311SidebarConfig: snapshot,
 });
-const unit311Ws = unit311Tree.children?.[0];
-assert.equal(unit311Ws?.label, "Unit311 Central");
+function workspaceInArchitecture(root: typeof unit311Tree, label: string) {
+  for (const lifecycle of root.children ?? []) {
+    const match = lifecycle.children?.find((node) => node.label === label);
+    if (match) return match;
+  }
+  assert.fail(`missing workspace ${label}`);
+}
+const unit311Ws = workspaceInArchitecture(unit311Tree, "Unit311 Central / Internal");
 
 const coreGroup = child(unit311Ws!, "CORE MODULES");
 const coreLabels = labels(coreGroup);
@@ -107,7 +113,8 @@ assert.ok(coreProductModuleLabels.includes("Engineering"));
 assert.ok(coreProductModuleLabels.includes("QMS"));
 
 const talanton = buildWorkspaceArchitectureTaxonomy(TALANTON_IMPACT_SLUG);
-const talantonCoreLabels = labels(child(talanton.children![0]!, "CORE MODULES"));
+const talantonWs = workspaceInArchitecture(talanton, "Talanton");
+const talantonCoreLabels = labels(child(talantonWs, "CORE MODULES"));
 assert.equal(
   talantonCoreLabels.length,
   WORKSPACE_CORE_MODULE_IDS.length,
@@ -115,7 +122,8 @@ assert.equal(
 );
 
 const northstar = buildWorkspaceArchitectureTaxonomy("northstar");
-const northstarCoreLabels = labels(child(northstar.children![0]!, "CORE MODULES"));
+const northstarWs = workspaceInArchitecture(northstar, "Demo / Northstar");
+const northstarCoreLabels = labels(child(northstarWs, "CORE MODULES"));
 assert.equal(
   northstarCoreLabels.length,
   WORKSPACE_CORE_MODULE_IDS.length,
@@ -123,8 +131,9 @@ assert.equal(
 );
 
 const withoutSnapshot = buildWorkspaceArchitectureTaxonomy(INTERNAL_WORKSPACE_SLUG);
+const unit311Empty = workspaceInArchitecture(withoutSnapshot, "Unit311 Central / Internal");
 assert.equal(
-  labels(child(withoutSnapshot.children![0]!, "CORE MODULES")).length,
+  labels(child(unit311Empty, "CORE MODULES")).length,
   0,
   "Unit311 must not fall back to WORKSPACE_CORE_MODULE_IDS when snapshot missing",
 );
@@ -146,7 +155,9 @@ const viaApiShape = buildArchitectureTaxonomy("workspace-architecture", {
   workspace: INTERNAL_WORKSPACE_SLUG,
   unit311SidebarConfig: snapshot,
 });
-assert.ok(viaApiShape?.children?.some((ws) => ws.label === "Unit311 Central"));
+assert.ok(viaApiShape?.children?.some((group) =>
+  (group.children ?? []).some((ws) => ws.label === "Unit311 Central / Internal"),
+));
 
 console.log(
   "prove:unit311-workspace-architecture: OK — Unit311 Central tree driven by sidebar snapshot; Engineering/QMS excluded; Core Product unchanged.",

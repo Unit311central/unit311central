@@ -375,7 +375,14 @@ for (const feature of ABHI_MARKETING_CUSTOM_FEATURES) {
 }
 
 const workspaces = buildWorkspaceArchitectureTaxonomy("all");
-const abhiWs = child(workspaces, "ABHI");
+function workspaceInArchitecture(root: typeof workspaces, label: string) {
+  for (const lifecycle of root.children ?? []) {
+    const match = lifecycle.children?.find((node) => node.label === label);
+    if (match) return match;
+  }
+  assert.fail(`missing workspace ${label}`);
+}
+const abhiWs = workspaceInArchitecture(workspaces, "ABHI");
 const abhiMarketing = child(child(abhiWs, "CORE MODULES"), MARKETING_EVENTS_MODULE_LABEL);
 assert.deepEqual(labels(abhiMarketing), [
   "Digital Newsletter",
@@ -406,7 +413,7 @@ for (const feature of ABHI_MARKETING_CUSTOM_FEATURES) {
   assert.ok(child(abhiCustomGroup, feature.label), `ABHI CUSTOM includes ${feature.label}`);
 }
 
-const northstar = child(workspaces, "Northstar");
+const northstar = workspaceInArchitecture(workspaces, "Demo / Northstar");
 const northstarMarketing = child(child(northstar, "CORE MODULES"), MARKETING_EVENTS_MODULE_LABEL);
 assert.deepEqual(
   labels(northstarMarketing),

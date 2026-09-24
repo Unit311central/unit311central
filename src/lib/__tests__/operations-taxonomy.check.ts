@@ -177,7 +177,14 @@ assert.deepEqual(
 );
 
 const workspaces = buildWorkspaceArchitectureTaxonomy("all");
-const omnitransit = child(workspaces, "OmniTransit");
+function workspaceInArchitecture(root: typeof workspaces, label: string) {
+  for (const lifecycle of root.children ?? []) {
+    const match = lifecycle.children?.find((node) => node.label === label);
+    if (match) return match;
+  }
+  assert.fail(`missing workspace ${label}`);
+}
+const omnitransit = workspaceInArchitecture(workspaces, "OmniTransit");
 const omnitransitCore = child(omnitransit, "CORE MODULES");
 const omnitransitOps = child(omnitransitCore, OPERATIONS_MODULE_LABEL);
 assert.deepEqual(labels(omnitransitOps), [
@@ -202,7 +209,7 @@ assert.ok(
   child(child(omnitransit, "CUSTOM"), SAEC_INSTALLATIONS_CUSTOM_FEATURE_LABEL),
 );
 
-const northstar = child(workspaces, "Northstar");
+const northstar = workspaceInArchitecture(workspaces, "Demo / Northstar");
 const northstarOps = child(child(northstar, "CORE MODULES"), OPERATIONS_MODULE_LABEL);
 assert.deepEqual(
   labels(northstarOps),

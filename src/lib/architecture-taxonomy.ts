@@ -60,8 +60,19 @@ import type {
 import { DEMO_ENABLED_MODULES } from "@/lib/platform-workspaces/demo-provisioning";
 import { WORKSPACE_CORE_MODULE_IDS } from "@/lib/platform-workspaces/module-catalogue";
 import { SAEC_ENABLED_MODULES } from "@/lib/platform-workspaces/saec-provisioning";
-import { UNIT311_WORKSPACE_UNIVERSE } from "@/lib/platform-workspaces/unit311-workspace-universe";
+import {
+  WORKSPACE_ARCHITECTURE_LIFECYCLE_LABEL,
+  WORKSPACE_ARCHITECTURE_LIFECYCLE_SEQUENCE,
+  WORKSPACE_ARCHITECTURE_REGISTRY_COUNT,
+  workspaceArchitectureRegistryEntries,
+} from "@/lib/platform-workspaces/unit311-workspace-universe";
 import type { LivingArchitectureEnablement } from "@/lib/platform-workspaces/unit311-workspace-universe";
+import {
+  WORKSPACE_ARCHITECTURE_LIFECYCLE_LABEL,
+  WORKSPACE_ARCHITECTURE_LIFECYCLE_SEQUENCE,
+  workspaceArchitectureRegistryEntries,
+  type Unit311WorkspaceUniverseEntry,
+} from "@/lib/platform-workspaces/unit311-workspace-universe";
 import {
   buildUnit311CentralPlatformNavigationNodes,
   isUnit311CentralArchitectureId,
@@ -549,14 +560,42 @@ type WorkspaceSpec = {
   isOmniTransit?: boolean;
 };
 
-/** Living Architecture workspace nodes — derived from UNIT311_WORKSPACE_UNIVERSE (not user access). */
-const WORKSPACE_SPECS: readonly WorkspaceSpec[] = UNIT311_WORKSPACE_UNIVERSE.map((entry) => ({
-  id: entry.architectureId,
-  label: entry.label,
-  enablement: entry.livingArchitectureEnablement,
-  isAbhi: entry.isAbhi,
-  isOmniTransit: entry.isOmniTransit,
-}));
+function workspaceSpecFromRegistryEntry(entry: Unit311WorkspaceUniverseEntry): WorkspaceSpec {
+  return {
+    id: entry.architectureId,
+    label: entry.label,
+    enablement: entry.livingArchitectureEnablement,
+    isAbhi: entry.isAbhi,
+    isOmniTransit: entry.isOmniTransit,
+  };
+}
+
+function buildLifecycleGroupedWorkspaceChildren(
+  registryEntries: readonly Unit311WorkspaceUniverseEntry[],
+  options?: WorkspaceArchitectureBuildOptions,
+): ArchitectureTaxonomyNode[] {
+  const groups: ArchitectureTaxonomyNode[] = [];
+
+  for (const lifecycle of WORKSPACE_ARCHITECTURE_LIFECYCLE_SEQUENCE) {
+    const band = registryEntries
+      .filter((entry) => entry.lifecycle === lifecycle)
+      .sort((left, right) => left.lifecycleOrder - right.lifecycleOrder);
+    if (!band.length) continue;
+
+    groups.push({
+      id: `workspace-architecture::lifecycle::${lifecycle}`,
+      label: WORKSPACE_ARCHITECTURE_LIFECYCLE_LABEL[lifecycle],
+      level: "group",
+      kind: "structural",
+      note: "Lifecycle grouping — not a workspace",
+      children: band.map((entry) =>
+        workspaceNode(workspaceSpecFromRegistryEntry(entry), options),
+      ),
+    });
+  }
+
+  return groups;
+}
 
 const ABHI_BC_LABEL_RENAMES: Record<string, string> = {
   "Client Management": "Member Management",
@@ -708,18 +747,14 @@ export function buildWorkspaceArchitectureTaxonomy(
   workspaceFilter?: string | null,
   options?: WorkspaceArchitectureBuildOptions,
 ): ArchitectureTaxonomyNode {
-  const filter = String(workspaceFilter ?? "all").trim().toLowerCase();
-  const specs =
-    filter === "all" || !filter
-      ? WORKSPACE_SPECS
-      : WORKSPACE_SPECS.filter((spec) => spec.id === filter);
+  const registryEntries = workspaceArchitectureRegistryEntries(workspaceFilter);
 
   return {
     id: "workspace-architecture",
     label: "WORKSPACE ARCHITECTURE",
     level: "root",
     kind: "structural",
-    children: specs.map((spec) => workspaceNode(spec, options)),
+    children: buildLifecycleGroupedWorkspaceChildren(registryEntries, options),
   };
 }
 
