@@ -47,7 +47,14 @@ const DEMO_LLM_SYNTHESIS_TOOLS = new Set([
   "northstar.queryModule",
 ]);
 
-const NORTHSTAR_SYNTHESIS_MODULES = new Set(["engineering", "financials", "fundraising", "clients", "hr"]);
+const NORTHSTAR_SYNTHESIS_MODULES = new Set([
+  "engineering",
+  "financials",
+  "fundraising",
+  "clients",
+  "hr",
+  "sales-management",
+]);
 
 const NORTHSTAR_TOOLS_HINT = `
 Northstar Industrial Technologies — reporting currency is GBP. Use industrial IoT / manufacturing / edge monitoring language (not ABHI membership, Talanton portfolio, or OnwardAir aviation).

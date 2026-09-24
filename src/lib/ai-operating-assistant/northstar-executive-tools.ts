@@ -106,6 +106,7 @@ function parseModuleId(raw: string): NorthstarModuleId {
     "tools",
     "external-client-access",
     "settings",
+    "sales-management",
   ];
   return allowed.includes(value) ? value : "intelligence";
 }
@@ -298,6 +299,7 @@ export const NORTHSTAR_EXECUTIVE_TOOL_DEFINITIONS = [
               "tools",
               "external-client-access",
               "settings",
+              "sales-management",
             ],
           },
           question: { type: "string" },

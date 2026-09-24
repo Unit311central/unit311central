@@ -11,6 +11,20 @@ import {
   type NorthstarModuleId,
 } from "@/lib/demo/northstar-module-id";
 
+function looksLikeExplicitWriteIntent(message: string): boolean {
+  const lower = message.trim().toLowerCase();
+  if (!lower) return false;
+  if (
+    /\b(create|add|register|archive|restore|activate|assign|update|change|edit|delete|remove)\b/.test(
+      lower,
+    ) &&
+    /\b(client|customer|project|employee|invoice|lead|contact|location)\b/.test(lower)
+  ) {
+    return true;
+  }
+  return /^(create|add|register|update|assign|archive|restore)\b/.test(lower);
+}
+
 export type NorthstarExecutiveIntelligenceTool =
   | "northstar.getExecutiveBriefing"
   | "northstar.getOrgHealth"
@@ -39,6 +53,90 @@ export function resolveNorthstarExecutiveIntelligenceIntent(
   const lower = text.toLowerCase();
 
   if (isDocumentGenerateAsk(lower)) return null;
+
+  if (looksLikeExplicitWriteIntent(text)) return null;
+
+  if (/\banything i should know\b/.test(lower)) {
+    return {
+      tool: "northstar.getBoardInsights",
+      args: { focus: "general", question: text },
+      reason: "northstar_anything_to_know",
+    };
+  }
+
+  if (/\bwhat'?s worrying you\b/.test(lower) || /\bwhat should i be worried about\b/.test(lower)) {
+    return {
+      tool: "northstar.getBoardInsights",
+      args: { focus: "risks", question: text },
+      reason: "northstar_worrying_you",
+    };
+  }
+
+  if (
+    /\bprioriti[sz]e this week\b/.test(lower) ||
+    /\bwhat should i focus on today\b/.test(lower) ||
+    /\bwhat should management be concerned about\b/.test(lower)
+  ) {
+    return {
+      tool: "northstar.getExecutiveBriefing",
+      args: { question: text },
+      reason: "northstar_priorities_this_week",
+    };
+  }
+
+  if (/\bmaterial(ly)?\s+changed\b/.test(lower) || /\bwhat has materially changed\b/.test(lower)) {
+    return {
+      tool: "northstar.getExecutiveBriefing",
+      args: { question: text },
+      reason: "northstar_material_change",
+    };
+  }
+
+  if (
+    /\brisks?\b/.test(lower) &&
+    /\b(greatest|biggest|largest|potential).*\b(business\s+)?impact\b/.test(lower)
+  ) {
+    return {
+      tool: "northstar.getBoardInsights",
+      args: { focus: "risks", question: text },
+      reason: "northstar_risk_business_impact",
+    };
+  }
+
+  if (/\bgive me a management summary\b/.test(lower) || /\bneeds my attention\b/.test(lower)) {
+    return {
+      tool: "northstar.getExecutiveBriefing",
+      args: { question: text },
+      reason: "northstar_management_summary",
+    };
+  }
+
+  if (
+    /\b(give|get|provide|show|send)\s+(me\s+)?(an?\s+)?executive\s+(sales|financial|finance|hr|human resources|operations|engineering|management)\s+update\b/.test(
+      lower,
+    ) ||
+    /\bexecutive\s+(sales|financial|finance|hr|operations|management)\s+update\b/.test(lower)
+  ) {
+    const mod =
+      /\bsales\b/.test(lower)
+        ? ("sales-management" as NorthstarModuleId)
+        : /\b(financial|finance)\b/.test(lower)
+          ? ("financials" as NorthstarModuleId)
+          : /\b(hr|human resources)\b/.test(lower)
+            ? ("hr" as NorthstarModuleId)
+            : /\boperations\b/.test(lower)
+              ? ("operations" as NorthstarModuleId)
+              : /\bengineering\b/.test(lower)
+                ? ("engineering" as NorthstarModuleId)
+                : resolveNorthstarModuleId(lower);
+    if (mod) {
+      return {
+        tool: "northstar.queryModule",
+        args: { module: mod, question: text, focus: "executive update" },
+        reason: `northstar_executive_update_${mod}`,
+      };
+    }
+  }
 
   if (
     /\b(year\s+by\s+year|yoy|year-on-year|growth|graph|chart|trend)\b/.test(lower) &&
@@ -177,7 +275,19 @@ function resolveActionQuery(lower: string): NorthstarActionCentreQuery | null {
   return null;
 }
 
+function isModuleScopedCatalogueRead(lower: string): boolean {
+  return (
+    /\b(show me|summari[sz]e|what are the key kpis|what needs attention|what changed recently|what data is on the)\b/.test(
+      lower,
+    ) && /\bin\s+[a-z0-9]/i.test(lower)
+  );
+}
+
 function resolveInsightsFocus(lower: string): NorthstarBoardInsightsFocus | null {
+  if (isModuleScopedCatalogueRead(lower)) return null;
+  if (/\bwhat data is on the\b/i.test(lower)) return null;
+  if (/\brisk register\b/i.test(lower)) return null;
+
   const boardCtx = /\bboard\b/.test(lower);
   if (
     /\b(board\s+insights?|board\s+discussion|strategic\s+discussion)\b/.test(lower) ||

@@ -138,6 +138,7 @@ const NORTHSTAR_EA_READ_ONLY_MODULES = new Set<NorthstarModuleId>([
   "tools",
   "external-client-access",
   "settings",
+  "sales-management",
 ]);
 
 export type NorthstarModuleQueryResult = {

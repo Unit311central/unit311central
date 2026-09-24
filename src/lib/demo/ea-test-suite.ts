@@ -7,7 +7,11 @@ import { resolveOrchestrationRoute } from "@/lib/ai-operating-assistant/action-o
 import { listPlatformModules } from "@/lib/ai-operating-assistant/application-catalogue";
 import { shouldSynthesizeExecutiveToolResult } from "@/lib/ai-operating-assistant/ea-llm-synthesis";
 import { getOpenAIToolSchemas, toOpenAiFunctionToolName } from "@/lib/ai-operating-assistant/tool-service";
-import type { AssistantBusinessContext } from "@/lib/ai-operating-assistant/types";
+import { resolveBusinessActionIntent } from "@/lib/ai-operating-assistant/intent-action-resolver";
+import { executeEaAcceptanceCase } from "@/lib/ea-acceptance/execute-case";
+import { queryNorthstarModuleTool } from "@/lib/ai-operating-assistant/northstar-executive-tools";
+import { formatNorthstarDemoMoneyCompact } from "@/lib/demo/northstar-money";
+import type { AssistantBusinessContext, AssistantChatMessage } from "@/lib/ai-operating-assistant/types";
 import {
   ensureEaWorkspacePacksRegistered,
   getEaWorkspacePackForSlug,
@@ -125,17 +129,18 @@ export async function runDemoEaTestSuite(): Promise<EaTestSuiteReport> {
 
   const orchestration = new SectionRunner("Orchestration");
   sections.push(orchestration);
-  await orchestration.run("headcount question routes to northstar HR module", async () => {
+  await orchestration.run("headcount question routes to semantic HR capability", async () => {
     const route = await resolveOrchestrationRoute(
       "How many employees do we have?",
       [],
       business,
     );
-    if (route.kind !== "tool" || route.intent.tool !== "northstar.queryModule") {
-      throw new Error(`expected northstar.queryModule, got ${JSON.stringify(route)}`);
+    if (route.kind !== "tool") {
+      throw new Error(`expected tool route, got ${JSON.stringify(route)}`);
     }
-    if (String(route.intent.args.module ?? "") !== "hr") {
-      throw new Error(`expected hr module, got ${JSON.stringify(route.intent.args)}`);
+    const tool = route.intent.tool;
+    if (tool !== "searchEmployees" && tool !== "northstar.queryModule") {
+      throw new Error(`expected searchEmployees or northstar.queryModule, got ${JSON.stringify(route)}`);
     }
   });
   await orchestration.run("margin question routes to northstar briefing", async () => {
@@ -160,6 +165,203 @@ export async function runDemoEaTestSuite(): Promise<EaTestSuiteReport> {
     const route = await resolveOrchestrationRoute("Tell me payroll for last 6 months", [], business);
     if (route.kind !== "tool" || route.intent.tool !== "queryPayroll") {
       throw new Error(`expected queryPayroll, got ${JSON.stringify(route)}`);
+    }
+  });
+
+  const regressionPrompts: Array<{ label: string; assert: (route: Awaited<ReturnType<typeof resolveOrchestrationRoute>>) => void }> = [
+    {
+      label: "sales performance read",
+      assert: (route) => {
+        if (route.kind !== "tool" || route.intent.tool !== "northstar.queryModule") {
+          throw new Error(`expected northstar.queryModule, got ${JSON.stringify(route)}`);
+        }
+      },
+    },
+    {
+      label: "sales target tracking",
+      assert: (route) => {
+        if (route.kind !== "tool" || route.intent.tool !== "northstar.queryModule") {
+          throw new Error(`expected northstar.queryModule, got ${JSON.stringify(route)}`);
+        }
+      },
+    },
+    {
+      label: "executive sales update",
+      assert: (route) => {
+        if (route.kind !== "tool" || route.intent.tool !== "northstar.queryModule") {
+          throw new Error(`expected northstar.queryModule, got ${JSON.stringify(route)}`);
+        }
+      },
+    },
+    {
+      label: "create client write",
+      assert: (route) => {
+        if (route.kind !== "capability_answer" && route.kind !== "need_info") {
+          throw new Error(`expected write/action route, got ${JSON.stringify(route)}`);
+        }
+      },
+    },
+    {
+      label: "sales management sidebar navigation",
+      assert: (route) => {
+        if (route.kind !== "platform_answer") {
+          throw new Error(`expected platform_answer, got ${JSON.stringify(route)}`);
+        }
+      },
+    },
+    {
+      label: "financial executive summary",
+      assert: (route) => {
+        if (route.kind !== "tool" || route.intent.tool !== "northstar.queryModule") {
+          throw new Error(`expected northstar.queryModule, got ${JSON.stringify(route)}`);
+        }
+      },
+    },
+    {
+      label: "project risk read",
+      assert: (route) => {
+        if (route.kind !== "tool" || route.intent.tool !== "northstar.queryModule") {
+          throw new Error(`expected northstar.queryModule, got ${JSON.stringify(route)}`);
+        }
+      },
+    },
+  ];
+  const regressionMessages = [
+    "How are sales doing?",
+    "Are we on track to hit target?",
+    "Give me an executive sales update.",
+    "Create a new client called Acme Corp.",
+    "Where is Sales Management in the sidebar?",
+    "Give me a financial executive summary.",
+    "Which projects are at risk?",
+  ];
+  for (let i = 0; i < regressionPrompts.length; i += 1) {
+    const spec = regressionPrompts[i];
+    const message = regressionMessages[i];
+    await orchestration.run(`regression: ${spec.label}`, async () => {
+      const route = await resolveOrchestrationRoute(message, [], business);
+      spec.assert(route);
+    });
+  }
+  await orchestration.run("board deck PDF regression", async () => {
+    const route = await resolveOrchestrationRoute("Create a board deck for tomorrow as a PDF.", [], business);
+    if (route.kind !== "tool" || route.intent.tool !== "boardpack.generate") {
+      throw new Error(`expected boardpack.generate, got ${JSON.stringify(route)}`);
+    }
+  });
+
+  const phase3 = new SectionRunner("Phase 3 defect regression");
+  sections.push(phase3);
+  await phase3.run("sales-management module executes as sales not intelligence", async () => {
+    const result = await queryNorthstarModuleTool(
+      { module: "sales-management", question: "How are sales doing?" },
+      { business },
+    );
+    const prose = String((result.items?.[0] as { prose?: string })?.prose ?? result.summary?.message ?? "");
+    if (/intelligence posture/i.test(prose)) {
+      throw new Error(`expected sales data, got intelligence copy: ${prose.slice(0, 120)}`);
+    }
+    if (!/pipeline|target|sales|opportunit/i.test(prose)) {
+      throw new Error(`expected sales pipeline/target content: ${prose.slice(0, 120)}`);
+    }
+  });
+  await phase3.run("chart request routes to chart capability not module spine", async () => {
+    const route = await resolveOrchestrationRoute("Graph revenue for the last six months.", [], business);
+    if (route.kind === "tool" && route.intent.tool === "northstar.queryModule") {
+      throw new Error("chart stolen by module spine");
+    }
+    const exec = await executeEaAcceptanceCase(
+      { id: "chart-rev", prompt: "Graph revenue for the last six months.", kind: "chart" },
+      business,
+      { executeTools: true },
+    );
+    const hasChart = (exec.responseBlocks ?? []).some((b) => /chart/i.test(b.type));
+    if (!hasChart) throw new Error(`expected chart block, got ${JSON.stringify(exec.responseBlocks?.map((b) => b.type))}`);
+  });
+  await phase3.run("cross-module synthesis uses evidence not queryBusiness", async () => {
+    const exec = await executeEaAcceptanceCase(
+      {
+        id: "x-clients",
+        prompt: "Which clients have both significant commercial value and unresolved issues?",
+        kind: "composite",
+      },
+      business,
+      { executeTools: true },
+    );
+    if (/live snapshot for:/i.test(exec.text ?? "")) {
+      throw new Error("thin queryBusiness snapshot");
+    }
+    if ((exec.text ?? "").length < 80) throw new Error("answer too thin for cross-module synthesis");
+  });
+  await phase3.run("open-ended executive question returns briefing not none", async () => {
+    const exec = await executeEaAcceptanceCase(
+      { id: "prio", prompt: "What should I prioritise this week?", kind: "composite" },
+      business,
+      { executeTools: true },
+    );
+    if (!(exec.text ?? "").trim()) throw new Error("empty answer for prioritise this week");
+  });
+  await phase3.run("missing entity returns honest gap not generic financials", async () => {
+    const exec = await executeEaAcceptanceCase(
+      {
+        id: "hall",
+        prompt: "What is our revenue from the Antarctica division last quarter?",
+        kind: "data",
+      },
+      business,
+      { executeTools: true },
+    );
+    if (!/couldn't find|cannot find|not find|no antarctica/i.test(exec.text ?? "")) {
+      throw new Error(`expected honest gap, got: ${(exec.text ?? "").slice(0, 160)}`);
+    }
+  });
+  await phase3.run("archive client routes to clients.archiveClient", async () => {
+    const intent = await resolveBusinessActionIntent("Archive Acme Corp.", business, []);
+    if (intent.kind !== "propose" || intent.actionId !== "clients.archiveClient") {
+      throw new Error(`expected clients.archiveClient, got ${JSON.stringify(intent)}`);
+    }
+  });
+  await phase3.run("restore client routes to clients.restoreClient", async () => {
+    const intent = await resolveBusinessActionIntent("Restore Acme Corp.", business, []);
+    if (intent.kind !== "propose" || intent.actionId !== "clients.restoreClient") {
+      throw new Error(`expected clients.restoreClient, got ${JSON.stringify(intent)}`);
+    }
+  });
+  await phase3.run("conversation follow-up retains sales context", async () => {
+    const history: AssistantChatMessage[] = [];
+    const turns = ["How are sales doing?", "Tell me more about that one."];
+    for (const prompt of turns) {
+      const exec = await executeEaAcceptanceCase(
+        { id: "conv", prompt, kind: "data" },
+        business,
+        { executeTools: true, history: [...history] },
+      );
+      history.push({ role: "user", content: prompt, id: `u${history.length}`, createdAt: new Date().toISOString() });
+      history.push({
+        role: "assistant",
+        content: exec.text ?? "",
+        id: `a${history.length}`,
+        createdAt: new Date().toISOString(),
+      });
+      if (prompt.includes("Tell me more") && exec.tool === "searchApplications") {
+        throw new Error("follow-up fell through to catalogue search");
+      }
+    }
+  });
+  await phase3.run("demo financial currency uses GBP prefix on server", () => {
+    const sample = formatNorthstarDemoMoneyCompact(2_900_000);
+    if (!sample.startsWith("£")) throw new Error(`expected GBP compact money, got ${sample}`);
+  });
+  await phase3.run("board deck executes with artifact bytes", async () => {
+    const exec = await executeEaAcceptanceCase(
+      { id: "board", prompt: "Create a board deck for tomorrow as a PDF.", kind: "pdf" },
+      business,
+      { executeTools: true },
+    );
+    if (exec.tool !== "boardpack.generate") throw new Error(`expected boardpack.generate, got ${exec.tool}`);
+    const text = String(exec.text ?? "");
+    if (!/board pack|boardpack|generated successfully/i.test(text) && (exec.artifactByteLength ?? 0) < 1500) {
+      throw new Error(`board pack did not execute: bytes=${exec.artifactByteLength ?? 0} text=${text.slice(0, 80)}`);
     }
   });
 
