@@ -72,8 +72,20 @@ function copyDir(src, dest) {
   fs.cpSync(src, dest, { recursive: true, dereference: true });
 }
 
+function writeExternalSharpPackage(externalPath, externalName, sourceDir) {
+  fs.rmSync(externalPath, { recursive: true, force: true });
+  copyDir(sourceDir, externalPath);
+  const pkgPath = path.join(externalPath, "package.json");
+  if (fs.existsSync(pkgPath)) {
+    const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf8"));
+    pkg.name = externalName;
+    fs.writeFileSync(pkgPath, `${JSON.stringify(pkg, null, 2)}\n`);
+  }
+}
+
 function materializeNextSharpExternals() {
   const nextNm = path.join(projectRoot, ".next/node_modules");
+  const serverNm = path.join(projectRoot, ".next/server/node_modules");
   if (!fs.existsSync(nextNm)) return;
 
   for (const externalName of fs.readdirSync(nextNm)) {
@@ -85,37 +97,36 @@ function materializeNextSharpExternals() {
     } catch {
       continue;
     }
-    if (!stat.isSymbolicLink()) continue;
 
-    const target = fs.realpathSync(externalPath);
-    fs.rmSync(externalPath, { recursive: true, force: true });
-    copyDir(target, externalPath);
+    const sourceDir = stat.isSymbolicLink() ? fs.realpathSync(externalPath) : externalPath;
+    writeExternalSharpPackage(externalPath, externalName, sourceDir);
 
-    const pkgPath = path.join(externalPath, "package.json");
-    if (fs.existsSync(pkgPath)) {
-      const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf8"));
-      pkg.name = externalName;
-      fs.writeFileSync(pkgPath, `${JSON.stringify(pkg, null, 2)}\n`);
-    }
+    fs.mkdirSync(serverNm, { recursive: true });
+    writeExternalSharpPackage(path.join(serverNm, externalName), externalName, sourceDir);
   }
 }
 
 function collectMaterializedSharpExternalNftPaths(pageDir) {
-  const nextNm = path.join(projectRoot, ".next/node_modules");
+  const roots = [
+    path.join(projectRoot, ".next/node_modules"),
+    path.join(projectRoot, ".next/server/node_modules"),
+  ];
   const out = [];
-  if (!fs.existsSync(nextNm)) return out;
 
-  for (const name of fs.readdirSync(nextNm)) {
-    if (!name.startsWith("sharp-")) continue;
-    const absRoot = path.join(nextNm, name);
-    const walk = (absDir) => {
-      for (const ent of fs.readdirSync(absDir, { withFileTypes: true })) {
-        const abs = path.join(absDir, ent.name);
-        if (ent.isDirectory()) walk(abs);
-        else out.push(path.relative(pageDir, abs).replace(/\\/g, "/"));
-      }
-    };
-    walk(absRoot);
+  for (const root of roots) {
+    if (!fs.existsSync(root)) continue;
+    for (const name of fs.readdirSync(root)) {
+      if (!name.startsWith("sharp-")) continue;
+      const absRoot = path.join(root, name);
+      const walk = (absDir) => {
+        for (const ent of fs.readdirSync(absDir, { withFileTypes: true })) {
+          const abs = path.join(absDir, ent.name);
+          if (ent.isDirectory()) walk(abs);
+          else out.push(path.relative(pageDir, abs).replace(/\\/g, "/"));
+        }
+      };
+      walk(absRoot);
+    }
   }
   return out;
 }

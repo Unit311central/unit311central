@@ -65,12 +65,7 @@ import {
   WORKSPACE_ARCHITECTURE_LIFECYCLE_SEQUENCE,
   WORKSPACE_ARCHITECTURE_REGISTRY_COUNT,
   workspaceArchitectureRegistryEntries,
-} from "@/lib/platform-workspaces/unit311-workspace-universe";
-import type { LivingArchitectureEnablement } from "@/lib/platform-workspaces/unit311-workspace-universe";
-import {
-  WORKSPACE_ARCHITECTURE_LIFECYCLE_LABEL,
-  WORKSPACE_ARCHITECTURE_LIFECYCLE_SEQUENCE,
-  workspaceArchitectureRegistryEntries,
+  type LivingArchitectureEnablement,
   type Unit311WorkspaceUniverseEntry,
 } from "@/lib/platform-workspaces/unit311-workspace-universe";
 import {
