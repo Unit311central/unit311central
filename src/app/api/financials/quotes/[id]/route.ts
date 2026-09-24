@@ -1,20 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { mapSalesQuoteApiBody, type SalesQuoteApiBody } from "@/lib/accounting/sales-quotes-api-body";
-import { renderSalesQuotePdf } from "@/lib/accounting/sales-quote-pdf-render";
 import {
   acceptSalesQuote,
   deleteSalesQuote,
   getSalesQuoteById,
-  getSalesQuoteSellerProfile,
   markSalesQuoteSent,
   updateSalesQuote,
 } from "@/lib/accounting/sales-quotes-core";
-import {
-  attachPaymentLinkToQuote,
-  renderClientInvoicePdfForQuote,
-  sendClientInvoiceForQuote,
-} from "@/lib/accounting/client-invoice-service";
+import { getSalesQuoteSellerProfile } from "@/lib/accounting/sales-quote-seller-profile";
 import { assertDemoMutationAllowedForRequest } from "@/lib/demo/mutation-guard";
 import { isDemoApiRequest } from "@/lib/demo/demo-request";
 import { requirePlatformSession } from "@/lib/platform-session";
@@ -151,6 +145,7 @@ export async function POST(
         "workspaceId" in scope && scope.workspaceId
           ? await getSalesQuoteSellerProfile(scope.workspaceId)
           : null;
+      const { renderSalesQuotePdf } = await import("@/lib/accounting/sales-quote-pdf-render");
       const pdf = await renderSalesQuotePdf(quote, seller ?? undefined, {
         workspaceSlug: "workspaceSlug" in scope ? scope.workspaceSlug : null,
       });
@@ -170,6 +165,7 @@ export async function POST(
       if (quote.status !== "accepted") {
         return NextResponse.json({ error: "Accept the quote before downloading the invoice." }, { status: 400 });
       }
+      const { renderClientInvoicePdfForQuote } = await import("@/lib/accounting/client-invoice-service");
       const pdf = renderClientInvoicePdfForQuote(quote);
       return new NextResponse(Buffer.from(pdf), {
         headers: {
@@ -181,12 +177,14 @@ export async function POST(
 
     if (action === "send-invoice") {
       const origin = request.headers.get("origin") ?? request.nextUrl.origin;
+      const { sendClientInvoiceForQuote } = await import("@/lib/accounting/client-invoice-service");
       const result = await sendClientInvoiceForQuote(id, scope, origin);
       return NextResponse.json(result);
     }
 
     if (action === "payment-link") {
       const origin = request.headers.get("origin") ?? request.nextUrl.origin;
+      const { attachPaymentLinkToQuote } = await import("@/lib/accounting/client-invoice-service");
       const quote = await attachPaymentLinkToQuote(id, scope, origin);
       return NextResponse.json({ quote });
     }
