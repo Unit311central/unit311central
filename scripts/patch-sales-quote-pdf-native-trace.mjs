@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Turbopack NFT traces often omit libvips-cpp.so even with outputFileTracingIncludes.
- * Merge required sharp/resvg native assets into the quotes [id] lambda trace.
+ * Materialize sharp externals (no symlinks), vendor libvips under .next/server, merge nft.
  */
 import fs from "node:fs";
 import path from "node:path";
@@ -13,6 +13,8 @@ const globOrig = require("next/dist/compiled/glob");
 
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const TRACE_REL = ".next/server/app/api/financials/quotes/[id]/route.js.nft.json";
+const VENDOR_ROOT = path.join(projectRoot, ".next/server/sharp-vendor");
+const VENDOR_IMG = path.join(VENDOR_ROOT, "@img");
 
 const INCLUDE_GLOBS = [
   "node_modules/@img/sharp-libvips-linux-x64/lib/libvips-cpp.so.*",
@@ -23,6 +25,38 @@ const INCLUDE_GLOBS = [
   "node_modules/@resvg/resvg-js-linux-x64-gnu/**",
 ];
 
+/** Runtime sources accidentally traced into the lambda; keep compiled output + node_modules only. */
+function shouldKeepTracedFile(rel) {
+  const norm = rel.replace(/\\/g, "/");
+  if (norm.includes("/node_modules/")) return true;
+  if (norm.includes("/server/chunks/")) return true;
+  if (norm.includes("/server/sharp-vendor/")) return true;
+  if (norm.includes("/.next/node_modules/")) return true;
+  if (/\/server\/app\//.test(norm)) return true;
+  if (norm.includes("/server/sharp-vendor/")) return true;
+  // Turbopack external sharp package lives under .next/node_modules (materialized below).
+  if (/\/\.next\/node_modules\//.test(norm)) return true;
+  if (norm.includes("sharp-") && norm.includes("/node_modules/")) return true;
+
+  if (norm.includes("/src/")) return false;
+  if (norm.includes("/scripts/")) return false;
+  if (norm.includes("/supabase/")) return false;
+  if (norm.includes("/diagrams/")) return false;
+  if (norm.includes("/mobile/")) return false;
+  if (norm.includes("/docs/") && !norm.includes("node_modules")) return false;
+
+  if (/(\/|^)(AGENTS|ARCHITECTURE|README|CLAUDE|CONTRIBUTING|DEPLOYMENT)\.md$/i.test(norm)) return false;
+  if (norm.endsWith("/next.config.ts") || norm.endsWith("/vercel.json")) return false;
+  if (norm.endsWith("/package.json") && !norm.includes("node_modules")) return false;
+  if (norm.endsWith("/package-lock.json")) return false;
+  if (norm.endsWith("/tsconfig.json")) return false;
+  if (norm.endsWith("/eslint.config.mjs")) return false;
+  if (norm.endsWith("/postcss.config.mjs")) return false;
+  if (norm.endsWith("Architecture_Report.pdf")) return false;
+
+  return true;
+}
+
 function glob(pattern) {
   return new Promise((resolve, reject) => {
     globOrig(pattern, { cwd: projectRoot, nodir: true, dot: true }, (err, files) => {
@@ -32,7 +66,85 @@ function glob(pattern) {
   });
 }
 
+function copyDir(src, dest) {
+  fs.mkdirSync(path.dirname(dest), { recursive: true });
+  fs.cpSync(src, dest, { recursive: true, dereference: true });
+}
+
+function materializeNextSharpExternals() {
+  const nextNm = path.join(projectRoot, ".next/node_modules");
+  if (!fs.existsSync(nextNm)) return;
+
+  for (const name of fs.readdirSync(nextNm)) {
+    if (!name.startsWith("sharp-")) continue;
+    const linkPath = path.join(nextNm, name);
+    let stat;
+    try {
+      stat = fs.lstatSync(linkPath);
+    } catch {
+      continue;
+    }
+    if (!stat.isSymbolicLink()) continue;
+    const target = fs.realpathSync(linkPath);
+    fs.rmSync(linkPath, { recursive: true, force: true });
+    copyDir(target, linkPath);
+  }
+}
+
+function vendorSharpNativeUnderServer() {
+  const libvipsSrc = path.join(projectRoot, "node_modules/@img/sharp-libvips-linux-x64");
+  const sharpLinuxSrc = path.join(projectRoot, "node_modules/@img/sharp-linux-x64");
+  if (!fs.existsSync(libvipsSrc) || !fs.existsSync(sharpLinuxSrc)) {
+    console.error("patch failed: @img/sharp-libvips-linux-x64 or sharp-linux-x64 missing — run npm install --include=optional");
+    process.exit(1);
+  }
+
+  fs.rmSync(VENDOR_ROOT, { recursive: true, force: true });
+  fs.mkdirSync(VENDOR_IMG, { recursive: true });
+  copyDir(libvipsSrc, path.join(VENDOR_IMG, "sharp-libvips-linux-x64"));
+  copyDir(sharpLinuxSrc, path.join(VENDOR_IMG, "sharp-linux-x64"));
+}
+
+function collectVendorNftPaths(pageDir) {
+  const out = [];
+  function walk(absDir, relFromVendor) {
+    for (const ent of fs.readdirSync(absDir, { withFileTypes: true })) {
+      const abs = path.join(absDir, ent.name);
+      const relVendor = path.join(relFromVendor, ent.name).replace(/\\/g, "/");
+      if (ent.isDirectory()) walk(abs, relVendor);
+      else {
+        const relToPage = path.relative(pageDir, abs).replace(/\\/g, "/");
+        out.push(relToPage);
+      }
+    }
+  }
+  walk(VENDOR_ROOT, "");
+  return out;
+}
+
+function collectMaterializedSharpExternalNftPaths(pageDir) {
+  const nextNm = path.join(projectRoot, ".next/node_modules");
+  const out = [];
+  if (!fs.existsSync(nextNm)) return out;
+  for (const name of fs.readdirSync(nextNm)) {
+    if (!name.startsWith("sharp-")) continue;
+    const absRoot = path.join(nextNm, name);
+    function walk(absDir) {
+      for (const ent of fs.readdirSync(absDir, { withFileTypes: true })) {
+        const abs = path.join(absDir, ent.name);
+        if (ent.isDirectory()) walk(abs);
+        else out.push(path.relative(pageDir, abs).replace(/\\/g, "/"));
+      }
+    }
+    walk(absRoot);
+  }
+  return out;
+}
+
 async function main() {
+  materializeNextSharpExternals();
+  vendorSharpNativeUnderServer();
+
   const tracePath = path.join(projectRoot, TRACE_REL);
   if (!fs.existsSync(tracePath)) {
     console.error(`missing ${TRACE_REL} — run next build first`);
@@ -41,7 +153,7 @@ async function main() {
 
   const pageDir = path.dirname(tracePath);
   const traceContent = JSON.parse(fs.readFileSync(tracePath, "utf8"));
-  const combined = new Set(traceContent.files ?? []);
+  const combined = new Set((traceContent.files ?? []).filter(shouldKeepTracedFile));
 
   for (const pattern of INCLUDE_GLOBS) {
     const matches = await glob(pattern);
@@ -51,6 +163,9 @@ async function main() {
     }
   }
 
+  for (const rel of collectVendorNftPaths(pageDir)) combined.add(rel);
+  for (const rel of collectMaterializedSharpExternalNftPaths(pageDir)) combined.add(rel);
+
   const sorted = [...combined].sort();
   fs.writeFileSync(tracePath, JSON.stringify({ version: traceContent.version ?? 1, files: sorted }));
 
@@ -59,7 +174,9 @@ async function main() {
     console.error("patch failed: libvips-cpp.so still missing from trace");
     process.exit(1);
   }
-  console.log(`ok  patch-sales-quote-pdf-native-trace (${sorted.length} files, libvips-cpp.so included)`);
+  console.log(
+    `ok  patch-sales-quote-pdf-native-trace (${sorted.length} files, libvips-cpp.so included, sharp external materialized)`,
+  );
 }
 
 main().catch((error) => {

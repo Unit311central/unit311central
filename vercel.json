@@ -1,9 +1,14 @@
 {
   "framework": "nextjs",
-  "installCommand": "npm install",
+  "installCommand": "npm install --include=optional",
   "buildCommand": "NEXT_PUBLIC_SAEC_DISCOVERY_REQUIRE_AUTH=true npm run build",
   "env": {
     "NEXT_PUBLIC_SAEC_DISCOVERY_REQUIRE_AUTH": "true"
+  },
+  "functions": {
+    "app/api/financials/quotes/[id]/route.js": {
+      "includeFiles": "node_modules/@img/sharp-libvips-linux-x64/**"
+    }
   },
   "crons": [
     {

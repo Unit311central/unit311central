@@ -26,6 +26,7 @@ const required = [
   /sharp-libvips-linux-x64\/lib\/libvips-cpp\.so\.8\.18\.3$/,
   /sharp-linux-x64.*\.node$/,
   /node_modules\/sharp\//,
+  /sharp-vendor\/@img\/sharp-libvips-linux-x64\/lib\/libvips-cpp\.so\.8\.18\.3$/,
 ];
 
 const missing = required.filter((re) => !files.some((f) => re.test(f.replace(/\\/g, "/"))));

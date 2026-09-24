@@ -12,6 +12,7 @@ import { getSalesQuoteSellerProfile } from "@/lib/accounting/sales-quote-seller-
 import { assertDemoMutationAllowedForRequest } from "@/lib/demo/mutation-guard";
 import { isDemoApiRequest } from "@/lib/demo/demo-request";
 import { requirePlatformSession } from "@/lib/platform-session";
+import { primeSharpLibvipsForLambda } from "@/lib/sharp-libvips-lambda-prime";
 import { requireCurrentWorkspace } from "@/lib/workspace-context";
 
 export const dynamic = "force-dynamic";
@@ -145,6 +146,7 @@ export async function POST(
         "workspaceId" in scope && scope.workspaceId
           ? await getSalesQuoteSellerProfile(scope.workspaceId)
           : null;
+      primeSharpLibvipsForLambda();
       const { renderSalesQuotePdf } = await import("@/lib/accounting/sales-quote-pdf-render");
       const pdf = await renderSalesQuotePdf(quote, seller ?? undefined, {
         workspaceSlug: "workspaceSlug" in scope ? scope.workspaceSlug : null,
