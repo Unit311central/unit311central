@@ -14,7 +14,7 @@ import { resolveAccountingFixtureSource } from "@/lib/workspace-accounting-fixtu
 import { sendMailboxEmail } from "@/lib/email/smtp";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
 import { createTenancyServerClient } from "@/lib/supabase/tenancy-server";
-import { generateInvoiceNumber } from "@/lib/subscription-invoice-pdf";
+import { generateInvoiceNumber } from "@/lib/invoice-number";
 
 function addDays(isoDate: string, days: number) {
   const date = new Date(`${isoDate}T00:00:00.000Z`);

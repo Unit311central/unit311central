@@ -11,7 +11,6 @@ import {
   type SalesQuoteLineColumnVisibility,
   type SalesQuotePricingStyle,
 } from "@/lib/accounting/sales-quote-display";
-import { downloadSalesQuoteTermsPdf } from "@/lib/accounting/sales-quote-terms-storage";
 import type {
   LedgerInvoice,
   SalesQuote,
@@ -22,13 +21,11 @@ import type {
 import { getNorthstarCrmLeads } from "@/lib/demo/module-fixtures";
 import {
   getNorthstarSalesQuoteById,
-  getNorthstarSalesQuotes,
   nextNorthstarQuoteNumber,
   upsertNorthstarSalesQuote,
 } from "@/lib/demo/northstar-sales-quotes-fixtures";
 import {
   getSaecSalesQuoteById,
-  getSaecSalesQuotes,
   upsertSaecSalesQuote,
 } from "@/lib/saec/demo/saec-sales-quotes-fixtures";
 import { SAEC_REPORTING_CURRENCY } from "@/lib/saec-surface";
@@ -36,10 +33,11 @@ import { resolveAccountingFixtureSource } from "@/lib/workspace-accounting-fixtu
 import { resolveFinancialsWorkspaceId, type FinancialsWorkspaceScope } from "@/lib/financials-workspace";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
 import { createTenancyServerClient } from "@/lib/supabase/tenancy-server";
-import { generateInvoiceNumber } from "@/lib/subscription-invoice-pdf";
+import { generateInvoiceNumber } from "@/lib/invoice-number";
 import { getLeadById } from "@/lib/crm-leads-service";
-import type { CompanyDetails } from "@/lib/company-details-data";
-import { listCompanyDetails } from "@/lib/company-details-service";
+
+export { listSalesQuotes } from "@/lib/accounting/sales-quotes-list-load";
+export { getSalesQuoteSellerProfile } from "@/lib/accounting/sales-quote-seller-profile";
 
 function requireSupabase() {
   if (!isSupabaseConfigured()) {
@@ -104,103 +102,6 @@ function mapQuote(row: Record<string, unknown>, lineItems: SalesQuoteLineItem[])
     lineItems,
     createdAt: String(row.created_at),
     updatedAt: String(row.updated_at),
-  };
-}
-
-function entityLabel(row: CompanyDetails) {
-  return `${row.tradingName} ${row.legalCompanyName}`.toLowerCase();
-}
-
-function pickBrandEntity(companies: CompanyDetails[]): CompanyDetails | null {
-  const active = companies.filter((row) => !row.archivedAt);
-  return (
-    active.find((row) => /unit311|unit 311/.test(entityLabel(row))) ??
-    active.find((row) => row.tradingName.trim()) ??
-    null
-  );
-}
-
-function pickLegalEntity(companies: CompanyDetails[]): CompanyDetails | null {
-  const active = companies.filter((row) => !row.archivedAt);
-  return (
-    active.find((row) => /nakama/.test(entityLabel(row))) ??
-    active.find((row) => /holdings/.test(entityLabel(row))) ??
-    active[0] ??
-    null
-  );
-}
-
-function mapCompanyDetailsToSeller(
-  brand: CompanyDetails | null,
-  legal: CompanyDetails | null,
-): SalesQuoteSellerProfile {
-  const brandName =
-    brand?.tradingName.trim() ||
-    brand?.legalCompanyName.trim() ||
-    "Unit311 Central";
-  const addressSource = legal ?? brand;
-  const address = addressSource
-    ? addressSource.registeredOfficeAddress.trim() ||
-      addressSource.principalBusinessAddress.trim() ||
-      null
-    : null;
-  const email =
-    legal?.primaryEmail.trim() ||
-    brand?.primaryEmail.trim() ||
-    null;
-  return {
-    brandName,
-    legalCompanyName: legal?.legalCompanyName.trim() || null,
-    tradingName: brand?.tradingName.trim() || null,
-    companyNumber: legal?.companyNumber.trim() || brand?.companyNumber.trim() || null,
-    vatTaxNumber: legal?.vatTaxNumber.trim() || brand?.vatTaxNumber.trim() || null,
-    companyName: brandName,
-    contactName: null,
-    email,
-    phone: legal?.primaryTelephone.trim() || brand?.primaryTelephone.trim() || null,
-    address,
-    city: null,
-    region: null,
-    country: legal?.countryOfRegistration.trim() || brand?.countryOfRegistration.trim() || null,
-    website: brand?.website.trim() || legal?.website.trim() || null,
-  };
-}
-
-export async function getSalesQuoteSellerProfile(
-  workspaceId: string,
-): Promise<SalesQuoteSellerProfile> {
-  try {
-    const companies = await listCompanyDetails({ workspaceId });
-    const brand = pickBrandEntity(companies);
-    const legal = pickLegalEntity(companies);
-    if (brand || legal) return mapCompanyDetailsToSeller(brand, legal);
-  } catch {
-    // Fall through when Corporate Information schema is unavailable.
-  }
-
-  const supabase = requireSupabase();
-  const { data: workspace } = await supabase
-    .from("workspaces")
-    .select("name")
-    .eq("id", workspaceId)
-    .maybeSingle();
-
-  const fallback = workspace?.name?.trim() || "Unit311 Central";
-  return {
-    brandName: fallback,
-    legalCompanyName: null,
-    tradingName: null,
-    companyNumber: null,
-    vatTaxNumber: null,
-    companyName: fallback,
-    contactName: null,
-    email: null,
-    phone: null,
-    address: null,
-    city: null,
-    region: null,
-    country: null,
-    website: null,
   };
 }
 
@@ -277,26 +178,6 @@ async function loadQuoteLines(quoteIds: string[], workspaceId: string) {
     grouped.set(quoteId, items);
   }
   return grouped;
-}
-
-export async function listSalesQuotes(scope: FinancialsWorkspaceScope): Promise<SalesQuote[]> {
-  const fixture = resolveAccountingFixtureSource(scope.workspaceSlug);
-  if (fixture === "northstar") return getNorthstarSalesQuotes();
-  if (fixture === "saec") return getSaecSalesQuotes();
-
-  const workspaceId = await resolveFinancialsWorkspaceId(scope);
-  const supabase = requireSupabase();
-  const { data, error } = await supabase
-    .from("sales_quotes")
-    .select("*")
-    .eq("workspace_id", workspaceId)
-    .order("created_at", { ascending: false });
-  if (error) throw new Error(error.message);
-  const ids = (data ?? []).map((row) => String(row.id));
-  const grouped = await loadQuoteLines(ids, workspaceId);
-  return (data ?? []).map((row) =>
-    mapQuote(row as Record<string, unknown>, grouped.get(String(row.id)) ?? []),
-  );
 }
 
 export async function getSalesQuoteById(id: string, scope: FinancialsWorkspaceScope): Promise<SalesQuote | null> {

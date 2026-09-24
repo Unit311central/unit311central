@@ -241,6 +241,4 @@ export function buildInvoiceFileName(companyName: string, invoiceNumber: string)
   return `${slug || "client"}${invoiceNumber}invoice.pdf`;
 }
 
-export function generateInvoiceNumber() {
-  return String(Math.floor(100000 + Math.random() * 900000));
-}
+export { generateInvoiceNumber } from "@/lib/invoice-number";
