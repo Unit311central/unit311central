@@ -8,7 +8,9 @@ import {
 } from "@/lib/architecture-diagram-service";
 import type { ArchitectureCatalogEntry } from "@/lib/architecture-diagram-data";
 import { buildArchitectureTaxonomy } from "@/lib/architecture-taxonomy";
-import { isArchitectureTreeSlug } from "@/lib/architecture-taxonomy-types";
+import { ARCHITECTURE_TREE_SLUGS, isArchitectureTreeSlug } from "@/lib/architecture-taxonomy-types";
+import { workspaceArchitectureFilterIncludesUnit311Central } from "@/lib/platform-workspaces/workspace-architecture-enablement";
+import { loadUnit311WorkspaceArchitectureSidebarConfig } from "@/lib/platform-workspaces/workspace-sidebar-config-service";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
 import { requireWolfInformationRepositoryArchitectureSession } from "@/lib/wolf/wolf-information-repository-architecture-auth";
 import {
@@ -53,7 +55,17 @@ export async function GET(request: NextRequest) {
     if (scope === "unit311") {
       if (sectionSlug && isArchitectureTreeSlug(sectionSlug)) {
         const workspace = request.nextUrl.searchParams.get("workspace");
-        const taxonomy = buildArchitectureTaxonomy(sectionSlug, { workspace });
+        let unit311SidebarConfig = null;
+        if (
+          sectionSlug === ARCHITECTURE_TREE_SLUGS.workspaceArchitecture &&
+          workspaceArchitectureFilterIncludesUnit311Central(workspace)
+        ) {
+          unit311SidebarConfig = await loadUnit311WorkspaceArchitectureSidebarConfig();
+        }
+        const taxonomy = buildArchitectureTaxonomy(sectionSlug, {
+          workspace,
+          unit311SidebarConfig,
+        });
         return NextResponse.json({
           taxonomy,
           renderer: "tree",

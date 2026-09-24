@@ -40,6 +40,8 @@
  * - Custom (ABHI Marketing & Events): marketing-events-taxonomy.ts + abhi/nav.ts
  * - Custom (OmniTransit Installations): operations-taxonomy.ts + saec/installations-nav.ts
  * - Workspace list: unit311-workspace-universe.ts (full Unit311 tenancy catalogue)
+ * - Unit311 Central workspace modules: workspace_sidebar_modules / whoami snapshot
+ *   (workspace-architecture-enablement.ts + loadUnit311WorkspaceArchitectureSidebarConfig)
  */
 
 import {
@@ -60,6 +62,12 @@ import { WORKSPACE_CORE_MODULE_IDS } from "@/lib/platform-workspaces/module-cata
 import { SAEC_ENABLED_MODULES } from "@/lib/platform-workspaces/saec-provisioning";
 import { UNIT311_WORKSPACE_UNIVERSE } from "@/lib/platform-workspaces/unit311-workspace-universe";
 import type { LivingArchitectureEnablement } from "@/lib/platform-workspaces/unit311-workspace-universe";
+import {
+  buildUnit311CentralPlatformNavigationNodes,
+  isUnit311CentralArchitectureId,
+  unit311CentralEnabledCoreModuleIds,
+} from "@/lib/platform-workspaces/workspace-architecture-enablement";
+import type { WorkspaceSidebarConfigSnapshot } from "@/lib/platform-workspaces/workspace-sidebar-config";
 import {
   buildCentralBusinessCentralNavSection,
   buildCentralProductNavSections,
@@ -580,13 +588,20 @@ function abhiIntelligenceFeatures(): ArchitectureTaxonomyNode[] {
   });
 }
 
-function workspaceCoreModules(spec: WorkspaceSpec): ArchitectureTaxonomyNode[] {
-  const moduleIds =
-    spec.enablement === "saec-core"
-      ? [...SAEC_ENABLED_MODULES]
-      : spec.enablement === "full-core"
-        ? [...DEMO_ENABLED_MODULES]
-        : [...WORKSPACE_CORE_MODULE_IDS];
+function workspaceCoreModules(
+  spec: WorkspaceSpec,
+  options?: WorkspaceArchitectureBuildOptions,
+): ArchitectureTaxonomyNode[] {
+  let moduleIds: readonly string[];
+  if (isUnit311CentralArchitectureId(spec.id) && spec.enablement === "db-driven") {
+    moduleIds = unit311CentralEnabledCoreModuleIds(options?.unit311SidebarConfig);
+  } else if (spec.enablement === "saec-core") {
+    moduleIds = [...SAEC_ENABLED_MODULES];
+  } else if (spec.enablement === "full-core") {
+    moduleIds = [...DEMO_ENABLED_MODULES];
+  } else {
+    moduleIds = [...WORKSPACE_CORE_MODULE_IDS];
+  }
 
   return moduleIds.map((moduleId) => {
     const label = getCanonicalModule(moduleId)?.label ?? moduleId;
@@ -617,9 +632,16 @@ function workspaceCoreModules(spec: WorkspaceSpec): ArchitectureTaxonomyNode[] {
   });
 }
 
-function workspaceNode(spec: WorkspaceSpec): ArchitectureTaxonomyNode {
-  const coreGroupNote =
-    spec.enablement === "db-driven"
+function workspaceNode(
+  spec: WorkspaceSpec,
+  options?: WorkspaceArchitectureBuildOptions,
+): ArchitectureTaxonomyNode {
+  const unit311Central = isUnit311CentralArchitectureId(spec.id);
+  const coreGroupNote = unit311Central
+    ? options?.unit311SidebarConfig
+      ? "Enabled modules from workspace sidebar configuration (whoami / workspace_sidebar_modules)"
+      : "Sidebar configuration not supplied — enablement-driven core module list is empty"
+    : spec.enablement === "db-driven"
       ? "Enablement is workspace-DB-driven — standard core taxonomy shown"
       : spec.enablement === "saec-core"
         ? "Full core catalogue (Business Central Grant Management excluded)"
@@ -636,35 +658,55 @@ function workspaceNode(spec: WorkspaceSpec): ArchitectureTaxonomyNode {
       ? [saecInstallationsCustomFeature(`workspace::${spec.id}::custom`)]
       : [];
 
+  const workspaceChildren: ArchitectureTaxonomyNode[] = [
+    {
+      id: `workspace::${spec.id}::core`,
+      label: "CORE MODULES",
+      level: "group",
+      kind: "core",
+      note: coreGroupNote,
+      children: workspaceCoreModules(spec, options),
+    },
+    {
+      id: `workspace::${spec.id}::custom`,
+      label: "CUSTOM",
+      level: "group",
+      kind: "custom",
+      note: customChildren.length ? undefined : "None identified",
+      children: customChildren,
+    },
+  ];
+
+  if (unit311Central) {
+    workspaceChildren.push({
+      id: `workspace::${spec.id}::platform-navigation`,
+      label: "PLATFORM NAVIGATION",
+      level: "group",
+      kind: "structural",
+      note:
+        "Internal Central host surfaces on internal.unit311central.com — not Core Product catalogue modules",
+      children: buildUnit311CentralPlatformNavigationNodes(spec.id),
+    });
+  }
+
   return {
     id: `workspace::${spec.id}`,
     label: spec.label,
     level: "workspace",
     kind: "core",
-    children: [
-      {
-        id: `workspace::${spec.id}::core`,
-        label: "CORE MODULES",
-        level: "group",
-        kind: "core",
-        note: coreGroupNote,
-        children: workspaceCoreModules(spec),
-      },
-      {
-        id: `workspace::${spec.id}::custom`,
-        label: "CUSTOM",
-        level: "group",
-        kind: "custom",
-        note: customChildren.length ? undefined : "None identified",
-        children: customChildren,
-      },
-    ],
+    children: workspaceChildren,
   };
 }
+
+/** Options when building Workspace Architecture (Unit311 Central uses live sidebar config). */
+export type WorkspaceArchitectureBuildOptions = {
+  unit311SidebarConfig?: WorkspaceSidebarConfigSnapshot | null;
+};
 
 /** VIEW 3 — Workspace Architecture. Optional single-workspace filter. */
 export function buildWorkspaceArchitectureTaxonomy(
   workspaceFilter?: string | null,
+  options?: WorkspaceArchitectureBuildOptions,
 ): ArchitectureTaxonomyNode {
   const filter = String(workspaceFilter ?? "all").trim().toLowerCase();
   const specs =
@@ -677,14 +719,19 @@ export function buildWorkspaceArchitectureTaxonomy(
     label: "WORKSPACE ARCHITECTURE",
     level: "root",
     kind: "structural",
-    children: specs.map(workspaceNode),
+    children: specs.map((spec) => workspaceNode(spec, options)),
   };
 }
 
 /** Resolve a tree taxonomy by section slug (server entrypoint for the API). */
+export type ArchitectureTaxonomyBuildOptions = {
+  workspace?: string | null;
+  unit311SidebarConfig?: WorkspaceSidebarConfigSnapshot | null;
+};
+
 export function buildArchitectureTaxonomy(
   sectionSlug: string,
-  options?: { workspace?: string | null },
+  options?: ArchitectureTaxonomyBuildOptions,
 ): ArchitectureTaxonomyNode | null {
   switch (sectionSlug) {
     case "core-product":
@@ -692,7 +739,9 @@ export function buildArchitectureTaxonomy(
     case "custom-product":
       return buildCustomProductTaxonomy();
     case "workspace-architecture":
-      return buildWorkspaceArchitectureTaxonomy(options?.workspace);
+      return buildWorkspaceArchitectureTaxonomy(options?.workspace, {
+        unit311SidebarConfig: options?.unit311SidebarConfig,
+      });
     default:
       return null;
   }

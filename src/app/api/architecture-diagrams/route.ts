@@ -11,7 +11,9 @@ import {
 } from "@/lib/architecture-diagram-service";
 import type { ArchitectureCatalogEntry } from "@/lib/architecture-diagram-data";
 import { buildArchitectureTaxonomy } from "@/lib/architecture-taxonomy";
-import { isArchitectureTreeSlug } from "@/lib/architecture-taxonomy-types";
+import { ARCHITECTURE_TREE_SLUGS, isArchitectureTreeSlug } from "@/lib/architecture-taxonomy-types";
+import { loadUnit311WorkspaceArchitectureSidebarConfig } from "@/lib/platform-workspaces/workspace-sidebar-config-service";
+import { workspaceArchitectureFilterIncludesUnit311Central } from "@/lib/platform-workspaces/workspace-architecture-enablement";
 import { isDemoApiRequest } from "@/lib/demo/demo-request";
 import { getPlatformSession } from "@/lib/platform-session";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
@@ -53,11 +55,21 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Living hierarchy (tree) views are derived server-side from existing sources —
-    // no diagram document, no seeds, no DB read/write.
+    // Living hierarchy (tree) views are derived server-side from existing sources.
+    // Unit311 Central workspace architecture also reads workspace_sidebar_modules when included.
     if (sectionSlug && isArchitectureTreeSlug(sectionSlug)) {
       const workspace = request.nextUrl.searchParams.get("workspace");
-      const taxonomy = buildArchitectureTaxonomy(sectionSlug, { workspace });
+      let unit311SidebarConfig = null;
+      if (
+        sectionSlug === ARCHITECTURE_TREE_SLUGS.workspaceArchitecture &&
+        workspaceArchitectureFilterIncludesUnit311Central(workspace)
+      ) {
+        unit311SidebarConfig = await loadUnit311WorkspaceArchitectureSidebarConfig();
+      }
+      const taxonomy = buildArchitectureTaxonomy(sectionSlug, {
+        workspace,
+        unit311SidebarConfig,
+      });
       return NextResponse.json({
         taxonomy,
         renderer: "tree",

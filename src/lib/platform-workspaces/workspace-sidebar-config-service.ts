@@ -9,11 +9,11 @@ import {
   mergeCatalogueWithPersistedRows,
   resolveProvisioningKeysFromSidebarRows,
   type WorkspaceSidebarModuleRecord,
+  type WorkspaceSidebarConfigSnapshot,
 } from "@/lib/platform-workspaces/workspace-sidebar-config";
 import { DEMO_SLUG } from "@/lib/platform-workspaces/demo-provisioning";
 import { defaultEnabledSubModules } from "@/lib/platform-workspaces/module-catalogue";
-import { isSupabaseConfigured } from "@/lib/supabase/server";
-import { createTenancyServerClient } from "@/lib/supabase/tenancy-server";
+import { INTERNAL_WORKSPACE_SLUG, findWorkspaceBySlug } from "@/lib/workspace-host";
 
 type SidebarModuleRow = {
   module_id: string;
@@ -251,4 +251,12 @@ export function enabledSubModulesForSidebarRows(
 ): string[] {
   const enabledModuleIds = rows.filter((row) => row.enabled).map((row) => row.moduleId);
   return defaultEnabledSubModules(enabledModuleIds);
+}
+
+/** Sidebar snapshot for Living Architecture — Unit311 Central (`unit311`) only. */
+export async function loadUnit311WorkspaceArchitectureSidebarConfig(): Promise<WorkspaceSidebarConfigSnapshot | null> {
+  if (!isSupabaseConfigured()) return null;
+  const workspace = await findWorkspaceBySlug(INTERNAL_WORKSPACE_SLUG);
+  if (!workspace?.id) return null;
+  return loadWorkspaceSidebarConfig(workspace.id, INTERNAL_WORKSPACE_SLUG);
 }
