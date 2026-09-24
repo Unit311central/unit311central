@@ -23,6 +23,7 @@ const INCLUDE_GLOBS = [
   "node_modules/sharp/package.json",
   "node_modules/sharp/dist/**",
   "node_modules/@resvg/resvg-js-linux-x64-gnu/**",
+  "node_modules/@img/colour/**",
 ];
 
 /** Runtime sources accidentally traced into the lambda; keep compiled output + node_modules only. */
@@ -71,6 +72,54 @@ function copyDir(src, dest) {
   fs.cpSync(src, dest, { recursive: true, dereference: true });
 }
 
+function materializeNextSharpExternals() {
+  const nextNm = path.join(projectRoot, ".next/node_modules");
+  if (!fs.existsSync(nextNm)) return;
+
+  for (const externalName of fs.readdirSync(nextNm)) {
+    if (!externalName.startsWith("sharp-")) continue;
+    const externalPath = path.join(nextNm, externalName);
+    let stat;
+    try {
+      stat = fs.lstatSync(externalPath);
+    } catch {
+      continue;
+    }
+    if (!stat.isSymbolicLink()) continue;
+
+    const target = fs.realpathSync(externalPath);
+    fs.rmSync(externalPath, { recursive: true, force: true });
+    copyDir(target, externalPath);
+
+    const pkgPath = path.join(externalPath, "package.json");
+    if (fs.existsSync(pkgPath)) {
+      const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf8"));
+      pkg.name = externalName;
+      fs.writeFileSync(pkgPath, `${JSON.stringify(pkg, null, 2)}\n`);
+    }
+  }
+}
+
+function collectMaterializedSharpExternalNftPaths(pageDir) {
+  const nextNm = path.join(projectRoot, ".next/node_modules");
+  const out = [];
+  if (!fs.existsSync(nextNm)) return out;
+
+  for (const name of fs.readdirSync(nextNm)) {
+    if (!name.startsWith("sharp-")) continue;
+    const absRoot = path.join(nextNm, name);
+    const walk = (absDir) => {
+      for (const ent of fs.readdirSync(absDir, { withFileTypes: true })) {
+        const abs = path.join(absDir, ent.name);
+        if (ent.isDirectory()) walk(abs);
+        else out.push(path.relative(pageDir, abs).replace(/\\/g, "/"));
+      }
+    };
+    walk(absRoot);
+  }
+  return out;
+}
+
 function vendorSharpNativeUnderServer() {
   const libvipsSrc = path.join(projectRoot, "node_modules/@img/sharp-libvips-linux-x64");
   const sharpLinuxSrc = path.join(projectRoot, "node_modules/@img/sharp-linux-x64");
@@ -113,6 +162,7 @@ function collectVendorNftPaths(pageDir) {
 }
 
 async function main() {
+  materializeNextSharpExternals();
   vendorSharpNativeUnderServer();
 
   const tracePath = path.join(projectRoot, TRACE_REL);
@@ -134,6 +184,7 @@ async function main() {
   }
 
   for (const rel of collectVendorNftPaths(pageDir)) combined.add(rel);
+  for (const rel of collectMaterializedSharpExternalNftPaths(pageDir)) combined.add(rel);
 
   const sorted = [...combined].sort();
   fs.writeFileSync(tracePath, JSON.stringify({ version: traceContent.version ?? 1, files: sorted }));
