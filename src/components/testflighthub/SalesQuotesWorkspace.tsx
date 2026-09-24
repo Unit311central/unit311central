@@ -86,20 +86,21 @@ export default function SalesQuotesWorkspace({
   const [seller, setSeller] = useState<SalesQuoteSellerProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [composeOpen, setComposeOpen] = useState(false);
   const [editingQuote, setEditingQuote] = useState<SalesQuote | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
-    setError(null);
+    setLoadError(null);
     setNotice(null);
     try {
       const [quotesRes, clientsRes, contextRes] = await Promise.all([
-        fetch("/api/financials/quotes", { cache: "no-store" }),
+        fetch("/api/financials/sales-quotes", { cache: "no-store" }),
         fetch("/api/clients", { cache: "no-store" }),
-        fetch("/api/financials/quotes/compose-context", { cache: "no-store" }),
+        fetch("/api/financials/sales-quotes/compose-context", { cache: "no-store" }),
       ]);
       const quotesBody = await readApiJson<{ quotes?: SalesQuote[]; error?: string }>(quotesRes);
       const clientsBody = await readApiJson<{ clients?: ManagedClient[]; error?: string }>(clientsRes);
@@ -113,7 +114,7 @@ export default function SalesQuotesWorkspace({
       setClients(clientsBody.clients ?? []);
       setSeller(contextBody.seller ?? null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load quotes");
+      setLoadError(err instanceof Error ? err.message : "Failed to load quotes");
     } finally {
       setLoading(false);
     }
@@ -133,7 +134,7 @@ export default function SalesQuotesWorkspace({
     action: "send" | "accept" | "pdf" | "send-invoice" | "payment-link" | "invoice-pdf" | "delete",
   ) {
     setBusyId(id);
-    setError(null);
+    setActionError(null);
     setNotice(null);
     try {
       if (action === "delete") {
@@ -209,14 +210,14 @@ export default function SalesQuotesWorkspace({
         await load();
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Action failed");
+      setActionError(err instanceof Error ? err.message : "Action failed");
     } finally {
       setBusyId(null);
     }
   }
 
   function openComposeForm() {
-    setError(null);
+    setActionError(null);
     setNotice(null);
     setEditingQuote(null);
     setComposeOpen(true);
@@ -224,7 +225,7 @@ export default function SalesQuotesWorkspace({
 
   function openEditForm(quote: SalesQuote) {
     if (quote.status === "accepted") return;
-    setError(null);
+    setActionError(null);
     setNotice(null);
     setEditingQuote(quote);
     setComposeOpen(true);
@@ -238,11 +239,11 @@ export default function SalesQuotesWorkspace({
   async function saveComposedQuote(payload: Record<string, unknown>) {
     const editingId = editingQuote?.id;
     setBusyId(editingId ?? "create");
-    setError(null);
+    setActionError(null);
     setNotice(null);
     try {
       const response = await fetch(
-        editingId ? `/api/financials/quotes/${editingId}` : "/api/financials/quotes",
+        editingId ? `/api/financials/quotes/${editingId}` : "/api/financials/sales-quotes",
         {
           method: editingId ? "PATCH" : "POST",
           headers: { "Content-Type": "application/json" },
@@ -266,7 +267,7 @@ export default function SalesQuotesWorkspace({
       }
       setNotice(editingId ? "Quote updated." : "Quote saved.");
     } catch (err) {
-      setError(err instanceof Error ? err.message : editingId ? "Update failed" : "Create failed");
+      setActionError(err instanceof Error ? err.message : editingId ? "Update failed" : "Create failed");
     } finally {
       setBusyId(null);
     }
@@ -316,9 +317,15 @@ export default function SalesQuotesWorkspace({
         </div>
       ) : null}
 
-      {error ? (
+      {loadError ? (
         <div className="rounded-lg border border-rose-400/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
-          {error}
+          {loadError}
+        </div>
+      ) : null}
+
+      {actionError ? (
+        <div className="rounded-lg border border-amber-400/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
+          {actionError}
         </div>
       ) : null}
 

@@ -110,6 +110,12 @@ const nextConfig: NextConfig = {
       "./public/images/workspaces/talantonimpact-logo.png",
       "./public/images/talanton/harry-turner.jpg",
     ],
+    "/api/financials/quotes/[id]": [
+      "node_modules/sharp/**",
+      "node_modules/@img/sharp-linux-x64/**",
+      "node_modules/@img/sharp-libvips-linux-x64/**",
+      "node_modules/@resvg/resvg-js/**",
+    ],
     "/api/executive-assistant/**": [
       "./public/images/workspaces/abhi-logo.png",
       "./public/images/workspaces/abhi.jpg",

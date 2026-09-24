@@ -8,7 +8,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 const ROOT = process.cwd();
-const NEXT = path.join(ROOT, ".next", "server", "app", "api", "financials", "quotes");
+const NEXT = path.join(ROOT, ".next", "server", "app", "api", "financials", "sales-quotes");
 
 const ROUTES = [
   path.join(NEXT, "route.js.nft.json"),

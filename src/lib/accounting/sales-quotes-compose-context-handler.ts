@@ -1,3 +1,5 @@
+import "server-only";
+
 import { NextResponse } from "next/server";
 
 import { getSalesQuoteSellerProfile } from "@/lib/accounting/sales-quote-seller-profile";
@@ -5,9 +7,7 @@ import { requirePlatformSession } from "@/lib/platform-session";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
 import { requireCurrentWorkspace } from "@/lib/workspace-context";
 
-export const dynamic = "force-dynamic";
-
-export async function GET() {
+export async function handleSalesQuoteComposeContextGet() {
   try {
     if (!isSupabaseConfigured()) {
       return NextResponse.json({ error: "Supabase is not configured." }, { status: 503 });

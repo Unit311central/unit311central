@@ -21,7 +21,7 @@ async function readJson(response) {
 async function main() {
   const origin = (process.argv[2] ?? DEFAULT_ORIGIN).replace(/\/$/, "");
 
-  const quotesRes = await fetch(`${origin}/api/financials/quotes`);
+  const quotesRes = await fetch(`${origin}/api/financials/sales-quotes`);
   const quotesBody = await readJson(quotesRes);
   assert.equal(quotesRes.status, 200, quotesBody.error ?? "quotes GET failed");
   assert.ok(Array.isArray(quotesBody.quotes), "quotes array missing");
