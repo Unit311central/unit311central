@@ -1,7 +1,8 @@
 import "server-only";
 
 import { Resvg } from "@resvg/resvg-js";
-import sharp from "sharp";
+
+import { loadSharpForPdf } from "@/lib/sharp-pdf-native";
 
 import {
   isPlatformDefaultDocumentLogoSlug,
@@ -52,7 +53,9 @@ let cachedDefaultUnit311DocumentLogoVersion = 0;
 export async function logoPngHasWordmarkInk(pngBytes: Uint8Array): Promise<boolean> {
   if (!pngBytes.length || pngBytes[0] !== 0x89) return false;
   try {
-    const { data, info } = await sharp(Buffer.from(pngBytes)).raw().toBuffer({ resolveWithObject: true });
+    const { data, info } = await loadSharpForPdf()(Buffer.from(pngBytes))
+      .raw()
+      .toBuffer({ resolveWithObject: true });
     let dark = 0;
     const maxY = Math.floor(info.height * 0.65);
     for (let y = 0; y < maxY; y += 1) {
@@ -103,7 +106,7 @@ async function normalizeLogoRasterForPdfEmbed(
   if (raster.format !== "PNG" || raster.widthPx <= PDF_DOCUMENT_LOGO_RASTER_WIDTH) {
     return raster;
   }
-  const out = await sharp(Buffer.from(raster.bytes))
+  const out = await loadSharpForPdf()(Buffer.from(raster.bytes))
     .resize({ width: PDF_DOCUMENT_LOGO_RASTER_WIDTH, withoutEnlargement: true })
     .png({ compressionLevel: 9 })
     .toBuffer();
