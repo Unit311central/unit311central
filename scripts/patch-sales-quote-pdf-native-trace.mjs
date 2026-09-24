@@ -71,26 +71,6 @@ function copyDir(src, dest) {
   fs.cpSync(src, dest, { recursive: true, dereference: true });
 }
 
-function materializeNextSharpExternals() {
-  const nextNm = path.join(projectRoot, ".next/node_modules");
-  if (!fs.existsSync(nextNm)) return;
-
-  for (const name of fs.readdirSync(nextNm)) {
-    if (!name.startsWith("sharp-")) continue;
-    const linkPath = path.join(nextNm, name);
-    let stat;
-    try {
-      stat = fs.lstatSync(linkPath);
-    } catch {
-      continue;
-    }
-    if (!stat.isSymbolicLink()) continue;
-    const target = fs.realpathSync(linkPath);
-    fs.rmSync(linkPath, { recursive: true, force: true });
-    copyDir(target, linkPath);
-  }
-}
-
 function vendorSharpNativeUnderServer() {
   const libvipsSrc = path.join(projectRoot, "node_modules/@img/sharp-libvips-linux-x64");
   const sharpLinuxSrc = path.join(projectRoot, "node_modules/@img/sharp-linux-x64");
@@ -103,6 +83,16 @@ function vendorSharpNativeUnderServer() {
   fs.mkdirSync(VENDOR_IMG, { recursive: true });
   copyDir(libvipsSrc, path.join(VENDOR_IMG, "sharp-libvips-linux-x64"));
   copyDir(sharpLinuxSrc, path.join(VENDOR_IMG, "sharp-linux-x64"));
+
+  const libvipsSo = path.join(libvipsSrc, "lib/libvips-cpp.so.8.18.3");
+  const mirrorTargets = [
+    path.join(sharpLinuxSrc, "lib/libvips-cpp.so.8.18.3"),
+    path.join(VENDOR_IMG, "sharp-linux-x64/lib/libvips-cpp.so.8.18.3"),
+  ];
+  for (const dest of mirrorTargets) {
+    fs.mkdirSync(path.dirname(dest), { recursive: true });
+    fs.copyFileSync(libvipsSo, dest);
+  }
 }
 
 function collectVendorNftPaths(pageDir) {
@@ -122,27 +112,7 @@ function collectVendorNftPaths(pageDir) {
   return out;
 }
 
-function collectMaterializedSharpExternalNftPaths(pageDir) {
-  const nextNm = path.join(projectRoot, ".next/node_modules");
-  const out = [];
-  if (!fs.existsSync(nextNm)) return out;
-  for (const name of fs.readdirSync(nextNm)) {
-    if (!name.startsWith("sharp-")) continue;
-    const absRoot = path.join(nextNm, name);
-    function walk(absDir) {
-      for (const ent of fs.readdirSync(absDir, { withFileTypes: true })) {
-        const abs = path.join(absDir, ent.name);
-        if (ent.isDirectory()) walk(abs);
-        else out.push(path.relative(pageDir, abs).replace(/\\/g, "/"));
-      }
-    }
-    walk(absRoot);
-  }
-  return out;
-}
-
 async function main() {
-  materializeNextSharpExternals();
   vendorSharpNativeUnderServer();
 
   const tracePath = path.join(projectRoot, TRACE_REL);
@@ -164,7 +134,6 @@ async function main() {
   }
 
   for (const rel of collectVendorNftPaths(pageDir)) combined.add(rel);
-  for (const rel of collectMaterializedSharpExternalNftPaths(pageDir)) combined.add(rel);
 
   const sorted = [...combined].sort();
   fs.writeFileSync(tracePath, JSON.stringify({ version: traceContent.version ?? 1, files: sorted }));
@@ -175,7 +144,7 @@ async function main() {
     process.exit(1);
   }
   console.log(
-    `ok  patch-sales-quote-pdf-native-trace (${sorted.length} files, libvips-cpp.so included, sharp external materialized)`,
+    `ok  patch-sales-quote-pdf-native-trace (${sorted.length} files, libvips-cpp.so included)`,
   );
 }
 

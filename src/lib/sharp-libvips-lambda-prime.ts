@@ -15,7 +15,9 @@ export function primeSharpLibvipsForLambda(): void {
   const libDirs: string[] = [];
   for (const candidate of [
     path.join(process.cwd(), "node_modules/@img/sharp-libvips-linux-x64/lib"),
+    path.join(process.cwd(), "node_modules/@img/sharp-linux-x64/lib"),
     path.join(process.cwd(), ".next/server/sharp-vendor/@img/sharp-libvips-linux-x64/lib"),
+    path.join(process.cwd(), ".next/server/sharp-vendor/@img/sharp-linux-x64/lib"),
   ]) {
     if (fs.existsSync(path.join(candidate, LIBVIPS_SO))) libDirs.push(candidate);
   }

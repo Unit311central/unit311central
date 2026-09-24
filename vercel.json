@@ -5,11 +5,6 @@
   "env": {
     "NEXT_PUBLIC_SAEC_DISCOVERY_REQUIRE_AUTH": "true"
   },
-  "functions": {
-    "app/api/financials/quotes/[id]/route.js": {
-      "includeFiles": "node_modules/@img/sharp-libvips-linux-x64/**"
-    }
-  },
   "crons": [
     {
       "path": "/api/cron/founder-session-reminders",
