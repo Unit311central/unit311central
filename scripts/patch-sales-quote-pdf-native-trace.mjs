@@ -86,6 +86,7 @@ function writeExternalSharpPackage(externalPath, externalName, sourceDir) {
 function materializeNextSharpExternals() {
   const nextNm = path.join(projectRoot, ".next/node_modules");
   const serverNm = path.join(projectRoot, ".next/server/node_modules");
+  const chunksNm = path.join(projectRoot, ".next/server/chunks/node_modules");
   if (!fs.existsSync(nextNm)) return;
 
   for (const externalName of fs.readdirSync(nextNm)) {
@@ -101,8 +102,10 @@ function materializeNextSharpExternals() {
     const sourceDir = stat.isSymbolicLink() ? fs.realpathSync(externalPath) : externalPath;
     writeExternalSharpPackage(externalPath, externalName, sourceDir);
 
-    fs.mkdirSync(serverNm, { recursive: true });
-    writeExternalSharpPackage(path.join(serverNm, externalName), externalName, sourceDir);
+    for (const destRoot of [serverNm, chunksNm]) {
+      fs.mkdirSync(destRoot, { recursive: true });
+      writeExternalSharpPackage(path.join(destRoot, externalName), externalName, sourceDir);
+    }
   }
 }
 
@@ -110,6 +113,7 @@ function collectMaterializedSharpExternalNftPaths(pageDir) {
   const roots = [
     path.join(projectRoot, ".next/node_modules"),
     path.join(projectRoot, ".next/server/node_modules"),
+    path.join(projectRoot, ".next/server/chunks/node_modules"),
   ];
   const out = [];
 
