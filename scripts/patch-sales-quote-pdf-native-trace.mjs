@@ -17,6 +17,8 @@ const VENDOR_ROOT = path.join(projectRoot, ".next/server/sharp-vendor");
 const VENDOR_IMG = path.join(VENDOR_ROOT, "@img");
 
 const INCLUDE_GLOBS = [
+  "public/images/unit311central-document.png",
+  "public/images/unit311central.svg",
   "node_modules/@img/sharp-libvips-linux-x64/lib/libvips-cpp.so.*",
   "node_modules/@img/sharp-libvips-linux-x64/lib/glib-2.0/**",
   "node_modules/@img/sharp-linux-x64/**",
@@ -29,6 +31,7 @@ const INCLUDE_GLOBS = [
 /** Runtime sources accidentally traced into the lambda; keep compiled output + node_modules only. */
 function shouldKeepTracedFile(rel) {
   const norm = rel.replace(/\\/g, "/");
+  if (norm.includes("/public/images/unit311central")) return true;
   if (norm.includes("/node_modules/")) return true;
   if (norm.includes("/server/chunks/")) return true;
   if (norm.includes("/server/sharp-vendor/")) return true;

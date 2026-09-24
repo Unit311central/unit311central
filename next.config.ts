@@ -112,6 +112,8 @@ const nextConfig: NextConfig = {
       "./public/images/talanton/harry-turner.jpg",
     ],
     "/api/financials/quotes/[id]": [
+      "./public/images/unit311central-document.png",
+      "./public/images/unit311central.svg",
       "./node_modules/sharp/**",
       "./node_modules/@img/sharp-linux-x64/**",
       "./node_modules/@img/sharp-libvips-linux-x64/lib/libvips-cpp.so.8.18.3",
