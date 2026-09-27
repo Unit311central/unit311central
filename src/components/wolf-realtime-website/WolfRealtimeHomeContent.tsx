@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import WolfLogoMark from "@/components/layout/WolfLogoMark";
 import WolfRealtimeHeroProductPreview from "@/components/wolf-realtime-website/WolfRealtimeHeroProductPreview";
+import WolfRealtimeOperatingModelSection from "@/components/wolf-realtime-website/WolfRealtimeOperatingModelSection";
 import { wolfEyebrowClass } from "@/components/wolf/wolf-ui";
 import { WOLF_CENTRAL_ORIGIN } from "@/lib/wolf/wolf-surface";
 import { WOLF_REALTIME_CONTACT_EMAIL } from "@/lib/wolf-realtime-website-surface";
@@ -111,6 +112,8 @@ export default function WolfRealtimeHomeContent() {
           </div>
         </div>
       </section>
+
+      <WolfRealtimeOperatingModelSection />
     </>
   );
 }

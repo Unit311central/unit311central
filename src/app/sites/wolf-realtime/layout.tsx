@@ -48,7 +48,7 @@ export default function WolfRealtimeWebsiteLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <div className="min-h-screen bg-[#080c0a] text-white antialiased">
+    <div className="wolf-realtime-marketing min-h-screen bg-[#080c0a] text-white antialiased">
       <WolfRealtimeWebsiteNav />
       <main>{children}</main>
       <WolfRealtimeWebsiteFooter />

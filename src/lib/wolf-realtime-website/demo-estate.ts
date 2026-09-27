@@ -1,4 +1,4 @@
-import { WOLF_DEMO_RESERVE_SEEDS } from "@/lib/wolf/central/demo-seed";
+import { WOLF_DEMO_ALERT_SEEDS, WOLF_DEMO_RESERVE_SEEDS } from "@/lib/wolf/central/demo-seed";
 import { computeWolfEstateMetrics } from "@/lib/wolf/central/estate-metrics";
 import type { WolfEstateSnapshot, WolfReserveRecord } from "@/lib/wolf/central/types";
 
@@ -8,9 +8,14 @@ export function buildWolfRealtimeMarketingEstateSnapshot(): WolfEstateSnapshot {
     ...seed,
     id: `marketing-${seed.slug}`,
   }));
+  const alerts = WOLF_DEMO_ALERT_SEEDS.map((seed, index) => ({
+    ...seed,
+    id: `marketing-alert-${index}`,
+    createdAt: new Date(0).toISOString(),
+  }));
   return {
     reserves,
-    alerts: [],
+    alerts,
     metrics: computeWolfEstateMetrics(reserves),
     generatedAt: new Date(0).toISOString(),
   };
