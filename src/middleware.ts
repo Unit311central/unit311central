@@ -94,6 +94,10 @@ import {
   interfaceWorxWebsiteImplPath,
   isInterfaceWorxWebsiteHost,
 } from "@/lib/interface-worx-surface";
+import {
+  isWolfRealtimeWebsiteHost,
+  wolfRealtimeWebsiteImplPath,
+} from "@/lib/wolf-realtime-website-surface";
 import { INTERNAL_WORKSPACE_SLUG } from "@/lib/workspace-host";
 
 /** Next.js / browser prefetch must not clear auth gates or bounce live sessions. */
@@ -374,6 +378,33 @@ export async function middleware(request: NextRequest) {
     const implPath = interfaceWorxWebsiteImplPath(normalizedPath);
     const response = rewriteTo(request, implPath, headers, {
       "x-unit311-interface-worx-website": "1",
+    });
+    response.headers.set(
+      "Cache-Control",
+      "private, no-cache, no-store, max-age=0, must-revalidate",
+    );
+    return response;
+  }
+
+  // --- WOLF REALTIME public marketing site (wolfrealtime.com / wolf-website.*) ---
+  if (isWolfRealtimeWebsiteHost(host)) {
+    const headers = new Headers(request.headers);
+    headers.set("x-unit311-bare-chrome", "1");
+    headers.set("x-unit311-wolf-realtime-website", "1");
+
+    if (pathname.startsWith("/api/") || pathname.startsWith("/_next/")) {
+      return NextResponse.next({ request: { headers } });
+    }
+
+    const normalizedPath =
+      pathname === "/" || pathname === "" ? "/" : pathname.replace(/\/$/, "");
+    if (normalizedPath !== "/") {
+      return redirectExternal(`https://${host}/`);
+    }
+
+    const implPath = wolfRealtimeWebsiteImplPath(normalizedPath);
+    const response = rewriteTo(request, implPath, headers, {
+      "x-unit311-wolf-realtime-website": "1",
     });
     response.headers.set(
       "Cache-Control",
