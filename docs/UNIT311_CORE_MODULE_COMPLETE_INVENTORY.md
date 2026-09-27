@@ -67,16 +67,16 @@ Market Intelligence
 Dashboard
     View ID: `business-central-dashboard`
     Route: `/dashboard?view=business-central-dashboard`
-    Component: NorthstarBusinessCentralDashboard (demo) | BusinessCentralDashboardWorkspace (non-demo — see InternalOperationsDashboard.tsx)
+    Component: WorkspaceBusinessCentralDashboard (default) | NorthstarBusinessCentralDashboard (demo) | OnwardAirBusinessCentralDashboard | SaecBusinessCentralDashboard
 Client Management
   Client Dashboard
       View ID: `clients-dashboard`
       Route: `/dashboard?view=clients-dashboard`
-      Component: [UNVERIFIED — no direct activeView === match in InternalOperationsDashboard.tsx]
+      Component: ClientsDashboardWorkspace (WorkspacePane view=clients-dashboard)
   Client Directory
       View ID: `clients`
       Route: `/dashboard?view=clients`
-      Component: [UNVERIFIED — no direct activeView === match in InternalOperationsDashboard.tsx]
+      Component: ClientManagementWorkspace (WorkspacePane view=clients)
 Management
   Management Dashboard
       View ID: `management`
@@ -982,16 +982,16 @@ Navigation (A) and URL-addressable leaves (B) from central catalogue:
 Dashboard
     View ID: `business-central-dashboard`
     Route: `/dashboard?view=business-central-dashboard`
-    Component: NorthstarBusinessCentralDashboard (demo) | BusinessCentralDashboardWorkspace (non-demo — see InternalOperationsDashboard.tsx)
+    Component: WorkspaceBusinessCentralDashboard (default) | NorthstarBusinessCentralDashboard (demo) | OnwardAirBusinessCentralDashboard | SaecBusinessCentralDashboard
 Client Management
   Client Dashboard
       View ID: `clients-dashboard`
       Route: `/dashboard?view=clients-dashboard`
-      Component: [UNVERIFIED — no direct activeView === match in InternalOperationsDashboard.tsx]
+      Component: ClientsDashboardWorkspace (WorkspacePane view=clients-dashboard)
   Client Directory
       View ID: `clients`
       Route: `/dashboard?view=clients`
-      Component: [UNVERIFIED — no direct activeView === match in InternalOperationsDashboard.tsx]
+      Component: ClientManagementWorkspace (WorkspacePane view=clients)
 Management
   Management Dashboard
       View ID: `management`
