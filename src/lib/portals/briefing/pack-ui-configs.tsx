@@ -107,7 +107,7 @@ const talantonBriefingUiConfig: PortalsBriefingUiConfig = {
       url: "https://talantonimpact.unit311central.com/arcrideglobal",
       urlLabel: "talantonimpact.unit311central.com/arcrideglobal",
       username: "demo@arcrideglobal.com",
-      password: "Africa1999$",
+      password: "Africa2026$",
     },
   ],
 };
