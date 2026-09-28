@@ -200,7 +200,7 @@ export default function TalantonRiskRegisterWorkspace() {
           </p>
           <h2 className="mt-1 text-xl font-semibold text-white">Risk Register</h2>
           <p className="mt-1 text-sm text-white/55">
-            View, add, and manage risks by impact and likelihood. Changes persist in this browser.
+            View, add, and manage risks by impact and likelihood. Changes are saved to the Talanton workspace.
           </p>
         </div>
         <button type="button" className={corporatePrimaryButtonClass()} onClick={openCreate}>
