@@ -31,7 +31,8 @@ import {
 } from "@/lib/talanton/board-portal-data";
 import {
   addMember,
-  listMembers,
+  getBoardMembersServerSnapshot,
+  getBoardMembersState,
   removeMember,
   subscribeBoardMembersStore,
   updateMember,
@@ -49,6 +50,7 @@ import {
 } from "@/lib/talanton/annual-impact-report-store";
 import {
   createMeeting,
+  getTalantonGovernanceServerSnapshot,
   getTalantonGovernanceSnapshot,
   listMeetings,
   subscribeTalantonGovernanceStore,
@@ -513,7 +515,7 @@ function BoardMeetings() {
   const snap = useSyncExternalStore(
     subscribeTalantonGovernanceStore,
     getTalantonGovernanceSnapshot,
-    getTalantonGovernanceSnapshot,
+    getTalantonGovernanceServerSnapshot,
   );
   const sorted = useMemo(
     () =>
@@ -536,13 +538,15 @@ function BoardMeetings() {
 
   const onCreate = useCallback(() => {
     const label = new Date().toLocaleDateString("en-GB", { month: "long", year: "numeric" });
-    const created = createMeeting({
+    void createMeeting({
       meetingType: "Board Meeting",
       title: `Talanton Impact Board — ${label}`,
       status: "Draft",
       minutes: "",
+    }).then(setEditing).catch((error) => {
+      console.error("[BoardMeetings create]", error);
+      window.alert(error instanceof Error ? error.message : "Failed to create meeting.");
     });
-    setEditing(created);
   }, []);
 
   return (
@@ -563,6 +567,14 @@ function BoardMeetings() {
           Create meeting
         </button>
       </header>
+      {snap.status === "loading" ? (
+        <p className="text-sm text-white/50">Loading board meetings…</p>
+      ) : null}
+      {snap.status === "error" ? (
+        <p className="rounded-xl border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-100">
+          {snap.error}
+        </p>
+      ) : null}
       <label className="relative block max-w-md">
         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/35" />
         <input
@@ -942,12 +954,14 @@ function BoardMemberFormModal({
 }
 
 function BoardMembers() {
-  const members = useSyncExternalStore(
+  const memberState = useSyncExternalStore(
     subscribeBoardMembersStore,
-    listMembers,
-    listMembers,
+    getBoardMembersState,
+    getBoardMembersServerSnapshot,
   );
+  const members = memberState.members;
   const [modal, setModal] = useState<"add" | { edit: TiBoardMember } | null>(null);
+  const [memberError, setMemberError] = useState<string | null>(null);
 
   return (
     <div className="space-y-5">
@@ -970,6 +984,20 @@ function BoardMembers() {
           Add board member
         </button>
       </header>
+
+      {memberState.status === "loading" ? (
+        <p className="text-sm text-white/50">Loading board members…</p>
+      ) : null}
+      {memberState.status === "error" ? (
+        <p className="rounded-xl border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-100">
+          {memberState.error}
+        </p>
+      ) : null}
+      {memberError ? (
+        <p className="rounded-xl border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-100">
+          {memberError}
+        </p>
+      ) : null}
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
         {members.map((m) => (
@@ -1002,9 +1030,13 @@ function BoardMembers() {
                   <button
                     type="button"
                     onClick={() => {
-                      if (window.confirm(`Remove ${m.name} from the board roster?`)) {
-                        removeMember(m.id);
-                      }
+                      if (!window.confirm(`Remove ${m.name} from the board roster?`)) return;
+                      setMemberError(null);
+                      void removeMember(m.id).catch((error) => {
+                        setMemberError(
+                          error instanceof Error ? error.message : "Failed to remove member.",
+                        );
+                      });
                     }}
                     className="rounded-lg border border-rose-400/30 bg-rose-500/10 px-2.5 py-1 text-[11px] font-semibold text-rose-200 hover:bg-rose-500/20"
                   >
@@ -1027,8 +1059,12 @@ function BoardMembers() {
           submitLabel="Add member"
           onCancel={() => setModal(null)}
           onSubmit={(form) => {
-            addMember(formToMemberInput(form));
-            setModal(null);
+            setMemberError(null);
+            void addMember(formToMemberInput(form))
+              .then(() => setModal(null))
+              .catch((error) => {
+                setMemberError(error instanceof Error ? error.message : "Failed to add member.");
+              });
           }}
         />
       ) : null}
@@ -1039,8 +1075,12 @@ function BoardMembers() {
           submitLabel="Save changes"
           onCancel={() => setModal(null)}
           onSubmit={(form) => {
-            updateMember(modal.edit.id, formToMemberInput(form, modal.edit));
-            setModal(null);
+            setMemberError(null);
+            void updateMember(modal.edit.id, formToMemberInput(form, modal.edit))
+              .then(() => setModal(null))
+              .catch((error) => {
+                setMemberError(error instanceof Error ? error.message : "Failed to save member.");
+              });
           }}
         />
       ) : null}

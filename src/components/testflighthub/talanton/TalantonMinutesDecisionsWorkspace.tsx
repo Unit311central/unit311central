@@ -19,6 +19,7 @@ import {
   blankAction,
   blankDecision,
   deleteMeeting,
+  getTalantonGovernanceServerSnapshot,
   getTalantonGovernanceSnapshot,
   governanceMinutesKpis,
   governanceTimeline,
@@ -50,7 +51,7 @@ function useGovernance() {
   return useSyncExternalStore(
     subscribeTalantonGovernanceStore,
     getTalantonGovernanceSnapshot,
-    getTalantonGovernanceSnapshot,
+    getTalantonGovernanceServerSnapshot,
   );
 }
 
@@ -103,7 +104,10 @@ function CreateMinutesActionModal({
 
   const meeting = meetings.find((m) => m.id === meetingId);
 
-  function save() {
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+
+  async function save() {
     if (!meeting) return;
     let next = { ...meeting };
     if (kind === "minutes") {
@@ -134,9 +138,17 @@ function CreateMinutesActionModal({
         ],
       };
     }
-    upsertMeeting(next);
-    onSaved();
-    onClose();
+    setSaving(true);
+    setSaveError(null);
+    try {
+      await upsertMeeting(next);
+      onSaved();
+      onClose();
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : "Failed to save.");
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -270,12 +282,18 @@ function CreateMinutesActionModal({
             </div>
           ) : null}
         </div>
+        {saveError ? <p className="px-5 text-sm text-rose-200">{saveError}</p> : null}
         <div className="flex justify-end gap-2 border-t border-white/10 px-5 py-4">
-          <button type="button" className={secondaryBtn} onClick={onClose}>
+          <button type="button" className={secondaryBtn} onClick={onClose} disabled={saving}>
             Cancel
           </button>
-          <button type="button" className={primaryBtn} onClick={save} disabled={!meeting}>
-            Save
+          <button
+            type="button"
+            className={primaryBtn}
+            onClick={() => void save()}
+            disabled={!meeting || saving}
+          >
+            {saving ? "Saving…" : "Save"}
           </button>
         </div>
       </div>
@@ -339,6 +357,14 @@ export default function TalantonMinutesDecisionsWorkspace({
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-5 overflow-auto p-5 sm:p-6">
+      {snap.status === "loading" ? (
+        <p className="text-sm text-white/50">Loading governance records…</p>
+      ) : null}
+      {snap.status === "error" ? (
+        <p className="rounded-xl border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-100">
+          {snap.error}
+        </p>
+      ) : null}
       <TalantonIntelligenceHeader
         moduleLabel="Board · Governance"
         title="Minutes & Decisions"
@@ -487,7 +513,7 @@ export default function TalantonMinutesDecisionsWorkspace({
                 <button
                   type="button"
                   className={secondaryBtn}
-                  onClick={() => archiveMeeting(m.id, !m.archived)}
+                  onClick={() => void archiveMeeting(m.id, !m.archived)}
                 >
                   <Archive className="h-3.5 w-3.5" />
                   {m.archived ? "Unarchive" : "Archive"}
@@ -495,7 +521,7 @@ export default function TalantonMinutesDecisionsWorkspace({
                 <button
                   type="button"
                   className={cn(secondaryBtn, "border-rose-400/20 text-rose-200")}
-                  onClick={() => deleteMeeting(m.id)}
+                  onClick={() => void deleteMeeting(m.id)}
                 >
                   <Trash2 className="h-3.5 w-3.5" />
                   Delete

@@ -1,105 +1,124 @@
 /**
- * Talanton Impact Board Members — editable roster backed by localStorage.
- * Seeded from TI_BOARD_MEMBERS; edits persist per-browser under talanton-board-members-v1.
+ * Talanton Impact Board Members — Supabase-backed roster.
  */
 
-import { TI_BOARD_MEMBERS, type TiBoardMember } from "@/lib/talanton/board-portal-data";
-
-const STORAGE_KEY = "talanton-board-members-v1";
+import type { TiBoardMember } from "@/lib/talanton/board-portal-data";
+import {
+  deleteBoardMemberApi,
+  fetchBoardMembers,
+  migrateLocalGovernanceOnce,
+  patchBoardMember,
+  postBoardMember,
+} from "@/lib/talanton/governance-api-client";
 
 type Listener = () => void;
 
+export type BoardMembersState = {
+  members: TiBoardMember[];
+  status: "idle" | "loading" | "ready" | "error";
+  error: string | null;
+};
+
 const listeners = new Set<Listener>();
 
+let state: BoardMembersState = {
+  members: [],
+  status: "idle",
+  error: null,
+};
+
+let loadPromise: Promise<void> | null = null;
+
 function emit() {
+  state = { ...state, members: [...state.members] };
   for (const listener of listeners) listener();
 }
 
-function readStored(): TiBoardMember[] | null {
-  if (typeof window === "undefined") return null;
+function setState(partial: Partial<BoardMembersState>) {
+  state = { ...state, ...partial };
+  emit();
+}
+
+export async function refreshBoardMembersFromServer(): Promise<void> {
+  setState({ status: "loading", error: null });
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as TiBoardMember[];
-    return Array.isArray(parsed) ? parsed : null;
-  } catch {
-    return null;
+    await migrateLocalGovernanceOnce();
+    const members = await fetchBoardMembers();
+    setState({ members, status: "ready", error: null });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Failed to load board members.";
+    console.error("[board-members-store refresh]", message);
+    setState({ members: [], status: "error", error: message });
   }
 }
 
-function writeStored(members: TiBoardMember[]) {
-  if (typeof window === "undefined") return;
-  try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(members));
-  } catch {
-    /* storage unavailable — ignore */
+function ensureLoaded() {
+  if (typeof window === "undefined") return Promise.resolve();
+  if (state.status === "ready" || state.status === "error") return Promise.resolve();
+  if (!loadPromise) {
+    loadPromise = refreshBoardMembersFromServer().finally(() => {
+      loadPromise = null;
+    });
   }
+  return loadPromise;
 }
-
-let state: TiBoardMember[] = readStored() ?? TI_BOARD_MEMBERS.map((m) => ({ ...m }));
 
 export function subscribeBoardMembersStore(listener: Listener) {
   listeners.add(listener);
+  void ensureLoaded();
   return () => listeners.delete(listener);
 }
 
 export function listMembers(): TiBoardMember[] {
+  void ensureLoaded();
+  return state.members;
+}
+
+export function getBoardMembersState(): BoardMembersState {
+  void ensureLoaded();
   return state;
 }
 
-function nextMemberId() {
-  const nums = state
-    .map((m) => /^ti-bm-(\d+)$/.exec(m.id)?.[1])
-    .filter(Boolean)
-    .map((n) => Number(n));
-  const next = (nums.length ? Math.max(...nums) : state.length) + 1;
-  return `ti-bm-${next}`;
+export function getBoardMembersServerSnapshot(): BoardMembersState {
+  return { members: [], status: "idle", error: null };
 }
 
-export function addMember(
+export async function addMember(
   input: Omit<TiBoardMember, "id" | "name">,
-): TiBoardMember {
-  const member: TiBoardMember = {
-    ...input,
-    id: nextMemberId(),
-    name: `${input.firstName} ${input.lastName}`.trim(),
-  };
-  state = [...state, member];
-  writeStored(state);
-  emit();
-  return member;
+): Promise<TiBoardMember> {
+  const saved = await postBoardMember(input);
+  setState({
+    members: [...state.members, saved],
+    status: "ready",
+    error: null,
+  });
+  return saved;
 }
 
-export function updateMember(
+export async function updateMember(
   id: string,
   patch: Partial<Omit<TiBoardMember, "id">>,
-): TiBoardMember | null {
-  let updated: TiBoardMember | null = null;
-  state = state.map((member) => {
-    if (member.id !== id) return member;
-    const next: TiBoardMember = { ...member, ...patch };
-    next.name = `${next.firstName} ${next.lastName}`.trim();
-    updated = next;
-    return next;
+): Promise<TiBoardMember | null> {
+  const saved = await patchBoardMember(id, patch);
+  setState({
+    members: state.members.map((member) => (member.id === id ? saved : member)),
+    status: "ready",
+    error: null,
   });
-  if (updated) {
-    writeStored(state);
-    emit();
-  }
-  return updated;
+  return saved;
 }
 
-export function removeMember(id: string): boolean {
-  const before = state.length;
-  state = state.filter((member) => member.id !== id);
-  if (state.length === before) return false;
-  writeStored(state);
-  emit();
-  return true;
+export async function removeMember(id: string): Promise<boolean> {
+  const before = state.members.length;
+  await deleteBoardMemberApi(id);
+  setState({
+    members: state.members.filter((member) => member.id !== id),
+    status: "ready",
+    error: null,
+  });
+  return state.members.length < before;
 }
 
-export function resetBoardMembersStore() {
-  state = TI_BOARD_MEMBERS.map((m) => ({ ...m }));
-  writeStored(state);
-  emit();
+export async function resetBoardMembersStore() {
+  await refreshBoardMembersFromServer();
 }

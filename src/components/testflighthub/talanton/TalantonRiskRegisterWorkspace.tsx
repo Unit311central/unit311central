@@ -157,16 +157,27 @@ export default function TalantonRiskRegisterWorkspace() {
     setEditorOpen(true);
   }
 
-  function saveForm() {
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  async function saveForm() {
     if (!form.description.trim()) return;
     const pack = packs.find((p) => p.id === form.boardPackId);
-    upsertTiRisk({
-      ...form,
-      boardPackLabel: pack?.packName ?? form.boardPackLabel,
-      rating: computeTiRiskRating(form.impact, form.likelihood),
-    });
-    setEditorOpen(false);
-    setForm(emptyForm());
+    setSaving(true);
+    setSaveError(null);
+    try {
+      await upsertTiRisk({
+        ...form,
+        boardPackLabel: pack?.packName ?? form.boardPackLabel,
+        rating: computeTiRiskRating(form.impact, form.likelihood),
+      });
+      setEditorOpen(false);
+      setForm(emptyForm());
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : "Failed to save risk.");
+    } finally {
+      setSaving(false);
+    }
   }
 
   function onHeatCellClick(impact: TiRiskLevel, likelihood: TiRiskLevel) {
@@ -197,6 +208,15 @@ export default function TalantonRiskRegisterWorkspace() {
           Add risk
         </button>
       </header>
+
+      {store.status === "loading" ? (
+        <p className="text-sm text-white/50">Loading risk register…</p>
+      ) : null}
+      {store.status === "error" ? (
+        <p className="rounded-xl border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-100">
+          {store.error}
+        </p>
+      ) : null}
 
       <section className="grid gap-3 sm:grid-cols-3">
         <CorporateKpiTile label="Active risks" value={activeRisks.length} hint="Open register" />
@@ -381,7 +401,7 @@ export default function TalantonRiskRegisterWorkspace() {
                         <button
                           type="button"
                           className={corporateSecondaryButtonClass()}
-                          onClick={() => restoreTiRisk(risk.id)}
+                          onClick={() => void restoreTiRisk(risk.id)}
                         >
                           Restore
                         </button>
@@ -389,7 +409,7 @@ export default function TalantonRiskRegisterWorkspace() {
                         <button
                           type="button"
                           className={corporateSecondaryButtonClass()}
-                          onClick={() => archiveTiRisk(risk.id)}
+                          onClick={() => void archiveTiRisk(risk.id)}
                         >
                           Archive
                         </button>
@@ -398,7 +418,8 @@ export default function TalantonRiskRegisterWorkspace() {
                         type="button"
                         className={corporateSecondaryButtonClass()}
                         onClick={() => {
-                          if (window.confirm(`Delete ${risk.id}?`)) deleteTiRisk(risk.id);
+                          if (!window.confirm(`Delete ${risk.id}?`)) return;
+                          void deleteTiRisk(risk.id);
                         }}
                       >
                         <Trash2 className="h-3.5 w-3.5" />
@@ -571,16 +592,20 @@ export default function TalantonRiskRegisterWorkspace() {
                 </label>
               </div>
             </div>
+            {saveError ? (
+              <p className="px-5 text-sm text-rose-200">{saveError}</p>
+            ) : null}
             <div className="flex justify-end gap-2 border-t border-white/10 px-5 py-4">
               <button
                 type="button"
                 className={corporateSecondaryButtonClass()}
                 onClick={() => setEditorOpen(false)}
+                disabled={saving}
               >
                 Cancel
               </button>
-              <button type="submit" className={corporatePrimaryButtonClass()}>
-                Save risk
+              <button type="submit" className={corporatePrimaryButtonClass()} disabled={saving}>
+                {saving ? "Saving…" : "Save risk"}
               </button>
             </div>
           </form>

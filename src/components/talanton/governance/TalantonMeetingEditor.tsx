@@ -36,10 +36,20 @@ export function TalantonMeetingEditor({
   lockMeetingType?: MeetingType;
 }) {
   const [draft, setDraft] = useState(meeting);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
-  function save() {
-    upsertMeeting(draft);
-    onClose();
+  async function save() {
+    setSaving(true);
+    setSaveError(null);
+    try {
+      await upsertMeeting(draft);
+      onClose();
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : "Failed to save meeting.");
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -260,12 +270,15 @@ export function TalantonMeetingEditor({
             </div>
           </div>
         </div>
+        {saveError ? (
+          <p className="mt-4 text-sm text-rose-200/90">{saveError}</p>
+        ) : null}
         <div className="mt-auto flex flex-wrap gap-2 pt-6">
-          <button type="button" className={secondaryBtn} onClick={onClose}>
+          <button type="button" className={secondaryBtn} onClick={onClose} disabled={saving}>
             Cancel
           </button>
-          <button type="button" className={primaryBtn} onClick={save}>
-            {saveLabel}
+          <button type="button" className={primaryBtn} onClick={() => void save()} disabled={saving}>
+            {saving ? "Saving…" : saveLabel}
           </button>
         </div>
       </div>

@@ -110,7 +110,7 @@ export function parseTalantonClientOrgState(raw: unknown): TalantonRequestOrgSta
       }))
       .filter((row) => row.id && row.description);
     if (risks.length > 0) {
-      result.risks = { risks };
+      result.risks = { risks, status: "ready", error: null };
     }
   }
 
