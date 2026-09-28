@@ -124,6 +124,13 @@ const QuarterlyPortfolioUpdateWorkspace = dynamic(
     ssr: false,
   },
 );
+const TalantonIntelligenceWorkspaceRouter = dynamic(
+  () => import("./talanton/TalantonIntelligenceWorkspaceRouter"),
+  {
+    loading: () => <WorkspaceLoadingFallback label="Loading Talanton intelligence" />,
+    ssr: false,
+  },
+);
 const TalantonTrainingDashboardWorkspace = dynamic(
   () => import("./talanton/TalantonTrainingDashboardWorkspace"),
   {
@@ -355,6 +362,7 @@ import IntelligenceDashboardWorkspace from "@/components/intelligence/Intelligen
 import QaTasksWorkspace from "@/components/qa-workspace/QaTasksWorkspace";
 import { isQaEnabledWorkspaceSlug } from "@/lib/qa-workspace/surface";
 import { isIntelligenceOperationsView } from "@/lib/intelligence/views";
+import { isTalantonDedicatedIntelligenceView } from "@/lib/talanton/intelligence-views";
 import NorthstarBusinessCentralDashboard from "@/components/demo/NorthstarBusinessCentralDashboard";
 import {
   NorthstarEngineeringCapacityWorkspace,
@@ -968,6 +976,9 @@ export default function InternalOperationsDashboard({
                 ) : (
                   <IntelligenceDashboardWorkspace />
                 )
+              ) : isBrowserTalantonImpactSurface() &&
+                isTalantonDedicatedIntelligenceView(activeView) ? (
+                <TalantonIntelligenceWorkspaceRouter view={activeView} />
               ) : isBrowserAbhiSurface() && activeView === "member-intelligence" ? (
                 <MemberIntelligenceWorkspace clients={clients} />
               ) : isBrowserAbhiSurface() && isAbhiRegulatoryView(activeView) ? (
