@@ -112,7 +112,7 @@ function normalizeState(raw: unknown): TiRiskRegisterState | null {
   const risks = parsed.risks
     .map((row) => normalizeEntry(row))
     .filter((row): row is TiRiskRegisterEntry => Boolean(row));
-  return risks.length > 0 ? { risks } : null;
+  return { risks };
 }
 
 function readPersistedState(): TiRiskRegisterState | null {

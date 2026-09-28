@@ -3,7 +3,6 @@
 import { useMemo, useState, useSyncExternalStore } from "react";
 import {
   Archive,
-  CalendarDays,
   CheckCircle2,
   ClipboardList,
   Gavel,
@@ -12,16 +11,16 @@ import {
   Trash2,
 } from "lucide-react";
 
+import { TalantonMeetingEditor } from "@/components/talanton/governance/TalantonMeetingEditor";
 import {
   archiveMeeting,
   allActions,
   allDecisions,
   blankAction,
   blankDecision,
-  createMeeting,
   deleteMeeting,
   getTalantonGovernanceSnapshot,
-  governanceKpis,
+  governanceMinutesKpis,
   governanceTimeline,
   listMeetings,
   subscribeTalantonGovernanceStore,
@@ -38,17 +37,11 @@ import {
   TalantonIntelligenceHeader,
 } from "./talanton-intelligence-ui";
 
-export type MinutesTab =
-  | "dashboard"
-  | "minutes"
-  | "decisions"
-  | "actions"
-  | "timeline";
+export type MinutesTab = "minutes" | "decisions" | "actions" | "timeline";
 
-const TABS: { id: MinutesTab; label: string; icon: typeof CalendarDays }[] = [
-  { id: "dashboard", label: "Meetings Dashboard", icon: CalendarDays },
+const TABS: { id: MinutesTab; label: string; icon: typeof ClipboardList }[] = [
   { id: "minutes", label: "Meeting Minutes", icon: ClipboardList },
-  { id: "decisions", label: "Decisions Register", icon: Gavel },
+  { id: "decisions", label: "Decisions", icon: Gavel },
   { id: "actions", label: "Action Items", icon: CheckCircle2 },
   { id: "timeline", label: "Governance Timeline", icon: Archive },
 ];
@@ -86,242 +79,203 @@ const primaryBtn =
 const secondaryBtn =
   "inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm font-medium text-white/70 hover:bg-white/10";
 
-function MeetingEditor({
-  meeting,
+type MinutesActionKind = "minutes" | "decision" | "action";
+
+function CreateMinutesActionModal({
+  meetings,
   onClose,
+  onSaved,
 }: {
-  meeting: GovernanceMeeting;
+  meetings: GovernanceMeeting[];
   onClose: () => void;
+  onSaved: () => void;
 }) {
-  const [draft, setDraft] = useState(meeting);
+  const [meetingId, setMeetingId] = useState(meetings[0]?.id ?? "");
+  const [kind, setKind] = useState<MinutesActionKind>("minutes");
+  const [minutesText, setMinutesText] = useState("");
+  const [decisionText, setDecisionText] = useState("");
+  const [decisionOwner, setDecisionOwner] = useState("Harry Turner");
+  const [decisionStatus, setDecisionStatus] = useState<DecisionStatus>("Proposed");
+  const [actionTitle, setActionTitle] = useState("");
+  const [actionOwner, setActionOwner] = useState("Portfolio Ops");
+  const [actionDue, setActionDue] = useState(new Date().toISOString().slice(0, 10));
+  const [actionStatus, setActionStatus] = useState<ActionStatus>("Open");
+
+  const meeting = meetings.find((m) => m.id === meetingId);
 
   function save() {
-    upsertMeeting(draft);
+    if (!meeting) return;
+    let next = { ...meeting };
+    if (kind === "minutes") {
+      if (!minutesText.trim()) return;
+      next = { ...next, minutes: minutesText.trim() };
+    } else if (kind === "decision") {
+      if (!decisionText.trim()) return;
+      next = {
+        ...next,
+        decisions: [
+          ...next.decisions,
+          { ...blankDecision(), text: decisionText.trim(), owner: decisionOwner, status: decisionStatus },
+        ],
+      };
+    } else {
+      if (!actionTitle.trim()) return;
+      next = {
+        ...next,
+        actions: [
+          ...next.actions,
+          {
+            ...blankAction(),
+            title: actionTitle.trim(),
+            owner: actionOwner,
+            dueDate: actionDue,
+            status: actionStatus,
+          },
+        ],
+      };
+    }
+    upsertMeeting(next);
+    onSaved();
     onClose();
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end bg-black/50 backdrop-blur-sm">
-      <div className="flex h-full w-full max-w-xl flex-col overflow-auto border-l border-white/10 bg-[#0b1a14] p-5">
-        <h3 className="text-lg font-semibold text-white">Edit meeting</h3>
-        <div className="mt-4 space-y-3">
-          <label className="block text-[11px] text-white/45">
-            Title
-            <input
-              className={cn(inputClass, "mt-1")}
-              value={draft.title}
-              onChange={(e) => setDraft({ ...draft, title: e.target.value })}
-            />
-          </label>
-          <div className="grid grid-cols-2 gap-3">
-            <label className="block text-[11px] text-white/45">
-              Date
-              <input
-                type="date"
-                className={cn(inputClass, "mt-1")}
-                value={draft.meetingDate}
-                onChange={(e) => setDraft({ ...draft, meetingDate: e.target.value })}
-              />
-            </label>
-            <label className="block text-[11px] text-white/45">
-              Type
-              <select
-                className={cn(inputClass, "mt-1")}
-                value={draft.meetingType}
-                onChange={(e) =>
-                  setDraft({ ...draft, meetingType: e.target.value as MeetingType })
-                }
-              >
-                {(
-                  [
-                    "Board Meeting",
-                    "Investment Committee",
-                    "Management Meeting",
-                    "Impact Review",
-                    "Special Committee",
-                  ] as MeetingType[]
-                ).map((t) => (
-                  <option key={t} value={t}>
-                    {t}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
-          <label className="block text-[11px] text-white/45">
-            Status
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+      <div className="flex max-h-[90vh] w-full max-w-lg flex-col overflow-auto rounded-2xl border border-white/10 bg-[#0b1a14]">
+        <div className="border-b border-white/10 px-5 py-4">
+          <h3 className="text-lg font-semibold text-white">Create minutes / action</h3>
+          <p className="mt-1 text-xs text-white/45">
+            Add minutes, a decision, or an action item to an existing meeting record.
+          </p>
+        </div>
+        <div className="space-y-4 px-5 py-4">
+          <label className="block text-xs text-white/55">
+            Meeting
             <select
               className={cn(inputClass, "mt-1")}
-              value={draft.status}
-              onChange={(e) =>
-                setDraft({ ...draft, status: e.target.value as MeetingStatus })
-              }
+              value={meetingId}
+              onChange={(e) => setMeetingId(e.target.value)}
             >
-              {(["Draft", "Scheduled", "Held", "Archived"] as MeetingStatus[]).map((s) => (
-                <option key={s} value={s}>
-                  {s}
+              {meetings.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.title} ({formatDate(m.meetingDate)})
                 </option>
               ))}
             </select>
           </label>
-          <label className="block text-[11px] text-white/45">
-            Attendees (one per line: Name — Role)
-            <textarea
-              className={cn(inputClass, "mt-1 min-h-[80px]")}
-              value={draft.attendees.map((a) => `${a.name} — ${a.role}`).join("\n")}
-              onChange={(e) =>
-                setDraft({
-                  ...draft,
-                  attendees: e.target.value
-                    .split("\n")
-                    .map((line) => line.trim())
-                    .filter(Boolean)
-                    .map((line) => {
-                      const [name, role] = line.split("—").map((x) => x.trim());
-                      return { name: name || line, role: role || "Attendee" };
-                    }),
-                })
-              }
-            />
+          <label className="block text-xs text-white/55">
+            Record type
+            <select
+              className={cn(inputClass, "mt-1")}
+              value={kind}
+              onChange={(e) => setKind(e.target.value as MinutesActionKind)}
+            >
+              <option value="minutes">Meeting minutes</option>
+              <option value="decision">Decision</option>
+              <option value="action">Action item</option>
+            </select>
           </label>
-          <label className="block text-[11px] text-white/45">
-            Minutes
-            <textarea
-              className={cn(inputClass, "mt-1 min-h-[120px]")}
-              value={draft.minutes}
-              onChange={(e) => setDraft({ ...draft, minutes: e.target.value })}
-            />
-          </label>
-          <div>
-            <div className="mb-2 flex items-center justify-between">
-              <span className="text-[11px] text-white/45">Decisions</span>
-              <button
-                type="button"
-                className="text-[11px] text-emerald-300"
-                onClick={() =>
-                  setDraft({ ...draft, decisions: [...draft.decisions, blankDecision()] })
-                }
-              >
-                + Add
-              </button>
-            </div>
-            <div className="space-y-2">
-              {draft.decisions.map((d, i) => (
-                <div key={d.id} className="rounded-xl border border-white/10 bg-black/20 p-3">
+          {kind === "minutes" ? (
+            <label className="block text-xs text-white/55">
+              Minutes text
+              <textarea
+                className={cn(inputClass, "mt-1 min-h-[140px]")}
+                value={minutesText}
+                onChange={(e) => setMinutesText(e.target.value)}
+                placeholder="Record or update minutes for the selected meeting…"
+              />
+            </label>
+          ) : null}
+          {kind === "decision" ? (
+            <div className="space-y-3">
+              <label className="block text-xs text-white/55">
+                Decision
+                <textarea
+                  className={cn(inputClass, "mt-1 min-h-[80px]")}
+                  value={decisionText}
+                  onChange={(e) => setDecisionText(e.target.value)}
+                />
+              </label>
+              <div className="grid grid-cols-2 gap-3">
+                <label className="block text-xs text-white/55">
+                  Owner
                   <input
-                    className={inputClass}
-                    value={d.text}
-                    placeholder="Decision text"
-                    onChange={(e) => {
-                      const decisions = [...draft.decisions];
-                      decisions[i] = { ...d, text: e.target.value };
-                      setDraft({ ...draft, decisions });
-                    }}
+                    className={cn(inputClass, "mt-1")}
+                    value={decisionOwner}
+                    onChange={(e) => setDecisionOwner(e.target.value)}
                   />
-                  <div className="mt-2 grid grid-cols-2 gap-2">
-                    <select
-                      className={inputClass}
-                      value={d.status}
-                      onChange={(e) => {
-                        const decisions = [...draft.decisions];
-                        decisions[i] = { ...d, status: e.target.value as DecisionStatus };
-                        setDraft({ ...draft, decisions });
-                      }}
-                    >
-                      {(["Proposed", "Approved", "Deferred", "Rejected"] as DecisionStatus[]).map(
-                        (s) => (
-                          <option key={s} value={s}>
-                            {s}
-                          </option>
-                        ),
-                      )}
-                    </select>
-                    <input
-                      className={inputClass}
-                      value={d.owner}
-                      placeholder="Owner"
-                      onChange={(e) => {
-                        const decisions = [...draft.decisions];
-                        decisions[i] = { ...d, owner: e.target.value };
-                        setDraft({ ...draft, decisions });
-                      }}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-          <div>
-            <div className="mb-2 flex items-center justify-between">
-              <span className="text-[11px] text-white/45">Actions</span>
-              <button
-                type="button"
-                className="text-[11px] text-emerald-300"
-                onClick={() => setDraft({ ...draft, actions: [...draft.actions, blankAction()] })}
-              >
-                + Add
-              </button>
-            </div>
-            <div className="space-y-2">
-              {draft.actions.map((a, i) => (
-                <div key={a.id} className="rounded-xl border border-white/10 bg-black/20 p-3">
-                  <input
-                    className={inputClass}
-                    value={a.title}
-                    placeholder="Action title"
-                    onChange={(e) => {
-                      const actions = [...draft.actions];
-                      actions[i] = { ...a, title: e.target.value };
-                      setDraft({ ...draft, actions });
-                    }}
-                  />
-                  <div className="mt-2 grid grid-cols-3 gap-2">
-                    <input
-                      className={inputClass}
-                      value={a.owner}
-                      onChange={(e) => {
-                        const actions = [...draft.actions];
-                        actions[i] = { ...a, owner: e.target.value };
-                        setDraft({ ...draft, actions });
-                      }}
-                    />
-                    <input
-                      type="date"
-                      className={inputClass}
-                      value={a.dueDate}
-                      onChange={(e) => {
-                        const actions = [...draft.actions];
-                        actions[i] = { ...a, dueDate: e.target.value };
-                        setDraft({ ...draft, actions });
-                      }}
-                    />
-                    <select
-                      className={inputClass}
-                      value={a.status}
-                      onChange={(e) => {
-                        const actions = [...draft.actions];
-                        actions[i] = { ...a, status: e.target.value as ActionStatus };
-                        setDraft({ ...draft, actions });
-                      }}
-                    >
-                      {(["Open", "Underway", "Completed", "Overdue"] as ActionStatus[]).map((s) => (
+                </label>
+                <label className="block text-xs text-white/55">
+                  Status
+                  <select
+                    className={cn(inputClass, "mt-1")}
+                    value={decisionStatus}
+                    onChange={(e) => setDecisionStatus(e.target.value as DecisionStatus)}
+                  >
+                    {(["Proposed", "Approved", "Deferred", "Rejected"] as DecisionStatus[]).map(
+                      (s) => (
                         <option key={s} value={s}>
                           {s}
                         </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-              ))}
+                      ),
+                    )}
+                  </select>
+                </label>
+              </div>
             </div>
-          </div>
+          ) : null}
+          {kind === "action" ? (
+            <div className="space-y-3">
+              <label className="block text-xs text-white/55">
+                Action title
+                <input
+                  className={cn(inputClass, "mt-1")}
+                  value={actionTitle}
+                  onChange={(e) => setActionTitle(e.target.value)}
+                />
+              </label>
+              <div className="grid grid-cols-3 gap-2">
+                <label className="block text-xs text-white/55">
+                  Owner
+                  <input
+                    className={cn(inputClass, "mt-1")}
+                    value={actionOwner}
+                    onChange={(e) => setActionOwner(e.target.value)}
+                  />
+                </label>
+                <label className="block text-xs text-white/55">
+                  Due
+                  <input
+                    type="date"
+                    className={cn(inputClass, "mt-1")}
+                    value={actionDue}
+                    onChange={(e) => setActionDue(e.target.value)}
+                  />
+                </label>
+                <label className="block text-xs text-white/55">
+                  Status
+                  <select
+                    className={cn(inputClass, "mt-1")}
+                    value={actionStatus}
+                    onChange={(e) => setActionStatus(e.target.value as ActionStatus)}
+                  >
+                    {(["Open", "Underway", "Completed", "Overdue"] as ActionStatus[]).map((s) => (
+                      <option key={s} value={s}>
+                        {s}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+            </div>
+          ) : null}
         </div>
-        <div className="mt-auto flex flex-wrap gap-2 pt-6">
+        <div className="flex justify-end gap-2 border-t border-white/10 px-5 py-4">
           <button type="button" className={secondaryBtn} onClick={onClose}>
             Cancel
           </button>
-          <button type="button" className={primaryBtn} onClick={save}>
-            Save meeting
+          <button type="button" className={primaryBtn} onClick={save} disabled={!meeting}>
+            Save
           </button>
         </div>
       </div>
@@ -330,7 +284,7 @@ function MeetingEditor({
 }
 
 export default function TalantonMinutesDecisionsWorkspace({
-  initialTab = "dashboard",
+  initialTab = "minutes",
 }: {
   initialTab?: MinutesTab;
 }) {
@@ -340,8 +294,9 @@ export default function TalantonMinutesDecisionsWorkspace({
   const [typeFilter, setTypeFilter] = useState<MeetingType | "all">("all");
   const [statusFilter, setStatusFilter] = useState<MeetingStatus | "all" | "active">("active");
   const [editing, setEditing] = useState<GovernanceMeeting | null>(null);
+  const [createModalOpen, setCreateModalOpen] = useState(false);
 
-  const kpis = useMemo(() => governanceKpis(), [snap]);
+  const kpis = useMemo(() => governanceMinutesKpis(), [snap]);
   const meetings = useMemo(() => {
     return listMeetings({ includeArchived: statusFilter !== "active" }).filter((m) => {
       if (statusFilter === "active" && m.archived) return false;
@@ -377,20 +332,31 @@ export default function TalantonMinutesDecisionsWorkspace({
 
   const timeline = useMemo(() => governanceTimeline(), [snap]);
 
+  const activeMeetings = useMemo(
+    () => listMeetings({ includeArchived: false }),
+    [snap],
+  );
+
   return (
     <div className="flex h-full min-h-0 flex-col gap-5 overflow-auto p-5 sm:p-6">
       <TalantonIntelligenceHeader
         moduleLabel="Board · Governance"
         title="Minutes & Decisions"
-        description="Board and management governance — meetings, minutes, decisions, action owners and due dates across Talanton’s faith-driven portfolio oversight."
+        description="Minutes, decisions, action owners, and governance timeline across Talanton portfolio oversight."
         actions={
           <button
             type="button"
             className={primaryBtn}
-            onClick={() => setEditing(createMeeting({ title: "New Talanton governance meeting" }))}
+            onClick={() => setCreateModalOpen(true)}
+            disabled={activeMeetings.length === 0}
+            title={
+              activeMeetings.length === 0
+                ? "Create a board meeting first from Board Meetings"
+                : undefined
+            }
           >
             <Plus className="h-4 w-4" />
-            Create meeting
+            Create minutes / action
           </button>
         }
       />
@@ -414,17 +380,30 @@ export default function TalantonMinutesDecisionsWorkspace({
         ))}
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
-        <TalantonImpactMetric label="Active meetings" value={kpis.meetingsActive} />
-        <TalantonImpactMetric label="Held" value={kpis.meetingsHeld} tone="good" />
-        <TalantonImpactMetric label="Decisions approved" value={kpis.decisionsApproved} />
-        <TalantonImpactMetric label="Decisions pending" value={kpis.decisionsPending} tone="watch" />
-        <TalantonImpactMetric label="Open actions" value={kpis.actionsOpen} />
-        <TalantonImpactMetric
-          label="Overdue actions"
-          value={kpis.actionsOverdue}
-          tone={kpis.actionsOverdue > 0 ? "alert" : "good"}
-        />
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+        <button type="button" onClick={() => setTab("minutes")} className="text-left">
+          <TalantonImpactMetric label="Minutes recorded" value={kpis.minutesRecorded} />
+        </button>
+        <button type="button" onClick={() => setTab("decisions")} className="text-left">
+          <TalantonImpactMetric label="Decisions" value={kpis.decisionsTotal} />
+        </button>
+        <button type="button" onClick={() => setTab("decisions")} className="text-left">
+          <TalantonImpactMetric
+            label="Decisions pending"
+            value={kpis.decisionsPending}
+            tone="watch"
+          />
+        </button>
+        <button type="button" onClick={() => setTab("actions")} className="text-left">
+          <TalantonImpactMetric label="Open actions" value={kpis.actionsOpen} />
+        </button>
+        <button type="button" onClick={() => setTab("timeline")} className="text-left">
+          <TalantonImpactMetric
+            label="Timeline events"
+            value={kpis.timelineEvents}
+            tone={kpis.actionsOverdue > 0 ? "alert" : "good"}
+          />
+        </button>
       </div>
 
       <section className="rounded-2xl border border-white/10 bg-black/20 p-4">
@@ -433,7 +412,7 @@ export default function TalantonMinutesDecisionsWorkspace({
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/35" />
             <input
               className={cn(inputClass, "pl-9")}
-              placeholder="Search meetings, decisions, actions…"
+              placeholder="Search minutes, decisions, actions…"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
             />
@@ -475,59 +454,6 @@ export default function TalantonMinutesDecisionsWorkspace({
         </div>
       </section>
 
-      {tab === "dashboard" && (
-        <div className="grid gap-3 xl:grid-cols-2">
-          {meetings.map((m) => (
-            <article
-              key={m.id}
-              className="rounded-2xl border border-white/10 bg-gradient-to-br from-[#0f2a1f]/50 via-[#0b1a14]/80 to-[#08110d] p-5"
-            >
-              <div className="flex flex-wrap items-start justify-between gap-2">
-                <div>
-                  <div className="flex flex-wrap gap-2">
-                    <span className={cn("rounded-full border px-2 py-0.5 text-[10px]", statusPill(m.status))}>
-                      {m.status}
-                    </span>
-                    <span className="rounded-full border border-white/10 px-2 py-0.5 text-[10px] text-white/50">
-                      {m.meetingType}
-                    </span>
-                  </div>
-                  <h3 className="mt-2 text-base font-semibold text-white">{m.title}</h3>
-                  <p className="mt-1 text-xs text-white/45">{formatDate(m.meetingDate)}</p>
-                </div>
-              </div>
-              <p className="mt-3 line-clamp-2 text-sm text-white/65">{m.minutes || "No minutes yet."}</p>
-              <div className="mt-3 flex flex-wrap gap-3 text-[11px] text-white/40">
-                <span>{m.attendees.length} attendees</span>
-                <span>{m.decisions.length} decisions</span>
-                <span>{m.actions.length} actions</span>
-              </div>
-              <div className="mt-4 flex flex-wrap gap-2">
-                <button type="button" className={secondaryBtn} onClick={() => setEditing(m)}>
-                  Edit
-                </button>
-                <button
-                  type="button"
-                  className={secondaryBtn}
-                  onClick={() => archiveMeeting(m.id, !m.archived)}
-                >
-                  <Archive className="h-3.5 w-3.5" />
-                  {m.archived ? "Unarchive" : "Archive"}
-                </button>
-                <button
-                  type="button"
-                  className={cn(secondaryBtn, "border-rose-400/20 text-rose-200")}
-                  onClick={() => deleteMeeting(m.id)}
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                  Delete
-                </button>
-              </div>
-            </article>
-          ))}
-        </div>
-      )}
-
       {tab === "minutes" && (
         <div className="space-y-3">
           {meetings.map((m) => (
@@ -554,9 +480,27 @@ export default function TalantonMinutesDecisionsWorkspace({
                   {m.attendees.map((a) => `${a.name} (${a.role})`).join(" · ") || "—"}
                 </p>
               </div>
-              <button type="button" className={cn(secondaryBtn, "mt-4")} onClick={() => setEditing(m)}>
-                Edit minutes
-              </button>
+              <div className="mt-4 flex flex-wrap gap-2">
+                <button type="button" className={secondaryBtn} onClick={() => setEditing(m)}>
+                  Edit minutes
+                </button>
+                <button
+                  type="button"
+                  className={secondaryBtn}
+                  onClick={() => archiveMeeting(m.id, !m.archived)}
+                >
+                  <Archive className="h-3.5 w-3.5" />
+                  {m.archived ? "Unarchive" : "Archive"}
+                </button>
+                <button
+                  type="button"
+                  className={cn(secondaryBtn, "border-rose-400/20 text-rose-200")}
+                  onClick={() => deleteMeeting(m.id)}
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  Delete
+                </button>
+              </div>
             </article>
           ))}
         </div>
@@ -624,7 +568,16 @@ export default function TalantonMinutesDecisionsWorkspace({
         </div>
       )}
 
-      {editing ? <MeetingEditor meeting={editing} onClose={() => setEditing(null)} /> : null}
+      {editing ? (
+        <TalantonMeetingEditor meeting={editing} onClose={() => setEditing(null)} />
+      ) : null}
+      {createModalOpen ? (
+        <CreateMinutesActionModal
+          meetings={activeMeetings}
+          onClose={() => setCreateModalOpen(false)}
+          onSaved={() => undefined}
+        />
+      ) : null}
     </div>
   );
 }

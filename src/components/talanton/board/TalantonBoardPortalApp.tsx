@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useSyncExternalStore } from "react";
+import { useMemo, useState, useSyncExternalStore, useCallback } from "react";
 import Link from "next/link";
 import {
   AlertTriangle,
@@ -8,17 +8,19 @@ import {
   CheckCircle2,
   Download,
   FileText,
+  Plus,
   Search,
   Sparkles,
   Users,
 } from "lucide-react";
+
+import { TalantonMeetingEditor } from "@/components/talanton/governance/TalantonMeetingEditor";
 
 import TalantonRiskRegisterWorkspace from "@/components/testflighthub/talanton/TalantonRiskRegisterWorkspace";
 import BoardImpactIntelligencePage from "@/components/talanton/board/BoardImpactIntelligencePage";
 import BoardJourneyStoriesPage from "@/components/talanton/board/BoardJourneyStoriesPage";
 import { loadAbhiBoardPacks } from "@/lib/abhi/board-pack-record";
 import {
-  TI_BOARD_MEETINGS,
   TI_BOARD_RISKS,
   buildTiMinutesFromMeetings,
   getTiBoardDashboardSnapshot,
@@ -45,6 +47,13 @@ import {
   listImpactReportsForBoard,
   periodLabel,
 } from "@/lib/talanton/annual-impact-report-store";
+import {
+  createMeeting,
+  getTalantonGovernanceSnapshot,
+  listMeetings,
+  subscribeTalantonGovernanceStore,
+  type GovernanceMeeting,
+} from "@/lib/talanton/governance-store";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -484,32 +493,75 @@ function BoardMinutesDecisionsPanel() {
   );
 }
 
+function formatBoardMeetingDate(iso: string) {
+  const d = new Date(`${iso.slice(0, 10)}T12:00:00`);
+  if (Number.isNaN(d.getTime())) return iso;
+  return d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+}
+
+function agendaLinesFromMinutes(minutes: string): string[] {
+  const trimmed = minutes.trim();
+  if (!trimmed) return ["Agenda to be confirmed."];
+  return trimmed
+    .split(/\n+/)
+    .map((line) => line.replace(/^[\s•\-*]+/, "").trim())
+    .filter(Boolean)
+    .slice(0, 8);
+}
+
 function BoardMeetings() {
-  const sorted = [...TI_BOARD_MEETINGS].sort((a, b) =>
-    b.meetingDate.localeCompare(a.meetingDate),
+  const snap = useSyncExternalStore(
+    subscribeTalantonGovernanceStore,
+    getTalantonGovernanceSnapshot,
+    getTalantonGovernanceSnapshot,
   );
-  const minutesByMeetingId = useMemo(() => {
-    const records = buildTiMinutesFromMeetings();
-    return new Map(records.map((r) => [r.meetingId, r]));
-  }, []);
+  const sorted = useMemo(
+    () =>
+      listMeetings({ includeArchived: true })
+        .filter((m) => m.meetingType === "Board Meeting")
+        .sort((a, b) => b.meetingDate.localeCompare(a.meetingDate)),
+    [snap],
+  );
   const [q, setQ] = useState("");
+  const [editing, setEditing] = useState<GovernanceMeeting | null>(null);
+
   const filtered = q.trim()
     ? sorted.filter((m) => {
-        const minutes = minutesByMeetingId.get(m.id);
-        const hay = `${m.title} ${minutes?.minutesSummary ?? ""} ${m.decisions
-          .map((d) => d.text)
-          .join(" ")} ${m.resolutions.join(" ")}`.toLowerCase();
+        const hay = `${m.title} ${m.minutes} ${m.decisions.map((d) => d.text).join(" ")} ${m.actions
+          .map((a) => a.title)
+          .join(" ")}`.toLowerCase();
         return hay.includes(q.trim().toLowerCase());
       })
     : sorted;
 
+  const onCreate = useCallback(() => {
+    const label = new Date().toLocaleDateString("en-GB", { month: "long", year: "numeric" });
+    const created = createMeeting({
+      meetingType: "Board Meeting",
+      title: `Talanton Impact Board — ${label}`,
+      status: "Draft",
+      minutes: "",
+    });
+    setEditing(created);
+  }, []);
+
   return (
     <div className="space-y-5">
-      <header>
-        <h1 className="text-2xl font-semibold text-white">Board Meetings</h1>
-        <p className="mt-1 text-sm text-white/55">
-          Agenda, minutes, decisions, and actions for every board meeting.
-        </p>
+      <header className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-semibold text-white">Board Meetings</h1>
+          <p className="mt-1 text-sm text-white/55">
+            Agenda, minutes, decisions, and actions for every board meeting.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={onCreate}
+          className="inline-flex items-center gap-2 rounded-lg border border-emerald-400/40 bg-emerald-500/20 px-3 py-2 text-xs font-semibold text-emerald-50 hover:bg-emerald-500/30"
+        >
+          <Plus className="h-3.5 w-3.5" />
+          Create meeting
+        </button>
       </header>
       <label className="relative block max-w-md">
         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/35" />
@@ -521,94 +573,108 @@ function BoardMeetings() {
         />
       </label>
       <div className="space-y-3">
+        {filtered.length === 0 ? (
+          <p className="text-sm text-white/45">No board meetings yet. Create one to get started.</p>
+        ) : null}
         {filtered.map((m) => {
-          const minutes = minutesByMeetingId.get(m.id);
+          const agenda = agendaLinesFromMinutes(m.minutes);
           return (
-          <article
-            key={m.id}
-            className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 sm:p-5"
-          >
-            <div className="flex flex-wrap items-start justify-between gap-2">
-              <div>
-                <h2 className="text-lg font-semibold text-white">{m.title}</h2>
-                <p className="text-sm text-white/50">{m.meetingDate}</p>
+            <article
+              key={m.id}
+              className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 sm:p-5"
+            >
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <div>
+                  <h2 className="text-lg font-semibold text-white">{m.title}</h2>
+                  <p className="text-sm text-white/50">{formatBoardMeetingDate(m.meetingDate)}</p>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="rounded-full border border-white/15 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-white/60">
+                    {m.status}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setEditing(m)}
+                    className="rounded-lg border border-white/15 px-2.5 py-1 text-[11px] font-semibold text-white/70 hover:bg-white/5"
+                  >
+                    Edit
+                  </button>
+                </div>
               </div>
-              <span className="rounded-full border border-white/15 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-white/60">
-                {m.status}
-              </span>
-            </div>
-            <div className="mt-4 grid gap-4 md:grid-cols-2">
-              <div>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/40">
-                  Agenda
-                </p>
-                <ul className="mt-1 space-y-1 text-sm text-white/70">
-                  {m.agenda.map((a) => (
-                    <li key={a}>• {a}</li>
-                  ))}
-                </ul>
-              </div>
-              <div>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/40">
-                  Decisions
-                </p>
-                <ul className="mt-1 space-y-1 text-sm text-white/70">
-                  {m.decisions.length === 0 ? (
-                    <li className="text-white/40">None recorded yet.</li>
-                  ) : (
-                    m.decisions.map((d) => <li key={d.id}>• {d.text}</li>)
-                  )}
-                </ul>
-              </div>
-              <div className="md:col-span-2">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/40">
-                  Actions
-                </p>
-                <ul className="mt-2 space-y-1.5">
-                  {m.actions.length === 0 ? (
-                    <li className="text-sm text-white/40">No actions.</li>
-                  ) : (
-                    m.actions.map((a) => (
-                      <li
-                        key={a.id}
-                        className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-white/8 bg-black/20 px-3 py-2 text-sm"
-                      >
-                        <span className="text-white/80">{a.title}</span>
-                        <span className="text-xs text-white/45">
-                          {a.owner} · {a.dueDate} · {a.status}
-                        </span>
-                      </li>
-                    ))
-                  )}
-                </ul>
-              </div>
-              {minutes ? (
+              <div className="mt-4 grid gap-4 md:grid-cols-2">
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/40">
+                    Agenda
+                  </p>
+                  <ul className="mt-1 space-y-1 text-sm text-white/70">
+                    {agenda.map((a) => (
+                      <li key={a}>• {a}</li>
+                    ))}
+                  </ul>
+                </div>
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/40">
+                    Decisions
+                  </p>
+                  <ul className="mt-1 space-y-1 text-sm text-white/70">
+                    {m.decisions.length === 0 ? (
+                      <li className="text-white/40">None recorded yet.</li>
+                    ) : (
+                      m.decisions.map((d) => (
+                        <li key={d.id}>
+                          • {d.text}{" "}
+                          <span className="text-xs text-white/40">({d.status})</span>
+                        </li>
+                      ))
+                    )}
+                  </ul>
+                </div>
                 <div className="md:col-span-2">
                   <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/40">
-                    Minutes summary
+                    Actions
                   </p>
-                  <p className="mt-1 text-sm text-white/65">{minutes.minutesSummary}</p>
-                  {minutes.resolutions.length > 0 ? (
-                    <ul className="mt-2 space-y-1 text-sm text-white/70">
-                      {minutes.resolutions.map((resolution, idx) => (
-                        <li key={`${m.id}-res-${idx}`}>• {resolution}</li>
-                      ))}
-                    </ul>
-                  ) : null}
+                  <ul className="mt-2 space-y-1.5">
+                    {m.actions.length === 0 ? (
+                      <li className="text-sm text-white/40">No actions.</li>
+                    ) : (
+                      m.actions.map((a) => (
+                        <li
+                          key={a.id}
+                          className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-white/8 bg-black/20 px-3 py-2 text-sm"
+                        >
+                          <span className="text-white/80">{a.title}</span>
+                          <span className="text-xs text-white/45">
+                            {a.owner} · {a.dueDate} · {a.status}
+                          </span>
+                        </li>
+                      ))
+                    )}
+                  </ul>
                 </div>
-              ) : m.notes ? (
-                <div className="md:col-span-2">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/40">
-                    Minutes notes
-                  </p>
-                  <p className="mt-1 text-sm text-white/65">{m.notes}</p>
-                </div>
-              ) : null}
-            </div>
-          </article>
+                {m.minutes.trim() ? (
+                  <div className="md:col-span-2">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/40">
+                      Minutes summary
+                    </p>
+                    <p className="mt-1 line-clamp-4 text-sm text-white/65 whitespace-pre-wrap">
+                      {m.minutes}
+                    </p>
+                  </div>
+                ) : null}
+              </div>
+            </article>
           );
         })}
       </div>
+      {editing ? (
+        <TalantonMeetingEditor
+          meeting={editing}
+          onClose={() => setEditing(null)}
+          title={editing.status === "Draft" && !editing.minutes ? "Create board meeting" : "Edit board meeting"}
+          saveLabel="Save meeting"
+          lockMeetingType="Board Meeting"
+        />
+      ) : null}
     </div>
   );
 }
@@ -747,7 +813,6 @@ type BoardMemberFormState = {
   lastName: string;
   role: string;
   email: string;
-  committees: string;
 };
 
 const EMPTY_MEMBER_FORM: BoardMemberFormState = {
@@ -755,7 +820,6 @@ const EMPTY_MEMBER_FORM: BoardMemberFormState = {
   lastName: "",
   role: "",
   email: "",
-  committees: "",
 };
 
 function memberToForm(member: TiBoardMember): BoardMemberFormState {
@@ -764,125 +828,116 @@ function memberToForm(member: TiBoardMember): BoardMemberFormState {
     lastName: member.lastName,
     role: member.role,
     email: member.email,
-    committees: member.committees.join(", "),
   };
 }
 
-function formToMemberInput(form: BoardMemberFormState) {
+function formToMemberInput(form: BoardMemberFormState, existing?: TiBoardMember) {
   return {
     firstName: form.firstName.trim(),
     lastName: form.lastName.trim(),
     role: form.role.trim(),
     email: form.email.trim(),
-    committees: form.committees
-      .split(",")
-      .map((c) => c.trim())
-      .filter(Boolean),
+    committees: existing?.committees ?? [],
   };
 }
 
 const memberInputClass =
   "w-full rounded-lg border border-emerald-400/20 bg-black/30 px-3 py-2 text-sm text-white outline-none focus:border-emerald-400/50";
 
-function BoardMemberForm({
+function BoardMemberFormModal({
+  title,
   initial,
   onCancel,
   onSubmit,
   submitLabel,
 }: {
+  title: string;
   initial: BoardMemberFormState;
   onCancel: () => void;
   onSubmit: (form: BoardMemberFormState) => void;
   submitLabel: string;
 }) {
   const [form, setForm] = useState<BoardMemberFormState>(initial);
-  const valid = form.firstName.trim() && form.lastName.trim() && form.role.trim() && form.email.trim();
+  const valid =
+    form.firstName.trim() && form.lastName.trim() && form.role.trim() && form.email.trim();
 
   return (
-    <form
-      className="space-y-3 rounded-2xl border border-emerald-400/25 bg-emerald-500/[0.06] p-4"
-      onSubmit={(e) => {
-        e.preventDefault();
-        if (!valid) return;
-        onSubmit(form);
-      }}
-    >
-      <div className="grid gap-3 sm:grid-cols-2">
-        <label className="block">
-          <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-emerald-300/80">
-            First name
-          </span>
-          <input
-            className={memberInputClass}
-            value={form.firstName}
-            onChange={(e) => setForm((f) => ({ ...f, firstName: e.target.value }))}
-            required
-          />
-        </label>
-        <label className="block">
-          <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-emerald-300/80">
-            Last name
-          </span>
-          <input
-            className={memberInputClass}
-            value={form.lastName}
-            onChange={(e) => setForm((f) => ({ ...f, lastName: e.target.value }))}
-            required
-          />
-        </label>
-        <label className="block">
-          <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-emerald-300/80">
-            Role
-          </span>
-          <input
-            className={memberInputClass}
-            value={form.role}
-            onChange={(e) => setForm((f) => ({ ...f, role: e.target.value }))}
-            placeholder="Board Member"
-            required
-          />
-        </label>
-        <label className="block">
-          <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-emerald-300/80">
-            Email
-          </span>
-          <input
-            type="email"
-            className={memberInputClass}
-            value={form.email}
-            onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
-            required
-          />
-        </label>
-        <label className="block sm:col-span-2">
-          <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-emerald-300/80">
-            Committees (comma separated)
-          </span>
-          <input
-            className={memberInputClass}
-            value={form.committees}
-            onChange={(e) => setForm((f) => ({ ...f, committees: e.target.value }))}
-            placeholder="Board, Investment Committee"
-          />
-        </label>
-      </div>
-      <div className="flex justify-end gap-2">
-        <button
-          type="button"
-          onClick={onCancel}
-          className="rounded-lg border border-white/15 px-3 py-2 text-xs font-semibold text-white/70 hover:bg-white/5"
-        >
-          Cancel
-        </button>
-        <button
-          type="submit"
-          disabled={!valid}
-          className="rounded-lg border border-emerald-400/40 bg-emerald-500/20 px-3 py-2 text-xs font-semibold text-emerald-50 hover:bg-emerald-500/30 disabled:opacity-50"
-        >
-          {submitLabel}
-        </button>
-      </div>
-    </form>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+      <form
+        className="flex w-full max-w-lg flex-col rounded-2xl border border-white/10 bg-[#0b1a14] shadow-xl"
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (!valid) return;
+          onSubmit(form);
+        }}
+      >
+        <div className="border-b border-white/10 px-5 py-4">
+          <h3 className="text-lg font-semibold text-white">{title}</h3>
+          <p className="mt-1 text-xs text-white/45">Board of Advisors roster details.</p>
+        </div>
+        <div className="space-y-4 px-5 py-4">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-emerald-300/80">
+            Member information
+          </p>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label className="block">
+              <span className="mb-1 block text-xs font-medium text-white/55">First name</span>
+              <input
+                className={memberInputClass}
+                value={form.firstName}
+                onChange={(e) => setForm((f) => ({ ...f, firstName: e.target.value }))}
+                required
+              />
+            </label>
+            <label className="block">
+              <span className="mb-1 block text-xs font-medium text-white/55">Last name</span>
+              <input
+                className={memberInputClass}
+                value={form.lastName}
+                onChange={(e) => setForm((f) => ({ ...f, lastName: e.target.value }))}
+                required
+              />
+            </label>
+            <label className="block sm:col-span-2">
+              <span className="mb-1 block text-xs font-medium text-white/55">Role</span>
+              <input
+                className={memberInputClass}
+                value={form.role}
+                onChange={(e) => setForm((f) => ({ ...f, role: e.target.value }))}
+                placeholder="Board Member"
+                required
+              />
+            </label>
+            <label className="block sm:col-span-2">
+              <span className="mb-1 block text-xs font-medium text-white/55">Email</span>
+              <input
+                type="email"
+                className={memberInputClass}
+                value={form.email}
+                onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+                required
+              />
+            </label>
+          </div>
+        </div>
+        <div className="flex justify-end gap-2 border-t border-white/10 px-5 py-4">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="rounded-lg border border-white/15 px-4 py-2 text-sm font-medium text-white/70 hover:bg-white/5"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            disabled={!valid}
+            className="rounded-lg border border-emerald-400/40 bg-emerald-500/20 px-4 py-2 text-sm font-semibold text-emerald-50 hover:bg-emerald-500/30 disabled:opacity-50"
+          >
+            {submitLabel}
+          </button>
+        </div>
+      </form>
+    </div>
   );
 }
 
@@ -892,107 +947,103 @@ function BoardMembers() {
     listMembers,
     listMembers,
   );
-  const [adding, setAdding] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [modal, setModal] = useState<"add" | { edit: TiBoardMember } | null>(null);
 
   return (
     <div className="space-y-5">
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold text-white">Board Members</h1>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-300/80">
+            Governance
+          </p>
+          <h1 className="mt-1 text-2xl font-semibold text-white">Board Members</h1>
           <p className="mt-1 text-sm text-white/55">
-            Board of Advisors roster — add, edit, or remove board members.
+            Board of Advisors roster — add, edit, or remove members.
           </p>
         </div>
-        {!adding ? (
-          <button
-            type="button"
-            onClick={() => {
-              setEditingId(null);
-              setAdding(true);
-            }}
-            className="inline-flex items-center gap-2 rounded-lg border border-emerald-400/40 bg-emerald-500/20 px-3 py-2 text-xs font-semibold text-emerald-50 hover:bg-emerald-500/30"
-          >
-            <Users className="h-3.5 w-3.5" />
-            Add board member
-          </button>
-        ) : null}
+        <button
+          type="button"
+          onClick={() => setModal("add")}
+          className="inline-flex items-center gap-2 rounded-lg border border-emerald-400/40 bg-emerald-500/20 px-3 py-2 text-xs font-semibold text-emerald-50 hover:bg-emerald-500/30"
+        >
+          <Users className="h-3.5 w-3.5" />
+          Add board member
+        </button>
       </header>
 
-      {adding ? (
-        <BoardMemberForm
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        {members.map((m) => (
+          <article
+            key={m.id}
+            className="rounded-2xl border border-white/10 bg-gradient-to-br from-[#0f2a1f]/40 via-[#0b1a14]/90 to-[#08110d] p-4"
+          >
+            <div className="flex items-start gap-3">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-emerald-400/25 bg-emerald-500/15 text-sm font-semibold text-emerald-100">
+                {m.firstName.charAt(0)}
+                {m.lastName.charAt(0)}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="font-semibold text-white">{m.name}</p>
+                <p className="mt-0.5 text-sm text-emerald-200/70">{m.role}</p>
+                <a
+                  href={`mailto:${m.email}`}
+                  className="mt-2 block truncate text-xs text-white/45 hover:text-white/70"
+                >
+                  {m.email}
+                </a>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setModal({ edit: m })}
+                    className="rounded-lg border border-white/15 px-2.5 py-1 text-[11px] font-semibold text-white/70 hover:bg-white/5"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (window.confirm(`Remove ${m.name} from the board roster?`)) {
+                        removeMember(m.id);
+                      }
+                    }}
+                    className="rounded-lg border border-rose-400/30 bg-rose-500/10 px-2.5 py-1 text-[11px] font-semibold text-rose-200 hover:bg-rose-500/20"
+                  >
+                    Remove
+                  </button>
+                </div>
+              </div>
+            </div>
+          </article>
+        ))}
+        {members.length === 0 ? (
+          <p className="text-sm text-white/45 sm:col-span-2">No board members yet.</p>
+        ) : null}
+      </div>
+
+      {modal === "add" ? (
+        <BoardMemberFormModal
+          title="Add board member"
           initial={EMPTY_MEMBER_FORM}
           submitLabel="Add member"
-          onCancel={() => setAdding(false)}
+          onCancel={() => setModal(null)}
           onSubmit={(form) => {
             addMember(formToMemberInput(form));
-            setAdding(false);
+            setModal(null);
           }}
         />
       ) : null}
-
-      <div className="grid gap-3 sm:grid-cols-2">
-        {members.map((m) =>
-          editingId === m.id ? (
-            <div key={m.id} className="sm:col-span-2">
-              <BoardMemberForm
-                initial={memberToForm(m)}
-                submitLabel="Save changes"
-                onCancel={() => setEditingId(null)}
-                onSubmit={(form) => {
-                  updateMember(m.id, formToMemberInput(form));
-                  setEditingId(null);
-                }}
-              />
-            </div>
-          ) : (
-            <article
-              key={m.id}
-              className="rounded-2xl border border-white/10 bg-white/[0.03] p-4"
-            >
-              <div className="flex items-start gap-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-200">
-                  <Users className="h-4 w-4" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-start justify-between gap-2">
-                    <div>
-                      <p className="font-semibold text-white">{m.name}</p>
-                      <p className="text-sm text-white/55">{m.role}</p>
-                    </div>
-                    <div className="flex shrink-0 gap-1.5">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setAdding(false);
-                          setEditingId(m.id);
-                        }}
-                        className="rounded-lg border border-white/15 px-2.5 py-1 text-[11px] font-semibold text-white/70 hover:bg-white/5"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => removeMember(m.id)}
-                        className="rounded-lg border border-rose-400/30 bg-rose-500/10 px-2.5 py-1 text-[11px] font-semibold text-rose-200 hover:bg-rose-500/20"
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  </div>
-                  <p className="mt-1 text-xs text-white/45">{m.email}</p>
-                  <p className="mt-2 text-xs text-white/50">
-                    Committees: {m.committees.length ? m.committees.join(", ") : "—"}
-                  </p>
-                </div>
-              </div>
-            </article>
-          ),
-        )}
-        {members.length === 0 ? (
-          <p className="text-sm text-white/45">No board members yet.</p>
-        ) : null}
-      </div>
+      {modal && modal !== "add" ? (
+        <BoardMemberFormModal
+          title="Edit board member"
+          initial={memberToForm(modal.edit)}
+          submitLabel="Save changes"
+          onCancel={() => setModal(null)}
+          onSubmit={(form) => {
+            updateMember(modal.edit.id, formToMemberInput(form, modal.edit));
+            setModal(null);
+          }}
+        />
+      ) : null}
     </div>
   );
 }

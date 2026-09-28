@@ -337,12 +337,48 @@ const SEED: GovernanceMeeting[] = [
   },
 ];
 
-let meetings: GovernanceMeeting[] = SEED.map((m) => ({
-  ...m,
-  attendees: [...m.attendees],
-  decisions: m.decisions.map((d) => ({ ...d })),
-  actions: m.actions.map((a) => ({ ...a })),
-}));
+const STORAGE_KEY = "unit311-talanton-governance-v1";
+
+function cloneSeed(): GovernanceMeeting[] {
+  return SEED.map((m) => ({
+    ...m,
+    attendees: [...m.attendees],
+    decisions: m.decisions.map((d) => ({ ...d })),
+    actions: m.actions.map((a) => ({ ...a })),
+  }));
+}
+
+function readPersistedMeetings(): GovernanceMeeting[] | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as GovernanceMeeting[];
+    if (!Array.isArray(parsed) || parsed.length === 0) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function persistMeetings(rows: GovernanceMeeting[]) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(rows));
+  } catch {
+    /* ignore quota / private mode */
+  }
+}
+
+let meetings: GovernanceMeeting[] = cloneSeed();
+let governanceHydrated = false;
+
+function ensureGovernanceHydrated() {
+  if (governanceHydrated || typeof window === "undefined") return;
+  governanceHydrated = true;
+  const persisted = readPersistedMeetings();
+  if (persisted) meetings = persisted;
+}
 
 /** Cached for useSyncExternalStore — must be referentially stable between emits. */
 let snapshot: { meetings: GovernanceMeeting[] } = { meetings };
@@ -350,7 +386,8 @@ let snapshot: { meetings: GovernanceMeeting[] } = { meetings };
 const listeners = new Set<Listener>();
 
 function emit() {
-  snapshot = { meetings };
+  snapshot = { meetings: [...meetings] };
+  persistMeetings(meetings);
   for (const l of listeners) l();
 }
 
@@ -360,10 +397,12 @@ export function subscribeTalantonGovernanceStore(listener: Listener) {
 }
 
 export function getTalantonGovernanceSnapshot() {
+  ensureGovernanceHydrated();
   return snapshot;
 }
 
 export function listMeetings(opts?: { includeArchived?: boolean }) {
+  ensureGovernanceHydrated();
   const includeArchived = opts?.includeArchived ?? true;
   return meetings
     .filter((m) => (includeArchived ? true : !m.archived))
@@ -458,6 +497,26 @@ export function governanceKpis() {
     decisionsPending: decisions.filter((d) => d.status === "Proposed" || d.status === "Deferred").length,
     actionsOpen: openActions.length,
     actionsOverdue: overdue.length,
+  };
+}
+
+/** Summary metrics tailored for the Minutes & Decisions workspace. */
+export function governanceMinutesKpis() {
+  const active = listMeetings({ includeArchived: false });
+  const decisions = allDecisions();
+  const actions = allActions();
+  const openActions = actions.filter(
+    (a) => a.status === "Open" || a.status === "Underway" || a.status === "Overdue",
+  );
+  return {
+    minutesRecorded: active.filter((m) => m.minutes.trim().length > 0).length,
+    decisionsTotal: decisions.length,
+    decisionsPending: decisions.filter(
+      (d) => d.status === "Proposed" || d.status === "Deferred",
+    ).length,
+    actionsOpen: openActions.length,
+    actionsOverdue: actions.filter((a) => a.status === "Overdue").length,
+    timelineEvents: governanceTimeline().length,
   };
 }
 
