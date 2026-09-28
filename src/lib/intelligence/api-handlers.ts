@@ -2,8 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { getRequestHost } from "@/lib/app-domains";
 import { isDemoApiRequest } from "@/lib/demo/demo-request";
-import { getPlatformSession } from "@/lib/platform-session";
+import { getPlatformSession, type PlatformSession } from "@/lib/platform-session";
 import { getCurrentWorkspace } from "@/lib/workspace-context";
+import { authorizeUserForWorkspace } from "@/lib/workspace-authorization";
+import { findWorkspaceBySlug } from "@/lib/workspace-host";
 import type { IntelligenceServiceAccess } from "@/lib/intelligence/provider";
 import {
   buildIntelligenceBriefing,
@@ -77,6 +79,40 @@ async function resolveWorkspaceSlug(
   return null;
 }
 
+/**
+ * Map platform session → intelligence access flags.
+ * Workspace team members (e.g. Talanton) are often provisioned as user_type=external
+ * but have workspace_users membership; they must not be blocked by denyExternal.
+ * Client-portal-only externals (no membership) remain external.
+ */
+export async function buildIntelligenceServiceAccess(
+  session: PlatformSession,
+  workspaceSlug: string,
+): Promise<IntelligenceServiceAccess> {
+  let isExternal = session.userType === "external";
+  let isAdmin = session.userType === "internal";
+
+  if (isExternal) {
+    const workspace = await findWorkspaceBySlug(workspaceSlug);
+    if (workspace?.id) {
+      const decision = await authorizeUserForWorkspace(session.sub, workspace.id, {
+        userTypeHint: session.userType,
+      });
+      if (decision.allowed) {
+        isExternal = false;
+        isAdmin = true;
+      }
+    }
+  }
+
+  return {
+    roleView: "admin",
+    hostSurface: resolveIntelligenceHostSurface(workspaceSlug),
+    isExternal,
+    isAdmin,
+  };
+}
+
 async function buildAccessContext(
   request: NextRequest,
   workspaceSlug: string,
@@ -112,12 +148,7 @@ async function buildAccessContext(
     };
   }
 
-  return {
-    roleView: "admin",
-    hostSurface: resolveIntelligenceHostSurface(workspaceSlug),
-    isExternal: session.userType === "external",
-    isAdmin: session.userType === "internal",
-  };
+  return buildIntelligenceServiceAccess(session, workspaceSlug);
 }
 
 export async function handleListIntelligenceDomains(

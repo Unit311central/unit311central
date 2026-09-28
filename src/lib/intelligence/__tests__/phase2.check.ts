@@ -55,6 +55,24 @@ async function runPhase2Checks() {
   assert.equal(demoBriefing.workspaceSlug, "demo");
   assert.equal(demoBriefing.domainId, "company-intelligence");
 
+  const talantonPortfolio = await searchIntelligenceRecords(
+    {
+      workspaceSlug: "talantonimpact",
+      filter: { domainIds: ["portfolio"] },
+      limit: 5,
+    },
+    {
+      access: {
+        roleView: "admin",
+        hostSurface: "talanton",
+        isExternal: false,
+        isAdmin: true,
+      },
+    },
+  );
+  assert.ok(talantonPortfolio.total >= 1);
+  assert.equal(talantonPortfolio.records[0]?.domainId, "portfolio");
+
   clearIntelligenceRegistryForTests();
 
   const futureProvider: IntelligenceDomainProvider = {
