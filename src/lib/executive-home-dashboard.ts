@@ -963,7 +963,13 @@ export function buildExecutiveHomeLiveNarrative(input: {
         metrics: [
           { label: "Impact health", value: `${briefing.health.score}/100` },
           { label: "Portfolio holdings", value: String(briefing.summary.countriesImpacted) },
-          { label: "People served", value: briefing.summary.peopleServed.toLocaleString() },
+          {
+            label: "People served",
+            value:
+              briefing.summary.peopleServed === null
+                ? "—"
+                : briefing.summary.peopleServed.toLocaleString(),
+          },
         ],
       },
       alerts,

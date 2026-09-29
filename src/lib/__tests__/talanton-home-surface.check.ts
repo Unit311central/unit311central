@@ -18,12 +18,10 @@ import {
 
 function withMockWindow<T>(hostname: string, run: () => T): T {
   const g = globalThis as typeof globalThis & {
-    window?: Window & { location: Location };
+    window?: { location: { hostname: string } };
   };
   const priorWindow = g.window;
-  g.window = {
-    location: { hostname } as Location,
-  } as Window & { location: Location };
+  g.window = { location: { hostname } } as NonNullable<(typeof g)["window"]>;
 
   try {
     return run();
