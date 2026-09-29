@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { LayoutGrid, Plus, RotateCcw, X } from "lucide-react";
 
@@ -7,7 +8,6 @@ import ExecutiveMyWorkspace from "@/components/central-capabilities/ExecutiveMyW
 import NorthstarCompanyOverview from "@/components/demo/NorthstarCompanyOverview";
 
 import { WorkspaceDashboard } from "@/components/dashboard-framework";
-import dynamic from "next/dynamic";
 
 const PortfolioCompanyMap = dynamic(
   () => import("@/components/testflighthub/talanton/PortfolioCompanyMap"),

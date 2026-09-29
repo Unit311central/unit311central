@@ -8,22 +8,42 @@ export const TALANTON_IMPACT_SLUG = "talantonimpact";
 /** Short host alias used for /portals briefing (maps to Talanton Impact workspace). */
 export const TALANTON_HOST_ALIAS_SLUG = "talanton";
 
+function resolveTalantonSlugFromHost(hostname: string): typeof TALANTON_IMPACT_SLUG | null {
+  const host = hostname.toLowerCase();
+  const match = host.match(/^([a-z0-9-]+)\.unit311central\.com$/i);
+  if (match?.[1] && isTalantonImpactSlug(match[1])) {
+    return TALANTON_IMPACT_SLUG;
+  }
+  if (host.endsWith(".localhost") && host !== "localhost") {
+    const localSub = host.split(".")[0] ?? "";
+    if (isTalantonImpactSlug(localSub)) return TALANTON_IMPACT_SLUG;
+  }
+  if (host.includes("talantonimpact") || host.includes("talanton")) {
+    return TALANTON_IMPACT_SLUG;
+  }
+  return null;
+}
+
 export function getBrowserWorkspaceSlug(): string {
   if (typeof window === "undefined") return "";
+
+  // Customer Talanton hosts must win over scoped whoami cache (matches ABHI host-first routing).
+  const fromHost = resolveTalantonSlugFromHost(window.location.hostname);
+  if (fromHost) return fromHost;
+
   try {
     const { readEffectiveBrowserWorkspaceSlug } =
       require("@/lib/demo-enterprise/workspace-tenancy-surface") as typeof import("@/lib/demo-enterprise/workspace-tenancy-surface");
     const effective = readEffectiveBrowserWorkspaceSlug();
+    if (isTalantonImpactSlug(effective)) return TALANTON_IMPACT_SLUG;
     if (effective) return effective;
   } catch {
     /* ignore */
   }
+
   const host = window.location.hostname.toLowerCase();
   const match = host.match(/^([a-z0-9-]+)\.unit311central\.com$/i);
   if (match?.[1]) return match[1];
-  if (host.includes("talantonimpact") || host.includes("talanton")) {
-    return TALANTON_IMPACT_SLUG;
-  }
   return "";
 }
 

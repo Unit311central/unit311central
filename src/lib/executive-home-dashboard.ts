@@ -918,6 +918,60 @@ export function buildExecutiveHomeLiveNarrative(input: {
   onboardingPipelineCount?: number;
   reportingCurrency?: ReportingCurrency;
 }) {
+  if (isBrowserTalantonHome()) {
+    const {
+      buildPortfolioImpactBriefing,
+    } = require("@/lib/talanton/impact-intelligence") as typeof import("@/lib/talanton/impact-intelligence");
+    const briefing = buildPortfolioImpactBriefing();
+    const alerts = briefing.risks.slice(0, 3).map((risk) => ({
+      id: risk.id,
+      title: risk.title,
+      detail: risk.detail,
+      severity:
+        risk.severity === "Critical"
+          ? ("critical" as const)
+          : risk.severity === "Elevated"
+            ? ("warning" as const)
+            : ("info" as const),
+      timeLabel: risk.companyName ?? "Portfolio",
+    }));
+    const activity = briefing.topCompanies.slice(0, 4).map((company) => ({
+      id: `ti-${company.companyId}`,
+      title: company.companyName,
+      meta: `${company.country} · ${company.keyImpactMetricLabel}: ${company.keyImpactMetric}`,
+      timeLabel: "Impact",
+      category: company.sector,
+    }));
+    const queue = briefing.recommendedActions.slice(0, 4).map((action) => ({
+      id: action.id,
+      title: action.title,
+      meta: action.rationale,
+      status: action.urgency,
+      dueLabel: action.urgency,
+      priority:
+        action.urgency === "Today"
+          ? ("high" as const)
+          : action.urgency === "This week"
+            ? ("medium" as const)
+            : ("low" as const),
+    }));
+    return {
+      ai: {
+        headline: greetingForNow(),
+        summary: briefing.overallImpact,
+        nextUp: briefing.recommendedActionsNarrative[0] ?? briefing.health.postureReason,
+        metrics: [
+          { label: "Impact health", value: `${briefing.health.score}/100` },
+          { label: "Portfolio holdings", value: String(briefing.summary.countriesImpacted) },
+          { label: "People served", value: briefing.summary.peopleServed.toLocaleString() },
+        ],
+      },
+      alerts,
+      activity,
+      queue,
+    };
+  }
+
   const currency = resolveHomeDisplayCurrency(
     input.financials?.burnRate?.currency,
     input.reportingCurrency,
