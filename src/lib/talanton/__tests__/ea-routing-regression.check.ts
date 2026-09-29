@@ -5,6 +5,7 @@
 
 import { resolveOrchestrationRoute } from "@/lib/ai-operating-assistant/action-orchestration";
 import { executeAssistantTool } from "@/lib/ai-operating-assistant/tool-service";
+import type { AssistantToolResult } from "@/lib/ai-operating-assistant/tool-result";
 import type { AssistantBusinessContext } from "@/lib/ai-operating-assistant/types";
 import {
   TALANTON_FIELD_STORIES_LESSONS_PDF_PROMPT,
@@ -62,11 +63,11 @@ async function main() {
   if (portfolioRoute.kind !== "tool" || portfolioRoute.intent.tool !== "talanton.queryPortfolio") {
     throw new Error("portfolio routing regression failed");
   }
-  const portfolioResult = await executeAssistantTool(
+  const portfolioResult = (await executeAssistantTool(
     portfolioRoute.intent.tool,
     portfolioRoute.intent.args ?? {},
     talantonBusiness(),
-  );
+  )) as AssistantToolResult;
   if (portfolioResult.status !== "ok" && portfolioResult.status !== "partial") {
     throw new Error(
       `talanton.queryPortfolio execution failed: ${portfolioResult.status} ${portfolioResult.error ?? ""}`,
