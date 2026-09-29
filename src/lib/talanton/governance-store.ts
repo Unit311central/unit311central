@@ -114,6 +114,7 @@ export async function upsertMeeting(
   const existing = snapshot.meetings.find((m) => m.id === input.id);
   const draft: GovernanceMeeting = {
     ...input,
+    meetingInviteUrl: input.meetingInviteUrl ?? existing?.meetingInviteUrl ?? "",
     createdAt: existing?.createdAt ?? input.createdAt ?? nowIso(),
     updatedAt: nowIso(),
   };
@@ -139,6 +140,7 @@ export async function createMeeting(
     minutes: partial?.minutes ?? "",
     decisions: partial?.decisions ?? [],
     actions: partial?.actions ?? [],
+    meetingInviteUrl: partial?.meetingInviteUrl ?? "",
     archived: false,
   });
   setSnapshot({

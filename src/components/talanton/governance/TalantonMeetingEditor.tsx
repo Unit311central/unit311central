@@ -102,6 +102,16 @@ export function TalantonMeetingEditor({
             </label>
           </div>
           <label className="block text-[11px] text-white/45">
+            Meeting invite / join link
+            <input
+              type="url"
+              className={cn(inputClass, "mt-1")}
+              value={draft.meetingInviteUrl ?? ""}
+              placeholder="https://… (optional — any provider)"
+              onChange={(e) => setDraft({ ...draft, meetingInviteUrl: e.target.value })}
+            />
+          </label>
+          <label className="block text-[11px] text-white/45">
             Status
             <select
               className={cn(inputClass, "mt-1")}

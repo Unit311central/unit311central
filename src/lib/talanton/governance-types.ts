@@ -39,6 +39,8 @@ export type GovernanceMeeting = {
   minutes: string;
   decisions: GovernanceDecision[];
   actions: GovernanceAction[];
+  /** Optional virtual/hybrid meeting invitation URL (provider-agnostic). */
+  meetingInviteUrl: string;
   archived: boolean;
   createdAt: string;
   updatedAt: string;

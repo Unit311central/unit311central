@@ -73,6 +73,7 @@ export function parseTalantonClientOrgState(raw: unknown): TalantonRequestOrgSta
         minutes: String(row.minutes ?? ""),
         decisions: Array.isArray(row.decisions) ? row.decisions : [],
         actions: Array.isArray(row.actions) ? row.actions : [],
+        meetingInviteUrl: String(row.meetingInviteUrl ?? ""),
         archived: Boolean(row.archived),
         createdAt: String(row.createdAt ?? new Date().toISOString()),
         updatedAt: String(row.updatedAt ?? new Date().toISOString()),

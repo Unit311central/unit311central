@@ -402,6 +402,7 @@ export async function runTalantonEaTestSuite(): Promise<EaTestSuiteReport> {
                 status: "Overdue",
               },
             ],
+            meetingInviteUrl: "",
             archived: false,
             createdAt: "2026-08-01T00:00:00Z",
             updatedAt: "2026-08-01T00:00:00Z",

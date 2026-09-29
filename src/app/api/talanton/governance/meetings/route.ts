@@ -57,6 +57,7 @@ export async function POST(request: NextRequest) {
       minutes: body.minutes ?? "",
       decisions: body.decisions ?? [],
       actions: body.actions ?? [],
+      meetingInviteUrl: body.meetingInviteUrl?.trim() ?? "",
       archived: body.archived ?? false,
       createdAt: body.createdAt ?? now,
       updatedAt: now,

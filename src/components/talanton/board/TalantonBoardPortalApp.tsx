@@ -9,12 +9,11 @@ import {
   LayoutGrid,
   Plus,
   RotateCcw,
-  Search,
   Users,
   X,
 } from "lucide-react";
 
-import { TalantonMeetingEditor } from "@/components/talanton/governance/TalantonMeetingEditor";
+import { TalantonBoardMeetingsPage } from "@/components/talanton/board/TalantonBoardMeetingsPage";
 import BoardDashboardRiskHeatMap from "@/components/talanton/board/BoardDashboardRiskHeatMap";
 import TalantonRiskRegisterWorkspace from "@/components/testflighthub/talanton/TalantonRiskRegisterWorkspace";
 import BoardImpactIntelligencePage from "@/components/talanton/board/BoardImpactIntelligencePage";
@@ -47,7 +46,6 @@ import {
 } from "@/lib/talanton/board-members-store";
 import { impactReportsAsBoardPackRows } from "@/lib/talanton/annual-impact-report-store";
 import {
-  createMeeting,
   getTalantonGovernanceServerSnapshot,
   getTalantonGovernanceSnapshot,
   listMeetings,
@@ -473,186 +471,6 @@ function BoardMinutesDecisionsPanel({ latestRecord }: { latestRecord: TiMinutesR
   );
 }
 
-function BoardMeetings() {
-  const snap = useSyncExternalStore(
-    subscribeTalantonGovernanceStore,
-    getTalantonGovernanceSnapshot,
-    getTalantonGovernanceServerSnapshot,
-  );
-  const sorted = useMemo(
-    () =>
-      listMeetings({ includeArchived: true })
-        .filter((m) => m.meetingType === "Board Meeting")
-        .sort((a, b) => b.meetingDate.localeCompare(a.meetingDate)),
-    [snap],
-  );
-  const [q, setQ] = useState("");
-  const [editing, setEditing] = useState<GovernanceMeeting | null>(null);
-
-  const filtered = q.trim()
-    ? sorted.filter((m) => {
-        const hay = `${m.title} ${m.minutes} ${m.decisions.map((d) => d.text).join(" ")} ${m.actions
-          .map((a) => a.title)
-          .join(" ")}`.toLowerCase();
-        return hay.includes(q.trim().toLowerCase());
-      })
-    : sorted;
-
-  const onCreate = useCallback(() => {
-    const label = new Date().toLocaleDateString("en-GB", { month: "long", year: "numeric" });
-    void createMeeting({
-      meetingType: "Board Meeting",
-      title: `Talanton Impact Board — ${label}`,
-      status: "Draft",
-      minutes: "",
-    }).then(setEditing).catch((error) => {
-      console.error("[BoardMeetings create]", error);
-      window.alert(error instanceof Error ? error.message : "Failed to create meeting.");
-    });
-  }, []);
-
-  return (
-    <div className="space-y-5">
-      <header className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold text-white">Board Meetings</h1>
-          <p className="mt-1 text-sm text-white/55">
-            Agenda, minutes, decisions, and actions for every board meeting.
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={onCreate}
-          className="inline-flex items-center gap-2 rounded-lg border border-emerald-400/40 bg-emerald-500/20 px-3 py-2 text-xs font-semibold text-emerald-50 hover:bg-emerald-500/30"
-        >
-          <Plus className="h-3.5 w-3.5" />
-          Create meeting
-        </button>
-      </header>
-      {snap.status === "loading" ? (
-        <p className="text-sm text-white/50">Loading board meetings…</p>
-      ) : null}
-      {snap.status === "error" ? (
-        <p className="rounded-xl border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-100">
-          {snap.error}
-        </p>
-      ) : null}
-      <label className="relative block max-w-md">
-        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/35" />
-        <input
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          placeholder="Search meetings, minutes, decisions, owners…"
-          className="w-full rounded-xl border border-white/10 bg-black/30 py-2.5 pl-9 pr-3 text-sm text-white outline-none focus:border-emerald-400/50"
-        />
-      </label>
-      <div className="space-y-3">
-        {filtered.length === 0 ? (
-          <p className="text-sm text-white/45">No board meetings yet. Create one to get started.</p>
-        ) : null}
-        {filtered.map((m) => {
-          const agenda = agendaLinesFromMinutes(m.minutes);
-          return (
-            <article
-              key={m.id}
-              className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 sm:p-5"
-            >
-              <div className="flex flex-wrap items-start justify-between gap-2">
-                <div>
-                  <h2 className="text-lg font-semibold text-white">{m.title}</h2>
-                  <p className="text-sm text-white/50">{formatBoardMeetingDate(m.meetingDate)}</p>
-                </div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="rounded-full border border-white/15 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-white/60">
-                    {m.status}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setEditing(m)}
-                    className="rounded-lg border border-white/15 px-2.5 py-1 text-[11px] font-semibold text-white/70 hover:bg-white/5"
-                  >
-                    Edit
-                  </button>
-                </div>
-              </div>
-              <div className="mt-4 grid gap-4 md:grid-cols-2">
-                <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/40">
-                    Agenda
-                  </p>
-                  <ul className="mt-1 space-y-1 text-sm text-white/70">
-                    {agenda.map((a) => (
-                      <li key={a}>• {a}</li>
-                    ))}
-                  </ul>
-                </div>
-                <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/40">
-                    Decisions
-                  </p>
-                  <ul className="mt-1 space-y-1 text-sm text-white/70">
-                    {m.decisions.length === 0 ? (
-                      <li className="text-white/40">None recorded yet.</li>
-                    ) : (
-                      m.decisions.map((d) => (
-                        <li key={d.id}>
-                          • {d.text}{" "}
-                          <span className="text-xs text-white/40">({d.status})</span>
-                        </li>
-                      ))
-                    )}
-                  </ul>
-                </div>
-                <div className="md:col-span-2">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/40">
-                    Actions
-                  </p>
-                  <ul className="mt-2 space-y-1.5">
-                    {m.actions.length === 0 ? (
-                      <li className="text-sm text-white/40">No actions.</li>
-                    ) : (
-                      m.actions.map((a) => (
-                        <li
-                          key={a.id}
-                          className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-white/8 bg-black/20 px-3 py-2 text-sm"
-                        >
-                          <span className="text-white/80">{a.title}</span>
-                          <span className="text-xs text-white/45">
-                            {a.owner} · {a.dueDate} · {a.status}
-                          </span>
-                        </li>
-                      ))
-                    )}
-                  </ul>
-                </div>
-                {m.minutes.trim() ? (
-                  <div className="md:col-span-2">
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/40">
-                      Minutes summary
-                    </p>
-                    <p className="mt-1 line-clamp-4 text-sm text-white/65 whitespace-pre-wrap">
-                      {m.minutes}
-                    </p>
-                  </div>
-                ) : null}
-              </div>
-            </article>
-          );
-        })}
-      </div>
-      {editing ? (
-        <TalantonMeetingEditor
-          meeting={editing}
-          onClose={() => setEditing(null)}
-          title={editing.status === "Draft" && !editing.minutes ? "Create board meeting" : "Edit board meeting"}
-          saveLabel="Save meeting"
-          lockMeetingType="Board Meeting"
-        />
-      ) : null}
-    </div>
-  );
-}
-
 function BoardDecks() {
   const packs = useApprovedPacks();
   const impactPacks = useMemo(() => impactReportsAsBoardPackRows(), []);
@@ -1011,7 +829,7 @@ function BoardMembers() {
 }
 
 export function TalantonBoardPortalApp({ section }: Props) {
-  if (section === "meetings") return <BoardMeetings />;
+  if (section === "meetings") return <TalantonBoardMeetingsPage />;
   if (section === "decks") return <BoardDecks />;
   if (section === "risk") return <TalantonRiskRegisterWorkspace />;
   if (section === "impact") return <BoardImpactIntelligencePage />;
