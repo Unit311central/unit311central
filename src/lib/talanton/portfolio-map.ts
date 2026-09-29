@@ -3,11 +3,8 @@
  * Coordinates are approximate city centres for demo visualisation.
  */
 
-import {
-  formatUsd,
-  TALANTON_PORTFOLIO_COMPANIES,
-  type PortfolioCompany,
-} from "@/lib/talanton/portfolio-data";
+import { formatUsd, type PortfolioCompany } from "@/lib/talanton/portfolio-data";
+import { resolveTalantonPortfolioCompanies } from "@/lib/talanton/portfolio-companies-runtime";
 
 export type PortfolioMapMarker = {
   id: string;
@@ -70,7 +67,7 @@ function jitter(index: number): { dLat: number; dLng: number } {
 export function buildPortfolioMapMarkers(): PortfolioMapMarker[] {
   const cityCounts = new Map<string, number>();
 
-  return TALANTON_PORTFOLIO_COMPANIES.map((company) => {
+  return resolveTalantonPortfolioCompanies().map((company) => {
     const key = company.city;
     const n = cityCounts.get(key) ?? 0;
     cityCounts.set(key, n + 1);

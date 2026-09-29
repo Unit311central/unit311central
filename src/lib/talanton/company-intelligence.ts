@@ -7,12 +7,12 @@ import {
   formatUsd,
   TALANTON_ACTIONS,
   TALANTON_MY_TRAINING,
-  TALANTON_PORTFOLIO_COMPANIES,
   TALANTON_QUARTERLY_REPORTS,
   TALANTON_RISKS,
   type PortfolioCompany,
   type RiskRating,
 } from "@/lib/talanton/portfolio-data";
+import { resolveTalantonPortfolioCompanies } from "@/lib/talanton/portfolio-companies-runtime";
 
 export type CompanyHealthSnapshot = {
   healthScore: number;
@@ -316,7 +316,7 @@ function buildActions(
 }
 
 export function listCompanyIntelligenceOptions() {
-  return TALANTON_PORTFOLIO_COMPANIES.map((c) => ({
+  return resolveTalantonPortfolioCompanies().map((c) => ({
     id: c.id,
     name: c.name,
     country: c.country,
@@ -325,15 +325,15 @@ export function listCompanyIntelligenceOptions() {
 }
 
 export function resolveCompanyIntelligenceId(companyId?: string | null): string {
-  if (companyId && TALANTON_PORTFOLIO_COMPANIES.some((c) => c.id === companyId)) {
+  if (companyId && resolveTalantonPortfolioCompanies().some((c) => c.id === companyId)) {
     return companyId;
   }
-  return TALANTON_PORTFOLIO_COMPANIES[0]!.id;
+  return resolveTalantonPortfolioCompanies()[0]!.id;
 }
 
 export function buildCompanyIntelligence(companyId?: string | null): CompanyIntelligence {
   const id = resolveCompanyIntelligenceId(companyId);
-  const company = TALANTON_PORTFOLIO_COMPANIES.find((c) => c.id === id)!;
+  const company = resolveTalantonPortfolioCompanies().find((c) => c.id === id)!;
   const report = TALANTON_QUARTERLY_REPORTS.find((r) => r.companyId === company.id);
   const training = companyTrainingDetail(company);
   const healthScore = companyHealthScore(company);

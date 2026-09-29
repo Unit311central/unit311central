@@ -4,11 +4,8 @@
  */
 
 import { getLatestImpactReportForIntelligence } from "@/lib/talanton/company-stories-impact";
-import {
-  formatUsd,
-  TALANTON_PORTFOLIO_COMPANIES,
-  type PortfolioCompany,
-} from "@/lib/talanton/portfolio-data";
+import { formatUsd, type PortfolioCompany } from "@/lib/talanton/portfolio-data";
+import { resolveTalantonPortfolioCompanies } from "@/lib/talanton/portfolio-companies-runtime";
 
 export type ImpactTrend = "Improving" | "Stable" | "Declining";
 
@@ -333,7 +330,7 @@ function buildAiCommentary(company: PortfolioCompany, score: number, trend: Impa
 
 export function buildCompanyImpactProfile(companyId: string): CompanyImpactProfile {
   const company =
-    TALANTON_PORTFOLIO_COMPANIES.find((c) => c.id === companyId) ?? TALANTON_PORTFOLIO_COMPANIES[0];
+    resolveTalantonPortfolioCompanies().find((c) => c.id === companyId) ?? resolveTalantonPortfolioCompanies()[0];
   const submitted = getLatestImpactReportForIntelligence(company.id);
   const womenPct = submitted
     ? clamp(submitted.womenEmployed / Math.max(company.employeeCount, 1), 0.15, 0.75)
@@ -417,7 +414,7 @@ export function buildCompanyImpactProfile(companyId: string): CompanyImpactProfi
 }
 
 export function listCompanyImpactOptions() {
-  return TALANTON_PORTFOLIO_COMPANIES.map((c) => ({
+  return resolveTalantonPortfolioCompanies().map((c) => ({
     id: c.id,
     name: c.name,
     country: c.country,
@@ -426,12 +423,12 @@ export function listCompanyImpactOptions() {
 }
 
 export function resolveCompanyImpactId(requested: string | null | undefined): string {
-  if (requested && TALANTON_PORTFOLIO_COMPANIES.some((c) => c.id === requested)) return requested;
-  return TALANTON_PORTFOLIO_COMPANIES[0]?.id ?? "";
+  if (requested && resolveTalantonPortfolioCompanies().some((c) => c.id === requested)) return requested;
+  return resolveTalantonPortfolioCompanies()[0]?.id ?? "";
 }
 
 export function buildPortfolioImpactBriefing(): PortfolioImpactBriefing {
-  const profiles = TALANTON_PORTFOLIO_COMPANIES.map((c) => buildCompanyImpactProfile(c.id));
+  const profiles = resolveTalantonPortfolioCompanies().map((c) => buildCompanyImpactProfile(c.id));
   const countries = new Set(profiles.map((p) => p.country));
 
   const summary: PortfolioImpactSummary = {

@@ -7,12 +7,12 @@ import {
   companyNameById,
   TALANTON_ACTIONS,
   TALANTON_MY_TRAINING,
-  TALANTON_PORTFOLIO_COMPANIES,
   TALANTON_QUARTERLY_REPORTS,
   TALANTON_RISKS,
   type PortfolioCompany,
   type RiskRating,
 } from "@/lib/talanton/portfolio-data";
+import { resolveTalantonPortfolioCompanies } from "@/lib/talanton/portfolio-companies-runtime";
 
 export type PortfolioAttentionReason =
   | "Quarterly report overdue"
@@ -219,7 +219,7 @@ function primaryAttentionReason(
 
 function buildAttentionCompanies(): PortfolioAttentionCompany[] {
   const rows: PortfolioAttentionCompany[] = [];
-  for (const company of TALANTON_PORTFOLIO_COMPANIES) {
+  for (const company of resolveTalantonPortfolioCompanies()) {
     const attention = primaryAttentionReason(company);
     if (!attention) continue;
     rows.push({
@@ -247,7 +247,7 @@ function buildAttentionCompanies(): PortfolioAttentionCompany[] {
 }
 
 function buildHealthSummary(attention: PortfolioAttentionCompany[]): PortfolioHealthSummary {
-  const companies = TALANTON_PORTFOLIO_COMPANIES;
+  const companies = resolveTalantonPortfolioCompanies();
   const healthScores = companies.map(companyHealthScore);
   const portfolioHealthScore = Math.round(
     healthScores.reduce((sum, s) => sum + s, 0) / healthScores.length,
@@ -479,8 +479,8 @@ export function buildPortfolioExecutiveBriefing(asOf?: string | null): Portfolio
     {
       title: "Compliance coverage",
       detail: `Portfolio average near ${Math.round(
-        TALANTON_PORTFOLIO_COMPANIES.reduce((s, c) => s + c.compliancePct, 0) /
-          TALANTON_PORTFOLIO_COMPANIES.length,
+        resolveTalantonPortfolioCompanies().reduce((s, c) => s + c.compliancePct, 0) /
+          Math.max(1, resolveTalantonPortfolioCompanies().length),
       )}% — gaps concentrated in AML, procurement, and modern slavery.`,
     },
   ];
