@@ -1,9 +1,8 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 
-import sharp from "sharp";
-
 import type { JourneyStory } from "@/lib/talanton/journey-stories-store";
+import { loadSharpForPdf } from "@/lib/sharp-pdf-native";
 
 export const HARRY_TURNER_QUOTE =
   "We invest with purpose — stewarding capital that creates dignified jobs at scale across Sub-Saharan Africa.";
@@ -28,7 +27,7 @@ export type TalantonBoardPackAssets = {
 };
 
 async function toJpegDataUrl(bytes: Buffer): Promise<string> {
-  const jpeg = await sharp(bytes).jpeg({ quality: 88 }).toBuffer();
+  const jpeg = await loadSharpForPdf()(bytes).jpeg({ quality: 88 }).toBuffer();
   return `data:image/jpeg;base64,${jpeg.toString("base64")}`;
 }
 

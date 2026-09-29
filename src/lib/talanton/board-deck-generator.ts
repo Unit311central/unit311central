@@ -1,8 +1,7 @@
 import { join } from "node:path";
 
-import sharp from "sharp";
-
 import type { AbhiBoardPackData } from "@/lib/abhi/board-pack-model";
+import { loadSharpForPdf } from "@/lib/sharp-pdf-native";
 import { buildTalantonBoardPackData, talantonBoardPackPdfFileName } from "@/lib/talanton/board-pack-model";
 import { buildTalantonBoardPackPdf } from "@/lib/talanton/board-pack-pdf";
 import { loadTalantonBoardPackAssets } from "@/lib/talanton/board-pack-assets";
@@ -46,7 +45,7 @@ const TALANTON_LOGO_PATH = join(process.cwd(), "public", "images", "workspaces",
 
 export async function loadTalantonLogoDataUrl(): Promise<string | null> {
   try {
-    const png = await sharp(TALANTON_LOGO_PATH)
+    const png = await loadSharpForPdf()(TALANTON_LOGO_PATH)
       .resize({ width: 1200, withoutEnlargement: false })
       .png({ compressionLevel: 6 })
       .toBuffer();

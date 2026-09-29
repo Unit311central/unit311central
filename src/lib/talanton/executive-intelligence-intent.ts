@@ -53,6 +53,68 @@ function resolveActionQuery(lower: string): TalantonActionCentreQuery | null {
   return null;
 }
 
+function isExplicitBoardInsightsRequest(lower: string): boolean {
+  return (
+    /\bboard\s+insights?\b/.test(lower) ||
+    /\bboard[-\s]level\s+(analysis|view|posture)\b/.test(lower) ||
+    /\bgovernance\s+posture\b/.test(lower) ||
+    /\bboard\s+recommendations?\b/.test(lower) ||
+    /\bportfolio\s+board\s+insights?\b/.test(lower) ||
+    /\bwhat\s+should\s+the\s+board\s+discuss\b/.test(lower) ||
+    /\bboard\s+discussion\b/.test(lower) ||
+    (/\bboard\b/.test(lower) && /\b(insights?|analysis|posture|recommendations?)\b/.test(lower))
+  );
+}
+
+function isTalantonTrainingSummaryRequest(lower: string): boolean {
+  if (!/\btraining\b/.test(lower)) return false;
+  return (
+    /\b(progress|progressing|summary|summarise|summarize|status|outstanding|incomplete|completion)\b/.test(
+      lower,
+    ) || /\bacross\s+the\s+portfolio\b/.test(lower)
+  );
+}
+
+function isTalantonPortfolioListingOrQuery(lower: string): boolean {
+  if (isExplicitBoardInsightsRequest(lower)) return false;
+  if (isTalantonTrainingSummaryRequest(lower)) return false;
+
+  if (
+    /\bportfolio\s+intelligence\b/.test(lower) ||
+    /\bwhat\s+requires?\s+attention\s+across\s+the\s+portfolio\b/.test(lower) ||
+    /\bcompanies\s+requiring\s+attention\b/.test(lower) ||
+    /\bportfolio\s+health\b/.test(lower)
+  ) {
+    return true;
+  }
+
+  if (/\ball\s+portfolio\s+companies\b/.test(lower)) return true;
+
+  const hasPortfolio =
+    /\b(portfolio|portfolio\s+companies|portfolio\s+holdings)\b/.test(lower) ||
+    (/\bholdings\b/.test(lower) && /\bportfolio\b/.test(lower));
+
+  if (!hasPortfolio) return false;
+
+  if (/\b(show\s+me|list|give\s+me|show\s+all)\b/.test(lower)) {
+    return true;
+  }
+
+  if (/\b(what\s+companies|which\s+companies)\b/.test(lower)) {
+    return true;
+  }
+
+  if (/\bwhat\s+are\b/.test(lower) && /\b(companies|holdings)\b/.test(lower)) {
+    return true;
+  }
+
+  if (/\btalanton\b/.test(lower) && /\bportfolio\b/.test(lower)) {
+    return true;
+  }
+
+  return false;
+}
+
 function resolveInsightsFocus(lower: string): TalantonBoardInsightsFocus | null {
   if (/\bdecision/.test(lower)) return "decisions";
   if (/\bdeteriorat|watch\s+list|requires?\s+attention\b/.test(lower)) return "deteriorating";
@@ -60,7 +122,7 @@ function resolveInsightsFocus(lower: string): TalantonBoardInsightsFocus | null 
   if (/\brisk/.test(lower)) return "risks";
   if (/\bfund|capital|deployment|lp\b/.test(lower)) return "funds";
   if (/\bimpact|jobs\s+created|people\s+served|communities\b/.test(lower)) return "impact";
-  if (/\bportfolio|holdings|companies\b/.test(lower)) return "portfolio";
+  if (/\bportfolio\b/.test(lower) && /\bboard\b/.test(lower)) return "portfolio";
   if (/\bgovernance|minutes|decisions\b/.test(lower)) return "governance";
   return null;
 }
@@ -110,16 +172,19 @@ export function resolveTalantonExecutiveIntelligenceIntent(
     };
   }
 
-  if (
-    /\bportfolio\s+intelligence\b/.test(lower) ||
-    /\bwhat\s+requires?\s+attention\s+across\s+the\s+portfolio\b/.test(lower) ||
-    /\bcompanies\s+requiring\s+attention\b/.test(lower) ||
-    /\bportfolio\s+health\b/.test(lower)
-  ) {
+  if (isTalantonPortfolioListingOrQuery(lower)) {
     return {
       tool: "talanton.queryPortfolio",
       args: { question: text },
       reason: "talanton_portfolio_query",
+    };
+  }
+
+  if (isTalantonTrainingSummaryRequest(lower)) {
+    return {
+      tool: "talanton.queryPortfolio",
+      args: { focus: "training", question: text },
+      reason: "talanton_portfolio_training_summary",
     };
   }
 
@@ -150,12 +215,7 @@ export function resolveTalantonExecutiveIntelligenceIntent(
   }
 
   const focus = resolveInsightsFocus(lower);
-  if (
-    focus ||
-    /\bboard\s+insights?\b/.test(lower) ||
-    /\bwhat\s+should\s+the\s+board\s+discuss\b/.test(lower) ||
-    /\bboard\s+discussion\b/.test(lower)
-  ) {
+  if (focus || isExplicitBoardInsightsRequest(lower)) {
     return {
       tool: "talanton.getBoardInsights",
       args: { focus: focus ?? "general", question: text },

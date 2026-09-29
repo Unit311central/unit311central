@@ -54,6 +54,20 @@ async function main() {
     "What requires attention across the portfolio?",
     "talanton.queryPortfolio",
   );
+  await assertToolRoute("Show me the Talanton portfolio.", "talanton.queryPortfolio");
+  await assertToolRoute(
+    "What companies are in the Talanton portfolio?",
+    "talanton.queryPortfolio",
+  );
+  await assertToolRoute(
+    "Give me board insights on the portfolio",
+    "talanton.getBoardInsights",
+  );
+  await assertToolRoute(
+    "Summarise training progress across the Talanton portfolio companies",
+    "talanton.queryPortfolio",
+  );
+  await assertToolRoute("Create a board pack for next month", "boardpack.generate");
 
   const portfolioRoute = await resolveOrchestrationRoute(
     "What requires attention across the portfolio?",

@@ -12,7 +12,11 @@ const require = createRequire(import.meta.url);
 const globOrig = require("next/dist/compiled/glob");
 
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const TRACE_REL = ".next/server/app/api/financials/quotes/[id]/route.js.nft.json";
+const TRACE_RELS = [
+  ".next/server/app/api/financials/quotes/[id]/route.js.nft.json",
+  ".next/server/app/api/executive-assistant/chat/route.js.nft.json",
+  ".next/server/app/api/talanton/board-deck/route.js.nft.json",
+];
 const VENDOR_ROOT = path.join(projectRoot, ".next/server/sharp-vendor");
 const VENDOR_IMG = path.join(VENDOR_ROOT, "@img");
 
@@ -179,14 +183,11 @@ function collectVendorNftPaths(pageDir) {
   return out;
 }
 
-async function main() {
-  materializeNextSharpExternals();
-  vendorSharpNativeUnderServer();
-
-  const tracePath = path.join(projectRoot, TRACE_REL);
+async function patchTraceFile(traceRel) {
+  const tracePath = path.join(projectRoot, traceRel);
   if (!fs.existsSync(tracePath)) {
-    console.error(`missing ${TRACE_REL} — run next build first`);
-    process.exit(1);
+    console.warn(`skip  ${traceRel} (not in this build output)`);
+    return false;
   }
 
   const pageDir = path.dirname(tracePath);
@@ -209,12 +210,25 @@ async function main() {
 
   const hasLibvips = sorted.some((f) => /libvips-cpp\.so\./.test(f));
   if (!hasLibvips) {
-    console.error("patch failed: libvips-cpp.so still missing from trace");
+    console.error(`patch failed: libvips-cpp.so still missing from ${traceRel}`);
     process.exit(1);
   }
-  console.log(
-    `ok  patch-sales-quote-pdf-native-trace (${sorted.length} files, libvips-cpp.so included)`,
-  );
+  console.log(`ok  ${traceRel} (${sorted.length} files, libvips-cpp.so included)`);
+  return true;
+}
+
+async function main() {
+  materializeNextSharpExternals();
+  vendorSharpNativeUnderServer();
+
+  let patched = 0;
+  for (const traceRel of TRACE_RELS) {
+    if (await patchTraceFile(traceRel)) patched += 1;
+  }
+  if (patched === 0) {
+    console.error("patch failed: no nft traces found — run next build first");
+    process.exit(1);
+  }
 }
 
 main().catch((error) => {

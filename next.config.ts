@@ -110,6 +110,12 @@ const nextConfig: NextConfig = {
     "/api/talanton/board-deck": [
       "./public/images/workspaces/talantonimpact-logo.png",
       "./public/images/talanton/harry-turner.jpg",
+      "./node_modules/sharp/**",
+      "./node_modules/@img/sharp-linux-x64/**",
+      "./node_modules/@img/sharp-libvips-linux-x64/lib/libvips-cpp.so.8.18.3",
+      "./node_modules/@img/sharp-libvips-linux-x64/lib/glib-2.0/**",
+      "./node_modules/@img/sharp-libvips-linux-x64/package.json",
+      "./node_modules/@img/sharp-libvips-linux-x64/versions.json",
     ],
     "/api/financials/quotes/[id]": [
       "./public/images/unit311central-document.png",
@@ -133,6 +139,12 @@ const nextConfig: NextConfig = {
       "./public/images/workspaces/onwardair-logo-dark.png",
       "./public/images/talanton/harry-turner.jpg",
       "./public/samples/**",
+      "./node_modules/sharp/**",
+      "./node_modules/@img/sharp-linux-x64/**",
+      "./node_modules/@img/sharp-libvips-linux-x64/lib/libvips-cpp.so.8.18.3",
+      "./node_modules/@img/sharp-libvips-linux-x64/lib/glib-2.0/**",
+      "./node_modules/@img/sharp-libvips-linux-x64/package.json",
+      "./node_modules/@img/sharp-libvips-linux-x64/versions.json",
     ],
   },
   outputFileTracingExcludes: {
