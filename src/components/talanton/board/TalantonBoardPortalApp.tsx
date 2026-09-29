@@ -3,7 +3,6 @@
 import { startTransition, useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import {
-  CalendarDays,
   CheckCircle2,
   Download,
   FileText,
@@ -11,7 +10,6 @@ import {
   Plus,
   RotateCcw,
   Search,
-  Sparkles,
   Users,
   X,
 } from "lucide-react";
@@ -47,7 +45,6 @@ import {
   subscribeBoardMembersStore,
   updateMember,
 } from "@/lib/talanton/board-members-store";
-import { buildBoardImpactIntelligence } from "@/lib/talanton/board-impact-intelligence";
 import { impactReportsAsBoardPackRows } from "@/lib/talanton/annual-impact-report-store";
 import {
   createMeeting,
@@ -274,7 +271,6 @@ function MinutesMeetingSummary({ record }: { record: TiMinutesRecord }) {
 }
 
 function BoardDashboard() {
-  const impact = useMemo(() => buildBoardImpactIntelligence(), []);
   const approvedPacks = useApprovedPacks();
   const latestPack = useMemo(() => {
     const sorted = [...approvedPacks].sort((a, b) => b.meetingDate.localeCompare(a.meetingDate));
@@ -334,16 +330,6 @@ function BoardDashboard() {
                 <p className="mt-1 text-sm text-white/60">
                   {formatBoardMeetingDate(nextMeeting.meetingDate)} · {nextMeeting.status}
                 </p>
-                <ul className="mt-3 space-y-1 text-sm text-white/70">
-                  {agendaLinesFromMinutes(nextMeeting.minutes)
-                    .slice(0, 4)
-                    .map((item) => (
-                      <li key={item} className="flex gap-2">
-                        <CalendarDays className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-300" />
-                        {item}
-                      </li>
-                    ))}
-                </ul>
                 <Link
                   href="/board/meetings"
                   className="mt-4 inline-flex text-xs font-semibold text-emerald-200 hover:text-emerald-100"
@@ -396,11 +382,6 @@ function BoardDashboard() {
                 <p className="mt-1 text-xs text-white/45">
                   {formatBoardMeetingDate(latestMinutes.meetingDate)} · {latestMinutes.status}
                 </p>
-                <p className="mt-2 line-clamp-3 text-sm text-white/65">{latestMinutes.minutesSummary}</p>
-                <p className="mt-2 text-xs text-white/40">
-                  {latestMinutes.decisions.length} decision(s) · {latestMinutes.actions.length}{" "}
-                  action item(s)
-                </p>
                 <Link
                   href="/board/meetings"
                   className="mt-4 inline-flex text-xs font-semibold text-emerald-200 hover:text-emerald-100"
@@ -434,9 +415,6 @@ function BoardDashboard() {
           <h1 className="mt-1 text-2xl font-semibold tracking-tight text-white sm:text-3xl">
             Governance at a glance
           </h1>
-          <p className="mt-1 text-sm text-white/55">
-            Next meeting, board pack, minutes, risk posture, and portfolio impact for directors.
-          </p>
         </div>
         {tilesHydrated ? (
           <BoardDashboardTileCustomize
@@ -469,55 +447,6 @@ function BoardDashboard() {
           </div>
         ))}
       </div>
-
-      <Card title="Impact snapshot">
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="rounded-xl border border-emerald-400/20 bg-emerald-500/5 px-3 py-3">
-            <p className="text-[10px] uppercase tracking-[0.14em] text-emerald-300/70">
-              Impact Health Score
-            </p>
-            <p className="mt-1 text-xl font-semibold text-white">
-              {impact.health.score}
-              <span className="text-sm text-white/40">/100</span>
-            </p>
-            <p className="mt-0.5 text-xs text-white/45">{impact.health.band}</p>
-          </div>
-          <div className="rounded-xl border border-white/8 bg-black/20 px-3 py-3">
-            <p className="text-[10px] uppercase tracking-[0.14em] text-white/40">Jobs Created</p>
-            <p className="mt-1 text-xl font-semibold text-white">
-              {impact.summary.jobsCreated.toLocaleString()}
-            </p>
-            <p className="mt-0.5 text-xs text-white/45">Across portfolio holdings</p>
-          </div>
-          <div className="rounded-xl border border-white/8 bg-black/20 px-3 py-3">
-            <p className="text-[10px] uppercase tracking-[0.14em] text-white/40">People Served</p>
-            <p className="mt-1 text-xl font-semibold text-white">
-              {impact.summary.peopleServed.toLocaleString()}
-            </p>
-            <p className="mt-0.5 text-xs text-white/45">Beneficiaries reached</p>
-          </div>
-          <div className="rounded-xl border border-white/8 bg-black/20 px-3 py-3">
-            <p className="text-[10px] uppercase tracking-[0.14em] text-white/40">Countries Impacted</p>
-            <p className="mt-1 text-xl font-semibold text-white">{impact.summary.countriesImpacted}</p>
-            <p className="mt-0.5 text-xs text-white/45">Geographic footprint</p>
-          </div>
-        </div>
-        <div className="mt-4 flex flex-col items-start gap-2">
-          <Link
-            href="/board/impact"
-            className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-400/30 bg-emerald-500/10 px-3 py-2 text-xs font-semibold text-emerald-100 transition hover:border-emerald-400/50 hover:bg-emerald-500/15"
-          >
-            <Sparkles className="h-3.5 w-3.5" />
-            Open Impact Intelligence
-          </Link>
-          <Link
-            href="/board/journeys"
-            className="inline-flex items-center gap-1.5 rounded-xl border border-white/15 bg-white/[0.03] px-3 py-2 text-xs font-semibold text-white/80 transition hover:border-white/25 hover:text-white"
-          >
-            Open Journey Stories
-          </Link>
-        </div>
-      </Card>
 
       <BoardMinutesDecisionsPanel latestRecord={latestMinutes} />
     </div>

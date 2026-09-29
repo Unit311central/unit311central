@@ -51,27 +51,19 @@ export default function BoardDashboardRiskHeatMap({ riskRegisterHref = "/board/r
     return map;
   }, [activeRisks]);
 
-  const highlighted = useMemo(
-    () => [...activeRisks].sort((a, b) => b.rating - a.rating).slice(0, 4),
-    [activeRisks],
-  );
-
   return (
-    <div className="space-y-3">
-      <p className="text-xs text-white/50">
-        Impact × likelihood from the live Risk Register. Cell colour reflects score (H=5, M=3, L=1).
-      </p>
+    <div className="space-y-2">
       <div className="overflow-x-auto">
-        <table className="min-w-full border-separate border-spacing-1 text-left text-xs">
+        <table className="min-w-full border-separate border-spacing-0.5 text-left text-xs">
           <thead>
             <tr>
-              <th className="min-w-[72px] px-1 py-1 text-[10px] font-medium uppercase tracking-[0.12em] text-white/45">
-                Impact ↓
+              <th className="min-w-[44px] px-0.5 py-0.5 text-[9px] font-medium uppercase tracking-[0.1em] text-white/45">
+                Imp ↓
               </th>
               {LIKELIHOOD_ORDER.map((level) => (
                 <th
                   key={level}
-                  className="min-w-[56px] px-1 py-1 text-center text-[10px] font-medium uppercase tracking-[0.12em] text-white/45"
+                  className="min-w-[40px] px-0.5 py-0.5 text-center text-[9px] font-medium uppercase tracking-[0.1em] text-white/45"
                 >
                   {level}
                 </th>
@@ -81,7 +73,7 @@ export default function BoardDashboardRiskHeatMap({ riskRegisterHref = "/board/r
           <tbody>
             {IMPACT_ORDER.map((impact) => (
               <tr key={impact}>
-                <td className="rounded-lg border border-white/10 bg-black/30 px-2 py-1.5 text-[11px] font-semibold text-white/70">
+                <td className="rounded border border-white/10 bg-black/30 px-1 py-0.5 text-[10px] font-semibold text-white/70">
                   {impact}
                 </td>
                 {LIKELIHOOD_ORDER.map((likelihood) => {
@@ -100,12 +92,12 @@ export default function BoardDashboardRiskHeatMap({ riskRegisterHref = "/board/r
                         href={href}
                         title={`Impact ${impact} · Likelihood ${likelihood} · ${count} risk(s)`}
                         className={cn(
-                          "flex h-11 w-full min-w-[56px] flex-col items-center justify-center rounded-lg border text-center transition hover:ring-1 hover:ring-emerald-400/40",
+                          "flex h-8 w-full min-w-[40px] flex-col items-center justify-center rounded border text-center transition hover:ring-1 hover:ring-emerald-400/40",
                           heatCellTone(rating),
                           count === 0 && "pointer-events-none opacity-35",
                         )}
                       >
-                        <span className="text-sm font-semibold tabular-nums">
+                        <span className="text-xs font-semibold tabular-nums">
                           {count > 0 ? count : "—"}
                         </span>
                       </Link>
@@ -117,24 +109,6 @@ export default function BoardDashboardRiskHeatMap({ riskRegisterHref = "/board/r
           </tbody>
         </table>
       </div>
-      {highlighted.length > 0 ? (
-        <ul className="space-y-1.5">
-          {highlighted.map((risk) => (
-            <li key={risk.id}>
-              <Link
-                href={`${riskRegisterHref}?riskId=${encodeURIComponent(risk.id)}`}
-                className="block rounded-lg border border-white/8 bg-black/20 px-2.5 py-2 text-sm text-white/80 transition hover:border-emerald-400/30 hover:bg-emerald-500/[0.06]"
-              >
-                <span className="text-xs font-semibold text-emerald-200/90">{risk.id}</span>
-                <span className="mx-1.5 text-white/30">·</span>
-                <span className="line-clamp-1">{risk.description}</span>
-              </Link>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p className="text-sm text-white/45">No active risks in the register.</p>
-      )}
       <Link
         href={riskRegisterHref}
         className="inline-flex text-xs font-semibold text-emerald-200 hover:text-emerald-100"
