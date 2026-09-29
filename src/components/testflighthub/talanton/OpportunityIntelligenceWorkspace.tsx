@@ -1,7 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
-import { AlertTriangle, Compass, Globe2, Lightbulb, Sparkles, TrendingDown, TrendingUp, Minus } from "lucide-react";
+import { AlertTriangle, Compass, Lightbulb, TrendingDown, TrendingUp, Minus } from "lucide-react";
 
 import {
   buildOpportunityBriefing,
@@ -14,6 +13,7 @@ import {
   TalantonImpactMetric,
   TalantonIntelligenceHeader,
 } from "./talanton-intelligence-ui";
+import { useTalantonMemo } from "@/lib/talanton/use-talanton-intelligence-briefing";
 
 function formatShortDate(iso: string) {
   const d = new Date(`${iso}T12:00:00`);
@@ -68,7 +68,7 @@ function BriefingList({
 }
 
 export default function OpportunityIntelligenceWorkspace() {
-  const briefing = useMemo(() => buildOpportunityBriefing(), []);
+  const briefing = useTalantonMemo(() => buildOpportunityBriefing());
   const { health } = briefing;
 
   return (
@@ -80,8 +80,7 @@ export default function OpportunityIntelligenceWorkspace() {
         actions={
           <div className="flex flex-wrap items-center gap-2 text-xs text-white/55">
             <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-black/25 px-3 py-1.5">
-              <Sparkles className="h-3.5 w-3.5 text-emerald-300" />
-              AI opportunity briefing · {formatShortDate(briefing.asOf)}
+              Updated {formatShortDate(briefing.asOf)}
             </span>
             <span
               className={cn(
@@ -135,13 +134,8 @@ export default function OpportunityIntelligenceWorkspace() {
         </div>
       </TalantonGeneratedPanel>
 
-      {/* 2. Opportunity Executive Briefing */}
-      <TalantonGeneratedPanel
-        eyebrow="AI generated"
-        title="AI Opportunity Executive Briefing"
-        copyText={briefing.briefingText}
-      >
-        <div className="space-y-5 text-sm leading-relaxed text-white/75">
+      <TalantonGeneratedPanel title="Opportunity Executive Briefing" copyText={briefing.briefingText}>
+        <div className="grid gap-4 sm:grid-cols-2">
           <BriefingList heading="Emerging opportunities" items={briefing.emergingOpportunities} />
           <BriefingList heading="Sector developments" items={briefing.sectorDevelopments} />
           <BriefingList heading="Regional developments" items={briefing.regionalDevelopments} />
@@ -155,7 +149,6 @@ export default function OpportunityIntelligenceWorkspace() {
         </div>
       </TalantonGeneratedPanel>
 
-      {/* 3. Potential Portfolio Companies */}
       <section>
         <div className="mb-3 flex items-end justify-between gap-3">
           <div>
@@ -163,15 +156,15 @@ export default function OpportunityIntelligenceWorkspace() {
               Pipeline
             </p>
             <h2 className="mt-1 text-lg font-semibold tracking-tight text-white sm:text-xl">
-              Potential Portfolio Companies
+              Opportunity landscape
             </h2>
             <p className="mt-1 max-w-2xl text-sm text-white/50">
-              Prospective holdings aligned to Talanton’s SSA impact mandate — ranked by opportunity score.
+              Pipeline prospects, sectors, and regions — two rows of three tiles each.
             </p>
           </div>
         </div>
-        <div className="grid gap-3 xl:grid-cols-2">
-          {briefing.potentialCompanies.map((company) => (
+        <div className="grid gap-3 sm:grid-cols-3">
+          {briefing.potentialCompanies.slice(0, 6).map((company) => (
             <TalantonGeneratedPanel
               key={company.id}
               eyebrow={`${company.country} · ${company.sector}`}
@@ -195,90 +188,53 @@ export default function OpportunityIntelligenceWorkspace() {
                 </span>
               </div>
               <p className="text-xs leading-relaxed text-white/45">{company.thesisFit}</p>
-              <div className="mt-3 rounded-xl border border-white/8 bg-black/20 px-3.5 py-3">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-emerald-300/70">
-                  AI Commentary
-                </p>
-                <p className="mt-1.5 text-sm leading-relaxed text-white/75">{company.aiCommentary}</p>
-              </div>
+              <p className="mt-3 text-sm leading-relaxed text-white/65">{company.aiCommentary}</p>
             </TalantonGeneratedPanel>
           ))}
         </div>
       </section>
 
-      {/* 4. Sector Intelligence */}
       <section>
         <div className="mb-3">
           <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-300/80">
-            Thematic
+            Thematic & geography
           </p>
           <h2 className="mt-1 text-lg font-semibold tracking-tight text-white sm:text-xl">
-            Sector Intelligence
+            Sector & regional intelligence
           </h2>
         </div>
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-          {briefing.sectors.map((sector) => (
-            <TalantonGeneratedPanel
-              key={sector.id}
-              eyebrow="Sector"
-              title={sector.sector}
-              copyText={sector.cardText}
-            >
-              <div className="mb-3 flex flex-wrap items-center gap-2 text-[11px]">
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-black/25 px-2.5 py-1 text-white/70">
-                  {trendIcon(sector.trend)}
-                  {sector.trend}
-                </span>
-                <span className={cn("rounded-full border px-2.5 py-1", ratingClass(sector.opportunityRating))}>
-                  {sector.opportunityRating} opportunity
-                </span>
-              </div>
-              <p className="text-xs font-medium uppercase tracking-[0.1em] text-white/40">Growth outlook</p>
-              <p className="mt-1 text-sm leading-relaxed text-white/75">{sector.growthOutlook}</p>
-              <p className="mt-3 text-sm leading-relaxed text-white/55">{sector.commentary}</p>
-            </TalantonGeneratedPanel>
-          ))}
+        <div className="grid gap-3 sm:grid-cols-3">
+          {[...briefing.sectors.slice(0, 3), ...briefing.regions.slice(0, 3)].map((item) =>
+            "growthOutlook" in item ? (
+              <TalantonGeneratedPanel
+                key={item.id}
+                eyebrow="Sector"
+                title={item.sector}
+                copyText={item.cardText}
+              >
+                <div className="mb-3 flex flex-wrap items-center gap-2 text-[11px]">
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-black/25 px-2.5 py-1 text-white/70">
+                    {trendIcon(item.trend)}
+                    {item.trend}
+                  </span>
+                </div>
+                <p className="text-sm leading-relaxed text-white/75">{item.growthOutlook}</p>
+              </TalantonGeneratedPanel>
+            ) : (
+              <TalantonGeneratedPanel
+                key={item.id}
+                eyebrow="Region"
+                title={item.region}
+                copyText={item.cardText}
+              >
+                <p className="text-sm leading-relaxed text-white/75">{item.economicOutlook}</p>
+              </TalantonGeneratedPanel>
+            ),
+          )}
         </div>
       </section>
 
-      {/* 5. Regional Intelligence */}
-      <section>
-        <div className="mb-3">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-300/80">
-            Geography
-          </p>
-          <h2 className="mt-1 flex items-center gap-2 text-lg font-semibold tracking-tight text-white sm:text-xl">
-            <Globe2 className="h-5 w-5 text-emerald-300/80" />
-            Regional Intelligence
-          </h2>
-        </div>
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-          {briefing.regions.map((region) => (
-            <TalantonGeneratedPanel
-              key={region.id}
-              eyebrow="Region"
-              title={region.region}
-              copyText={region.cardText}
-            >
-              <div className="mb-3">
-                <span className={cn("rounded-full border px-2.5 py-1 text-[11px]", ratingClass(region.opportunityRating))}>
-                  {region.opportunityRating} opportunity
-                </span>
-              </div>
-              <p className="text-xs font-medium uppercase tracking-[0.1em] text-white/40">Economic outlook</p>
-              <p className="mt-1 text-sm leading-relaxed text-white/75">{region.economicOutlook}</p>
-              <div className="mt-3 rounded-xl border border-white/8 bg-black/20 px-3.5 py-3">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-emerald-300/70">
-                  AI Commentary
-                </p>
-                <p className="mt-1.5 text-sm leading-relaxed text-white/75">{region.aiCommentary}</p>
-              </div>
-            </TalantonGeneratedPanel>
-          ))}
-        </div>
-      </section>
-
-      {/* 6. Strategic Opportunities */}
+      {/* Strategic Opportunities */}
       <section>
         <div className="mb-3">
           <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-300/80">

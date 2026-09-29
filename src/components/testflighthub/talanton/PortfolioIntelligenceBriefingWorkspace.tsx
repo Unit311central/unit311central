@@ -1,29 +1,18 @@
 "use client";
 
-import { useMemo, type ReactNode } from "react";
 import Link from "next/link";
-import {
-  AlertTriangle,
-  Building2,
-  CheckCircle2,
-  ClipboardList,
-  FileText,
-  GraduationCap,
-  ShieldAlert,
-  Target,
-} from "lucide-react";
+import type { ReactNode } from "react";
+import { AlertTriangle, Building2, CheckCircle2 } from "lucide-react";
 
 import { CopyToClipboardButton } from "@/components/ui/CopyToClipboardButton";
 import { getInternalNavHref } from "@/lib/internal-operations-data";
 import {
   buildPortfolioExecutiveBriefing,
   formatAttentionCompanyText,
-  formatRecommendedActionText,
-  type PortfolioActivityKind,
   type PortfolioAttentionCompany,
-  type PortfolioRecommendedAction,
 } from "@/lib/talanton/portfolio-intelligence";
 import type { RiskRating } from "@/lib/talanton/portfolio-data";
+import { useTalantonMemo } from "@/lib/talanton/use-talanton-intelligence-briefing";
 import { cn } from "@/lib/utils";
 import { useInternalOperationsBasePath } from "../InternalOperationsBasePathContext";
 
@@ -51,40 +40,6 @@ function priorityClass(priority: PortfolioAttentionCompany["priority"]) {
     default:
       return "text-amber-200/90";
   }
-}
-
-function urgencyClass(urgency: PortfolioRecommendedAction["urgency"]) {
-  switch (urgency) {
-    case "Today":
-      return "border-rose-400/30 bg-rose-500/10 text-rose-200";
-    case "This week":
-      return "border-amber-400/30 bg-amber-500/10 text-amber-100";
-    default:
-      return "border-emerald-400/25 bg-emerald-500/10 text-emerald-100";
-  }
-}
-
-function activityIcon(kind: PortfolioActivityKind) {
-  switch (kind) {
-    case "report":
-      return <FileText className="h-3.5 w-3.5 text-emerald-300" />;
-    case "training":
-      return <GraduationCap className="h-3.5 w-3.5 text-sky-300" />;
-    case "document":
-      return <ClipboardList className="h-3.5 w-3.5 text-teal-300" />;
-    case "compliance":
-      return <CheckCircle2 className="h-3.5 w-3.5 text-emerald-300" />;
-    case "risk":
-      return <ShieldAlert className="h-3.5 w-3.5 text-orange-300" />;
-    default:
-      return <Target className="h-3.5 w-3.5 text-white/50" />;
-  }
-}
-
-function formatShortDate(iso: string) {
-  const d = new Date(`${iso}T12:00:00`);
-  if (Number.isNaN(d.getTime())) return iso;
-  return d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
 }
 
 function GeneratedPanel({
@@ -132,11 +87,13 @@ function HealthMetric({
   value,
   hint,
   tone = "default",
+  href,
 }: {
   label: string;
   value: string | number;
   hint?: string;
   tone?: "default" | "watch" | "alert" | "good";
+  href?: string;
 }) {
   const valueClass =
     tone === "alert"
@@ -147,20 +104,42 @@ function HealthMetric({
           ? "text-emerald-200"
           : "text-white";
 
-  return (
-    <div className="rounded-xl border border-white/10 bg-black/20 px-4 py-3.5">
+  const inner = (
+    <>
       <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/45">{label}</p>
       <p className={cn("mt-2 text-2xl font-semibold tabular-nums tracking-tight", valueClass)}>
         {value}
       </p>
       {hint ? <p className="mt-1 text-[11px] leading-snug text-white/40">{hint}</p> : null}
-    </div>
+      {href ? (
+        <p className="mt-2 text-[11px] font-medium text-emerald-300/80">View details →</p>
+      ) : null}
+    </>
   );
+
+  const className =
+    "rounded-xl border border-white/10 bg-black/20 px-4 py-3.5 transition hover:border-emerald-400/30 hover:bg-emerald-500/[0.06]";
+
+  if (href) {
+    return (
+      <Link href={href} className={cn(className, "block")}>
+        {inner}
+      </Link>
+    );
+  }
+
+  return <div className={className}>{inner}</div>;
 }
 
 export default function PortfolioIntelligenceBriefingWorkspace() {
-  const briefing = useMemo(() => buildPortfolioExecutiveBriefing(), []);
+  const briefing = useTalantonMemo(() => buildPortfolioExecutiveBriefing());
   const basePath = useInternalOperationsBasePath();
+
+  const hrefAttention = `${getInternalNavHref("portfolio-intelligence-briefing", basePath)}#companies-requiring-attention`;
+  const hrefReports = getInternalNavHref("quarterly-portfolio-update", basePath);
+  const hrefCompliance = getInternalNavHref("portfolio-courses", basePath);
+  const hrefRisk = getInternalNavHref("corporate-risk-register", basePath);
+  const hrefDirectory = getInternalNavHref("portfolio-directory", basePath);
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-5 overflow-auto p-5 sm:p-6">
@@ -198,50 +177,52 @@ export default function PortfolioIntelligenceBriefingWorkspace() {
             value={briefing.health.companiesRequiringAttention}
             hint="Prioritised for leadership follow-up"
             tone={briefing.health.companiesRequiringAttention > 4 ? "watch" : "default"}
+            href={hrefAttention}
           />
           <HealthMetric
             label="Reports Outstanding"
             value={briefing.health.reportsOutstanding}
             hint="Overdue, due soon, or not started"
             tone={briefing.health.reportsOutstanding > 0 ? "watch" : "good"}
+            href={hrefReports}
           />
           <HealthMetric
             label="Compliance Issues"
             value={briefing.health.complianceIssues}
             hint="Training gaps and open compliance risks"
             tone={briefing.health.complianceIssues > 5 ? "alert" : "watch"}
+            href={hrefCompliance}
           />
           <HealthMetric
             label="High Risk Companies"
             value={briefing.health.highRiskCompanies}
             hint="High or Critical risk rating"
             tone={briefing.health.highRiskCompanies > 0 ? "alert" : "good"}
+            href={hrefRisk}
           />
           <HealthMetric
             label="Total Portfolio Companies"
             value={briefing.health.totalPortfolioCompanies}
             hint="Active Talanton Impact holdings"
             tone="default"
+            href={hrefDirectory}
           />
         </div>
       </GeneratedPanel>
 
-      <GeneratedPanel
-        eyebrow="AI generated"
-        title="AI Executive Briefing"
-        copyText={briefing.briefingText}
-      >
-        <div className="grid gap-4 lg:grid-cols-3">
+      <GeneratedPanel title="Executive Briefing" copyText={briefing.briefingText}>
+        <div className="grid gap-4 sm:grid-cols-2">
           <OverallStatusPanel health={briefing.health} bullets={briefing.overallStatusBullets} />
           <SignificantChangesPanel items={briefing.significantChangeItems} />
           <AttentionSummaryPanel
             companies={briefing.attentionCompanies}
             basePath={basePath}
+            className="sm:col-span-2"
           />
         </div>
       </GeneratedPanel>
 
-      <section>
+      <section id="companies-requiring-attention">
         <div className="mb-3 flex items-end justify-between gap-3">
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-300/80">
@@ -323,88 +304,6 @@ export default function PortfolioIntelligenceBriefingWorkspace() {
           })}
         </div>
       </section>
-
-      <GeneratedPanel
-        eyebrow="Timeline"
-        title="Recent Portfolio Activity"
-        copyText={briefing.activityText}
-      >
-        <ol className="relative space-y-0 border-l border-white/10 pl-5">
-          {briefing.recentActivity.map((item) => (
-            <li key={item.id} className="relative pb-5 last:pb-0">
-              <span className="absolute -left-[1.55rem] top-0.5 flex h-6 w-6 items-center justify-center rounded-full border border-white/10 bg-[#0d1b14]">
-                {activityIcon(item.kind)}
-              </span>
-              <div className="flex flex-wrap items-baseline justify-between gap-2">
-                <p className="text-sm font-medium text-white">{item.title}</p>
-                <time className="text-[11px] tabular-nums text-white/40">
-                  {formatShortDate(item.occurredAt)}
-                </time>
-              </div>
-              {item.companyName ? (
-                <p className="mt-0.5 text-xs text-emerald-300/75">{item.companyName}</p>
-              ) : null}
-              <p className="mt-1 text-sm leading-relaxed text-white/55">{item.detail}</p>
-            </li>
-          ))}
-        </ol>
-      </GeneratedPanel>
-
-      <GeneratedPanel
-        eyebrow="Action centre"
-        title="Recommended Actions"
-        copyText={briefing.actionsText}
-      >
-        <p className="mb-4 max-w-3xl text-sm text-white/55">
-          Executive action list for the next leadership cycle. Each item is copyable for email,
-          board notes, or EA handoff.
-        </p>
-        <div className="grid gap-3 lg:grid-cols-2">
-          {briefing.recommendedActions.map((action) => {
-            const companyHref = action.companyId
-              ? getInternalNavHref("portfolio-intelligence-company", basePath, {
-                  companyId: action.companyId,
-                })
-              : null;
-            return (
-              <article
-                key={action.id}
-                className="relative rounded-xl border border-white/10 bg-black/20 p-4"
-              >
-                <div className="mb-3 flex items-start justify-between gap-3">
-                  <span
-                    className={cn(
-                      "inline-flex rounded-md border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.1em]",
-                      urgencyClass(action.urgency),
-                    )}
-                  >
-                    {action.urgency}
-                  </span>
-                  <CopyToClipboardButton
-                    text={formatRecommendedActionText(action)}
-                    className="shrink-0"
-                  />
-                </div>
-                <h3 className="text-sm font-semibold leading-snug text-white">{action.title}</h3>
-                {action.companyName && companyHref ? (
-                  <Link
-                    href={companyHref}
-                    className="mt-1 inline-block text-xs text-emerald-300/75 transition hover:text-emerald-200"
-                  >
-                    {action.companyName} →
-                  </Link>
-                ) : action.companyName ? (
-                  <p className="mt-1 text-xs text-emerald-300/75">{action.companyName}</p>
-                ) : null}
-                <p className="mt-2 text-sm leading-relaxed text-white/55">{action.rationale}</p>
-                <p className="mt-3 text-[11px] uppercase tracking-[0.1em] text-white/40">
-                  Owner · {action.owner}
-                </p>
-              </article>
-            );
-          })}
-        </div>
-      </GeneratedPanel>
     </div>
   );
 }
@@ -502,12 +401,14 @@ function SignificantChangesPanel({
 function AttentionSummaryPanel({
   companies,
   basePath,
+  className,
 }: {
   companies: ReturnType<typeof buildPortfolioExecutiveBriefing>["attentionCompanies"];
   basePath: ReturnType<typeof useInternalOperationsBasePath>;
+  className?: string;
 }) {
   return (
-    <div className="rounded-xl border border-white/10 bg-black/20 p-4">
+    <div className={cn("rounded-xl border border-white/10 bg-black/20 p-4", className)}>
       <h3 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-emerald-300/75">
         Companies requiring attention
       </h3>

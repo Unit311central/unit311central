@@ -20,6 +20,7 @@ import {
   getInternalNavHref,
   type InternalOperationsView,
 } from "@/lib/internal-operations-data";
+import { refreshTalantonPortfolioCompanies } from "@/lib/talanton/portfolio-companies-client-store";
 import {
   companyPortalAbsoluteUrl,
   getCompanyPortalByCompanyId,
@@ -273,6 +274,7 @@ function CompanyFormModal({
   error,
   onClose,
   onSave,
+  simplified = false,
 }: {
   title: string;
   initial: CompanyFormState;
@@ -280,6 +282,7 @@ function CompanyFormModal({
   error: string | null;
   onClose: () => void;
   onSave: (form: CompanyFormState) => void;
+  simplified?: boolean;
 }) {
   const [form, setForm] = useState(initial);
 
@@ -362,28 +365,32 @@ function CompanyFormModal({
             Burn / month (USD)
             <input className={`${fieldClass} mt-1`} type="number" value={form.burnRateUsdMonthly} onChange={(e) => set("burnRateUsdMonthly", e.target.value)} />
           </label>
-          <label className="text-xs text-white/50">
-            Compliance %
-            <input className={`${fieldClass} mt-1`} type="number" value={form.compliancePct} onChange={(e) => set("compliancePct", e.target.value)} />
-          </label>
+          {!simplified ? (
+            <label className="text-xs text-white/50">
+              Compliance %
+              <input className={`${fieldClass} mt-1`} type="number" value={form.compliancePct} onChange={(e) => set("compliancePct", e.target.value)} />
+            </label>
+          ) : null}
           <label className="text-xs text-white/50">
             ROI / MOIC
             <input className={`${fieldClass} mt-1`} type="number" step="0.1" value={form.roiMoic} onChange={(e) => set("roiMoic", e.target.value)} />
           </label>
-          <label className="text-xs text-white/50">
-            Risk
-            <select
-              className={`${fieldClass} mt-1`}
-              value={form.riskRating}
-              onChange={(e) => set("riskRating", e.target.value as RiskRating)}
-            >
-              {(["Low", "Medium", "High", "Critical"] as RiskRating[]).map((r) => (
-                <option key={r} value={r} className="bg-[#0f172a]">
-                  {r}
-                </option>
-              ))}
-            </select>
-          </label>
+          {!simplified ? (
+            <label className="text-xs text-white/50">
+              Risk
+              <select
+                className={`${fieldClass} mt-1`}
+                value={form.riskRating}
+                onChange={(e) => set("riskRating", e.target.value as RiskRating)}
+              >
+                {(["Low", "Medium", "High", "Critical"] as RiskRating[]).map((r) => (
+                  <option key={r} value={r} className="bg-[#0f172a]">
+                    {r}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : null}
           <label className="sm:col-span-2 text-xs text-white/50">
             Overview
             <textarea
@@ -633,7 +640,6 @@ function DirectoryView() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState(initialId);
-  const [q, setQ] = useState("");
   const [modalMode, setModalMode] = useState<"create" | "edit" | null>(null);
   const [formBusy, setFormBusy] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
@@ -647,9 +653,10 @@ function DirectoryView() {
       const data = (await res.json()) as { companies?: PortfolioCompany[]; error?: string };
       if (!res.ok) throw new Error(data.error || "Failed to load portfolio companies.");
       setCompanies(data.companies ?? []);
+      await refreshTalantonPortfolioCompanies();
     } catch (err) {
       setLoadError(err instanceof Error ? err.message : "Failed to load portfolio companies.");
-      setCompanies(TALANTON_PORTFOLIO_COMPANIES);
+      setCompanies([]);
     } finally {
       setLoading(false);
     }
@@ -663,28 +670,17 @@ function DirectoryView() {
     if (initialId) setSelectedId(initialId);
   }, [initialId]);
 
-  const rows = useMemo(() => {
-    const needle = q.trim().toLowerCase();
-    if (!needle) return companies;
-    return companies.filter(
-      (c) =>
-        c.name.toLowerCase().includes(needle) ||
-        c.country.toLowerCase().includes(needle) ||
-        c.sector.toLowerCase().includes(needle),
-    );
-  }, [companies, q]);
-
   useEffect(() => {
-    if (!selectedId && rows[0]?.id) {
-      setSelectedId(rows[0].id);
+    if (!selectedId && companies[0]?.id) {
+      setSelectedId(companies[0].id);
       return;
     }
-    if (selectedId && !companies.some((c) => c.id === selectedId) && rows[0]?.id) {
-      setSelectedId(rows[0].id);
+    if (selectedId && !companies.some((c) => c.id === selectedId) && companies[0]?.id) {
+      setSelectedId(companies[0].id);
     }
-  }, [companies, rows, selectedId]);
+  }, [companies, selectedId]);
 
-  const selected = companies.find((c) => c.id === selectedId) ?? rows[0] ?? null;
+  const selected = companies.find((c) => c.id === selectedId) ?? companies[0] ?? null;
 
   async function saveForm(form: CompanyFormState) {
     setFormBusy(true);
@@ -739,79 +735,72 @@ function DirectoryView() {
       title="Portfolio Companies Directory"
       subtitle="Select a company to view portal access, training, compliance and reporting."
     >
-      <div className="mb-4 flex flex-wrap items-center gap-3">
-        <input
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          placeholder="Search company, country or sector…"
-          className="w-full max-w-md rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-white outline-none placeholder:text-white/35 focus:border-white/25"
-        />
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-4">
+        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+          <p className="mr-2 text-xs font-medium uppercase tracking-wide text-white/45">
+            Portfolio companies ({companies.length})
+          </p>
+          {loading ? (
+            <span className="inline-flex items-center gap-1.5 text-xs text-white/45">
+              <Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading…
+            </span>
+          ) : null}
+          <div className="flex min-w-0 flex-1 flex-wrap gap-2 overflow-x-auto pb-1">
+            {companies.map((c) => {
+              const active = selected?.id === c.id;
+              return (
+                <button
+                  key={c.id}
+                  type="button"
+                  onClick={() => setSelectedId(c.id)}
+                  className={cn(
+                    "shrink-0 rounded-full border px-3 py-1.5 text-sm transition",
+                    active
+                      ? "border-emerald-400/40 bg-emerald-500/20 text-white"
+                      : "border-white/10 bg-white/[0.04] text-white/75 hover:border-emerald-400/25 hover:text-white",
+                  )}
+                >
+                  {c.name}
+                </button>
+              );
+            })}
+            {companies.length === 0 && !loading ? (
+              <span className="text-sm text-white/45">No portfolio companies yet.</span>
+            ) : null}
+          </div>
+        </div>
         <button
           type="button"
           onClick={() => {
             setFormError(null);
             setModalMode("create");
           }}
-          className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-500/90 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-500"
+          className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-emerald-500/90 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-500"
         >
           <Plus className="h-4 w-4" />
           Add company
         </button>
-        {loading ? (
-          <span className="inline-flex items-center gap-1.5 text-xs text-white/45">
-            <Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading…
-          </span>
-        ) : null}
       </div>
       {loadError ? (
         <p className="mb-4 rounded-lg border border-amber-400/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-100">
           {loadError}
         </p>
       ) : null}
-      <div className="grid gap-4 lg:grid-cols-[280px_1fr]">
-        <aside className="max-h-[640px] overflow-y-auto rounded-xl border border-white/10 bg-white/[0.02]">
-          <div className="sticky top-0 border-b border-white/10 bg-[#0b1220]/95 px-3 py-2 text-xs font-medium uppercase tracking-wide text-white/45">
-            Portfolio companies ({rows.length})
-          </div>
-          <ul>
-            {rows.map((c) => (
-              <li key={c.id}>
-                <button
-                  type="button"
-                  onClick={() => setSelectedId(c.id)}
-                  className={cn(
-                    "flex w-full items-center justify-between gap-2 px-3 py-2.5 text-left text-sm transition",
-                    selected?.id === c.id
-                      ? "bg-emerald-500/15 text-white"
-                      : "text-white/75 hover:bg-white/[0.04]",
-                  )}
-                >
-                  <span className="truncate">{c.name}</span>
-                  <span className="tabular-nums text-xs text-white/50">{c.compliancePct}%</span>
-                </button>
-              </li>
-            ))}
-            {rows.length === 0 ? (
-              <li className="px-3 py-6 text-center text-sm text-white/45">No companies found.</li>
-            ) : null}
-          </ul>
-        </aside>
-        <section className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
-          {selected ? (
-            <CompanyDetailPanel
-              company={selected}
-              onEdit={() => {
-                setFormError(null);
-                setModalMode("edit");
-              }}
-              onDelete={() => void removeSelected()}
-              deleting={deleting}
-            />
-          ) : (
-            <p className="text-sm text-white/50">Select a portfolio company.</p>
-          )}
-        </section>
-      </div>
+      <section className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
+        {selected ? (
+          <CompanyDetailPanel
+            company={selected}
+            onEdit={() => {
+              setFormError(null);
+              setModalMode("edit");
+            }}
+            onDelete={() => void removeSelected()}
+            deleting={deleting}
+          />
+        ) : (
+          <p className="text-sm text-white/50">Select a portfolio company.</p>
+        )}
+      </section>
 
       {modalMode ? (
         <CompanyFormModal
@@ -819,6 +808,7 @@ function DirectoryView() {
           initial={modalMode === "edit" && selected ? companyToForm(selected) : EMPTY_FORM}
           busy={formBusy}
           error={formError}
+          simplified={modalMode === "create"}
           onClose={() => {
             if (!formBusy) setModalMode(null);
           }}

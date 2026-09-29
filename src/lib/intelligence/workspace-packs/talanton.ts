@@ -153,7 +153,7 @@ export const talantonIntelligencePack: IntelligenceWorkspacePackRegistration = {
     {
       id: "impact",
       label: "Impact Intelligence",
-      navViews: ["impact-intelligence-dashboard", "impact-intelligence-company"],
+      navViews: ["impact-intelligence-company"],
       providerId: "talanton.impact",
     },
     {
@@ -166,7 +166,6 @@ export const talantonIntelligencePack: IntelligenceWorkspacePackRegistration = {
   uiViews: [
     { viewId: "portfolio-intelligence-briefing", domainId: "portfolio" },
     { viewId: "portfolio-intelligence-company", domainId: "portfolio" },
-    { viewId: "impact-intelligence-dashboard", domainId: "impact" },
     { viewId: "impact-intelligence-company", domainId: "impact" },
     { viewId: "opportunity-intelligence", domainId: "opportunity" },
   ],

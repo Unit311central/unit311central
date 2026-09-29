@@ -40,7 +40,7 @@ const LEGACY_AREA_VIEWS: Record<string, string> = {
   member: "member-intelligence",
   "market-intelligence": "demo-market-intelligence",
   regulatory: "regulatory-dashboard",
-  impact: "impact-intelligence-dashboard",
+  impact: "impact-intelligence-company",
 };
 
 const POSTURE_STYLES: Record<IntelligenceScoreBand, string> = {

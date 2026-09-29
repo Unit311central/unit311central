@@ -10,10 +10,12 @@ import { formatUsd } from "@/lib/talanton/portfolio-data";
 import { getLatestImpactReportForIntelligence } from "@/lib/talanton/company-stories-impact";
 import {
   buildCompanyImpactProfile,
+  buildPortfolioImpactBriefing,
   listCompanyImpactOptions,
   resolveCompanyImpactId,
   type ImpactTrend,
 } from "@/lib/talanton/impact-intelligence";
+import { useTalantonMemo } from "@/lib/talanton/use-talanton-intelligence-briefing";
 import { cn } from "@/lib/utils";
 import { useInternalOperationsBasePath } from "../InternalOperationsBasePathContext";
 import {
@@ -38,10 +40,11 @@ export default function CompanyImpactWorkspace() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const basePath = useInternalOperationsBasePath();
-  const options = useMemo(() => listCompanyImpactOptions(), []);
+  const portfolioBriefing = useTalantonMemo(() => buildPortfolioImpactBriefing());
+  const options = useTalantonMemo(() => listCompanyImpactOptions());
 
   const companyId = resolveCompanyImpactId(searchParams.get("companyId"));
-  const profile = useMemo(() => buildCompanyImpactProfile(companyId), [companyId]);
+  const profile = useTalantonMemo(() => buildCompanyImpactProfile(companyId), [companyId]);
   const portalReport = useMemo(
     () => getLatestImpactReportForIntelligence(companyId),
     [companyId],
@@ -111,10 +114,27 @@ export default function CompanyImpactWorkspace() {
       ) : null}
 
       <TalantonGeneratedPanel
-        eyebrow="AI generated"
-        title="AI Impact Summary"
-        copyText={profile.summaryText}
+        title="Impact Executive Briefing"
+        copyText={portfolioBriefing.briefingText}
       >
+        <div className="grid gap-4 sm:grid-cols-2">
+          <ImpactBriefTile heading="Overall portfolio impact" body={portfolioBriefing.overallImpact} />
+          <ImpactBriefTile
+            heading="Key achievements"
+            body={portfolioBriefing.keyAchievements.slice(0, 4).join(" · ")}
+          />
+          <ImpactBriefTile
+            heading="Areas requiring attention"
+            body={portfolioBriefing.areasRequiringAttention.slice(0, 4).join(" · ")}
+          />
+          <ImpactBriefTile
+            heading="Recommended actions"
+            body={portfolioBriefing.recommendedActionsNarrative.slice(0, 4).join(" · ")}
+          />
+        </div>
+      </TalantonGeneratedPanel>
+
+      <TalantonGeneratedPanel title="Impact Summary" copyText={profile.summaryText}>
         <p className="max-w-3xl text-sm leading-relaxed text-white/75">{profile.aiSummary}</p>
         <div className="mt-4 flex flex-wrap gap-2">
           <span
@@ -131,26 +151,8 @@ export default function CompanyImpactWorkspace() {
         </div>
       </TalantonGeneratedPanel>
 
-      <TalantonGeneratedPanel
-        eyebrow="Scorecard"
-        title="Impact Score & Core Metrics"
-        copyText={profile.metricsText}
-      >
+      <TalantonGeneratedPanel title="Core Impact Metrics" copyText={profile.metricsText}>
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-          <TalantonImpactMetric
-            label="Impact Score"
-            value={`${profile.impactScore}/100`}
-            hint={profile.trend}
-            tone={
-              profile.impactScore >= 80
-                ? "good"
-                : profile.impactScore >= 65
-                  ? "default"
-                  : profile.impactScore >= 50
-                    ? "watch"
-                    : "alert"
-            }
-          />
           <TalantonImpactMetric label="Jobs Created" value={profile.jobsCreated.toLocaleString()} />
           <TalantonImpactMetric label="Jobs Retained" value={profile.jobsRetained.toLocaleString()} />
           <TalantonImpactMetric
@@ -248,14 +250,15 @@ export default function CompanyImpactWorkspace() {
           </div>
         </section>
       </div>
+    </div>
+  );
+}
 
-      <TalantonGeneratedPanel
-        eyebrow="AI generated"
-        title="AI Impact Commentary"
-        copyText={profile.commentaryText}
-      >
-        <p className="max-w-3xl text-sm leading-relaxed text-white/75">{profile.aiCommentary}</p>
-      </TalantonGeneratedPanel>
+function ImpactBriefTile({ heading, body }: { heading: string; body: string }) {
+  return (
+    <div className="rounded-xl border border-white/10 bg-black/20 p-4">
+      <h3 className="text-xs font-semibold uppercase tracking-[0.14em] text-emerald-300/75">{heading}</h3>
+      <p className="mt-2 text-sm leading-relaxed text-white/75">{body}</p>
     </div>
   );
 }

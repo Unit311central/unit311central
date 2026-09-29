@@ -4,7 +4,6 @@ import type { InternalOperationsView } from "@/lib/internal-operations-data";
 export const TALANTON_DEDICATED_INTELLIGENCE_VIEWS = [
   "portfolio-intelligence-briefing",
   "portfolio-intelligence-company",
-  "impact-intelligence-dashboard",
   "impact-intelligence-company",
   "opportunity-intelligence",
 ] as const satisfies readonly InternalOperationsView[];

@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, type ReactNode } from "react";
+import Link from "next/link";
+import { useCallback, useEffect, type ReactNode } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   AlertTriangle,
@@ -27,6 +28,7 @@ import {
   type CompanyRecommendedAction,
 } from "@/lib/talanton/company-intelligence";
 import type { RiskRating } from "@/lib/talanton/portfolio-data";
+import { useTalantonMemo } from "@/lib/talanton/use-talanton-intelligence-briefing";
 import { cn } from "@/lib/utils";
 import { useInternalOperationsBasePath } from "../InternalOperationsBasePathContext";
 
@@ -149,10 +151,10 @@ export default function CompanyIntelligenceWorkspace() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const basePath = useInternalOperationsBasePath();
-  const options = useMemo(() => listCompanyIntelligenceOptions(), []);
+  const options = useTalantonMemo(() => listCompanyIntelligenceOptions());
 
   const companyId = resolveCompanyIntelligenceId(searchParams.get("companyId"));
-  const intel = useMemo(() => buildCompanyIntelligence(companyId), [companyId]);
+  const intel = useTalantonMemo(() => buildCompanyIntelligence(companyId), [companyId]);
 
   const selectCompany = useCallback(
     (nextId: string) => {
@@ -242,21 +244,46 @@ export default function CompanyIntelligenceWorkspace() {
         </div>
       </header>
 
-      <GeneratedPanel eyebrow="AI generated" title="Executive Summary" copyText={intel.summaryText}>
-        <div className="space-y-5 text-sm leading-relaxed text-white/75">
-          <SummaryBlock heading="Current company status" body={summary.currentStatus} />
-          <SummaryBlock heading="Performance trend" body={summary.performanceTrend} />
-          <SummaryBlock heading="Risk profile" body={summary.riskProfile} />
-          <SummaryBlock heading="Compliance position" body={summary.compliancePosition} />
-          <SummaryList heading="Key developments" items={summary.keyDevelopments} />
-          <SummaryList
-            heading="Recommended focus areas"
-            items={summary.recommendedFocusAreas}
-            ordered
+      <section aria-label="Company intelligence overview">
+        <div className="mb-3">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-300/80">
+            Overview
+          </p>
+          <h2 className="mt-1 text-lg font-semibold tracking-tight text-white sm:text-xl">
+            {company.name}
+          </h2>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-3">
+          <IntelOverviewTile
+            label="Current status"
+            value={summary.currentStatus.slice(0, 120) + (summary.currentStatus.length > 120 ? "…" : "")}
+            href="#company-health-scorecard"
+          />
+          <IntelOverviewTile
+            label="Performance trend"
+            value={summary.performanceTrend.slice(0, 120) + (summary.performanceTrend.length > 120 ? "…" : "")}
+            href="#performance-detail"
+          />
+          <IntelOverviewTile
+            label="Risk profile"
+            value={summary.riskProfile.slice(0, 120) + (summary.riskProfile.length > 120 ? "…" : "")}
+            href="#company-risks"
+          />
+          <IntelOverviewTile
+            label="Compliance"
+            value={summary.compliancePosition.slice(0, 120) + (summary.compliancePosition.length > 120 ? "…" : "")}
+            href="#company-compliance"
+          />
+          <IntelOverviewTile label="Revenue trend" value={performance.revenueTrend} href="#performance-detail" />
+          <IntelOverviewTile
+            label="Headcount"
+            value={`${performance.headcount.toLocaleString("en-GB")} employees · ${performance.growthTrend}`}
+            href="#performance-detail"
           />
         </div>
-      </GeneratedPanel>
+      </section>
 
+      <div id="company-health-scorecard" className="scroll-mt-4">
       <GeneratedPanel eyebrow="Scorecard" title="Company Health" copyText={intel.healthText}>
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
           <HealthMetric
@@ -307,12 +334,10 @@ export default function CompanyIntelligenceWorkspace() {
           />
         </div>
       </GeneratedPanel>
+      </div>
 
-      <GeneratedPanel
-        eyebrow="Operating picture"
-        title="Performance Overview"
-        copyText={intel.performanceText}
-      >
+      <div id="performance-detail" className="scroll-mt-4">
+      <GeneratedPanel title="Performance Overview" copyText={intel.performanceText}>
         <div className="grid gap-3 sm:grid-cols-2">
           <InsightRow
             icon={<TrendingUp className="h-4 w-4 text-emerald-300" />}
@@ -350,8 +375,9 @@ export default function CompanyIntelligenceWorkspace() {
           ))}
         </div>
       </GeneratedPanel>
+      </div>
 
-      <section>
+      <section id="company-risks" className="scroll-mt-4">
         <div className="mb-3 flex items-end justify-between gap-3">
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-300/80">
@@ -401,11 +427,8 @@ export default function CompanyIntelligenceWorkspace() {
         </div>
       </section>
 
-      <GeneratedPanel
-        eyebrow="Assurance"
-        title="Compliance & Assurance"
-        copyText={intel.complianceText}
-      >
+      <div id="company-compliance" className="scroll-mt-4">
+      <GeneratedPanel title="Compliance & Assurance" copyText={intel.complianceText}>
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="rounded-xl border border-white/10 bg-black/20 px-4 py-3.5">
             <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/45">
@@ -436,6 +459,7 @@ export default function CompanyIntelligenceWorkspace() {
           </ul>
         </div>
       </GeneratedPanel>
+      </div>
 
       <GeneratedPanel eyebrow="Timeline" title="Recent Activity" copyText={intel.activityText}>
         <ol className="relative space-y-0 border-l border-white/10 pl-5">
@@ -494,6 +518,27 @@ export default function CompanyIntelligenceWorkspace() {
         </div>
       </GeneratedPanel>
     </div>
+  );
+}
+
+function IntelOverviewTile({
+  label,
+  value,
+  href,
+}: {
+  label: string;
+  value: string;
+  href: string;
+}) {
+  return (
+    <Link
+      href={href}
+      className="block rounded-xl border border-white/10 bg-black/20 px-4 py-3.5 transition hover:border-emerald-400/30 hover:bg-emerald-500/[0.06]"
+    >
+      <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/45">{label}</p>
+      <p className="mt-2 text-sm leading-snug text-white/80">{value}</p>
+      <p className="mt-2 text-[11px] font-medium text-emerald-300/80">Open section →</p>
+    </Link>
   );
 }
 

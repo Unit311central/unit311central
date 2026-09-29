@@ -118,7 +118,6 @@ export const WORKSPACE_CHUNK_LOADERS: Partial<
   "demo-market-intelligence": loadIntelligenceCentralWorkspace,
   "portfolio-intelligence-briefing": loadIntelligenceCentralWorkspace,
   "portfolio-intelligence-company": loadIntelligenceCentralWorkspace,
-  "impact-intelligence-dashboard": loadIntelligenceCentralWorkspace,
   "impact-intelligence-company": loadIntelligenceCentralWorkspace,
   "opportunity-intelligence": loadIntelligenceCentralWorkspace,
 };

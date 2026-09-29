@@ -8,7 +8,6 @@ import {
 
 import CompanyImpactWorkspace from "./CompanyImpactWorkspace";
 import CompanyIntelligenceWorkspace from "./CompanyIntelligenceWorkspace";
-import ImpactIntelligenceDashboardWorkspace from "./ImpactIntelligenceDashboardWorkspace";
 import OpportunityIntelligenceWorkspace from "./OpportunityIntelligenceWorkspace";
 import PortfolioIntelligenceBriefingWorkspace from "./PortfolioIntelligenceBriefingWorkspace";
 
@@ -24,8 +23,6 @@ export default function TalantonIntelligenceWorkspaceRouter({ view }: Props) {
       return <PortfolioIntelligenceBriefingWorkspace />;
     case "portfolio-intelligence-company":
       return <CompanyIntelligenceWorkspace />;
-    case "impact-intelligence-dashboard":
-      return <ImpactIntelligenceDashboardWorkspace />;
     case "impact-intelligence-company":
       return <CompanyImpactWorkspace />;
     case "opportunity-intelligence":

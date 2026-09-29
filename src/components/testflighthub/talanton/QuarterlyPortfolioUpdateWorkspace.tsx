@@ -13,6 +13,7 @@ import {
 import dynamic from "next/dynamic";
 
 import TalantonLogoMark from "@/components/layout/TalantonLogoMark";
+import { TalantonIntelligenceHeader } from "./talanton-intelligence-ui";
 import { formatUsd } from "@/lib/talanton/portfolio-data";
 import {
   archiveQuarterlyPortfolioUpdate,
@@ -41,10 +42,10 @@ const PortfolioCompanyMap = dynamic(() => import("./PortfolioCompanyMap"), {
 type Mode = "dashboard" | "create" | "viewer";
 
 const btnPrimary =
-  "inline-flex items-center gap-1.5 rounded-full border border-[#1B8A5A]/40 bg-[#1B8A5A] px-3.5 py-2 text-xs font-semibold text-white transition hover:bg-[#167a4f]";
+  "inline-flex items-center gap-1.5 rounded-full border border-emerald-400/30 bg-emerald-500/90 px-3.5 py-2 text-xs font-semibold text-white transition hover:bg-emerald-500";
 
 const btnGhost =
-  "inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:border-[#1B8A5A]/40 hover:text-[#1B8A5A]";
+  "inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-black/25 px-3 py-1.5 text-xs font-medium text-white/80 transition hover:border-emerald-400/35 hover:text-emerald-100";
 
 function statusClass(status: QuarterlyUpdateStatus) {
   if (status === "Published") return "border-emerald-600/30 bg-emerald-50 text-emerald-800";
@@ -728,49 +729,35 @@ export default function QuarterlyPortfolioUpdateWorkspace() {
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-5 overflow-auto bg-slate-50 p-5 sm:p-6">
-      <header className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <div className="border-b border-slate-200 px-5 py-5 sm:px-7">
-          <div className="inline-flex rounded-lg bg-[#1B8A5A] px-3 py-2">
-            <TalantonLogoMark height={28} maxWidth={160} />
-          </div>
-          <p className="mt-4 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#1B8A5A]">
-            Portfolio Intelligence
-          </p>
-          <div className="mt-1 flex flex-wrap items-end justify-between gap-4">
-            <div>
-              <h1 className="text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">
-                Quarterly Portfolio Update
-              </h1>
-              <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-600">
-                Professional quarterly portfolio publication — performance, impact, journeys and
-                outlook for Talanton stakeholders.
-              </p>
-            </div>
-            <button type="button" className={btnPrimary} onClick={() => setMode("create")}>
-              <Plus className="h-3.5 w-3.5" />
-              Create Report
-            </button>
-          </div>
-        </div>
-      </header>
+    <div className="flex h-full min-h-0 flex-col gap-5 overflow-auto p-5 sm:p-6">
+      <TalantonIntelligenceHeader
+        moduleLabel="Portfolio Intelligence"
+        title="Quarterly Portfolio Update"
+        description="Professional quarterly portfolio publication — performance, impact, journeys and outlook for Talanton stakeholders."
+        actions={
+          <button type="button" className={btnPrimary} onClick={() => setMode("create")}>
+            <Plus className="h-3.5 w-3.5" />
+            Create Report
+          </button>
+        }
+      />
 
       {notice ? (
-        <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm text-emerald-800">
+        <p className="rounded-xl border border-emerald-400/25 bg-emerald-500/10 px-4 py-2 text-sm text-emerald-100">
           {notice}
         </p>
       ) : null}
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-        <h2 className="text-lg font-semibold text-slate-900">Existing reports</h2>
-        <p className="mt-1 text-sm text-slate-500">
-          Demo library: Q1–Q3 2026 Portfolio Updates assembled from platform data.
+      <section className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-[#0f2a1f]/80 via-[#0b1a14]/90 to-[#08110d] p-5 sm:p-6">
+        <h2 className="text-lg font-semibold text-white">Existing reports</h2>
+        <p className="mt-1 text-sm text-white/50">
+          {reports.length} report{reports.length === 1 ? "" : "s"} in your workspace library.
         </p>
-        <div className="mt-4 space-y-3">
+        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {reports.map((r) => (
             <article
               key={r.id}
-              className="rounded-xl border border-slate-200 bg-[#f7faf8] p-4 transition hover:border-[#1B8A5A]/40"
+              className="flex flex-col rounded-xl border border-white/10 bg-black/20 p-4 transition hover:border-emerald-400/30 hover:bg-emerald-500/[0.05]"
             >
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <button
@@ -781,23 +768,29 @@ export default function QuarterlyPortfolioUpdateWorkspace() {
                     setMode("viewer");
                   }}
                 >
-                  <h3 className="text-base font-semibold text-slate-900 hover:text-[#1B8A5A]">
+                  <h3 className="text-base font-semibold text-white hover:text-emerald-100">
                     {r.title}
                   </h3>
-                  <p className="mt-1 text-xs text-slate-500">
+                  <p className="mt-1 text-xs text-white/45">
                     {periodLabel(r.period)} · {r.reportDate}
                   </p>
                 </button>
                 <span
                   className={cn(
                     "inline-flex rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide",
-                    statusClass(r.status),
+                    r.status === "Published"
+                      ? "border-emerald-400/30 bg-emerald-500/15 text-emerald-100"
+                      : r.status === "Generated"
+                        ? "border-sky-400/30 bg-sky-500/15 text-sky-100"
+                        : r.status === "Archived"
+                          ? "border-white/15 bg-white/5 text-white/50"
+                          : "border-amber-400/30 bg-amber-500/15 text-amber-100",
                   )}
                 >
                   {r.status}
                 </span>
               </div>
-              <div className="mt-4 flex flex-wrap gap-2">
+              <div className="mt-auto flex flex-wrap gap-2 pt-4">
                 <button
                   type="button"
                   className={btnGhost}
@@ -861,7 +854,7 @@ export default function QuarterlyPortfolioUpdateWorkspace() {
                 </button>
                 <button
                   type="button"
-                  className={cn(btnGhost, "border-rose-200 text-rose-700 hover:border-rose-300")}
+                  className={cn(btnGhost, "border-rose-400/30 text-rose-200 hover:border-rose-400/50")}
                   onClick={() => {
                     deleteQuarterlyPortfolioUpdate(r.id);
                     if (activeId === r.id) setActiveId(null);

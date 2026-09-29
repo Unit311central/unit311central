@@ -111,16 +111,8 @@ export const TALANTON_IMPACT_NAV_SECTIONS: InternalNavSection[] = [
         icon: "HeartHandshake",
         children: [
           {
-            label: "Impact Dashboard",
-            view: "impact-intelligence-dashboard",
-          },
-          {
             label: "Company Impact",
             view: "impact-intelligence-company",
-          },
-          {
-            label: "Annual Impact Report",
-            view: "annual-impact-report",
           },
         ],
       },

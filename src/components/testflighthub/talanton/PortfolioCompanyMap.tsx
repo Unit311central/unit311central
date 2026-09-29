@@ -12,6 +12,7 @@ import {
   buildPortfolioMapMarkers,
   type PortfolioMapMarker,
 } from "@/lib/talanton/portfolio-map";
+import { useTalantonPortfolioDataKey } from "@/lib/talanton/use-talanton-intelligence-briefing";
 import { URBAN_MAP_ATTRIBUTION } from "@/lib/map-tiles";
 
 const CARTO_DARK_URL =
@@ -165,7 +166,8 @@ function PortfolioMarkers({
 
 /** Africa-centred portfolio map for Talanton Executive Home. */
 export default function PortfolioCompanyMap() {
-  const markers = useMemo(() => buildPortfolioMapMarkers(), []);
+  const dataKey = useTalantonPortfolioDataKey();
+  const markers = useMemo(() => buildPortfolioMapMarkers(), [dataKey]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
 

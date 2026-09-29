@@ -7,7 +7,19 @@ import ExecutiveMyWorkspace from "@/components/central-capabilities/ExecutiveMyW
 import NorthstarCompanyOverview from "@/components/demo/NorthstarCompanyOverview";
 
 import { WorkspaceDashboard } from "@/components/dashboard-framework";
-import PortfolioCompanyMap from "@/components/testflighthub/talanton/PortfolioCompanyMap";
+import dynamic from "next/dynamic";
+
+const PortfolioCompanyMap = dynamic(
+  () => import("@/components/testflighthub/talanton/PortfolioCompanyMap"),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex aspect-[16/11] items-center justify-center rounded-2xl border border-white/10 bg-[#07111f]/60 text-sm text-white/50 sm:aspect-[2/1]">
+        Loading portfolio map…
+      </div>
+    ),
+  },
+);
 import type { FinancialOverviewSnapshot } from "@/lib/accounting/types";
 import type { ManagedClient } from "@/lib/client-management-data";
 import {

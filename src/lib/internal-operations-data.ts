@@ -826,6 +826,8 @@ export function normalizeInternalOperationsView(value: string | null): InternalO
   }
   if (value === "technology") return "technology-dashboard";
   if (value === "portfolio-companies") return "portfolio-dashboard";
+  if (value === "impact-intelligence-dashboard") return "impact-intelligence-company";
+  if (value === "annual-impact-report") return "impact-intelligence-company";
   // Keep corporate leaf ids (company details, offices, …) so breadcrumbs/titles stay correct.
   return isInternalOperationsView(value) ? value : "home";
 }
