@@ -177,11 +177,16 @@ export function listTalantonGovernanceMeetings() {
 export function listTalantonLiveRisks(): TiRiskRegisterEntry[] {
   const overlay = getTalantonRequestRisks();
   if (overlay?.risks?.length) return overlay.risks.filter((r) => !r.archived);
-  try {
-    return getTiRiskRegisterState().risks.filter((r) => !r.archived);
-  } catch {
+  if (typeof window === "undefined") {
     return getTiRiskRegisterServerSnapshot().risks.filter((r) => !r.archived);
   }
+  try {
+    const clientRisks = getTiRiskRegisterState().risks.filter((r) => !r.archived);
+    if (clientRisks.length) return clientRisks;
+  } catch {
+    /* fall through to server snapshot */
+  }
+  return getTiRiskRegisterServerSnapshot().risks.filter((r) => !r.archived);
 }
 
 function mapGovernanceAction(action: GovernanceAction & { meetingTitle?: string }): AbhiBoardAction {

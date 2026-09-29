@@ -138,6 +138,21 @@ export async function resolveOrchestrationRoute(
     }
   }
 
+  // Talanton Impact — deterministic tools before semantic / evidence_gpt (portfolio, briefing, stories PDF).
+  {
+    const { resolveTalantonEarlyOrchestrationRoute } = await import(
+      "@/lib/talanton/talanton-ea-orchestration"
+    );
+    const talantonRoute = resolveTalantonEarlyOrchestrationRoute(message, business);
+    if (talantonRoute) {
+      eaStage("Talanton early orchestration", {
+        kind: talantonRoute.kind,
+        tool: talantonRoute.kind === "tool" ? talantonRoute.intent.tool : undefined,
+      });
+      return talantonRoute;
+    }
+  }
+
   // General investigation / cross-module evidence — before single-capability routing.
   {
     const investigationPlan = planInvestigation(message, business);

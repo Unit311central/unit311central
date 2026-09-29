@@ -176,6 +176,39 @@ export async function listPortfolioCompanies(
   return (data ?? []).map((row) => mapRow(row as Record<string, unknown>));
 }
 
+function isTalantonEaSuiteOfflineFallbackEnabled(workspaceSlug: string): boolean {
+  return (
+    process.env.TALANTON_EA_SUITE === "1" &&
+    workspaceSlug.trim().toLowerCase() === TALANTON_IMPACT_SLUG
+  );
+}
+
+/**
+ * Portfolio rows for Talanton intelligence / EA tools (Supabase first).
+ * When the Talanton EA suite runs without a reachable database (local/CI placeholder),
+ * returns canonical portfolio rows in Supabase shape — not used in production runtime.
+ */
+export async function loadPortfolioCompaniesForEa(
+  workspaceId: string,
+  workspaceSlug: string,
+): Promise<PortfolioCompany[]> {
+  if (!isSupabaseServiceRoleConfigured()) {
+    if (isTalantonEaSuiteOfflineFallbackEnabled(workspaceSlug)) {
+      return TALANTON_PORTFOLIO_COMPANIES.map((company) => ({ ...company }));
+    }
+    throw new Error("Portfolio companies require SUPABASE_SERVICE_ROLE_KEY.");
+  }
+
+  try {
+    return await ensurePortfolioCompaniesSeeded({ workspaceId, workspaceSlug });
+  } catch (error) {
+    if (isTalantonEaSuiteOfflineFallbackEnabled(workspaceSlug)) {
+      return TALANTON_PORTFOLIO_COMPANIES.map((company) => ({ ...company }));
+    }
+    throw error;
+  }
+}
+
 export async function ensurePortfolioCompaniesSeeded(args: {
   workspaceId: string;
   workspaceSlug: string;

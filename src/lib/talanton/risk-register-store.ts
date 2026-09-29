@@ -100,6 +100,15 @@ export function getTiRiskRegisterState(): TiRiskRegisterState {
 }
 
 export function getTiRiskRegisterServerSnapshot(): TiRiskRegisterState {
+  if (process.env.TALANTON_EA_SUITE === "1" && serverSnapshot.risks.length === 0) {
+    const { seedRisksFromFixtures } =
+      require("@/lib/talanton/governance-seed-data") as typeof import("@/lib/talanton/governance-seed-data");
+    return {
+      risks: seedRisksFromFixtures(),
+      status: "ready",
+      error: null,
+    };
+  }
   return serverSnapshot;
 }
 

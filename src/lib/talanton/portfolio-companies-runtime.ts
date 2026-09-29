@@ -5,12 +5,13 @@ import {
 
 /** Optional in-memory override (EA tool handlers, tests). */
 let runtimeOverride: PortfolioCompany[] | null = null;
+let runtimeOverrideActive = false;
 
 /** Client-fetched snapshot; falls back to seed data until API load completes. */
 let clientSnapshot: PortfolioCompany[] = TALANTON_PORTFOLIO_COMPANIES;
 
 export function resolveTalantonPortfolioCompanies(): PortfolioCompany[] {
-  if (runtimeOverride?.length) return runtimeOverride;
+  if (runtimeOverrideActive) return runtimeOverride ?? [];
   if (clientSnapshot.length) return clientSnapshot;
   return TALANTON_PORTFOLIO_COMPANIES;
 }
@@ -24,11 +25,14 @@ export function withTalantonPortfolioCompaniesOverride<T>(
   fn: () => T,
 ): T {
   const prev = runtimeOverride;
-  runtimeOverride = companies.length ? companies : null;
+  const prevActive = runtimeOverrideActive;
+  runtimeOverride = companies;
+  runtimeOverrideActive = true;
   try {
     return fn();
   } finally {
     runtimeOverride = prev;
+    runtimeOverrideActive = prevActive;
   }
 }
 
@@ -37,10 +41,13 @@ export async function withTalantonPortfolioCompaniesOverrideAsync<T>(
   fn: () => Promise<T>,
 ): Promise<T> {
   const prev = runtimeOverride;
-  runtimeOverride = companies.length ? companies : null;
+  const prevActive = runtimeOverrideActive;
+  runtimeOverride = companies;
+  runtimeOverrideActive = true;
   try {
     return await fn();
   } finally {
     runtimeOverride = prev;
+    runtimeOverrideActive = prevActive;
   }
 }

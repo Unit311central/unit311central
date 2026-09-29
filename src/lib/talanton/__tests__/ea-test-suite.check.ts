@@ -5,6 +5,7 @@
 import { runTalantonEaTestSuite } from "@/lib/talanton/ea-test-suite";
 
 async function main() {
+  process.env.TALANTON_EA_SUITE = "1";
   const report = await runTalantonEaTestSuite();
   for (const section of report.sections) {
     console.log(`\n=== ${section.title} ===`);

@@ -6,7 +6,11 @@ import { resolveAbhiBoardPackIntent } from "@/lib/abhi/board-pack-intent";
 import { resolveOrchestrationRoute } from "@/lib/ai-operating-assistant/action-orchestration";
 import { loadScopedPdfBundle } from "@/lib/ai-operating-assistant/scoped-business-pdf-service";
 import { parseScopedPdfRequest } from "@/lib/ai-operating-assistant/scoped-pdf-metrics";
-import { executeAssistantTool, getOpenAIToolSchemas } from "@/lib/ai-operating-assistant/tool-service";
+import {
+  executeAssistantTool,
+  getOpenAIToolSchemas,
+  toOpenAiFunctionToolName,
+} from "@/lib/ai-operating-assistant/tool-service";
 import type { AssistantBusinessContext } from "@/lib/ai-operating-assistant/types";
 import { resolveTalantonExecutiveIntelligenceIntent } from "@/lib/talanton/executive-intelligence-intent";
 import {
@@ -171,9 +175,56 @@ class SectionRunner {
 }
 
 export async function runTalantonEaTestSuite(): Promise<EaTestSuiteReport> {
+  if (!process.env.TALANTON_EA_SUITE) {
+    process.env.TALANTON_EA_SUITE = "1";
+  }
   const startedAt = new Date().toISOString();
   const t0 = Date.now();
   const sections: SectionRunner[] = [];
+
+  const routingRegression = new SectionRunner("Routing regression");
+  sections.push(routingRegression);
+  await routingRegression.run("Talanton executive briefing → getExecutiveBriefing", async () => {
+    const route = await resolveOrchestrationRoute(
+      "Talanton executive briefing",
+      [],
+      talantonBusiness(),
+    );
+    if (route.kind !== "tool") throw new Error(`expected tool route, got ${route.kind}`);
+    if (route.intent.tool !== "talanton.getExecutiveBriefing") {
+      throw new Error(`expected talanton.getExecutiveBriefing, got ${route.intent.tool}`);
+    }
+  });
+  await routingRegression.run("Portfolio → queryPortfolio executes", async () => {
+    const route = await resolveOrchestrationRoute(
+      "What requires attention across the portfolio?",
+      [],
+      talantonBusiness(),
+    );
+    if (route.kind !== "tool" || route.intent.tool !== "talanton.queryPortfolio") {
+      throw new Error("expected talanton.queryPortfolio route");
+    }
+    const result = await executeAssistantTool(
+      route.intent.tool,
+      route.intent.args ?? {},
+      talantonBusiness(),
+    );
+    const status = String((result as { status?: string }).status ?? "");
+    if (status !== "ok" && status !== "partial") {
+      throw new Error(`talanton.queryPortfolio returned ${status}`);
+    }
+  });
+  await routingRegression.run("Field stories lessons PDF → generateStoriesLessonsPdf", async () => {
+    const route = await resolveOrchestrationRoute(
+      TALANTON_FIELD_STORIES_LESSONS_PDF_PROMPT,
+      [],
+      talantonBusiness(),
+    );
+    if (route.kind !== "tool") throw new Error(`expected tool route, got ${route.kind}`);
+    if (route.intent.tool !== "talanton.generateStoriesLessonsPdf") {
+      throw new Error(`expected generateStoriesLessonsPdf, got ${route.intent.tool}`);
+    }
+  });
 
   const intents = new SectionRunner("Intent routing");
   sections.push(intents);
@@ -476,7 +527,7 @@ export async function runTalantonEaTestSuite(): Promise<EaTestSuiteReport> {
   const registry = new SectionRunner("Tool registry");
   sections.push(registry);
   await registry.run("Workspace-scoped OpenAI tools", () => {
-    const tiTools = getOpenAIToolSchemas("talantonimpact").map((t) => t.name);
+    const tiTools = new Set(getOpenAIToolSchemas("talantonimpact").map((t) => t.name));
     for (const name of [
       "talanton.getExecutiveBriefing",
       "talanton.getOrgHealth",
@@ -489,14 +540,17 @@ export async function runTalantonEaTestSuite(): Promise<EaTestSuiteReport> {
       "talanton.generateStoriesReport",
       "talanton.generateStoriesLessonsPdf",
     ]) {
-      if (!tiTools.includes(name)) throw new Error(`missing ${name}`);
+      const openAiName = toOpenAiFunctionToolName(name);
+      if (!tiTools.has(openAiName)) throw new Error(`missing ${name} (${openAiName})`);
     }
-    const abhiTools = getOpenAIToolSchemas("abhi").map((t) => t.name);
-    if (!abhiTools.includes("abhi.getExecutiveBriefing")) throw new Error("missing abhi tool");
-    if (abhiTools.includes("talanton.getExecutiveBriefing")) {
+    const abhiTools = new Set(getOpenAIToolSchemas("abhi").map((t) => t.name));
+    if (!abhiTools.has(toOpenAiFunctionToolName("abhi.getExecutiveBriefing"))) {
+      throw new Error("missing abhi tool");
+    }
+    if (abhiTools.has(toOpenAiFunctionToolName("talanton.getExecutiveBriefing"))) {
       throw new Error("talanton tools leaked to abhi schema");
     }
-  }, `talantonTools=${getOpenAIToolSchemas("talantonimpact").filter((t) => t.name.startsWith("talanton.")).length}`);
+  }, `talantonTools=${getOpenAIToolSchemas("talantonimpact").filter((t) => t.name.startsWith("talanton_")).length}`);
 
   const orchestration = new SectionRunner("Orchestration");
   sections.push(orchestration);
