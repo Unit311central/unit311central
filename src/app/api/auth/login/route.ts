@@ -1057,9 +1057,15 @@ export async function POST(request: NextRequest) {
     // Prefer real workspace membership first so /login lands on the main platform.
     // Fall back to the shared demo password login only when DB auth fails.
     if (isSupabaseConfigured()) {
-      const result = await loginPlatformUser(body.username, body.password, {
-        workspaceSlug,
-      });
+      let result: Awaited<ReturnType<typeof loginPlatformUser>> = null;
+      try {
+        result = await loginPlatformUser(body.username, body.password, {
+          workspaceSlug,
+        });
+      } catch (dbError) {
+        console.error("[auth/login] Supabase platform login failed", dbError);
+        // Fall through to shared-password / portal login paths below.
+      }
       if (result && !("forbidden" in result)) {
         if (
           isAbhiSlug(workspaceSlug) &&
@@ -1240,6 +1246,17 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Invalid username or password." }, { status: 401 });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Login failed";
+    const cause =
+      error instanceof Error && error.cause instanceof Error ? error.cause.message : "";
+    if (message.includes("fetch failed") || cause.includes("fetch failed")) {
+      return NextResponse.json(
+        {
+          error:
+            "Sign-in is temporarily unavailable while the platform database reconnects. Please try again in a minute.",
+        },
+        { status: 503 },
+      );
+    }
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
