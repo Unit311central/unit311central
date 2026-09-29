@@ -368,12 +368,14 @@ export function listImpactReportHistory(companyId: string): ImpactReport[] {
   );
 }
 
-/** Latest submitted/approved report preferred for Impact Intelligence. */
+/** Latest submitted/approved report for Impact Intelligence (excludes demo seed reports). */
 export function getLatestImpactReportForIntelligence(
   companyId: string,
 ): ImpactReport | null {
+  if (typeof window === "undefined") return null;
+  const seedIds = new Set(seedFor(companyId).reports.map((r) => r.id));
   const ranked = ["Approved", "Submitted", "Under Review"] as const;
-  const reports = getSeedStoriesImpact(companyId).reports;
+  const reports = listImpactReportHistory(companyId).filter((r) => !seedIds.has(r.id));
   for (const status of ranked) {
     const match = reports
       .filter((r) => r.status === status)

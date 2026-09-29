@@ -128,22 +128,22 @@ function buildTalantonExecutiveHomeKpis(): DashboardKpiItem[] {
   const {
     buildPortfolioImpactBriefing,
   } = require("@/lib/talanton/impact-intelligence") as typeof import("@/lib/talanton/impact-intelligence");
-  const {
-    formatUsd,
-    TALANTON_PORTFOLIO_COMPANIES,
-  } = require("@/lib/talanton/portfolio-data") as typeof import("@/lib/talanton/portfolio-data");
+  const { UNAVAILABLE_LABEL } =
+    require("@/lib/talanton/intelligence-metric-types") as typeof import("@/lib/talanton/intelligence-metric-types");
+  const { formatUsd } =
+    require("@/lib/talanton/portfolio-data") as typeof import("@/lib/talanton/portfolio-data");
+  const { resolveTalantonPortfolioCompanies } =
+    require("@/lib/talanton/portfolio-companies-runtime") as typeof import("@/lib/talanton/portfolio-companies-runtime");
 
   const briefing = buildPortfolioImpactBriefing();
-  const capitalRaised = TALANTON_PORTFOLIO_COMPANIES.reduce(
-    (sum, company) => sum + company.investmentAmountUsd,
-    0,
-  );
+  const companies = resolveTalantonPortfolioCompanies();
+  const capitalRaised = companies.reduce((sum, company) => sum + company.investmentAmountUsd, 0);
 
   return normalizeKpiRow([
     {
       id: "portfolio-companies",
       label: "Portfolio Companies",
-      value: String(TALANTON_PORTFOLIO_COMPANIES.length),
+      value: String(companies.length),
       delta: "Active holdings",
       tone: "positive",
       hint: "Talanton Impact portfolio",
@@ -151,10 +151,13 @@ function buildTalantonExecutiveHomeKpis(): DashboardKpiItem[] {
     {
       id: "countries-active",
       label: "Countries Active",
-      value: String(briefing.summary.countriesImpacted),
-      delta: "Across Africa",
-      tone: "positive",
-      hint: "Countries with active holdings",
+      value:
+        briefing.summary.countriesImpacted === null
+          ? UNAVAILABLE_LABEL
+          : String(briefing.summary.countriesImpacted),
+      delta: briefing.summary.hasAggregatedSubmissionData ? "From impact submissions" : "Impact data pending",
+      tone: "neutral",
+      hint: "Distinct countries in submitted impact reports",
     },
     {
       id: "capital-raised",
@@ -167,24 +170,33 @@ function buildTalantonExecutiveHomeKpis(): DashboardKpiItem[] {
     {
       id: "people-served",
       label: "People Served",
-      value: briefing.summary.peopleServed.toLocaleString(),
-      delta: "Portfolio reach",
-      tone: "positive",
-      hint: "Estimated people reached",
+      value:
+        briefing.summary.peopleServed === null
+          ? UNAVAILABLE_LABEL
+          : briefing.summary.peopleServed.toLocaleString(),
+      delta: briefing.summary.hasAggregatedSubmissionData ? "Portal submissions" : "No submissions",
+      tone: "neutral",
+      hint: "Reported in company portal impact submissions",
     },
     {
       id: "jobs-created",
       label: "Jobs Created",
-      value: briefing.summary.jobsCreated.toLocaleString(),
-      delta: `${briefing.summary.jobsRetained.toLocaleString()} retained`,
-      tone: "positive",
-      hint: "Rolling jobs created",
+      value:
+        briefing.summary.jobsCreated === null
+          ? UNAVAILABLE_LABEL
+          : briefing.summary.jobsCreated.toLocaleString(),
+      delta:
+        briefing.summary.jobsRetained === null
+          ? UNAVAILABLE_LABEL
+          : `${briefing.summary.jobsRetained.toLocaleString()} retained`,
+      tone: "neutral",
+      hint: "Reported in company portal impact submissions",
     },
     {
       id: "impact-health",
       label: "Impact Health Score",
-      value: `${briefing.health.score}/100`,
-      delta: briefing.health.band,
+      value: briefing.health.scoreUnavailable ? UNAVAILABLE_LABEL : `${briefing.health.score}/100`,
+      delta: briefing.health.scoreUnavailable ? UNAVAILABLE_LABEL : briefing.health.band,
       tone:
         briefing.health.band === "Strong" || briefing.health.band === "Healthy"
           ? "positive"
@@ -697,58 +709,65 @@ export function buildExecutiveHomeLiveAnalytics(input: {
     const {
       buildPortfolioImpactBriefing,
     } = require("@/lib/talanton/impact-intelligence") as typeof import("@/lib/talanton/impact-intelligence");
+    const { UNAVAILABLE_LABEL } =
+      require("@/lib/talanton/intelligence-metric-types") as typeof import("@/lib/talanton/intelligence-metric-types");
     const briefing = buildPortfolioImpactBriefing();
-    const labels = ["Q1", "Q2", "Q3", "Q4"];
-    const jobsBase = briefing.summary.jobsCreated;
-    const peopleBase = briefing.summary.peopleServed;
-    const jobsValues = [0.72, 0.84, 0.93, 1].map((f) => Math.round(jobsBase * f));
-    const peopleValues = [0.7, 0.82, 0.92, 1].map((f) => Math.round(peopleBase * f));
+    const hasData = briefing.summary.hasAggregatedSubmissionData;
+    const labels = ["Current"];
+    const jobsValues =
+      hasData && briefing.summary.jobsCreated !== null ? [briefing.summary.jobsCreated] : [];
+    const peopleValues =
+      hasData && briefing.summary.peopleServed !== null ? [briefing.summary.peopleServed] : [];
     return {
       title: "Impact Performance",
-      caption: "Jobs created vs people served · portfolio impact trends",
-      emptyMessage: "Impact trend series will appear once portfolio metrics load.",
-      series: [
-        {
-          id: "jobs",
-          label: "Jobs created",
-          values: jobsValues,
-          labels,
-          format: "number",
-          latestLabel: briefing.summary.jobsCreated.toLocaleString(),
-        },
-        {
-          id: "people",
-          label: "People served",
-          values: peopleValues,
-          labels,
-          format: "number",
-          latestLabel: briefing.summary.peopleServed.toLocaleString(),
-        },
-      ],
+      caption: "Jobs created vs people served · from company portal impact submissions only",
+      emptyMessage: "Impact trend series unavailable until company portal impact submissions exist.",
+      series:
+        jobsValues.length && peopleValues.length
+          ? [
+              {
+                id: "jobs",
+                label: "Jobs created",
+                values: jobsValues,
+                labels,
+                format: "number",
+                latestLabel: briefing.summary.jobsCreated!.toLocaleString(),
+              },
+              {
+                id: "people",
+                label: "People served",
+                values: peopleValues,
+                labels,
+                format: "number",
+                latestLabel: briefing.summary.peopleServed!.toLocaleString(),
+              },
+            ]
+          : [],
       annotations: [
         {
           id: "impact-health",
           label: "Impact health",
-          value: `${briefing.health.score}/100`,
-          tone:
-            briefing.health.band === "Strong" || briefing.health.band === "Healthy"
-              ? "positive"
-              : briefing.health.band === "Watch"
-                ? "warning"
-                : "critical",
-          hint: briefing.health.band,
+          value: briefing.health.scoreUnavailable ? UNAVAILABLE_LABEL : `${briefing.health.score}/100`,
+          tone: "neutral",
+          hint: briefing.health.scoreUnavailable ? UNAVAILABLE_LABEL : briefing.health.band,
         },
         {
           id: "communities",
           label: "Communities",
-          value: briefing.summary.communitiesImpacted.toLocaleString(),
-          tone: "positive",
+          value:
+            briefing.summary.communitiesImpacted === null
+              ? UNAVAILABLE_LABEL
+              : briefing.summary.communitiesImpacted.toLocaleString(),
+          tone: "neutral",
           hint: "Communities impacted",
         },
         {
           id: "countries",
           label: "Countries",
-          value: String(briefing.summary.countriesImpacted),
+          value:
+            briefing.summary.countriesImpacted === null
+              ? UNAVAILABLE_LABEL
+              : String(briefing.summary.countriesImpacted),
           tone: "neutral",
           hint: "Active footprint",
         },

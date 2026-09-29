@@ -4,7 +4,12 @@
  * Not a board deck, governance pack, or dashboard export.
  */
 
-import { buildPortfolioImpactBriefing, buildCompanyImpactProfile } from "@/lib/talanton/impact-intelligence";
+import {
+  buildPortfolioImpactBriefing,
+  buildCompanyImpactProfile,
+  displayImpactCount,
+  impactCountOrZero,
+} from "@/lib/talanton/impact-intelligence";
 import { listPublishedJourneyStories } from "@/lib/talanton/journey-stories-store";
 import { listApprovedStoriesForNewsletter } from "@/lib/talanton/marketing-stories-store";
 import { buildOpportunityBriefing } from "@/lib/talanton/opportunity-intelligence";
@@ -205,7 +210,7 @@ export function assembleQuarterlyPortfolioUpdate(input: {
   const avgGrowth =
     companies.reduce((s, c) => s + c.revenueGrowthPct, 0) / Math.max(companies.length, 1);
   const totalEmployees = companies.reduce((s, c) => s + c.employeeCount, 0);
-  const priorEmployees = Math.max(1, totalEmployees - briefing.summary.jobsCreated);
+  const priorEmployees = Math.max(1, totalEmployees - impactCountOrZero(briefing.summary.jobsCreated));
   const employmentGrowthPct = Math.round(
     ((totalEmployees - priorEmployees) / priorEmployees) * 100,
   );
@@ -326,7 +331,7 @@ export function assembleQuarterlyPortfolioUpdate(input: {
       quarterHighlights: [
         `${companies.length} active portfolio companies across ${countries.length} countries.`,
         `Blended portfolio revenue growth of approximately ${Math.round(avgGrowth)}%.`,
-        `Portfolio employment base of ${totalEmployees.toLocaleString()} people, with ${briefing.summary.jobsCreated.toLocaleString()} jobs created across holdings.`,
+        `Portfolio employment base of ${totalEmployees.toLocaleString()} people, with ${displayImpactCount(briefing.summary.jobsCreated)} jobs created across holdings (portal submissions).`,
       ],
       keyPortfolioDevelopments: [
         growthLeaders.length
@@ -339,11 +344,13 @@ export function assembleQuarterlyPortfolioUpdate(input: {
           ? `Portfolio storytelling advanced with “${featuredSource.title}” (${featuredSource.companyName}).`
           : "Portfolio Stories continued to evidence community outcomes for stakeholders.",
       ],
-      keyImpactAchievements: [
-        `${briefing.summary.jobsCreated.toLocaleString()} jobs created and ${briefing.summary.jobsRetained.toLocaleString()} jobs retained.`,
-        `${briefing.summary.womenEmployed.toLocaleString()} women and ${briefing.summary.youthEmployed.toLocaleString()} youth in paid employment across the portfolio.`,
-        `${briefing.summary.communitiesImpacted.toLocaleString()} communities impacted · ${briefing.summary.peopleServed.toLocaleString()} people served.`,
-      ],
+      keyImpactAchievements: briefing.summary.hasAggregatedSubmissionData
+        ? [
+            `${displayImpactCount(briefing.summary.jobsCreated)} jobs created and ${displayImpactCount(briefing.summary.jobsRetained)} jobs retained.`,
+            `${displayImpactCount(briefing.summary.womenEmployed)} women and ${displayImpactCount(briefing.summary.youthEmployed)} youth in paid employment across the portfolio.`,
+            `${displayImpactCount(briefing.summary.communitiesImpacted)} communities impacted · ${displayImpactCount(briefing.summary.peopleServed)} people served.`,
+          ]
+        : ["Impact metrics unavailable until company portal impact submissions are on file."],
       portfolioFocusAreas: [
         ...(watchHoldings.length
           ? [
@@ -368,7 +375,7 @@ export function assembleQuarterlyPortfolioUpdate(input: {
     performance: {
       revenueGrowthPct: Math.round(avgGrowth),
       employmentGrowthPct: Math.max(0, employmentGrowthPct),
-      newCustomersServed: briefing.summary.peopleServed,
+      newCustomersServed: impactCountOrZero(briefing.summary.peopleServed),
       capitalRaisedByPortfolioUsd,
       revenueBySector,
       employmentByCountry,
@@ -390,11 +397,11 @@ export function assembleQuarterlyPortfolioUpdate(input: {
       summary: `${period} portfolio activity centred on strengthening growth holdings, maintaining founder partnership, and addressing watch-list companies. Capital stewardship remained focused on operating quality and measurable community outcomes rather than speculative expansion.`,
     },
     impact: {
-      jobsCreated: briefing.summary.jobsCreated,
-      jobsRetained: briefing.summary.jobsRetained,
-      womenEmployed: briefing.summary.womenEmployed,
-      youthEmployed: briefing.summary.youthEmployed,
-      communitiesImpacted: briefing.summary.communitiesImpacted,
+      jobsCreated: impactCountOrZero(briefing.summary.jobsCreated),
+      jobsRetained: impactCountOrZero(briefing.summary.jobsRetained),
+      womenEmployed: impactCountOrZero(briefing.summary.womenEmployed),
+      youthEmployed: impactCountOrZero(briefing.summary.youthEmployed),
+      communitiesImpacted: impactCountOrZero(briefing.summary.communitiesImpacted),
       jobsBySector,
     },
     featuredStory: {
@@ -442,7 +449,9 @@ export function assembleQuarterlyPortfolioUpdate(input: {
     closing: {
       statement: [
         `${period} confirms Talanton’s stewardship of ${companies.length} portfolio companies across ${countries.length} countries.`,
-        `The portfolio continues to advance dignified work and community flourishing — ${briefing.summary.jobsCreated.toLocaleString()} jobs created, ${briefing.summary.communitiesImpacted.toLocaleString()} communities impacted, and ${briefing.summary.peopleServed.toLocaleString()} people served.`,
+        briefing.summary.hasAggregatedSubmissionData
+          ? `The portfolio continues to advance dignified work and community flourishing — ${displayImpactCount(briefing.summary.jobsCreated)} jobs created, ${displayImpactCount(briefing.summary.communitiesImpacted)} communities impacted, and ${displayImpactCount(briefing.summary.peopleServed)} people served.`
+          : `Impact outcomes for this publication will reflect company portal submissions once reports are on file.`,
         `We close this quarter grateful for our founders, investors and partners, and committed to patient capital that serves communities first.`,
         `Talanton Impact`,
       ].join("\n\n"),

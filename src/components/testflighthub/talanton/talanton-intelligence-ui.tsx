@@ -3,10 +3,17 @@
 import type { ReactNode } from "react";
 
 import {
+  UNAVAILABLE_LABEL,
+  formatNullableCount,
+  formatNullableScore,
+} from "@/lib/talanton/intelligence-metric-types";
+import {
   WorkspaceGeneratedPanel,
   WorkspaceImpactMetric,
   WorkspaceModuleHeader,
 } from "@/components/workspace-ui";
+
+export { formatNullableCount, formatNullableScore, UNAVAILABLE_LABEL };
 
 /** Mandatory Talanton Intelligence standard: copy control top-right on every generated panel. */
 export function TalantonGeneratedPanel({
@@ -83,11 +90,19 @@ export function TalantonImpactMetric({
   value,
   hint,
   tone = "default",
+  unavailable,
 }: {
   label: string;
   value: string | number;
   hint?: string;
   tone?: "default" | "watch" | "alert" | "good";
+  /** When true, render muted unavailable styling (value should be UNAVAILABLE_LABEL or similar). */
+  unavailable?: boolean;
 }) {
+  if (unavailable || value === UNAVAILABLE_LABEL) {
+    return (
+      <TalantonPlaceholderMetric label={label} value={UNAVAILABLE_LABEL} hint={hint ?? "Not reported"} />
+    );
+  }
   return <WorkspaceImpactMetric label={label} value={value} hint={hint} tone={tone} />;
 }

@@ -3,6 +3,7 @@ import { resolveTalantonExecutiveIntelligenceIntent } from "@/lib/talanton/execu
 import { buildPortfolioExecutiveBriefing } from "@/lib/talanton/portfolio-intelligence";
 import { buildPortfolioImpactBriefing } from "@/lib/talanton/impact-intelligence";
 import { buildOpportunityBriefing } from "@/lib/talanton/opportunity-intelligence";
+import { UNAVAILABLE_LABEL } from "@/lib/talanton/intelligence-metric-types";
 import {
   TALANTON_HOST_ALIAS_SLUG,
   TALANTON_IMPACT_SLUG,
@@ -85,17 +86,24 @@ const impactProvider: IntelligenceDomainProvider = {
       {
         id: "summary",
         title: "Impact summary",
-        bullets: [
-          `${briefing.summary.jobsCreated.toLocaleString()} jobs created`,
-          `${briefing.summary.peopleServed.toLocaleString()} people served`,
-        ],
+        bullets: briefing.summary.hasAggregatedSubmissionData
+          ? [
+              `${briefing.summary.jobsCreated?.toLocaleString() ?? UNAVAILABLE_LABEL} jobs created`,
+              `${briefing.summary.peopleServed?.toLocaleString() ?? UNAVAILABLE_LABEL} people served`,
+            ]
+          : [UNAVAILABLE_LABEL],
       },
       {
         id: "risks",
         title: "Impact risks",
-        bullets: briefing.risks.slice(0, 4).map((r) => r.title),
+        bullets:
+          briefing.risks.length > 0
+            ? briefing.risks.slice(0, 4).map((r) => r.title)
+            : [UNAVAILABLE_LABEL],
       },
-    ], { posture: briefing.health.band === "At Risk" || briefing.health.band === "Watch" ? "watch" : "healthy" });
+    ], {
+      posture: briefing.health.scoreUnavailable ? "watch" : briefing.health.band === "At Risk" || briefing.health.band === "Watch" ? "watch" : "healthy",
+    });
   },
 };
 
@@ -103,6 +111,9 @@ const opportunityProvider: IntelligenceDomainProvider = {
   domainId: "opportunity",
   async searchRecords(_ctx, query) {
     const briefing = buildOpportunityBriefing();
+    if (!briefing.pipelineDataAvailable) {
+      return { records: [], total: 0 };
+    }
     return paginateRecords(
       briefing.potentialCompanies,
       (company) => ({
@@ -126,14 +137,17 @@ const opportunityProvider: IntelligenceDomainProvider = {
       {
         id: "health",
         title: "Pipeline health",
-        bullets: [briefing.health.postureReason],
+        bullets: [briefing.pipelineUnavailableReason],
       },
       {
         id: "emerging",
         title: "Emerging opportunities",
-        bullets: briefing.emergingOpportunities.slice(0, 5),
+        bullets:
+          briefing.emergingOpportunities.length > 0
+            ? briefing.emergingOpportunities.slice(0, 5)
+            : [UNAVAILABLE_LABEL],
       },
-    ], { posture: briefing.health.band === "Thin" ? "watch" : "healthy" });
+    ], { posture: "watch" });
   },
 };
 

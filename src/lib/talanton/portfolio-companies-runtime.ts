@@ -2,7 +2,6 @@ import {
   TALANTON_PORTFOLIO_COMPANIES,
   type PortfolioCompany,
 } from "@/lib/talanton/portfolio-data";
-import { listPortfolioCompanies } from "@/lib/talanton/portfolio-companies-service";
 
 /** Optional in-memory override (EA tool handlers, tests). */
 let runtimeOverride: PortfolioCompany[] | null = null;
@@ -44,13 +43,4 @@ export async function withTalantonPortfolioCompaniesOverrideAsync<T>(
   } finally {
     runtimeOverride = prev;
   }
-}
-
-/** Load Supabase portfolio companies for a workspace, then run intelligence builders. */
-export async function withTalantonPortfolioFromWorkspace<T>(
-  workspaceId: string,
-  fn: () => T | Promise<T>,
-): Promise<T> {
-  const companies = await listPortfolioCompanies(workspaceId);
-  return withTalantonPortfolioCompaniesOverrideAsync(companies, async () => fn());
 }

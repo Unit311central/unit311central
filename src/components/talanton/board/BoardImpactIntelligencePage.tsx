@@ -19,6 +19,8 @@ import { cn } from "@/lib/utils";
 import {
   TalantonGeneratedPanel,
   TalantonImpactMetric,
+  formatNullableCount,
+  UNAVAILABLE_LABEL,
 } from "@/components/testflighthub/talanton/talanton-intelligence-ui";
 
 function formatShortDate(iso: string) {
@@ -177,10 +179,18 @@ export default function BoardImpactIntelligencePage() {
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="text-5xl font-semibold tabular-nums tracking-tight text-white sm:text-6xl">
-              {health.score}
-              <span className="text-2xl text-white/40">/100</span>
+              {health.scoreUnavailable ? (
+                UNAVAILABLE_LABEL
+              ) : (
+                <>
+                  {health.score}
+                  <span className="text-2xl text-white/40">/100</span>
+                </>
+              )}
             </p>
-            <p className="mt-2 text-sm font-medium text-emerald-200/90">{health.band}</p>
+            <p className="mt-2 text-sm font-medium text-emerald-200/90">
+              {health.scoreUnavailable ? "Not computed" : health.band}
+            </p>
           </div>
           <p className="max-w-xl text-sm leading-relaxed text-white/60">{health.postureReason}</p>
         </div>
@@ -192,16 +202,41 @@ export default function BoardImpactIntelligencePage() {
         copyText={data.snapshotText}
       >
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          <TalantonImpactMetric label="Jobs Created" value={summary.jobsCreated.toLocaleString()} />
-          <TalantonImpactMetric label="Jobs Retained" value={summary.jobsRetained.toLocaleString()} />
-          <TalantonImpactMetric label="People Served" value={summary.peopleServed.toLocaleString()} />
-          <TalantonImpactMetric label="Women Employed" value={summary.womenEmployed.toLocaleString()} />
-          <TalantonImpactMetric label="Youth Employed" value={summary.youthEmployed.toLocaleString()} />
+          <TalantonImpactMetric
+            label="Jobs Created"
+            value={formatNullableCount(summary.jobsCreated)}
+            unavailable={!summary.hasAggregatedSubmissionData}
+          />
+          <TalantonImpactMetric
+            label="Jobs Retained"
+            value={formatNullableCount(summary.jobsRetained)}
+            unavailable={!summary.hasAggregatedSubmissionData}
+          />
+          <TalantonImpactMetric
+            label="People Served"
+            value={formatNullableCount(summary.peopleServed)}
+            unavailable={!summary.hasAggregatedSubmissionData}
+          />
+          <TalantonImpactMetric
+            label="Women Employed"
+            value={formatNullableCount(summary.womenEmployed)}
+            unavailable={!summary.hasAggregatedSubmissionData}
+          />
+          <TalantonImpactMetric
+            label="Youth Employed"
+            value={formatNullableCount(summary.youthEmployed)}
+            unavailable={!summary.hasAggregatedSubmissionData}
+          />
           <TalantonImpactMetric
             label="Communities Impacted"
-            value={summary.communitiesImpacted.toLocaleString()}
+            value={formatNullableCount(summary.communitiesImpacted)}
+            unavailable={!summary.hasAggregatedSubmissionData}
           />
-          <TalantonImpactMetric label="Countries Impacted" value={String(summary.countriesImpacted)} />
+          <TalantonImpactMetric
+            label="Countries Impacted"
+            value={formatNullableCount(summary.countriesImpacted)}
+            unavailable={!summary.hasAggregatedSubmissionData}
+          />
         </div>
       </TalantonGeneratedPanel>
 

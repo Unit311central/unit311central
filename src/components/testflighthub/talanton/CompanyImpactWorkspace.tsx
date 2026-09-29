@@ -6,7 +6,6 @@ import { Building2 } from "lucide-react";
 
 import { CopyToClipboardButton } from "@/components/ui/CopyToClipboardButton";
 import { getInternalNavHref } from "@/lib/internal-operations-data";
-import { formatUsd } from "@/lib/talanton/portfolio-data";
 import { getLatestImpactReportForIntelligence } from "@/lib/talanton/company-stories-impact";
 import {
   buildCompanyImpactProfile,
@@ -18,10 +17,12 @@ import {
 import { useTalantonMemo } from "@/lib/talanton/use-talanton-intelligence-briefing";
 import { cn } from "@/lib/utils";
 import { useInternalOperationsBasePath } from "../InternalOperationsBasePathContext";
+import { UNAVAILABLE_LABEL } from "@/lib/talanton/intelligence-metric-types";
 import {
   TalantonGeneratedPanel,
   TalantonImpactMetric,
   TalantonIntelligenceHeader,
+  formatNullableCount,
 } from "./talanton-intelligence-ui";
 
 function trendClass(trend: ImpactTrend) {
@@ -111,7 +112,12 @@ export default function CompanyImpactWorkspace() {
           {portalReport.reportingPeriod}). Same figures feed Board Portal Impact Intelligence and
           portfolio analytics.
         </div>
-      ) : null}
+      ) : (
+        <div className="rounded-xl border border-white/15 bg-white/5 px-4 py-3 text-sm text-white/70">
+          No company portal impact submission on file for this holding. Core impact metrics show{" "}
+          {UNAVAILABLE_LABEL.toLowerCase()} until a report is submitted (local portal persistence — not Supabase).
+        </div>
+      )}
 
       <TalantonGeneratedPanel
         title="Impact Executive Briefing"
@@ -153,27 +159,51 @@ export default function CompanyImpactWorkspace() {
 
       <TalantonGeneratedPanel title="Core Impact Metrics" copyText={profile.metricsText}>
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-          <TalantonImpactMetric label="Jobs Created" value={profile.jobsCreated.toLocaleString()} />
-          <TalantonImpactMetric label="Jobs Retained" value={profile.jobsRetained.toLocaleString()} />
+          <TalantonImpactMetric
+            label="Jobs Created"
+            value={formatNullableCount(profile.impactMetricsFromSubmission ? profile.jobsCreated : null)}
+            unavailable={!profile.impactMetricsFromSubmission}
+          />
+          <TalantonImpactMetric
+            label="Jobs Retained"
+            value={formatNullableCount(profile.impactMetricsFromSubmission ? profile.jobsRetained : null)}
+            unavailable={!profile.impactMetricsFromSubmission}
+          />
           <TalantonImpactMetric
             label="Women Employed"
-            value={profile.womenEmployed.toLocaleString()}
-            hint={`${Math.round(profile.womenEmployedPct * 100)}% of workforce`}
+            value={formatNullableCount(profile.impactMetricsFromSubmission ? profile.womenEmployed : null)}
+            hint={
+              profile.impactMetricsFromSubmission
+                ? `${Math.round(profile.womenEmployedPct * 100)}% of workforce`
+                : undefined
+            }
+            unavailable={!profile.impactMetricsFromSubmission}
           />
           <TalantonImpactMetric
             label="Youth Employed"
-            value={profile.youthEmployed.toLocaleString()}
-            hint={`${Math.round(profile.youthEmployedPct * 100)}% of workforce`}
+            value={formatNullableCount(profile.impactMetricsFromSubmission ? profile.youthEmployed : null)}
+            hint={
+              profile.impactMetricsFromSubmission
+                ? `${Math.round(profile.youthEmployedPct * 100)}% of workforce`
+                : undefined
+            }
+            unavailable={!profile.impactMetricsFromSubmission}
           />
-          <TalantonImpactMetric label="People Served" value={profile.peopleServed.toLocaleString()} />
+          <TalantonImpactMetric
+            label="People Served"
+            value={formatNullableCount(profile.impactMetricsFromSubmission ? profile.peopleServed : null)}
+            unavailable={!profile.impactMetricsFromSubmission}
+          />
           <TalantonImpactMetric
             label="Communities Impacted"
-            value={profile.communitiesImpacted.toLocaleString()}
+            value={formatNullableCount(profile.impactMetricsFromSubmission ? profile.communitiesImpacted : null)}
+            unavailable={!profile.impactMetricsFromSubmission}
           />
           <TalantonImpactMetric
             label="Economic Contribution"
-            value={formatUsd(profile.economicContributionUsd)}
-            hint="Estimated local economic activity"
+            value={UNAVAILABLE_LABEL}
+            hint="Not in portal submission schema"
+            unavailable
           />
           <TalantonImpactMetric label="Country" value={profile.country} hint={profile.sector} />
         </div>

@@ -251,9 +251,11 @@ export async function runTalantonEaTestSuite(): Promise<EaTestSuiteReport> {
 
   await outputs.run("Impact briefing", () => {
     const impact = queryTalantonImpact();
-    if (impact.briefing.summary.jobsCreated <= 0) throw new Error("no jobs created");
-    if (impact.briefing.health.score <= 0) throw new Error("invalid impact health");
-  }, `jobs=${queryTalantonImpact().briefing.summary.jobsCreated}`);
+    if (!impact.briefing.summary.hasAggregatedSubmissionData) return;
+    if ((impact.briefing.summary.jobsCreated ?? 0) <= 0) throw new Error("no jobs created");
+    if (impact.briefing.health.scoreUnavailable) return;
+    if ((impact.briefing.health.score ?? 0) <= 0) throw new Error("invalid impact health");
+  }, `jobs=${queryTalantonImpact().briefing.summary.jobsCreated ?? "none"}`);
 
   await outputs.run("Board insights risks", () => {
     const risks = buildTalantonBoardInsights("risks");

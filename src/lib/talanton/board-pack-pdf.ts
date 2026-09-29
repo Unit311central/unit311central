@@ -782,15 +782,28 @@ export async function buildTalantonBoardPackPdf(
       colors: { white: C.white, line: C.line, navy: C.navy },
     });
     const impactMetrics = [
-      { label: "Jobs created", value: impactIntel.summary.jobsCreated.toLocaleString(), accent: C.green },
+      {
+        label: "Jobs created",
+        value:
+          impactIntel.summary.jobsCreated === null
+            ? "Data unavailable"
+            : impactIntel.summary.jobsCreated.toLocaleString(),
+        accent: C.green,
+      },
       {
         label: "People served",
-        value: formatCompactCount(impactIntel.summary.peopleServed),
+        value:
+          impactIntel.summary.peopleServed === null
+            ? "Data unavailable"
+            : formatCompactCount(impactIntel.summary.peopleServed),
         accent: C.navy,
       },
       {
         label: "Communities impacted",
-        value: String(impactIntel.summary.communitiesImpacted),
+        value:
+          impactIntel.summary.communitiesImpacted === null
+            ? "Data unavailable"
+            : String(impactIntel.summary.communitiesImpacted),
         accent: C.amber,
       },
     ];
@@ -829,7 +842,12 @@ export async function buildTalantonBoardPackPdf(
           display: `${TALANTON_PORTFOLIO_COMPANIES.length} companies`,
         },
         { label: "Journey stories (board)", value: journeys.length, color: C.amber, display: `${journeys.length} published` },
-        { label: "Impact dashboards", value: impactIntel.summary.countriesImpacted, color: C.navy, display: "Live" },
+        {
+          label: "Impact dashboards",
+          value: impactIntel.summary.countriesImpacted ?? 0,
+          color: C.navy,
+          display: impactIntel.summary.countriesImpacted === null ? "Unavailable" : "Live",
+        },
         { label: "External client access", value: 1, color: C.green, display: "Governed" },
       ],
       maxValue: TALANTON_PORTFOLIO_COMPANIES.length,

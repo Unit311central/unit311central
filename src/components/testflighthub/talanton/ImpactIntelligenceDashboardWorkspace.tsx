@@ -13,6 +13,9 @@ import {
   TalantonGeneratedPanel,
   TalantonImpactMetric,
   TalantonIntelligenceHeader,
+  formatNullableCount,
+  formatNullableScore,
+  UNAVAILABLE_LABEL,
 } from "./talanton-intelligence-ui";
 
 function formatShortDate(iso: string) {
@@ -93,18 +96,9 @@ export default function ImpactIntelligenceDashboardWorkspace() {
               <Sparkles className="h-3.5 w-3.5 text-emerald-300" />
               AI impact briefing · {formatShortDate(briefing.asOf)}
             </span>
-            <span
-              className={cn(
-                "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 font-medium",
-                health.band === "Strong" || health.band === "Healthy"
-                  ? "border-emerald-400/30 bg-emerald-500/10 text-emerald-200"
-                  : health.band === "Watch"
-                    ? "border-amber-400/30 bg-amber-500/10 text-amber-100"
-                    : "border-rose-400/30 bg-rose-500/10 text-rose-100",
-              )}
-            >
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/5 px-3 py-1.5 font-medium text-white/70">
               <AlertTriangle className="h-3.5 w-3.5" />
-              {health.band} impact
+              {health.scoreUnavailable ? UNAVAILABLE_LABEL : `${health.band} impact`}
             </span>
           </div>
         }
@@ -119,27 +113,27 @@ export default function ImpactIntelligenceDashboardWorkspace() {
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <TalantonImpactMetric
             label="Impact Health Score"
-            value={`${health.score}/100`}
-            hint={health.band}
-            tone={
-              health.score >= 80 ? "good" : health.score >= 68 ? "default" : health.score >= 55 ? "watch" : "alert"
-            }
+            value={formatNullableScore(health.score, health.scoreUnavailable)}
+            hint={health.scoreUnavailable ? "No defined score on submissions" : health.band}
+            unavailable={health.scoreUnavailable}
           />
           <TalantonImpactMetric
             label="Jobs Created"
-            value={summary.jobsCreated.toLocaleString()}
-            hint="Rolling portfolio estimate"
-            tone="good"
+            value={formatNullableCount(summary.jobsCreated)}
+            hint="Sum of portal impact submissions"
+            unavailable={!summary.hasAggregatedSubmissionData}
           />
           <TalantonImpactMetric
             label="People Served"
-            value={summary.peopleServed.toLocaleString()}
-            hint="Beneficiaries & customers reached"
+            value={formatNullableCount(summary.peopleServed)}
+            hint="Reported in company portal submissions"
+            unavailable={!summary.hasAggregatedSubmissionData}
           />
           <TalantonImpactMetric
             label="Countries Impacted"
-            value={summary.countriesImpacted}
-            hint="Sub-Saharan footprint"
+            value={formatNullableCount(summary.countriesImpacted)}
+            hint="From submitted impact reports"
+            unavailable={!summary.hasAggregatedSubmissionData}
           />
         </div>
       </TalantonGeneratedPanel>
@@ -150,24 +144,46 @@ export default function ImpactIntelligenceDashboardWorkspace() {
         copyText={briefing.summaryText}
       >
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          <TalantonImpactMetric label="Jobs Created" value={summary.jobsCreated.toLocaleString()} />
-          <TalantonImpactMetric label="Jobs Retained" value={summary.jobsRetained.toLocaleString()} />
-          <TalantonImpactMetric label="Women Employed" value={summary.womenEmployed.toLocaleString()} />
-          <TalantonImpactMetric label="Youth Employed" value={summary.youthEmployed.toLocaleString()} />
-          <TalantonImpactMetric label="People Served" value={summary.peopleServed.toLocaleString()} />
+          <TalantonImpactMetric
+            label="Jobs Created"
+            value={formatNullableCount(summary.jobsCreated)}
+            unavailable={!summary.hasAggregatedSubmissionData}
+          />
+          <TalantonImpactMetric
+            label="Jobs Retained"
+            value={formatNullableCount(summary.jobsRetained)}
+            unavailable={!summary.hasAggregatedSubmissionData}
+          />
+          <TalantonImpactMetric
+            label="Women Employed"
+            value={formatNullableCount(summary.womenEmployed)}
+            unavailable={!summary.hasAggregatedSubmissionData}
+          />
+          <TalantonImpactMetric
+            label="Youth Employed"
+            value={formatNullableCount(summary.youthEmployed)}
+            unavailable={!summary.hasAggregatedSubmissionData}
+          />
+          <TalantonImpactMetric
+            label="People Served"
+            value={formatNullableCount(summary.peopleServed)}
+            unavailable={!summary.hasAggregatedSubmissionData}
+          />
           <TalantonImpactMetric
             label="Communities Impacted"
-            value={summary.communitiesImpacted.toLocaleString()}
+            value={formatNullableCount(summary.communitiesImpacted)}
+            unavailable={!summary.hasAggregatedSubmissionData}
           />
-          <TalantonImpactMetric label="Countries Impacted" value={summary.countriesImpacted} />
+          <TalantonImpactMetric
+            label="Countries Impacted"
+            value={formatNullableCount(summary.countriesImpacted)}
+            unavailable={!summary.hasAggregatedSubmissionData}
+          />
           <TalantonImpactMetric
             label="Economic Contribution"
-            value={
-              summary.economicContributionUsd >= 1_000_000
-                ? `$${(summary.economicContributionUsd / 1_000_000).toFixed(1)}M`
-                : `$${summary.economicContributionUsd.toLocaleString()}`
-            }
-            hint="Estimated local economic activity"
+            value={UNAVAILABLE_LABEL}
+            hint="Not captured in portal submission schema"
+            unavailable
           />
         </div>
       </TalantonGeneratedPanel>
@@ -200,6 +216,11 @@ export default function ImpactIntelligenceDashboardWorkspace() {
           </h2>
         </div>
         <div className="grid gap-3 lg:grid-cols-2">
+          {briefing.topCompanies.length === 0 ? (
+            <p className="text-sm text-white/50 col-span-full">
+              No holdings with submitted company portal impact reports — rankings are unavailable.
+            </p>
+          ) : null}
           {briefing.topCompanies.map((company, index) => {
             const href = getInternalNavHref("impact-intelligence-company", basePath, {
               companyId: company.companyId,

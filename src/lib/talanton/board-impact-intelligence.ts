@@ -11,6 +11,7 @@ import {
   type PortfolioImpactBriefing,
   type TopImpactCompany,
 } from "@/lib/talanton/impact-intelligence";
+import { UNAVAILABLE_LABEL } from "@/lib/talanton/intelligence-metric-types";
 
 export type ImpactTrendPoint = {
   period: string;
@@ -43,116 +44,26 @@ export type BoardImpactIntelligence = {
   healthText: string;
 };
 
-function scale(n: number, factor: number) {
-  return Math.max(0, Math.round(n * factor));
-}
-
-/** Deterministic prior-period trend from current portfolio rollup (no duplicate metric logic). */
+/** Trend series only when submitted impact data exists (no scaled historical fabrication). */
 export function buildImpactTrendSeries(briefing: PortfolioImpactBriefing): ImpactTrendPoint[] {
   const { summary, health } = briefing;
-  const decliningBias = briefing.risks.filter((r) => r.severity !== "Watch").length >= 2 ? 0.97 : 1.02;
+  if (!summary.hasAggregatedSubmissionData || summary.jobsCreated === null || summary.peopleServed === null) {
+    return [];
+  }
+  const score = health.score ?? 0;
   return [
-    {
-      period: "Q4 2025",
-      jobsCreated: scale(summary.jobsCreated, 0.82),
-      peopleServed: scale(summary.peopleServed, 0.78),
-      impactHealthScore: Math.max(40, Math.min(98, health.score - 6)),
-    },
-    {
-      period: "Q1 2026",
-      jobsCreated: scale(summary.jobsCreated, 0.9),
-      peopleServed: scale(summary.peopleServed, 0.88),
-      impactHealthScore: Math.max(40, Math.min(98, health.score - 3)),
-    },
-    {
-      period: "Q2 2026",
-      jobsCreated: scale(summary.jobsCreated, 0.96 * decliningBias),
-      peopleServed: scale(summary.peopleServed, 0.94 * decliningBias),
-      impactHealthScore: Math.max(40, Math.min(98, health.score - 1)),
-    },
     {
       period: "Current",
       jobsCreated: summary.jobsCreated,
       peopleServed: summary.peopleServed,
-      impactHealthScore: health.score,
+      impactHealthScore: health.scoreUnavailable ? 0 : score,
     },
   ];
 }
 
 function buildBoardRisks(briefing: PortfolioImpactBriefing): ImpactRisk[] {
-  const { summary, topCompanies } = briefing;
-  const kenyaShare =
-    topCompanies.filter((c) => c.country === "Kenya").length / Math.max(topCompanies.length, 1);
-
-  const boardRisks: ImpactRisk[] = [
-    ...briefing.risks.filter(
-      (r) =>
-        r.title.toLowerCase().includes("declin") ||
-        r.title.toLowerCase().includes("missed") ||
-        r.title.toLowerCase().includes("community") ||
-        r.severity === "Critical" ||
-        r.severity === "Elevated",
-    ),
-  ];
-
-  if (kenyaShare >= 0.5) {
-    boardRisks.push({
-      id: "board-risk-geo",
-      title: "Geographic concentration of impact delivery",
-      severity: "Watch",
-      companyId: null,
-      companyName: null,
-      detail: `A material share of top impact proof points sit in Kenya. Board should ask for diversification of jobs and beneficiary outcomes across ${summary.countriesImpacted} countries of footprint.`,
-      cardText: "",
-    });
-  }
-
-  boardRisks.push({
-    id: "board-risk-funding",
-    title: "Funding dependency for community programmes",
-    severity: "Elevated",
-    companyId: null,
-    companyName: null,
-    detail:
-      "Several field and inclusion programmes remain sensitive to follow-on and grant-adjacent funding. IC should confirm which impact outcomes are durable without incremental capital.",
-    cardText: "",
-  });
-
-  if (!boardRisks.some((r) => r.title.toLowerCase().includes("employment"))) {
-    boardRisks.push({
-      id: "board-risk-employment",
-      title: "Employment decline in selected holdings",
-      severity: briefing.areasRequiringAttention.some((a) => a.toLowerCase().includes("declining"))
-        ? "Elevated"
-        : "Watch",
-      companyId: null,
-      companyName: null,
-      detail:
-        "Board oversight should focus on holdings with declining jobs created/retained signals before LP narrative lock.",
-      cardText: "",
-    });
-  }
-
-  boardRisks.push({
-    id: "board-risk-engagement",
-    title: "Community engagement decline risk",
-    severity: "Watch",
-    companyId: null,
-    companyName: null,
-    detail: `Communities impacted currently total ${summary.communitiesImpacted.toLocaleString()}. Directors should seek assurance that agriculture and manufacturing programmes are not quietly reducing field reach.`,
-    cardText: "",
-  });
-
-  // Deduplicate by title
-  const seen = new Set<string>();
-  const unique = boardRisks.filter((r) => {
-    const key = r.title.toLowerCase();
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
-
-  for (const r of unique) {
+  const boardRisks: ImpactRisk[] = [...briefing.risks];
+  for (const r of boardRisks) {
     r.cardText = [
       `Board Impact Risk — ${r.title}`,
       `Severity: ${r.severity}`,
@@ -161,8 +72,7 @@ function buildBoardRisks(briefing: PortfolioImpactBriefing): ImpactRisk[] {
       r.detail,
     ].join("\n");
   }
-
-  return unique.slice(0, 6);
+  return boardRisks.slice(0, 6);
 }
 
 function buildBoardRecommendations(briefing: PortfolioImpactBriefing): ImpactRecommendedAction[] {
@@ -205,7 +115,10 @@ function buildBoardRecommendations(briefing: PortfolioImpactBriefing): ImpactRec
     {
       id: "board-rec-4",
       title: "Commission geographic diversification check on impact delivery",
-      rationale: `With ${briefing.summary.countriesImpacted} countries in footprint, board should ask whether jobs and people-served growth are over-concentrated.`,
+      rationale:
+        briefing.summary.countriesImpacted === null
+          ? "Impact geography is unavailable until portal submissions exist — board should ask for submission coverage."
+          : `With ${briefing.summary.countriesImpacted} countries in footprint, board should ask whether jobs and people-served growth are over-concentrated.`,
       owner: "Board / Portfolio Ops",
       urgency: "This month",
       companyId: null,
@@ -246,7 +159,9 @@ export function buildBoardImpactIntelligence(): BoardImpactIntelligence {
     "Confirm remediation plans for declining-impact holdings ahead of LP reporting.",
     "Seek IC assurance that community and inclusion outcomes are resilient without incremental capital.",
     "Approve which impact proof points appear in the next board pack.",
-    `Review geographic balance of impact delivery across ${briefing.summary.countriesImpacted} countries.`,
+    briefing.summary.countriesImpacted === null
+      ? "Collect company portal impact submissions before geographic impact review."
+      : `Review geographic balance of impact delivery across ${briefing.summary.countriesImpacted} countries.`,
   ];
 
   const boardBriefingText = [
@@ -269,24 +184,18 @@ export function buildBoardImpactIntelligence(): BoardImpactIntelligence {
     ...areasRequiringBoardAttention.map((x) => `• ${x}`),
   ].join("\n");
 
-  const snapshotText = [
-    "Portfolio Impact Snapshot",
-    `Jobs created: ${briefing.summary.jobsCreated.toLocaleString()}`,
-    `Jobs retained: ${briefing.summary.jobsRetained.toLocaleString()}`,
-    `People served: ${briefing.summary.peopleServed.toLocaleString()}`,
-    `Women employed: ${briefing.summary.womenEmployed.toLocaleString()}`,
-    `Youth employed: ${briefing.summary.youthEmployed.toLocaleString()}`,
-    `Communities impacted: ${briefing.summary.communitiesImpacted.toLocaleString()}`,
-    `Countries impacted: ${briefing.summary.countriesImpacted}`,
-  ].join("\n");
+  const snapshotText = briefing.summaryText;
 
-  const trendsText = [
-    "Impact Trends",
-    ...trends.map(
-      (t) =>
-        `${t.period}: Jobs created ${t.jobsCreated.toLocaleString()} · People served ${t.peopleServed.toLocaleString()} · Impact health ${t.impactHealthScore}/100`,
-    ),
-  ].join("\n");
+  const trendsText =
+    trends.length > 0
+      ? [
+          "Impact Trends",
+          ...trends.map(
+            (t) =>
+              `${t.period}: Jobs created ${t.jobsCreated.toLocaleString()} · People served ${t.peopleServed.toLocaleString()} · Impact health ${t.impactHealthScore || UNAVAILABLE_LABEL}`,
+          ),
+        ].join("\n")
+      : `Impact Trends\n${UNAVAILABLE_LABEL} — no historical submission series persisted.`;
 
   return {
     asOf: briefing.asOf,

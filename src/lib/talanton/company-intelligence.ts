@@ -5,14 +5,17 @@
 import {
   companyTrainingDetail,
   formatUsd,
-  TALANTON_ACTIONS,
-  TALANTON_MY_TRAINING,
-  TALANTON_QUARTERLY_REPORTS,
-  TALANTON_RISKS,
   type PortfolioCompany,
   type RiskRating,
 } from "@/lib/talanton/portfolio-data";
+import { companyReportingStatus } from "@/lib/talanton/portfolio-reporting-status";
 import { resolveTalantonPortfolioCompanies } from "@/lib/talanton/portfolio-companies-runtime";
+import {
+  openGovernanceActions,
+  openGovernanceRisks,
+  resolveTalantonIntelligenceContext,
+} from "@/lib/talanton/talanton-intelligence-context";
+import type { TiRiskRegisterEntry } from "@/lib/talanton/risk-register-store";
 
 export type CompanyHealthSnapshot = {
   healthScore: number;
@@ -115,14 +118,21 @@ function riskPenalty(rating: RiskRating): number {
   }
 }
 
+function tiRiskSeverity(r: TiRiskRegisterEntry): RiskRating {
+  if (r.rating >= 20) return "Critical";
+  if (r.rating >= 12) return "High";
+  if (r.rating >= 6) return "Medium";
+  return "Low";
+}
+
 export function companyHealthScore(company: PortfolioCompany): number {
-  const report = TALANTON_QUARTERLY_REPORTS.find((r) => r.companyId === company.id);
+  const reporting = companyReportingStatus(company);
   const reportScore =
-    report?.status === "Submitted"
+    reporting === "Submitted"
       ? 95
-      : report?.status === "Due Soon"
+      : reporting === "Due soon"
         ? 70
-        : report?.status === "Overdue"
+        : reporting === "Overdue"
           ? 35
           : 45;
   const raw =
@@ -131,103 +141,98 @@ export function companyHealthScore(company: PortfolioCompany): number {
 }
 
 function cashMonths(company: PortfolioCompany): number {
-  // Implied working capital runway for briefing purposes (not audited cash).
   const impliedCash = Math.max(company.burnRateUsdMonthly * 4.5, company.annualRevenueUsd * 0.08);
   return Math.max(2, Math.round((impliedCash / Math.max(company.burnRateUsdMonthly, 1)) * 10) / 10);
 }
 
+function reportingStatusLabel(status: ReturnType<typeof companyReportingStatus>): string {
+  switch (status) {
+    case "Submitted":
+      return "Submitted";
+    case "Due soon":
+      return "Due soon";
+    case "Overdue":
+      return "Overdue";
+    default:
+      return "Not started";
+  }
+}
+
+function governanceRiskMentionsCompany(r: TiRiskRegisterEntry, company: PortfolioCompany): boolean {
+  const hay = `${r.description} ${r.mitigation}`.toLowerCase();
+  const name = company.name.toLowerCase();
+  return hay.includes(name);
+}
+
 function buildRisks(company: PortfolioCompany): CompanyRiskItem[] {
-  const companyRisks = TALANTON_RISKS.filter(
-    (r) => r.companyId === company.id && r.status !== "Closed",
-  ).map((r) => ({
-    id: r.id,
-    title: r.title,
-    severity: r.rating,
-    description: `${r.category} risk owned by ${r.owner}. Likelihood ${r.likelihood}, impact ${r.impact}.`,
-    mitigationStatus:
-      r.status === "Mitigating"
-        ? `Mitigating — controls advancing; due ${formatDisplayDate(r.dueDate)}.`
-        : `Open — requires active follow-up; due ${formatDisplayDate(r.dueDate)}.`,
-    owner: r.owner,
-    dueDate: r.dueDate,
-  }));
+  const ctx = resolveTalantonIntelligenceContext();
+  const registerRisks = openGovernanceRisks(ctx.governanceRisks)
+    .filter((r) => governanceRiskMentionsCompany(r, company))
+    .map((r) => ({
+      id: r.id,
+      title: r.description.slice(0, 80) + (r.description.length > 80 ? "…" : ""),
+      severity: tiRiskSeverity(r),
+      description: r.description,
+      mitigationStatus: r.mitigation
+        ? `${r.status} — ${r.mitigation}`
+        : `${r.status} — review ${formatDisplayDate(r.reviewDate)}.`,
+      owner: r.owner,
+      dueDate: r.reviewDate || r.dateAdded,
+    }));
 
-  if (companyRisks.length > 0) return companyRisks;
+  if (registerRisks.length > 0) return registerRisks;
 
-  // Synthetic residual risk so every company has an executive risk view.
-  return [
-    {
-      id: `ti-synth-risk-${company.id}`,
-      title:
-        company.riskRating === "Low"
-          ? "Routine portfolio monitoring"
-          : `${company.riskRating} residual operating risk`,
-      severity: company.riskRating,
-      description:
-        company.riskRating === "Low" || company.riskRating === "Medium"
-          ? `${company.name} has no escalated register items. Residual risk is monitored through quarterly reporting and compliance cadence.`
-          : `${company.name} carries an elevated risk rating without a closed mitigation plan on the register — leadership visibility required.`,
-      mitigationStatus:
-        company.riskRating === "Low"
-          ? "On track — standard portfolio monitoring."
-          : "Watch — confirm mitigation owner and next checkpoint.",
-      owner: "Portfolio Ops",
-      dueDate: company.lastReview,
-    },
-  ];
+  if (company.riskRating === "High" || company.riskRating === "Critical") {
+    return [
+      {
+        id: `pc-risk-${company.id}`,
+        title: `${company.riskRating} portfolio risk rating`,
+        severity: company.riskRating,
+        description: `${company.name} is rated ${company.riskRating} on the portfolio company record (Supabase portfolio_companies.risk_rating).`,
+        mitigationStatus: "Confirm mitigation owner and next checkpoint with portfolio leadership.",
+        owner: "Portfolio Ops",
+        dueDate: company.lastReview,
+      },
+    ];
+  }
+
+  return [];
 }
 
 function buildActivity(company: PortfolioCompany): CompanyActivityItem[] {
-  const report = TALANTON_QUARTERLY_REPORTS.find((r) => r.companyId === company.id);
-  const training = TALANTON_MY_TRAINING.filter((t) => t.companyId === company.id);
   const items: CompanyActivityItem[] = [];
+  const reporting = companyReportingStatus(company);
 
-  if (report?.status === "Submitted" && report.lastSubmitted) {
+  if (reporting === "Submitted" && company.lastQuarterlyReportDate) {
     items.push({
-      id: `act-report-${report.id}`,
+      id: `act-report-${company.id}`,
       kind: "report",
-      title: "Quarterly report submitted",
-      detail: `${report.period} pack received and scored ${report.score}/100.`,
-      occurredAt: report.lastSubmitted,
+      title: "Quarterly reporting on file",
+      detail: `Last quarterly submission date ${company.lastQuarterlyReportDate} (portfolio_companies.last_quarterly_report_date).`,
+      occurredAt: company.lastQuarterlyReportDate,
     });
   }
 
-  for (const row of training.filter((t) => t.status === "Completed").slice(0, 2)) {
+  if (company.lastReview) {
     items.push({
-      id: `act-train-${row.id}`,
-      kind: "training",
-      title: "Training completed",
-      detail: `${row.learnerName} completed assigned compliance module (${row.progress}%).`,
+      id: `act-review-${company.id}`,
+      kind: "review",
+      title: "Portfolio review recorded",
+      detail: `Last formal review with ${company.primaryContact} on file.`,
       occurredAt: company.lastReview,
     });
   }
 
-  items.push({
-    id: `act-doc-${company.id}`,
-    kind: "document",
-    title: "Documents uploaded",
-    detail: `Investment memo and compliance certificate refreshed in the company file.`,
-    occurredAt: company.lastQuarterlyReportDate,
-  });
-
-  items.push({
-    id: `act-review-${company.id}`,
-    kind: "review",
-    title: "Portfolio review conducted",
-    detail: `Last formal review with ${company.primaryContact} recorded.`,
-    occurredAt: company.lastReview,
-  });
-
-  const riskProgress = TALANTON_RISKS.find(
-    (r) => r.companyId === company.id && r.status === "Mitigating",
-  );
-  if (riskProgress) {
+  const ctx = resolveTalantonIntelligenceContext();
+  for (const r of openGovernanceRisks(ctx.governanceRisks)
+    .filter((row) => governanceRiskMentionsCompany(row, company))
+    .slice(0, 2)) {
     items.push({
-      id: `act-risk-${riskProgress.id}`,
+      id: `act-risk-${r.id}`,
       kind: "risk",
-      title: "Risk mitigation progress",
-      detail: `${riskProgress.title} — ${riskProgress.owner} advancing controls.`,
-      occurredAt: riskProgress.dueDate,
+      title: "Governance risk register item",
+      detail: r.description.slice(0, 160) + (r.description.length > 160 ? "…" : ""),
+      occurredAt: r.reviewDate || r.dateAdded,
     });
   }
 
@@ -237,20 +242,20 @@ function buildActivity(company: PortfolioCompany): CompanyActivityItem[] {
 function buildActions(
   company: PortfolioCompany,
   risks: CompanyRiskItem[],
-  reportStatus: string,
+  reportingLabel: string,
 ): CompanyRecommendedAction[] {
   const actions: CompanyRecommendedAction[] = [];
-  const openAction = TALANTON_ACTIONS.find(
-    (a) => a.companyId === company.id && a.status !== "Done",
-  );
+  const reporting = companyReportingStatus(company);
+  const ctx = resolveTalantonIntelligenceContext();
+  const openAction = openGovernanceActions(ctx.governanceActions)[0];
 
-  if (reportStatus === "Overdue" || reportStatus === "Not Started") {
+  if (reporting === "Overdue" || reporting === "Not started") {
     actions.push({
       id: `rec-report-${company.id}`,
       title: `Follow up ${company.name} quarterly report with ${company.primaryContact}`,
-      rationale: `Reporting status is ${reportStatus}; IC visibility depends on a complete pack.`,
+      rationale: `Reporting status is ${reportingLabel}; visibility depends on an up-to-date submission date on the portfolio record.`,
       owner: "Harry Turner",
-      urgency: reportStatus === "Overdue" ? "This week" : "This month",
+      urgency: reporting === "Overdue" ? "This week" : "This month",
     });
   }
 
@@ -270,7 +275,7 @@ function buildActions(
     actions.push({
       id: `rec-comp-${company.id}`,
       title: `Schedule ${company.name} compliance review`,
-      rationale: `Compliance at ${company.compliancePct}% with ${company.outstandingTraining} outstanding training items.`,
+      rationale: `Compliance at ${company.compliancePct}% with ${company.outstandingTraining} outstanding training items (portfolio_companies).`,
       owner: "Head of Compliance",
       urgency: "This week",
     });
@@ -280,9 +285,9 @@ function buildActions(
     actions.push({
       id: `rec-act-${openAction.id}`,
       title: openAction.title,
-      rationale: `Open ${openAction.priority} priority action due ${formatDisplayDate(openAction.dueDate)} (${openAction.source}).`,
+      rationale: `Open governance action due ${formatDisplayDate(openAction.dueDate)} (${openAction.status}).`,
       owner: openAction.owner,
-      urgency: openAction.priority === "High" ? "This week" : "This month",
+      urgency: openAction.status === "Overdue" ? "This week" : "This month",
     });
   }
 
@@ -300,19 +305,21 @@ function buildActions(
     actions.push({
       id: `rec-maintain-${company.id}`,
       title: `Confirm next review checkpoint with ${company.primaryContact}`,
-      rationale: `${company.name} is currently stable — keep the cadence tight ahead of the next board materials cycle.`,
+      rationale: `${company.name} has no escalated items on current Supabase-backed signals — maintain review cadence.`,
       owner: "Portfolio Ops",
       urgency: "This month",
     });
   }
 
   const seen = new Set<string>();
-  return actions.filter((a) => {
-    const key = a.title.toLowerCase();
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  }).slice(0, 6);
+  return actions
+    .filter((a) => {
+      const key = a.title.toLowerCase();
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .slice(0, 6);
 }
 
 export function listCompanyIntelligenceOptions() {
@@ -334,10 +341,10 @@ export function resolveCompanyIntelligenceId(companyId?: string | null): string 
 export function buildCompanyIntelligence(companyId?: string | null): CompanyIntelligence {
   const id = resolveCompanyIntelligenceId(companyId);
   const company = resolveTalantonPortfolioCompanies().find((c) => c.id === id)!;
-  const report = TALANTON_QUARTERLY_REPORTS.find((r) => r.companyId === company.id);
   const training = companyTrainingDetail(company);
   const healthScore = companyHealthScore(company);
-  const reportingStatus = report?.status ?? "Not Started";
+  const reporting = companyReportingStatus(company);
+  const reportingStatus = reportingStatusLabel(reporting);
   const complianceStatus =
     company.compliancePct >= 90
       ? "On track"
@@ -349,9 +356,9 @@ export function buildCompanyIntelligence(companyId?: string | null): CompanyInte
     healthScore,
     riskRating: company.riskRating,
     complianceStatus: `${complianceStatus} (${company.compliancePct}%)`,
-    reportingStatus: report
-      ? `${reportingStatus}${report.period ? ` · ${report.period}` : ""}`
-      : "Not Started",
+    reportingStatus: company.lastQuarterlyReportDate
+      ? `${reportingStatus} · last ${company.lastQuarterlyReportDate}`
+      : reportingStatus,
     lastReviewDate: company.lastReview,
   };
 
@@ -396,10 +403,10 @@ export function buildCompanyIntelligence(companyId?: string | null): CompanyInte
   };
 
   const outstandingRequirements: string[] = [];
-  if (reportingStatus === "Overdue" || reportingStatus === "Not Started") {
-    outstandingRequirements.push(`Complete and submit ${report?.period ?? "current"} quarterly pack.`);
-  } else if (reportingStatus === "Due Soon") {
-    outstandingRequirements.push(`${report?.period ?? "Current"} quarterly pack due ${formatDisplayDate(report?.nextDue ?? company.lastReview)}.`);
+  if (reporting === "Overdue" || reporting === "Not started") {
+    outstandingRequirements.push("Update portfolio quarterly reporting (last_quarterly_report_date).");
+  } else if (reporting === "Due soon") {
+    outstandingRequirements.push("Quarterly reporting due soon based on last submission date.");
   }
   if (company.outstandingTraining > 0) {
     outstandingRequirements.push(
@@ -410,7 +417,7 @@ export function buildCompanyIntelligence(companyId?: string | null): CompanyInte
     outstandingRequirements.push(`Advance mitigation on: ${risk.title}.`);
   }
   if (outstandingRequirements.length === 0) {
-    outstandingRequirements.push("No material outstanding requirements this cycle.");
+    outstandingRequirements.push("No material outstanding requirements on Supabase portfolio signals.");
   }
 
   const compliance: CompanyComplianceSnapshot = {
@@ -441,19 +448,19 @@ export function buildCompanyIntelligence(companyId?: string | null): CompanyInte
     ].join(" "),
     riskProfile: topRisk
       ? `${company.riskRating} overall. Lead concern: ${topRisk.title} — ${topRisk.mitigationStatus}`
-      : `${company.riskRating} overall with no escalated register items.`,
+      : `${company.riskRating} overall — no matching governance register items; profile rating from portfolio_companies.`,
     compliancePosition: [
       `Training completion ${company.compliancePct}% (${training.status}).`,
       compliance.policyCompliance,
       `${company.outstandingTraining} outstanding training items across enrolled users.`,
     ].join(" "),
     keyDevelopments: [
-      report?.status === "Submitted"
-        ? `${report.period} quarterly pack submitted (score ${report.score}/100).`
-        : `${report?.period ?? "Q2 2026"} reporting is ${reportingStatus.toLowerCase()}.`,
+      reporting === "Submitted"
+        ? `Quarterly reporting current (last ${company.lastQuarterlyReportDate}).`
+        : `Quarterly reporting is ${reportingStatus.toLowerCase()}.`,
       topRisk
-        ? `${topRisk.title} remains ${topRisk.mitigationStatus.split("—")[0]?.trim().toLowerCase() ?? "open"}.`
-        : "No critical risk escalations on the current register.",
+        ? `${topRisk.title} — ${topRisk.mitigationStatus.split("—")[0]?.trim().toLowerCase() ?? "open"}.`
+        : "No company-specific governance risk register matches.",
       `Last portfolio review ${formatDisplayDate(company.lastReview)} with ${company.primaryContact}.`,
     ],
     recommendedFocusAreas: recommendedActions.slice(0, 3).map((a) => a.title),
@@ -502,13 +509,16 @@ export function buildCompanyIntelligence(companyId?: string | null): CompanyInte
     ...performance.keyKpis.map((k) => `• ${k.label}: ${k.value} (${k.note})`),
   ].join("\n");
 
-  const risksText = [
-    `${company.name} — Risks & Concerns`,
-    ...risks.map(
-      (r, i) =>
-        `${i + 1}. [${r.severity}] ${r.title}\n${r.description}\nMitigation: ${r.mitigationStatus}\nOwner: ${r.owner} · Due ${formatDisplayDate(r.dueDate)}`,
-    ),
-  ].join("\n\n");
+  const risksText =
+    risks.length > 0
+      ? [
+          `${company.name} — Risks & Concerns`,
+          ...risks.map(
+            (r, i) =>
+              `${i + 1}. [${r.severity}] ${r.title}\n${r.description}\nMitigation: ${r.mitigationStatus}\nOwner: ${r.owner} · Due ${formatDisplayDate(r.dueDate)}`,
+          ),
+        ].join("\n\n")
+      : `${company.name} — Risks & Concerns\nNo company-specific governance risks on file. Portfolio risk rating: ${company.riskRating}.`;
 
   const complianceText = [
     `${company.name} — Compliance & Assurance`,
@@ -519,12 +529,15 @@ export function buildCompanyIntelligence(companyId?: string | null): CompanyInte
     ...compliance.outstandingRequirements.map((r) => `• ${r}`),
   ].join("\n");
 
-  const activityText = [
-    `${company.name} — Recent Activity`,
-    ...recentActivity.map(
-      (a) => `${formatDisplayDate(a.occurredAt)} — ${a.title}. ${a.detail}`,
-    ),
-  ].join("\n");
+  const activityText =
+    recentActivity.length > 0
+      ? [
+          `${company.name} — Recent Activity`,
+          ...recentActivity.map(
+            (a) => `${formatDisplayDate(a.occurredAt)} — ${a.title}. ${a.detail}`,
+          ),
+        ].join("\n")
+      : `${company.name} — Recent Activity\nNo dated activity on file from portfolio or governance records.`;
 
   const actionsText = [
     `${company.name} — Recommended Actions`,

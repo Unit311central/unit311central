@@ -210,7 +210,8 @@ export function assembleImpactReport(input: {
 
   // Scale portfolio briefing to scoped company share
   const share = Math.max(companies.length / Math.max(TALANTON_PORTFOLIO_COMPANIES.length, 1), 0.15);
-  const scale = (n: number) => Math.max(0, Math.round(n * share));
+  const scale = (n: number | null) =>
+    n === null || !briefing.summary.hasAggregatedSubmissionData ? 0 : Math.max(0, Math.round(n * share));
 
   const jobsCreated = scale(briefing.summary.jobsCreated);
   const jobsRetained = scale(briefing.summary.jobsRetained);

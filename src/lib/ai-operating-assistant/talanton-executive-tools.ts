@@ -18,7 +18,7 @@ import {
   type TalantonActionCentreQuery,
   type TalantonBoardInsightsFocus,
 } from "@/lib/talanton/executive-intelligence";
-import { withTalantonPortfolioFromWorkspace } from "@/lib/talanton/portfolio-companies-runtime";
+import { withTalantonIntelligenceFromWorkspace } from "@/lib/talanton/portfolio-companies-runtime-server";
 import { queryTalantonStoriesForEa } from "@/lib/marketing/executive-stories-service";
 import {
   type StoriesScope,
@@ -119,8 +119,10 @@ export async function getTalantonExecutiveBriefingTool(
   const blocked = talantonOnly("talanton.getExecutiveBriefing", ctx);
   if (blocked) return blocked;
 
-  const brief = await withTalantonPortfolioFromWorkspace(talantonWorkspaceId(ctx), () =>
-    buildTalantonExecutiveBriefing(),
+  const brief = await withTalantonIntelligenceFromWorkspace(
+    talantonWorkspaceId(ctx),
+    ctx.business.workspace.slug ?? "",
+    () => buildTalantonExecutiveBriefing(),
   );
   const prose = formatTalantonExecutiveBriefingText(brief);
   return toolOk("talanton.getExecutiveBriefing", [{ ...brief, prose }], {
@@ -146,8 +148,10 @@ export async function getTalantonOrgHealthTool(
   const blocked = talantonOnly("talanton.getOrgHealth", ctx);
   if (blocked) return blocked;
 
-  const health = await withTalantonPortfolioFromWorkspace(talantonWorkspaceId(ctx), () =>
-    assessTalantonOrgHealth(),
+  const health = await withTalantonIntelligenceFromWorkspace(
+    talantonWorkspaceId(ctx),
+    ctx.business.workspace.slug ?? "",
+    () => assessTalantonOrgHealth(),
   );
   const prose = formatTalantonOrgHealthText(health);
   return toolOk("talanton.getOrgHealth", [{ ...health, prose }], {
@@ -195,8 +199,10 @@ export async function getTalantonBoardInsightsTool(
   if (blocked) return blocked;
 
   const focus = parseInsightsFocus(asString(args.focus) || "general");
-  const insights = await withTalantonPortfolioFromWorkspace(talantonWorkspaceId(ctx), () =>
-    buildTalantonBoardInsights(focus),
+  const insights = await withTalantonIntelligenceFromWorkspace(
+    talantonWorkspaceId(ctx),
+    ctx.business.workspace.slug ?? "",
+    () => buildTalantonBoardInsights(focus),
   );
   const prose = formatTalantonBoardInsightsText(insights);
   return toolOk("talanton.getBoardInsights", [{ ...insights, prose }], {
@@ -221,8 +227,10 @@ export async function queryTalantonPortfolioTool(
   const blocked = talantonOnly("talanton.queryPortfolio", ctx);
   if (blocked) return blocked;
 
-  const result = await withTalantonPortfolioFromWorkspace(talantonWorkspaceId(ctx), () =>
-    queryTalantonPortfolio(),
+  const result = await withTalantonIntelligenceFromWorkspace(
+    talantonWorkspaceId(ctx),
+    ctx.business.workspace.slug ?? "",
+    () => queryTalantonPortfolio(),
   );
   return toolOk("talanton.queryPortfolio", [result], {
     source: ["talanton:portfolio-intelligence", "talanton:portfolio-data"],
@@ -267,8 +275,10 @@ export async function queryTalantonImpactTool(
   const blocked = talantonOnly("talanton.queryImpact", ctx);
   if (blocked) return blocked;
 
-  const result = await withTalantonPortfolioFromWorkspace(talantonWorkspaceId(ctx), () =>
-    queryTalantonImpact(),
+  const result = await withTalantonIntelligenceFromWorkspace(
+    talantonWorkspaceId(ctx),
+    ctx.business.workspace.slug ?? "",
+    () => queryTalantonImpact(),
   );
   return toolOk("talanton.queryImpact", [result], {
     source: ["talanton:impact-intelligence"],

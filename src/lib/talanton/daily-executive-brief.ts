@@ -76,9 +76,9 @@ export function buildTalantonDailyExecutiveBrief(
       id: "impact",
       title: "Impact",
       bullets: [
-        `Jobs created (portfolio): ${impact.briefing.summary.jobsCreated.toLocaleString("en-US")}`,
-        `People served: ${impact.briefing.summary.peopleServed.toLocaleString("en-US")}`,
-        `Impact health score: ${impact.briefing.health.score}`,
+        `Jobs created (portfolio): ${impact.briefing.summary.jobsCreated?.toLocaleString("en-US") ?? "Data unavailable"}`,
+        `People served: ${impact.briefing.summary.peopleServed?.toLocaleString("en-US") ?? "Data unavailable"}`,
+        `Impact health score: ${impact.briefing.health.scoreUnavailable ? "Data unavailable" : impact.briefing.health.score}`,
       ],
     },
     {

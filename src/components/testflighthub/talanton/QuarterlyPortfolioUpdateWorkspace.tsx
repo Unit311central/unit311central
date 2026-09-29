@@ -748,6 +748,13 @@ export default function QuarterlyPortfolioUpdateWorkspace() {
         </p>
       ) : null}
 
+      <p className="rounded-xl border border-white/15 bg-white/5 px-4 py-3 text-sm text-white/65">
+        Quarterly Portfolio Update documents are stored in this browser workspace library (in-memory /
+        local persistence), not in Supabase. Executive Briefing &quot;Reports outstanding&quot; uses{" "}
+        <code className="text-emerald-200/90">portfolio_companies.last_quarterly_report_date</code> from
+        Supabase instead.
+      </p>
+
       <section className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-[#0f2a1f]/80 via-[#0b1a14]/90 to-[#08110d] p-5 sm:p-6">
         <h2 className="text-lg font-semibold text-white">Existing reports</h2>
         <p className="mt-1 text-sm text-white/50">

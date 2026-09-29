@@ -60,14 +60,15 @@ export type OpportunityRecommendedAction = {
 };
 
 export type OpportunityHealth = {
-  score: number;
-  band: OpportunityBand;
+  score: number | null;
+  scoreUnavailable: boolean;
+  band: OpportunityBand | "Unavailable";
   postureReason: string;
   healthText: string;
-  pipelineDepth: number;
-  highConviction: number;
-  sectorsCovered: number;
-  regionsCovered: number;
+  pipelineDepth: number | null;
+  highConviction: number | null;
+  sectorsCovered: number | null;
+  regionsCovered: number | null;
 };
 
 export type OpportunityBriefing = {
@@ -92,6 +93,9 @@ export type OpportunityBriefing = {
   regionsText: string;
   strategicText: string;
   actionsText: string;
+  /** No Supabase-backed opportunity/pipeline table exists in this workspace. */
+  pipelineDataAvailable: boolean;
+  pipelineUnavailableReason: string;
 };
 
 function todayIso() {
@@ -426,209 +430,61 @@ function withCardTextStrategic(): StrategicOpportunity[] {
   }));
 }
 
+const PIPELINE_UNAVAILABLE_REASON =
+  "No Supabase-backed opportunity or pipeline table is configured for Talanton Impact. Configured prospect fixtures are not shown as live intelligence.";
+
 export function buildOpportunityBriefing(): OpportunityBriefing {
-  const potentialCompanies = withCardTextCompanies().sort(
-    (a, b) => b.opportunityScore - a.opportunityScore,
-  );
-  const sectors = withCardTextSectors();
-  const regions = withCardTextRegions();
-  const strategic = withCardTextStrategic();
-
-  const highConviction = potentialCompanies.filter((c) => c.opportunityScore >= 82).length;
-  const avgScore = Math.round(
-    potentialCompanies.reduce((s, c) => s + c.opportunityScore, 0) / Math.max(potentialCompanies.length, 1),
-  );
-
-  const band: OpportunityBand =
-    highConviction >= 4 && avgScore >= 80
-      ? "Strong"
-      : avgScore >= 75
-        ? "Healthy"
-        : avgScore >= 65
-          ? "Watch"
-          : "Thin";
+  const potentialCompanies: PotentialPortfolioCompany[] = [];
+  const sectors: SectorIntelligence[] = [];
+  const regions: RegionalIntelligence[] = [];
+  const strategic: StrategicOpportunity[] = [];
 
   const health: OpportunityHealth = {
-    score: avgScore,
-    band,
-    postureReason:
-      band === "Strong"
-        ? "Pipeline depth and conviction are healthy across agri, inclusion, healthcare, and energy — suitable for active IC investigation this quarter."
-        : band === "Healthy"
-          ? "Solid opportunity set aligned to Talanton’s faith-driven SSA mandate, with a few high-conviction names ready for deeper diligence."
-          : band === "Watch"
-            ? "Opportunity flow exists but conviction is uneven. Tighten sourcing filters before committing leadership time."
-            : "Pipeline is too thin relative to Talanton’s deployment goals. Escalate ecosystem outreach and DFI partnership work.",
-    healthText: "",
-    pipelineDepth: potentialCompanies.length,
-    highConviction,
-    sectorsCovered: sectors.length,
-    regionsCovered: regions.length,
+    score: null,
+    scoreUnavailable: true,
+    band: "Unavailable",
+    postureReason: PIPELINE_UNAVAILABLE_REASON,
+    healthText: [
+      "Opportunity pipeline",
+      "Data unavailable — no database-backed pipeline records.",
+      PIPELINE_UNAVAILABLE_REASON,
+    ].join("\n"),
+    pipelineDepth: null,
+    highConviction: null,
+    sectorsCovered: null,
+    regionsCovered: null,
   };
-  health.healthText = [
-    "Opportunity Health Score",
-    `Score: ${health.score}/100 · ${health.band}`,
-    health.postureReason,
-    `Pipeline depth: ${health.pipelineDepth}`,
-    `High-conviction (≥82): ${health.highConviction}`,
-    `Sectors covered: ${health.sectorsCovered}`,
-    `Regions covered: ${health.regionsCovered}`,
-  ].join("\n");
-
-  const emergingOpportunities = [
-    `${potentialCompanies[0].companyName} (${potentialCompanies[0].country}) leads the pipeline at ${potentialCompanies[0].opportunityScore}/100 — ${potentialCompanies[0].thesisFit}.`,
-    `${highConviction} names score ≥82 and warrant IC-level investigation before quarter end.`,
-    "Agriculture offtake, MSME inclusion credit, and C&I solar remain the densest themes for faith-aligned impact with commercial realism.",
-    "Manufacturing and education remain selective — pursue only where offtake or contracted revenue reduces binary risk.",
-  ];
-
-  const sectorDevelopments = [
-    "Agriculture: climate-smart offtake and cold chain accelerating in Zambia and Rwanda.",
-    "Financial inclusion: MSME credit expanding in Uganda with community-based distribution options.",
-    "Healthcare: diagnostics and last-mile services steady in Kenya/Ghana; reimbursement diligence is the bottleneck.",
-    "Mobility: EV battery networks in Kenya create adjacency to existing portfolio learning (ARC Ride).",
-  ];
-
-  const regionalDevelopments = [
-    "Kenya remains the deepest market — compete on conviction and speed, not volume.",
-    "Uganda and Zambia offer earlier-stage tickets with strong rural/MSME impact narratives.",
-    "Tanzania C&I energy and Rwanda regional-hub models are less crowded but need patient structures.",
-    "Ghana manufacturing adjacency should be diligenced against Ethical Apparel Africa overlap.",
-  ];
-
-  const strategicOpportunitiesNarrative = strategic.map(
-    (s) => `${s.category}: ${s.title} (${s.owner}, ${s.urgency}).`,
-  );
-
-  const risksAndChallenges = [
-    "FX and working-capital stress can erase paper returns in manufacturing and agri offtake — underwrite local currency cash flows.",
-    "Crowded Kenya fintech/mobility markets risk adverse selection if Talanton chases momentum without thesis filters.",
-    "Education and NGO-heavy models may over-index impact and under-deliver commercial sustainability.",
-    "DFI processes can slow closes — start parallel conversations early on capital-intensive solar and cold-chain deals.",
-  ];
-
-  const recommendedInvestigations = [
-    `Open IC memo workstreams on ${potentialCompanies
-      .slice(0, 3)
-      .map((c) => c.companyName)
-      .join(", ")}.`,
-    "Commission labour-standards pre-diligence for CoastWeave Apparel before management meeting.",
-    "Map DFI co-invest appetite for Mwanzo Renewables C&I solar within 30 days.",
-    "Validate HustlePay collections quality and consumer-protection posture with two reference lenders.",
-  ];
-
-  const recommendedActions: OpportunityRecommendedAction[] = [
-    {
-      id: "opp-act-1",
-      title: "Schedule management calls — top three opportunities",
-      rationale: `${potentialCompanies
-        .slice(0, 3)
-        .map((c) => c.companyName)
-        .join(", ")} are highest scoring. Confirm data room access and theory of change metrics.`,
-      owner: "Harry Turner",
-      urgency: "This week",
-      cardText: "",
-    },
-    {
-      id: "opp-act-2",
-      title: "Advance DFI conversation for C&I solar",
-      rationale:
-        "Mwanzo Renewables-class tickets need blended capital. Start term-sheet framing with Impact Director this month.",
-      owner: "Impact Director",
-      urgency: "This month",
-      cardText: "",
-    },
-    {
-      id: "opp-act-3",
-      title: "Tighten Kenya sourcing filter",
-      rationale:
-        "Avoid crowded late processes. Prioritise healthcare diagnostics and mobility networks with clear rider/patient outcomes.",
-      owner: "Portfolio Ops",
-      urgency: "This week",
-      cardText: "",
-    },
-    {
-      id: "opp-act-4",
-      title: "Pilot faith-based MSME distribution partnership",
-      rationale:
-        "Test church/savings-group origination for inclusion credit without compromising underwriting standards.",
-      owner: "Harry Turner",
-      urgency: "Today",
-      cardText: "",
-    },
-  ];
-  for (const a of recommendedActions) {
-    a.cardText = [
-      `Recommended Action — ${a.title}`,
-      `Owner: ${a.owner}`,
-      `Urgency: ${a.urgency}`,
-      "",
-      a.rationale,
-    ].join("\n");
-  }
 
   const briefingText = [
-    "AI Opportunity Executive Briefing — Talanton Impact",
+    "Opportunity Executive Briefing — Talanton Impact",
     `As of ${todayIso()} · Prepared for Harry Turner / Talanton leadership`,
-    "Mandate: faith-driven impact investing across Sub-Saharan Africa",
     "",
-    "Emerging opportunities",
-    ...emergingOpportunities.map((x) => `• ${x}`),
-    "",
-    "Sector developments",
-    ...sectorDevelopments.map((x) => `• ${x}`),
-    "",
-    "Regional developments",
-    ...regionalDevelopments.map((x) => `• ${x}`),
-    "",
-    "Strategic opportunities",
-    ...strategicOpportunitiesNarrative.map((x) => `• ${x}`),
-    "",
-    "Risks and challenges",
-    ...risksAndChallenges.map((x) => `• ${x}`),
-    "",
-    "Recommended investigations",
-    ...recommendedInvestigations.map((x, i) => `${i + 1}. ${x}`),
+    PIPELINE_UNAVAILABLE_REASON,
   ].join("\n");
 
   return {
     asOf: todayIso(),
     preparedFor: "Harry Turner and Talanton leadership",
     health,
-    emergingOpportunities,
-    sectorDevelopments,
-    regionalDevelopments,
-    strategicOpportunitiesNarrative,
-    risksAndChallenges,
-    recommendedInvestigations,
+    emergingOpportunities: [],
+    sectorDevelopments: [],
+    regionalDevelopments: [],
+    strategicOpportunitiesNarrative: [],
+    risksAndChallenges: [],
+    recommendedInvestigations: [],
     potentialCompanies,
     sectors,
     regions,
     strategic,
-    recommendedActions,
+    recommendedActions: [],
     briefingText,
     healthSummaryText: health.healthText,
-    pipelineText: [
-      "Potential Portfolio Companies",
-      ...potentialCompanies.map(
-        (c) =>
-          `• ${c.companyName} (${c.country}, ${c.sector}) — score ${c.opportunityScore}; impact ${c.impactPotential}; invest ${c.investmentAttractiveness}`,
-      ),
-    ].join("\n"),
-    sectorsText: ["Sector Intelligence", ...sectors.map((s) => `• ${s.sector}: ${s.trend}, ${s.opportunityRating} — ${s.growthOutlook}`)].join(
-      "\n",
-    ),
-    regionsText: [
-      "Regional Intelligence",
-      ...regions.map((r) => `• ${r.region}: ${r.opportunityRating} — ${r.economicOutlook}`),
-    ].join("\n"),
-    strategicText: [
-      "Strategic Opportunities",
-      ...strategic.map((s) => `• [${s.category}] ${s.title} — ${s.owner} (${s.urgency})`),
-    ].join("\n"),
-    actionsText: [
-      "Recommended Opportunity Actions",
-      ...recommendedActions.map((a) => `• ${a.title} — ${a.owner} (${a.urgency}): ${a.rationale}`),
-    ].join("\n"),
+    pipelineText: "Potential Portfolio Companies\nData unavailable.",
+    sectorsText: "Sector Intelligence\nData unavailable.",
+    regionsText: "Regional Intelligence\nData unavailable.",
+    strategicText: "Strategic Opportunities\nData unavailable.",
+    actionsText: "Recommended Opportunity Actions\nData unavailable.",
+    pipelineDataAvailable: false,
+    pipelineUnavailableReason: PIPELINE_UNAVAILABLE_REASON,
   };
 }

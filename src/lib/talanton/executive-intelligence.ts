@@ -292,7 +292,7 @@ export function assessTalantonOrgHealth(asOf?: string | null): TalantonOrgHealth
         : impact.health.band === "Watch"
           ? "Amber"
           : "Green",
-    reasoning: `Impact health ${impact.health.score}/100 (${impact.health.band}). ${impact.summary.jobsCreated.toLocaleString()} jobs created; ${impact.summary.peopleServed.toLocaleString()} people served across ${impact.summary.countriesImpacted} countries.`,
+    reasoning: `Impact health ${impact.health.scoreUnavailable ? "unavailable" : `${impact.health.score}/100 (${impact.health.band})`}. ${impact.summary.jobsCreated === null ? "Jobs created unavailable" : `${impact.summary.jobsCreated.toLocaleString()} jobs created`}; ${impact.summary.peopleServed === null ? "people served unavailable" : `${impact.summary.peopleServed.toLocaleString()} people served`} across ${impact.summary.countriesImpacted ?? "—"} countries.`,
   };
 
   const governanceDim: TalantonHealthDimension = {

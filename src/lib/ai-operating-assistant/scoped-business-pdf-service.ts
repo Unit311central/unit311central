@@ -37,6 +37,7 @@ import { calculateLivePayrollSnapshot } from "@/lib/payroll/payroll-service";
 import { FUNDS_PLATFORM_OVERVIEW, formatFundUsd } from "@/lib/talanton/funds-data";
 import { buildPortfolioExecutiveBriefing } from "@/lib/talanton/portfolio-intelligence";
 import { buildPortfolioImpactBriefing } from "@/lib/talanton/impact-intelligence";
+import { UNAVAILABLE_LABEL } from "@/lib/talanton/intelligence-metric-types";
 
 export type ScopedPdfRow = { label: string; value: string };
 
@@ -658,9 +659,18 @@ export async function loadScopedPdfBundle(input: {
           metricId,
           heading,
           rows: [
-            { label: "Impact health score", value: `${impact.health.score}/100` },
-            { label: "Band", value: impact.health.band },
-            { label: "People served", value: impact.summary.peopleServed.toLocaleString() },
+            {
+              label: "Impact health score",
+              value: impact.health.scoreUnavailable ? UNAVAILABLE_LABEL : `${impact.health.score}/100`,
+            },
+            { label: "Band", value: impact.health.scoreUnavailable ? UNAVAILABLE_LABEL : impact.health.band },
+            {
+              label: "People served",
+              value:
+                impact.summary.peopleServed === null
+                  ? UNAVAILABLE_LABEL
+                  : impact.summary.peopleServed.toLocaleString(),
+            },
           ],
         });
         break;
@@ -672,9 +682,27 @@ export async function loadScopedPdfBundle(input: {
           metricId,
           heading,
           rows: [
-            { label: "Jobs created", value: impact.summary.jobsCreated.toLocaleString() },
-            { label: "Jobs retained", value: impact.summary.jobsRetained.toLocaleString() },
-            { label: "Women employed", value: impact.summary.womenEmployed.toLocaleString() },
+            {
+              label: "Jobs created",
+              value:
+                impact.summary.jobsCreated === null
+                  ? UNAVAILABLE_LABEL
+                  : impact.summary.jobsCreated.toLocaleString(),
+            },
+            {
+              label: "Jobs retained",
+              value:
+                impact.summary.jobsRetained === null
+                  ? UNAVAILABLE_LABEL
+                  : impact.summary.jobsRetained.toLocaleString(),
+            },
+            {
+              label: "Women employed",
+              value:
+                impact.summary.womenEmployed === null
+                  ? UNAVAILABLE_LABEL
+                  : impact.summary.womenEmployed.toLocaleString(),
+            },
           ],
         });
         break;

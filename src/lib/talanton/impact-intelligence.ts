@@ -1,11 +1,13 @@
 /**
  * Impact Intelligence — portfolio and company impact for Talanton leadership.
- * Metrics are executive fixtures derived from holdings (not audited impact statements).
+ * Aggregated metrics come from company portal impact submissions only (local persistence).
  */
 
 import { getLatestImpactReportForIntelligence } from "@/lib/talanton/company-stories-impact";
+import { UNAVAILABLE_LABEL } from "@/lib/talanton/intelligence-metric-types";
 import { formatUsd, type PortfolioCompany } from "@/lib/talanton/portfolio-data";
 import { resolveTalantonPortfolioCompanies } from "@/lib/talanton/portfolio-companies-runtime";
+import { resolveTalantonIntelligenceContext } from "@/lib/talanton/talanton-intelligence-context";
 
 export type ImpactTrend = "Improving" | "Stable" | "Declining";
 
@@ -24,7 +26,8 @@ export type CompanyImpactProfile = {
   youthEmployedPct: number;
   peopleServed: number;
   communitiesImpacted: number;
-  economicContributionUsd: number;
+  economicContributionUsd: number | null;
+  economicContributionUnavailable: boolean;
   keyImpactMetric: string;
   keyImpactMetricLabel: string;
   aiSummary: string;
@@ -36,6 +39,8 @@ export type CompanyImpactProfile = {
   risksText: string;
   opportunitiesText: string;
   metricsText: string;
+  /** True when metrics come from a company portal impact submission (not heuristics). */
+  impactMetricsFromSubmission: boolean;
 };
 
 export type TopImpactCompany = {
@@ -73,19 +78,21 @@ export type ImpactRecommendedAction = {
 };
 
 export type PortfolioImpactSummary = {
-  jobsCreated: number;
-  jobsRetained: number;
-  womenEmployed: number;
-  youthEmployed: number;
-  peopleServed: number;
-  communitiesImpacted: number;
-  countriesImpacted: number;
-  economicContributionUsd: number;
+  jobsCreated: number | null;
+  jobsRetained: number | null;
+  womenEmployed: number | null;
+  youthEmployed: number | null;
+  peopleServed: number | null;
+  communitiesImpacted: number | null;
+  countriesImpacted: number | null;
+  economicContributionUsd: number | null;
+  hasAggregatedSubmissionData: boolean;
 };
 
 export type ImpactHealth = {
-  score: number;
-  band: "Strong" | "Healthy" | "Watch" | "At Risk";
+  score: number | null;
+  scoreUnavailable: boolean;
+  band: "Strong" | "Healthy" | "Watch" | "At Risk" | "Unavailable";
   postureReason: string;
   healthText: string;
 };
@@ -113,91 +120,8 @@ function todayIso() {
   return new Date().toISOString().slice(0, 10);
 }
 
-function hashSeed(input: string): number {
-  let h = 0;
-  for (let i = 0; i < input.length; i += 1) h = (h * 31 + input.charCodeAt(i)) >>> 0;
-  return h;
-}
-
 function clamp(n: number, min: number, max: number) {
   return Math.max(min, Math.min(max, n));
-}
-
-function sectorPeopleMultiplier(sector: string): number {
-  const s = sector.toLowerCase();
-  if (s.includes("healthcare") || s.includes("pharma")) return 420;
-  if (s.includes("fintech") || s.includes("inclusion")) return 890;
-  if (s.includes("connectivity") || s.includes("telecom")) return 1100;
-  if (s.includes("apparel") || s.includes("manufacturing")) return 38;
-  if (s.includes("agriculture") || s.includes("food") || s.includes("aquaculture")) return 95;
-  if (s.includes("clean energy") || s.includes("energy") || s.includes("forestry")) return 160;
-  if (s.includes("mobility") || s.includes("logistics")) return 220;
-  return 70;
-}
-
-function sectorCommunityBase(sector: string): number {
-  const s = sector.toLowerCase();
-  if (s.includes("agriculture") || s.includes("food") || s.includes("forestry")) return 18;
-  if (s.includes("healthcare") || s.includes("pharma")) return 14;
-  if (s.includes("connectivity") || s.includes("fintech")) return 22;
-  if (s.includes("apparel") || s.includes("manufacturing")) return 9;
-  return 11;
-}
-
-function womenShare(company: PortfolioCompany): number {
-  const seed = hashSeed(company.id) % 17;
-  const base =
-    company.sector.toLowerCase().includes("apparel") ||
-    company.sector.toLowerCase().includes("healthcare")
-      ? 0.48
-      : company.sector.toLowerCase().includes("energy") ||
-          company.sector.toLowerCase().includes("automotive")
-        ? 0.28
-        : 0.38;
-  return clamp(base + (seed - 8) * 0.012, 0.22, 0.62);
-}
-
-function youthShare(company: PortfolioCompany): number {
-  const seed = hashSeed(`${company.id}-y`) % 15;
-  const base = company.sector.toLowerCase().includes("fintech") ||
-    company.sector.toLowerCase().includes("connectivity")
-      ? 0.52
-      : 0.41;
-  return clamp(base + (seed - 7) * 0.01, 0.28, 0.65);
-}
-
-function jobsCreatedFor(company: PortfolioCompany): number {
-  const growthFactor = clamp(company.revenueGrowthPct / 100, 0.04, 0.4);
-  const created = Math.round(company.employeeCount * (0.12 + growthFactor * 0.55));
-  return Math.max(8, created);
-}
-
-function jobsRetainedFor(company: PortfolioCompany): number {
-  const retention = company.revenueGrowthPct < 10 ? 0.88 : 0.94;
-  return Math.round(company.employeeCount * retention);
-}
-
-function peopleServedFor(company: PortfolioCompany): number {
-  return Math.round(company.employeeCount * sectorPeopleMultiplier(company.sector) * (1 + company.revenueGrowthPct / 200));
-}
-
-function communitiesFor(company: PortfolioCompany): number {
-  const base = sectorCommunityBase(company.sector);
-  const scale = Math.round(Math.sqrt(company.employeeCount) / 2);
-  return Math.max(3, base + scale + (hashSeed(company.id) % 5));
-}
-
-function economicContributionFor(company: PortfolioCompany): number {
-  // Local wages, supplier spend, and taxes proxy — not audited GDP contribution.
-  return Math.round(company.annualRevenueUsd * 0.62 + company.employeeCount * 4200);
-}
-
-function impactTrend(company: PortfolioCompany): ImpactTrend {
-  if (company.revenueGrowthPct >= 18 && company.riskRating !== "Critical") return "Improving";
-  if (company.revenueGrowthPct < 10 || company.riskRating === "High" || company.riskRating === "Critical") {
-    return "Declining";
-  }
-  return "Stable";
 }
 
 function impactScoreFor(company: PortfolioCompany, profile: Omit<CompanyImpactProfile, "impactScore" | "aiSummary" | "aiCommentary" | "risks" | "opportunities" | "summaryText" | "commentaryText" | "risksText" | "opportunitiesText" | "metricsText" | "keyImpactMetric" | "keyImpactMetricLabel">): number {
@@ -231,86 +155,29 @@ function keyMetric(profile: {
   return { label: "Jobs created", value: profile.jobsCreated.toLocaleString() };
 }
 
-function buildCompanyRisks(company: PortfolioCompany, trend: ImpactTrend): CompanyImpactProfile["risks"] {
+function buildCompanyRisks(
+  company: PortfolioCompany,
+  hasSubmission: boolean,
+): CompanyImpactProfile["risks"] {
+  if (!hasSubmission) return [];
   const risks: CompanyImpactProfile["risks"] = [];
-  if (trend === "Declining") {
-    risks.push({
-      id: `${company.id}-emp`,
-      title: "Declining employment momentum",
-      severity: company.riskRating === "Critical" ? "Critical" : "Elevated",
-      detail: `${company.name} shows softer hiring and retention signals versus prior period. Headcount leverage is not keeping pace with mission targets in ${company.country}.`,
-    });
-  }
   if (company.compliancePct < 80) {
     risks.push({
       id: `${company.id}-target`,
-      title: "Missed impact reporting cadence",
+      title: "Impact reporting compliance gap",
       severity: "Watch",
-      detail: `Impact data quality is uneven (compliance ${company.compliancePct}%). Community and jobs figures need a cleaner Q3 submission before board pack lock.`,
-    });
-  }
-  if (
-    company.sector.toLowerCase().includes("agriculture") ||
-    company.sector.toLowerCase().includes("apparel")
-  ) {
-    risks.push({
-      id: `${company.id}-reach`,
-      title: "Reduced community reach risk",
-      severity: "Watch",
-      detail: `Seasonality and supply constraints could compress communities reached in the next two quarters if offtake or farmgate programmes slip.`,
-    });
-  }
-  if (risks.length === 0) {
-    risks.push({
-      id: `${company.id}-watch`,
-      title: "Maintain impact measurement discipline",
-      severity: "Watch",
-      detail: `No acute impact deterioration detected. Continue monthly jobs and beneficiary tracking so Talanton can defend impact claims in LP reporting.`,
+      detail: `Portfolio compliance is ${company.compliancePct}%. Ensure impact submissions stay aligned with Talanton reporting standards.`,
     });
   }
   return risks.slice(0, 3);
 }
 
-function buildCompanyOpportunities(company: PortfolioCompany): CompanyImpactProfile["opportunities"] {
-  const opportunities: CompanyImpactProfile["opportunities"] = [
-    {
-      id: `${company.id}-opp-1`,
-      title: "Deepen youth pathways",
-      detail: `Partner with local TVET / apprenticeship programmes in ${company.city} to lift youth employment share while supporting ${company.sector.toLowerCase()} skills.`,
-    },
-    {
-      id: `${company.id}-opp-2`,
-      title: "Women’s economic participation",
-      detail: `Structured advancement and supplier inclusion for women-owned MSMEs can raise both impact score and operational resilience.`,
-    },
-  ];
-  if (
-    company.sector.toLowerCase().includes("agriculture") ||
-    company.sector.toLowerCase().includes("food") ||
-    company.sector.toLowerCase().includes("forestry")
-  ) {
-    opportunities.push({
-      id: `${company.id}-opp-3`,
-      title: "Expand smallholder / community programmes",
-      detail: `Incremental offtake or agroforestry packages could add communities impacted without proportional opex if designed with existing field teams.`,
-    });
-  } else if (
-    company.sector.toLowerCase().includes("fintech") ||
-    company.sector.toLowerCase().includes("connectivity")
-  ) {
-    opportunities.push({
-      id: `${company.id}-opp-3`,
-      title: "Scale last-mile access",
-      detail: `Target under-served counties/districts to grow people served while reinforcing Talanton’s inclusion thesis.`,
-    });
-  } else {
-    opportunities.push({
-      id: `${company.id}-opp-3`,
-      title: "Local supplier development",
-      detail: `Increase domestic procurement share to amplify economic contribution in ${company.country} and reduce FX exposure.`,
-    });
-  }
-  return opportunities.slice(0, 3);
+function buildCompanyOpportunities(
+  _company: PortfolioCompany,
+  hasSubmission: boolean,
+): CompanyImpactProfile["opportunities"] {
+  if (!hasSubmission) return [];
+  return [];
 }
 
 function buildAiSummary(company: PortfolioCompany, score: number, trend: ImpactTrend, jobsCreated: number, peopleServed: number, communities: number): string {
@@ -328,24 +195,32 @@ function buildAiCommentary(company: PortfolioCompany, score: number, trend: Impa
   return `${inclusion} Delivery is steady but not yet distinctive versus the portfolio median. A clear 90-day plan on youth hiring and community reach would lift the score without distracting from commercial milestones. Keep ${company.name} on the watchlist for Impact Dashboard trending.`;
 }
 
+function resolveSubmittedImpactReport(companyId: string) {
+  const ctx = resolveTalantonIntelligenceContext();
+  return ctx.impactReportsByCompanyId[companyId] ?? getLatestImpactReportForIntelligence(companyId);
+}
+
 export function buildCompanyImpactProfile(companyId: string): CompanyImpactProfile {
   const company =
     resolveTalantonPortfolioCompanies().find((c) => c.id === companyId) ?? resolveTalantonPortfolioCompanies()[0];
-  const submitted = getLatestImpactReportForIntelligence(company.id);
+  const submitted = resolveSubmittedImpactReport(company.id);
+  const impactMetricsFromSubmission = Boolean(submitted);
+
   const womenPct = submitted
     ? clamp(submitted.womenEmployed / Math.max(company.employeeCount, 1), 0.15, 0.75)
-    : womenShare(company);
+    : 0;
   const youthPct = submitted
     ? clamp(submitted.youthEmployed / Math.max(company.employeeCount, 1), 0.12, 0.7)
-    : youthShare(company);
-  const jobsCreated = submitted?.jobsCreated ?? jobsCreatedFor(company);
-  const jobsRetained = submitted?.jobsRetained ?? jobsRetainedFor(company);
-  const womenEmployed = submitted?.womenEmployed ?? Math.round(company.employeeCount * womenPct);
-  const youthEmployed = submitted?.youthEmployed ?? Math.round(company.employeeCount * youthPct);
-  const peopleServed = submitted?.peopleServed ?? peopleServedFor(company);
-  const communitiesImpacted = submitted?.communitiesImpacted ?? communitiesFor(company);
-  const economicContributionUsd = economicContributionFor(company);
-  const trend = submitted ? ("Improving" as ImpactTrend) : impactTrend(company);
+    : 0;
+  const jobsCreated = submitted?.jobsCreated ?? 0;
+  const jobsRetained = submitted?.jobsRetained ?? 0;
+  const womenEmployed = submitted?.womenEmployed ?? 0;
+  const youthEmployed = submitted?.youthEmployed ?? 0;
+  const peopleServed = submitted?.peopleServed ?? 0;
+  const communitiesImpacted = submitted?.communitiesImpacted ?? 0;
+  const economicContributionUsd = null;
+  const economicContributionUnavailable = true;
+  const trend: ImpactTrend = "Stable";
 
   const base = {
     companyId: company.id,
@@ -362,29 +237,36 @@ export function buildCompanyImpactProfile(companyId: string): CompanyImpactProfi
     peopleServed,
     communitiesImpacted,
     economicContributionUsd,
+    economicContributionUnavailable,
+    impactMetricsFromSubmission,
   };
 
-  const impactScore = impactScoreFor(company, base);
-  const metric = keyMetric({ ...base, sector: company.sector });
-  const risks = buildCompanyRisks(company, trend);
-  const opportunities = buildCompanyOpportunities(company);
-  const aiSummary = buildAiSummary(company, impactScore, trend, jobsCreated, peopleServed, communitiesImpacted);
-  const aiCommentary = buildAiCommentary(company, impactScore, trend, womenPct, youthPct);
+  const impactScore = impactMetricsFromSubmission ? impactScoreFor(company, base) : 0;
+  const metric = impactMetricsFromSubmission
+    ? keyMetric({ ...base, sector: company.sector })
+    : { label: "Impact data", value: UNAVAILABLE_LABEL };
+  const risks = buildCompanyRisks(company, impactMetricsFromSubmission);
+  const opportunities = buildCompanyOpportunities(company, impactMetricsFromSubmission);
+  const aiSummary = impactMetricsFromSubmission
+    ? buildAiSummary(company, impactScore, trend, jobsCreated, peopleServed, communitiesImpacted)
+    : `${company.name} (${company.country}): no submitted company portal impact report is on file. Impact metrics are ${UNAVAILABLE_LABEL.toLowerCase()} until a report is submitted and approved.`;
+  const aiCommentary = "";
 
-  const metricsText = [
-    `${company.name} — Impact Metrics`,
-    `Impact score: ${impactScore}/100 (${trend})`,
-    `Jobs created: ${jobsCreated.toLocaleString()}`,
-    `Jobs retained: ${jobsRetained.toLocaleString()}`,
-    `Women employed: ${womenEmployed.toLocaleString()} (${Math.round(womenPct * 100)}%)`,
-    `Youth employed: ${youthEmployed.toLocaleString()} (${Math.round(youthPct * 100)}%)`,
-    `People served: ${peopleServed.toLocaleString()}`,
-    `Communities impacted: ${communitiesImpacted}`,
-    `Economic contribution: ${formatUsd(economicContributionUsd)}`,
-    submitted
-      ? `Source: Company portal impact report (${submitted.reportingPeriod}, ${submitted.status})`
-      : "Source: Portfolio impact model",
-  ].join("\n");
+  const metricsText = impactMetricsFromSubmission
+    ? [
+        `${company.name} — Impact Metrics`,
+        `Jobs created: ${jobsCreated.toLocaleString()}`,
+        `Jobs retained: ${jobsRetained.toLocaleString()}`,
+        `Women employed: ${womenEmployed.toLocaleString()} (${Math.round(womenPct * 100)}%)`,
+        `Youth employed: ${youthEmployed.toLocaleString()} (${Math.round(youthPct * 100)}%)`,
+        `People served: ${peopleServed.toLocaleString()}`,
+        `Communities impacted: ${communitiesImpacted}`,
+        `Economic contribution: ${UNAVAILABLE_LABEL} (not captured in portal submission schema)`,
+        `Source: Company portal impact report (${submitted!.reportingPeriod}, ${submitted!.status})`,
+      ].join("\n")
+    : [`${company.name} — Impact Metrics`, UNAVAILABLE_LABEL, "Source: company portal impact submissions (local persistence)"].join(
+        "\n",
+      );
 
   const risksText = [
     `${company.name} — Impact Risks`,
@@ -405,12 +287,22 @@ export function buildCompanyImpactProfile(companyId: string): CompanyImpactProfi
     aiCommentary,
     risks,
     opportunities,
-    summaryText: `AI Impact Summary — ${company.name}\n\n${aiSummary}`,
-    commentaryText: `AI Impact Commentary — ${company.name}\n\n${aiCommentary}`,
+    summaryText: `Impact Summary — ${company.name}\n\n${aiSummary}`,
+    commentaryText: "",
     risksText,
     opportunitiesText,
     metricsText,
+    impactMetricsFromSubmission,
+    economicContributionUnavailable,
   };
+}
+
+export function impactCountOrZero(n: number | null): number {
+  return n ?? 0;
+}
+
+export function displayImpactCount(n: number | null): string {
+  return n === null ? UNAVAILABLE_LABEL : n.toLocaleString();
 }
 
 export function listCompanyImpactOptions() {
@@ -429,54 +321,49 @@ export function resolveCompanyImpactId(requested: string | null | undefined): st
 
 export function buildPortfolioImpactBriefing(): PortfolioImpactBriefing {
   const profiles = resolveTalantonPortfolioCompanies().map((c) => buildCompanyImpactProfile(c.id));
-  const countries = new Set(profiles.map((p) => p.country));
+  const liveProfiles = profiles.filter((p) => p.impactMetricsFromSubmission);
+  const countries = new Set(liveProfiles.map((p) => p.country));
+
+  const sum = (pick: (p: CompanyImpactProfile) => number) =>
+    liveProfiles.length ? liveProfiles.reduce((s, p) => s + pick(p), 0) : null;
 
   const summary: PortfolioImpactSummary = {
-    jobsCreated: profiles.reduce((s, p) => s + p.jobsCreated, 0),
-    jobsRetained: profiles.reduce((s, p) => s + p.jobsRetained, 0),
-    womenEmployed: profiles.reduce((s, p) => s + p.womenEmployed, 0),
-    youthEmployed: profiles.reduce((s, p) => s + p.youthEmployed, 0),
-    peopleServed: profiles.reduce((s, p) => s + p.peopleServed, 0),
-    communitiesImpacted: profiles.reduce((s, p) => s + p.communitiesImpacted, 0),
-    countriesImpacted: countries.size,
-    economicContributionUsd: profiles.reduce((s, p) => s + p.economicContributionUsd, 0),
+    jobsCreated: sum((p) => p.jobsCreated),
+    jobsRetained: sum((p) => p.jobsRetained),
+    womenEmployed: sum((p) => p.womenEmployed),
+    youthEmployed: sum((p) => p.youthEmployed),
+    peopleServed: sum((p) => p.peopleServed),
+    communitiesImpacted: sum((p) => p.communitiesImpacted),
+    countriesImpacted: liveProfiles.length ? countries.size : null,
+    economicContributionUsd: null,
+    hasAggregatedSubmissionData: liveProfiles.length > 0,
   };
 
-  const avgScore = Math.round(profiles.reduce((s, p) => s + p.impactScore, 0) / Math.max(profiles.length, 1));
-  const declining = profiles.filter((p) => p.trend === "Declining");
-  const improving = profiles.filter((p) => p.trend === "Improving");
-
-  const band: ImpactHealth["band"] =
-    avgScore >= 80 && declining.length <= 2
-      ? "Strong"
-      : avgScore >= 68 && declining.length <= 4
-        ? "Healthy"
-        : avgScore >= 55
-          ? "Watch"
-          : "At Risk";
-
-  const health: ImpactHealth = {
-    score: avgScore,
-    band,
-    postureReason:
-      band === "Strong"
-        ? "Portfolio impact delivery is broad-based across jobs, inclusion, and community reach, with limited declining holdings."
-        : band === "Healthy"
-          ? "Impact outcomes remain solid, but a subset of holdings needs tighter employment or community follow-up before the next LP cycle."
-          : band === "Watch"
-            ? "Impact momentum is uneven. Several companies show declining employment or reach signals that require executive attention."
-            : "Impact performance is below Talanton’s expected standard. Stabilise declining holdings and restore measurement discipline immediately.",
-    healthText: "",
-  };
+  const health: ImpactHealth = summary.hasAggregatedSubmissionData
+    ? {
+        score: null,
+        scoreUnavailable: true,
+        band: "Unavailable",
+        postureReason: `${liveProfiles.length} of ${profiles.length} holdings have submitted impact reports. Portfolio impact health score is not computed without a defined methodology on live submissions.`,
+        healthText: "",
+      }
+    : {
+        score: null,
+        scoreUnavailable: true,
+        band: "Unavailable",
+        postureReason:
+          "No company portal impact submissions are on file. Portfolio impact totals and health score are unavailable.",
+        healthText: "",
+      };
   health.healthText = [
-    "Impact Health Score",
-    `Score: ${health.score}/100 · ${health.band}`,
+    "Portfolio impact",
+    health.scoreUnavailable ? "Score: Data unavailable" : `Score: ${health.score}/100 · ${health.band}`,
     health.postureReason,
-    `Improving: ${improving.length} · Declining: ${declining.length} · Holdings: ${profiles.length}`,
+    `Holdings with submissions: ${liveProfiles.length} / ${profiles.length}`,
   ].join("\n");
 
-  const topCompanies: TopImpactCompany[] = [...profiles]
-    .sort((a, b) => b.impactScore - a.impactScore)
+  const topCompanies: TopImpactCompany[] = [...liveProfiles]
+    .sort((a, b) => b.peopleServed - a.peopleServed)
     .slice(0, 6)
     .map((p) => ({
       companyId: p.companyId,
@@ -499,92 +386,33 @@ export function buildPortfolioImpactBriefing(): PortfolioImpactBriefing {
     }));
 
   const risks: ImpactRisk[] = [];
-  for (const p of declining.slice(0, 4)) {
-    risks.push({
-      id: `port-risk-${p.companyId}`,
-      title: `Declining employment / impact momentum — ${p.companyName}`,
-      severity: p.impactScore < 55 ? "Critical" : "Elevated",
-      companyId: p.companyId,
-      companyName: p.companyName,
-      detail: `${p.companyName} (${p.country}) is on a declining impact trajectory (score ${p.impactScore}/100). Jobs created ${p.jobsCreated.toLocaleString()}; communities ${p.communitiesImpacted}. Requires Impact Director follow-up.`,
-      cardText: "",
-    });
-  }
-  if (summary.communitiesImpacted < profiles.length * 12) {
-    risks.push({
-      id: "port-risk-community",
-      title: "Reduced community reach versus portfolio plan",
-      severity: "Watch",
-      companyId: null,
-      companyName: null,
-      detail:
-        "Aggregate communities impacted sits below the internal stretch plan. Agriculture and manufacturing holdings should confirm field programme continuity for Q3.",
-      cardText: "",
-    });
-  }
-  risks.push({
-    id: "port-risk-targets",
-    title: "Missed impact targets risk on LP reporting",
-    severity: declining.length >= 3 ? "Elevated" : "Watch",
-    companyId: null,
-    companyName: null,
-    detail: `${declining.length} holdings show declining trends. Without remediation, jobs and beneficiary narratives for the next investor update will look soft versus Seed/Series peers.`,
-    cardText: "",
-  });
-  for (const r of risks) {
-    r.cardText = [`Impact Risk — ${r.title}`, `Severity: ${r.severity}`, r.companyName ? `Company: ${r.companyName}` : "Portfolio-wide", "", r.detail].join("\n");
-  }
+  const recommendedActions: ImpactRecommendedAction[] = summary.hasAggregatedSubmissionData
+    ? [
+        {
+          id: "imp-act-submit",
+          title: "Collect impact reports from remaining holdings",
+          rationale: `${profiles.length - liveProfiles.length} portfolio companies have no submitted impact report on file.`,
+          owner: "Portfolio Ops",
+          urgency: "This month",
+          companyId: null,
+          companyName: null,
+          cardText: "",
+        },
+      ]
+    : [
+        {
+          id: "imp-act-none",
+          title: "Establish company portal impact reporting",
+          rationale:
+            "No submitted impact reports are available. Impact intelligence will remain unavailable until companies submit portal impact data.",
+          owner: "Impact Director",
+          urgency: "This month",
+          companyId: null,
+          companyName: null,
+          cardText: "",
+        },
+      ];
 
-  const recommendedActions: ImpactRecommendedAction[] = [
-    {
-      id: "imp-act-1",
-      title: "Stabilise declining-impact holdings",
-      rationale: `${declining
-        .slice(0, 3)
-        .map((p) => p.companyName)
-        .join(", ") || "Priority holdings"} need 30-day retention and community programme plans before board pack freeze.`,
-      owner: "Impact Director",
-      urgency: declining.length >= 3 ? "Today" : "This week",
-      companyId: declining[0]?.companyId ?? null,
-      companyName: declining[0]?.companyName ?? null,
-      cardText: "",
-    },
-    {
-      id: "imp-act-2",
-      title: "Lock Q3 jobs & beneficiary submissions",
-      rationale:
-        "Standardise jobs created/retained and people served definitions across all 19 holdings so LP impact pages reconcile to the Impact Dashboard.",
-      owner: "Portfolio Ops",
-      urgency: "This week",
-      companyId: null,
-      companyName: null,
-      cardText: "",
-    },
-    {
-      id: "imp-act-3",
-      title: "Showcase top impact companies in LP update",
-      rationale: `${topCompanies
-        .slice(0, 3)
-        .map((c) => c.companyName)
-        .join(", ")} are strongest proof points — package commentary for the next investor communication.`,
-      owner: "Harry Turner",
-      urgency: "This month",
-      companyId: topCompanies[0]?.companyId ?? null,
-      companyName: topCompanies[0]?.companyName ?? null,
-      cardText: "",
-    },
-    {
-      id: "imp-act-4",
-      title: "Advance women & youth employment programmes",
-      rationale:
-        "Portfolio women and youth shares are solid but uneven. Target manufacturing and energy holdings for structured advancement plans.",
-      owner: "Impact Director",
-      urgency: "This month",
-      companyId: null,
-      companyName: null,
-      cardText: "",
-    },
-  ];
   for (const a of recommendedActions) {
     a.cardText = [
       `Recommended Action — ${a.title}`,
@@ -596,29 +424,29 @@ export function buildPortfolioImpactBriefing(): PortfolioImpactBriefing {
     ].join("\n");
   }
 
-  const overallImpact = `Across ${profiles.length} holdings in ${summary.countriesImpacted} countries, Talanton’s portfolio supports approximately ${summary.jobsCreated.toLocaleString()} jobs created and ${summary.jobsRetained.toLocaleString()} jobs retained, with ${summary.womenEmployed.toLocaleString()} women and ${summary.youthEmployed.toLocaleString()} youth in paid roles. Reach extends to roughly ${summary.peopleServed.toLocaleString()} people and ${summary.communitiesImpacted.toLocaleString()} communities, with estimated economic contribution of ${formatUsd(summary.economicContributionUsd)}. Impact Health stands at ${health.score}/100 (${health.band}).`;
+  const fmt = (n: number | null) => (n === null ? UNAVAILABLE_LABEL : n.toLocaleString());
+  const fmtUsd = (n: number | null) => (n === null ? UNAVAILABLE_LABEL : formatUsd(n));
 
-  const keyAchievements = [
-    `${improving.length} holdings are on an improving impact trajectory, led by ${topCompanies[0]?.companyName ?? "top performers"} on jobs and community reach.`,
-    `Women employed across the portfolio: ${summary.womenEmployed.toLocaleString()} — a credible inclusion signal for LP reporting.`,
-    `People served exceeds ${summary.peopleServed.toLocaleString()}, concentrated in fintech, connectivity, and healthcare holdings.`,
-    `Geographic footprint spans ${summary.countriesImpacted} countries across Sub-Saharan Africa without over-concentration in a single market.`,
-  ];
+  const overallImpact = summary.hasAggregatedSubmissionData
+    ? `Aggregated from ${liveProfiles.length} submitted company impact report(s): ${fmt(summary.jobsCreated)} jobs created, ${fmt(summary.peopleServed)} people served, ${fmt(summary.communitiesImpacted)} communities impacted across ${fmt(summary.countriesImpacted)} countries.`
+    : `No submitted company portal impact reports are on file for this portfolio. Portfolio impact totals are ${UNAVAILABLE_LABEL.toLowerCase()}.`;
+
+  const keyAchievements = summary.hasAggregatedSubmissionData
+    ? [
+        `${liveProfiles.length} holdings have submitted impact reports on file.`,
+        `People served (reported): ${fmt(summary.peopleServed)}.`,
+        `Jobs created (reported): ${fmt(summary.jobsCreated)}.`,
+      ]
+    : [`Collect company portal impact submissions to populate portfolio impact intelligence.`];
 
   const highestImpactCompanies = topCompanies.slice(0, 4).map(
     (c) =>
-      `${c.companyName} (${c.country}) — score ${c.impactScore}/100; ${c.keyImpactMetricLabel.toLowerCase()} ${c.keyImpactMetric}; trend ${c.trend}.`,
+      `${c.companyName} (${c.country}) — ${c.keyImpactMetricLabel}: ${c.keyImpactMetric}.`,
   );
 
   const areasRequiringAttention = [
-    ...declining.slice(0, 3).map(
-      (p) =>
-        `${p.companyName}: declining impact trend (score ${p.impactScore}/100) — verify employment and community programme continuity.`,
-    ),
-    "Harmonise impact definitions before the next investor update so jobs and beneficiary figures do not drift between company packs.",
-    declining.length >= 3
-      ? "Multiple declining holdings elevate LP narrative risk — treat Impact Dashboard remediation as a leadership priority this week."
-      : "Keep stretch community-reach targets visible so agriculture and manufacturing do not quietly under-deliver.",
+    `${profiles.length - liveProfiles.length} holdings lack submitted impact reports.`,
+    "Harmonise impact definitions in portal submissions before LP reporting.",
   ];
 
   const recommendedActionsNarrative = recommendedActions.map(
@@ -626,7 +454,7 @@ export function buildPortfolioImpactBriefing(): PortfolioImpactBriefing {
   );
 
   const briefingText = [
-    "AI Impact Executive Briefing — Talanton Impact",
+    "Impact Executive Briefing — Talanton Impact",
     `As of ${todayIso()} · Prepared for Harry Turner / Talanton leadership`,
     "",
     "Overall portfolio impact",
@@ -647,14 +475,15 @@ export function buildPortfolioImpactBriefing(): PortfolioImpactBriefing {
 
   const summaryText = [
     "Portfolio Impact Summary",
-    `Jobs created: ${summary.jobsCreated.toLocaleString()}`,
-    `Jobs retained: ${summary.jobsRetained.toLocaleString()}`,
-    `Women employed: ${summary.womenEmployed.toLocaleString()}`,
-    `Youth employed: ${summary.youthEmployed.toLocaleString()}`,
-    `People served: ${summary.peopleServed.toLocaleString()}`,
-    `Communities impacted: ${summary.communitiesImpacted.toLocaleString()}`,
-    `Countries impacted: ${summary.countriesImpacted}`,
-    `Economic contribution (est.): ${formatUsd(summary.economicContributionUsd)}`,
+    `Jobs created: ${fmt(summary.jobsCreated)}`,
+    `Jobs retained: ${fmt(summary.jobsRetained)}`,
+    `Women employed: ${fmt(summary.womenEmployed)}`,
+    `Youth employed: ${fmt(summary.youthEmployed)}`,
+    `People served: ${fmt(summary.peopleServed)}`,
+    `Communities impacted: ${fmt(summary.communitiesImpacted)}`,
+    `Countries impacted: ${fmt(summary.countriesImpacted)}`,
+    `Economic contribution: ${fmtUsd(summary.economicContributionUsd)}`,
+    `Source: company portal impact submissions (${liveProfiles.length} companies)`,
   ].join("\n");
 
   return {

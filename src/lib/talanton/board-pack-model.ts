@@ -13,7 +13,12 @@ import { TI_BOARD_MEMBERS, TI_BOARD_MEETINGS } from "@/lib/talanton/board-portal
 import {
   buildPortfolioExecutiveBriefing,
 } from "@/lib/talanton/portfolio-intelligence";
-import { buildPortfolioImpactBriefing } from "@/lib/talanton/impact-intelligence";
+import {
+  buildPortfolioImpactBriefing,
+  displayImpactCount,
+  impactCountOrZero,
+} from "@/lib/talanton/impact-intelligence";
+import { UNAVAILABLE_LABEL } from "@/lib/talanton/intelligence-metric-types";
 import {
   FUNDS_PLATFORM_OVERVIEW,
   formatFundUsd,
@@ -146,7 +151,7 @@ export function buildTalantonBoardPackData(meetingDateIso?: string): AbhiBoardPa
     },
     {
       issue: "Impact health trajectory",
-      evidence: `Impact health ${impact.health.score}/100 (${impact.health.band}); ${impact.summary.jobsCreated.toLocaleString()} jobs created across portfolio.`,
+      evidence: `Impact health ${impact.health.scoreUnavailable ? UNAVAILABLE_LABEL : `${impact.health.score}/100 (${impact.health.band})`}; ${displayImpactCount(impact.summary.jobsCreated)} jobs created across portfolio.`,
       recommendation: "Standardise jobs & beneficiary definitions before next investor update.",
       whyItMatters: "Mission proof points anchor Talanton's differentiated narrative.",
       decisionRequired: "Approve harmonised impact reporting definitions.",
@@ -179,8 +184,8 @@ export function buildTalantonBoardPackData(meetingDateIso?: string): AbhiBoardPa
       },
       {
         title: "Impact health",
-        primary: `${impact.health.score}/100`,
-        secondary: impact.health.band,
+        primary: impact.health.scoreUnavailable ? UNAVAILABLE_LABEL : `${impact.health.score}/100`,
+        secondary: impact.health.scoreUnavailable ? UNAVAILABLE_LABEL : impact.health.band,
       },
       {
         title: "Management cash",
@@ -197,7 +202,7 @@ export function buildTalantonBoardPackData(meetingDateIso?: string): AbhiBoardPa
       })),
     highlights: [
       `${formatFundUsd(funds.capitalDeployedUsd)} deployed across ${funds.portfolioCompanies} portfolio companies; ${formatFundUsd(funds.availableCapitalUsd)} available for stewardship.`,
-      `Impact health ${impact.health.score}/100 — ${impact.summary.jobsCreated.toLocaleString()} jobs created, ${impact.summary.peopleServed.toLocaleString()} people served.`,
+      `Impact health ${impact.health.scoreUnavailable ? UNAVAILABLE_LABEL : `${impact.health.score}/100`} — ${displayImpactCount(impact.summary.jobsCreated)} jobs created, ${displayImpactCount(impact.summary.peopleServed)} people served.`,
       `Portfolio health ${portfolio.health.portfolioHealthScore}/100 (${portfolio.health.posture}); ${portfolio.health.companiesRequiringAttention} companies require attention.`,
       `Management company cash ${formatTalantonBoardUsd(cash, true)}; ${TALANTON_HR_TEAM_EMPLOYEES.length} team members.`,
     ],
@@ -220,13 +225,13 @@ export function buildTalantonBoardPackData(meetingDateIso?: string): AbhiBoardPa
       },
       {
         name: "Impact health",
-        actual: impact.health.score,
+        actual: impact.health.score ?? 0,
         budget: 75,
-        variance: impact.health.score - 75,
+        variance: (impact.health.score ?? 0) - 75,
         unit: "count",
-        indicator: impact.health.score >= 75 ? "On track" : "Watch",
+        indicator: impact.health.scoreUnavailable ? "Watch" : (impact.health.score ?? 0) >= 75 ? "On track" : "Watch",
         trend: 1,
-        sparkline: [68, 70, 72, 74, impact.health.score],
+        sparkline: impact.health.scoreUnavailable ? [0, 0, 0, 0, 0] : [68, 70, 72, 74, impact.health.score ?? 0],
       },
       {
         name: "Capital deployed",
@@ -240,19 +245,22 @@ export function buildTalantonBoardPackData(meetingDateIso?: string): AbhiBoardPa
       },
       {
         name: "Jobs created",
-        actual: impact.summary.jobsCreated,
-        budget: impact.summary.jobsCreated - 500,
-        variance: 500,
+        actual: impactCountOrZero(impact.summary.jobsCreated),
+        budget: Math.max(0, impactCountOrZero(impact.summary.jobsCreated) - 500),
+        variance: impact.summary.jobsCreated === null ? 0 : 500,
         unit: "count",
-        indicator: "On track",
+        indicator: impact.summary.jobsCreated === null ? "Watch" : "On track",
         trend: 1,
-        sparkline: [
-          impact.summary.jobsCreated - 2000,
-          impact.summary.jobsCreated - 1500,
-          impact.summary.jobsCreated - 1000,
-          impact.summary.jobsCreated - 500,
-          impact.summary.jobsCreated,
-        ],
+        sparkline:
+          impact.summary.jobsCreated === null
+            ? [0, 0, 0, 0, 0]
+            : [
+                impact.summary.jobsCreated - 2000,
+                impact.summary.jobsCreated - 1500,
+                impact.summary.jobsCreated - 1000,
+                impact.summary.jobsCreated - 500,
+                impact.summary.jobsCreated,
+              ],
       },
     ],
     financialOverview: {
@@ -344,9 +352,9 @@ export function buildTalantonBoardPackData(meetingDateIso?: string): AbhiBoardPa
         forecast: funds.capitalDeployedUsd + funds.availableCapitalUsd * 0.4,
       },
       events: {
-        revenue: impact.health.score,
-        registrations: impact.summary.communitiesImpacted,
-        forecast: impact.summary.peopleServed,
+        revenue: impact.health.score ?? 0,
+        registrations: impactCountOrZero(impact.summary.communitiesImpacted),
+        forecast: impactCountOrZero(impact.summary.peopleServed),
       },
     },
     commercialInsights: {
@@ -369,9 +377,12 @@ export function buildTalantonBoardPackData(meetingDateIso?: string): AbhiBoardPa
       events: {
         title: "Impact stewardship",
         lines: [
-          { label: "Impact health", value: `${impact.health.score}/100` },
-          { label: "Jobs created", value: impact.summary.jobsCreated.toLocaleString() },
-          { label: "People served", value: impact.summary.peopleServed.toLocaleString() },
+          {
+            label: "Impact health",
+            value: impact.health.scoreUnavailable ? UNAVAILABLE_LABEL : `${impact.health.score}/100`,
+          },
+          { label: "Jobs created", value: displayImpactCount(impact.summary.jobsCreated) },
+          { label: "People served", value: displayImpactCount(impact.summary.peopleServed) },
         ],
       },
     },
