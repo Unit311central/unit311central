@@ -41,6 +41,12 @@ export type GovernanceMeeting = {
   actions: GovernanceAction[];
   /** Optional virtual/hybrid meeting invitation URL (provider-agnostic). */
   meetingInviteUrl: string;
+  meetingStartAt?: string | null;
+  meetingEndAt?: string | null;
+  cronofyCalendarId?: string;
+  cronofyEventId?: string;
+  conferencingProvider?: string;
+  connectedCalendarProvider?: string;
   archived: boolean;
   createdAt: string;
   updatedAt: string;

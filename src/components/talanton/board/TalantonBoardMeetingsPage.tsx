@@ -1,9 +1,11 @@
 "use client";
 
-import { useCallback, useMemo, useState, useSyncExternalStore } from "react";
+import { useCallback, useMemo, useState, useSyncExternalStore, Suspense } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { Archive, Plus, Trash2 } from "lucide-react";
 
+import { TalantonCreateBoardMeetingWizard } from "@/components/talanton/board/TalantonCreateBoardMeetingWizard";
 import { TalantonMeetingEditor } from "@/components/talanton/governance/TalantonMeetingEditor";
 import {
   TALANTON_BOARD_NEXT_MEETING_UI_PREVIEW,
@@ -14,7 +16,6 @@ import {
   partitionBoardMeetingsForLanding,
 } from "@/lib/talanton/board-meetings-layout";
 import {
-  createMeeting,
   deleteMeeting,
   getTalantonGovernanceServerSnapshot,
   getTalantonGovernanceSnapshot,
@@ -175,10 +176,18 @@ function NextMeetingPreviewCard({ onCreateFromPreview }: { onCreateFromPreview: 
   );
 }
 
-export function TalantonBoardMeetingsPage() {
+function TalantonBoardMeetingsPageInner() {
+  const searchParams = useSearchParams();
   const snap = useGovernanceMeetings();
   const [view, setView] = useState<LandingView>("main");
   const [editing, setEditing] = useState<GovernanceMeeting | null>(null);
+  const [createOpen, setCreateOpen] = useState(false);
+
+  const wizardMeetingId = searchParams.get("createMeeting");
+  const wizardStepParam = searchParams.get("wizardStep");
+  const wizardStep =
+    wizardStepParam === "2" ? 2 : wizardStepParam === "3" ? 3 : wizardStepParam === "1" ? 1 : undefined;
+  const wizardOpen = createOpen || Boolean(wizardMeetingId);
 
   const boardMeetings = useMemo(
     () => listMeetings({ includeArchived: true }).filter((m) => m.meetingType === "Board Meeting"),
@@ -191,34 +200,11 @@ export function TalantonBoardMeetingsPage() {
   );
 
   const onCreate = useCallback(() => {
-    const label = new Date().toLocaleDateString("en-GB", { month: "long", year: "numeric" });
-    void createMeeting({
-      meetingType: "Board Meeting",
-      title: `Talanton Impact Board — ${label}`,
-      status: "Draft",
-      minutes: "",
-    })
-      .then(setEditing)
-      .catch((error) => {
-        console.error("[BoardMeetings create]", error);
-        window.alert(error instanceof Error ? error.message : "Failed to create meeting.");
-      });
+    setCreateOpen(true);
   }, []);
 
   const onCreateFromPreview = useCallback(() => {
-    const preview = TALANTON_BOARD_NEXT_MEETING_UI_PREVIEW;
-    void createMeeting({
-      meetingType: "Board Meeting",
-      title: `${preview.title} — November 2026`,
-      meetingDate: preview.meetingDate,
-      status: "Draft",
-      minutes: "",
-    })
-      .then(setEditing)
-      .catch((error) => {
-        console.error("[BoardMeetings create]", error);
-        window.alert(error instanceof Error ? error.message : "Failed to create meeting.");
-      });
+    setCreateOpen(true);
   }, []);
 
   const onDelete = useCallback((meeting: GovernanceMeeting) => {
@@ -359,6 +345,20 @@ export function TalantonBoardMeetingsPage() {
           lockMeetingType="Board Meeting"
         />
       ) : null}
+      <TalantonCreateBoardMeetingWizard
+        open={wizardOpen}
+        onClose={() => setCreateOpen(false)}
+        initialMeetingId={wizardMeetingId}
+        initialStep={wizardStep}
+      />
     </div>
+  );
+}
+
+export function TalantonBoardMeetingsPage() {
+  return (
+    <Suspense fallback={<p className="text-sm text-white/50">Loading board meetings…</p>}>
+      <TalantonBoardMeetingsPageInner />
+    </Suspense>
   );
 }

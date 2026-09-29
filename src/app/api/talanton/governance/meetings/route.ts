@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { apiErrorStatus } from "@/lib/api-error-status";
 import { assertDemoMutationAllowedForRequest } from "@/lib/demo/mutation-guard";
 import type { GovernanceMeeting } from "@/lib/talanton/governance-types";
+import { boardMeetingStartEndFromLocal } from "@/lib/talanton/board-meeting-schedule";
 import {
   ensureGovernanceMeetings,
   requireTalantonGovernanceWorkspace,
@@ -45,11 +46,27 @@ export async function POST(request: NextRequest) {
 
   try {
     const workspace = await requireTalantonGovernanceWorkspace();
-    const body = (await request.json()) as Partial<GovernanceMeeting>;
+    const body = (await request.json()) as Partial<GovernanceMeeting> & {
+      meetingTime?: string;
+      meetingTzid?: string;
+    };
     const now = new Date().toISOString();
+    let meetingDate = body.meetingDate?.slice(0, 10) ?? new Date().toISOString().slice(0, 10);
+    let meetingStartAt = body.meetingStartAt ?? null;
+    let meetingEndAt = body.meetingEndAt ?? null;
+    if (body.meetingTime?.trim()) {
+      const schedule = boardMeetingStartEndFromLocal({
+        date: meetingDate,
+        time: body.meetingTime.trim(),
+        tzid: body.meetingTzid,
+      });
+      meetingDate = schedule.meetingDate;
+      meetingStartAt = schedule.meetingStartAt;
+      meetingEndAt = schedule.meetingEndAt;
+    }
     const meeting: GovernanceMeeting = {
       id: body.id?.trim() || `gov-${crypto.randomUUID().slice(0, 8)}`,
-      meetingDate: body.meetingDate?.slice(0, 10) ?? new Date().toISOString().slice(0, 10),
+      meetingDate,
       meetingType: body.meetingType ?? "Board Meeting",
       title: body.title?.trim() || "New governance meeting",
       status: body.status ?? "Draft",
@@ -58,6 +75,12 @@ export async function POST(request: NextRequest) {
       decisions: body.decisions ?? [],
       actions: body.actions ?? [],
       meetingInviteUrl: body.meetingInviteUrl?.trim() ?? "",
+      meetingStartAt,
+      meetingEndAt,
+      cronofyCalendarId: body.cronofyCalendarId ?? "",
+      cronofyEventId: body.cronofyEventId ?? "",
+      conferencingProvider: body.conferencingProvider ?? "",
+      connectedCalendarProvider: body.connectedCalendarProvider ?? "",
       archived: body.archived ?? false,
       createdAt: body.createdAt ?? now,
       updatedAt: now,
