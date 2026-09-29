@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState, useSyncExternalStore } from "react";
+import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { useSearchParams } from "next/navigation";
 import { Plus, Search, Trash2, X } from "lucide-react";
 
 import {
@@ -102,8 +103,13 @@ function ratingForCell(impact: TiRiskLevel, likelihood: TiRiskLevel) {
 
 const fieldLabel = "mb-1 block text-xs font-medium text-white/55";
 
+function isRiskLevel(value: string | null): value is TiRiskLevel {
+  return value === "H" || value === "M" || value === "L";
+}
+
 export default function TalantonRiskRegisterWorkspace() {
   const store = useTiRiskStore();
+  const searchParams = useSearchParams();
   const packs = useMemo(() => boardPacks(), []);
   const [q, setQ] = useState("");
   const [showArchived, setShowArchived] = useState(false);
@@ -112,6 +118,24 @@ export default function TalantonRiskRegisterWorkspace() {
   const [heatmapFocus, setHeatmapFocus] = useState<{ impact: TiRiskLevel; likelihood: TiRiskLevel } | null>(
     null,
   );
+
+  useEffect(() => {
+    if (store.status !== "ready") return;
+    const riskId = searchParams.get("riskId")?.trim();
+    if (riskId) {
+      const risk = store.risks.find((r) => r.id === riskId);
+      if (risk) {
+        setForm(formFrom(risk));
+        setEditorOpen(true);
+        return;
+      }
+    }
+    const impact = searchParams.get("impact");
+    const likelihood = searchParams.get("likelihood");
+    if (isRiskLevel(impact) && isRiskLevel(likelihood)) {
+      setHeatmapFocus({ impact, likelihood });
+    }
+  }, [searchParams, store.risks, store.status]);
 
   const activeRisks = useMemo(
     () => store.risks.filter((r) => !r.archived),

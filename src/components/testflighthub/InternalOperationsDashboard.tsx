@@ -1757,7 +1757,11 @@ export default function InternalOperationsDashboard({
           )}
         </div>
       </div>
-      {activeView !== "sales-management" ? (
+      {activeView !== "sales-management" &&
+      !(
+        isBrowserTalantonImpactSurface() &&
+        (activeView === "board-dashboard" || activeView.startsWith("board-"))
+      ) ? (
         <AdminPerformanceMode activeView={activeView} />
       ) : null}
       </SurveyOperationsShell>

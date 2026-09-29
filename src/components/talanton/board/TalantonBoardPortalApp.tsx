@@ -1,33 +1,43 @@
 "use client";
 
-import { useMemo, useState, useSyncExternalStore, useCallback } from "react";
+import { startTransition, useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import {
-  AlertTriangle,
   CalendarDays,
   CheckCircle2,
   Download,
   FileText,
+  LayoutGrid,
   Plus,
+  RotateCcw,
   Search,
   Sparkles,
   Users,
+  X,
 } from "lucide-react";
 
 import { TalantonMeetingEditor } from "@/components/talanton/governance/TalantonMeetingEditor";
-
+import BoardDashboardRiskHeatMap from "@/components/talanton/board/BoardDashboardRiskHeatMap";
 import TalantonRiskRegisterWorkspace from "@/components/testflighthub/talanton/TalantonRiskRegisterWorkspace";
 import BoardImpactIntelligencePage from "@/components/talanton/board/BoardImpactIntelligencePage";
 import BoardJourneyStoriesPage from "@/components/talanton/board/BoardJourneyStoriesPage";
 import { loadAbhiBoardPacks } from "@/lib/abhi/board-pack-record";
+import { loadViewTileLayout, saveViewTileLayout } from "@/lib/dashboard-view-tiles";
 import {
-  TI_BOARD_RISKS,
+  BOARD_DASHBOARD_TILE_IDS,
+  BOARD_DASHBOARD_TILE_LABELS,
+  BOARD_DASHBOARD_TILE_STORAGE_KEY,
+  DEFAULT_BOARD_DASHBOARD_TILE_LAYOUT,
+  type BoardDashboardTileId,
+} from "@/lib/talanton/board-dashboard-tiles";
+import {
   buildTiMinutesFromMeetings,
-  getTiBoardDashboardSnapshot,
   getTiDemoApprovedBoardPacks,
+  type TiBoardMeeting,
   type TiBoardMember,
   type TiBoardPack,
   type TiBoardPortalSection,
+  type TiMinutesRecord,
 } from "@/lib/talanton/board-portal-data";
 import {
   addMember,
@@ -37,17 +47,8 @@ import {
   subscribeBoardMembersStore,
   updateMember,
 } from "@/lib/talanton/board-members-store";
-import { buildBoardFundSummary } from "@/lib/talanton/funds-data";
 import { buildBoardImpactIntelligence } from "@/lib/talanton/board-impact-intelligence";
-import {
-  listJourneyStoriesForBoard,
-  listJourneyStoriesForInvestors,
-} from "@/lib/talanton/journey-stories-store";
-import {
-  impactReportsAsBoardPackRows,
-  listImpactReportsForBoard,
-  periodLabel,
-} from "@/lib/talanton/annual-impact-report-store";
+import { impactReportsAsBoardPackRows } from "@/lib/talanton/annual-impact-report-store";
 import {
   createMeeting,
   getTalantonGovernanceServerSnapshot,
@@ -106,395 +107,6 @@ function Card({
   );
 }
 
-function BoardDashboard() {
-  const snap = useMemo(() => getTiBoardDashboardSnapshot(), []);
-  const impact = useMemo(() => buildBoardImpactIntelligence(), []);
-  const journeys = useMemo(() => listJourneyStoriesForBoard().slice(0, 4), []);
-  const investorJourneys = useMemo(
-    () => listJourneyStoriesForInvestors().slice(0, 4),
-    [],
-  );
-  const impactReports = useMemo(() => listImpactReportsForBoard().slice(0, 3), []);
-  const funds = useMemo(() => buildBoardFundSummary(), []);
-
-  return (
-    <div className="space-y-5">
-      <header>
-        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-300/80">
-          Board Dashboard
-        </p>
-        <h1 className="mt-1 text-2xl font-semibold tracking-tight text-white sm:text-3xl">
-          Governance at a glance
-        </h1>
-        <p className="mt-1 text-sm text-white/55">
-          Next meeting, fund stewardship, investor communications, impact, and recent decisions.
-        </p>
-      </header>
-
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Card title="Next board meeting">
-          {snap.nextMeeting ? (
-            <div>
-              <p className="text-lg font-semibold text-white">{snap.nextMeeting.title}</p>
-              <p className="mt-1 text-sm text-white/60">
-                {snap.nextMeeting.meetingDate} · {snap.nextMeeting.status}
-              </p>
-              <ul className="mt-3 space-y-1 text-sm text-white/70">
-                {snap.nextMeeting.agenda.slice(0, 4).map((item) => (
-                  <li key={item} className="flex gap-2">
-                    <CalendarDays className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-300" />
-                    {item}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ) : (
-            <p className="text-sm text-white/50">No scheduled meeting.</p>
-          )}
-        </Card>
-
-        <Card title="Latest approved board pack">
-          <p className="text-lg font-semibold text-white">{snap.latestApprovedPack.packName}</p>
-          <p className="mt-1 text-sm text-white/60">
-            Meeting {snap.latestApprovedPack.meetingDate} · Generated{" "}
-            {new Date(snap.latestApprovedPack.createdAt).toLocaleDateString("en-GB")}
-          </p>
-          <p className="mt-2 text-xs text-emerald-200/80">Status: Approved (Final)</p>
-        </Card>
-
-        <Card title="Open board actions">
-          <ul className="space-y-2">
-            {snap.openActions.length === 0 ? (
-              <li className="text-sm text-white/50">No open actions.</li>
-            ) : (
-              snap.openActions.map((a) => (
-                <li
-                  key={a.id}
-                  className="rounded-xl border border-white/8 bg-black/20 px-3 py-2 text-sm"
-                >
-                  <p className="text-white/90">{a.title}</p>
-                  <p className="mt-1 text-xs text-white/45">
-                    {a.owner} · due {a.dueDate} · {a.status}
-                  </p>
-                </li>
-              ))
-            )}
-          </ul>
-        </Card>
-
-        <Card title="High risks">
-          <ul className="space-y-2">
-            {snap.highRisks.map((r) => (
-              <li
-                key={r.id}
-                className="flex gap-2 rounded-xl border border-rose-400/20 bg-rose-500/5 px-3 py-2 text-sm"
-              >
-                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-rose-300" />
-                <div>
-                  <p className="text-white/90">{r.description}</p>
-                  <p className="mt-1 text-xs text-white/45">
-                    {r.id} · Impact {r.impact} · {r.owner} · {r.status}
-                  </p>
-                </div>
-              </li>
-            ))}
-          </ul>
-        </Card>
-
-        <Card title="Fund Summary" className="lg:col-span-2">
-          <div className="grid gap-3 sm:grid-cols-3">
-            {funds.fundCards.map((f) => (
-              <div
-                key={f.id}
-                className="rounded-xl border border-white/8 bg-black/20 px-3 py-3"
-              >
-                <p className="text-sm font-semibold text-white">{f.name}</p>
-                <p className="mt-2 text-[11px] text-white/45">Fund size · {f.size}</p>
-                <p className="text-[11px] text-white/45">Deployed · {f.deployed}</p>
-                <p className="text-[11px] text-white/45">
-                  {f.companies} portfolio companies · {f.deploymentPct}% deployed
-                </p>
-              </div>
-            ))}
-          </div>
-        </Card>
-
-        <Card title="Capital Overview" className="lg:col-span-2">
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {funds.capitalOverview.map((f) => (
-              <div key={f.label} className="rounded-xl border border-white/8 bg-black/20 px-3 py-3">
-                <p className="text-[10px] uppercase tracking-[0.14em] text-white/40">{f.label}</p>
-                <p className="mt-1 text-xl font-semibold text-white">{f.value}</p>
-                <p className="mt-0.5 text-xs text-white/45">{f.hint}</p>
-              </div>
-            ))}
-          </div>
-        </Card>
-
-        <Card title="Investor Summary">
-          <div className="grid gap-3 sm:grid-cols-2">
-            {funds.investorSummary.map((f) => (
-              <div key={f.label} className="rounded-xl border border-white/8 bg-black/20 px-3 py-3">
-                <p className="text-[10px] uppercase tracking-[0.14em] text-white/40">{f.label}</p>
-                <p className="mt-1 text-xl font-semibold text-white">{f.value}</p>
-                <p className="mt-0.5 text-xs text-white/45">{f.hint}</p>
-              </div>
-            ))}
-          </div>
-        </Card>
-
-        <Card title="Recent Investor Communications">
-          <ul className="space-y-2">
-            {funds.recentCommunications.map((c) => (
-              <li key={c.id} className="rounded-xl border border-white/8 bg-black/20 px-3 py-2">
-                <p className="text-sm text-white/90">{c.subject}</p>
-                <p className="mt-1 text-xs text-white/45">
-                  {c.date} · {c.channel} · {c.investor} ({c.organisation})
-                </p>
-              </li>
-            ))}
-          </ul>
-        </Card>
-
-        <Card title="Impact snapshot" className="lg:col-span-2">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-            <div className="grid flex-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              <div className="rounded-xl border border-emerald-400/20 bg-emerald-500/5 px-3 py-3">
-                <p className="text-[10px] uppercase tracking-[0.14em] text-emerald-300/70">
-                  Impact Health Score
-                </p>
-                <p className="mt-1 text-xl font-semibold text-white">
-                  {impact.health.score}
-                  <span className="text-sm text-white/40">/100</span>
-                </p>
-                <p className="mt-0.5 text-xs text-white/45">{impact.health.band}</p>
-              </div>
-              <div className="rounded-xl border border-white/8 bg-black/20 px-3 py-3">
-                <p className="text-[10px] uppercase tracking-[0.14em] text-white/40">Jobs Created</p>
-                <p className="mt-1 text-xl font-semibold text-white">
-                  {impact.summary.jobsCreated.toLocaleString()}
-                </p>
-                <p className="mt-0.5 text-xs text-white/45">Across portfolio holdings</p>
-              </div>
-              <div className="rounded-xl border border-white/8 bg-black/20 px-3 py-3">
-                <p className="text-[10px] uppercase tracking-[0.14em] text-white/40">People Served</p>
-                <p className="mt-1 text-xl font-semibold text-white">
-                  {impact.summary.peopleServed.toLocaleString()}
-                </p>
-                <p className="mt-0.5 text-xs text-white/45">Beneficiaries reached</p>
-              </div>
-              <div className="rounded-xl border border-white/8 bg-black/20 px-3 py-3">
-                <p className="text-[10px] uppercase tracking-[0.14em] text-white/40">
-                  Countries Impacted
-                </p>
-                <p className="mt-1 text-xl font-semibold text-white">
-                  {impact.summary.countriesImpacted}
-                </p>
-                <p className="mt-0.5 text-xs text-white/45">Geographic footprint</p>
-              </div>
-            </div>
-            <Link
-              href="/board/impact"
-              className="inline-flex shrink-0 items-center gap-1.5 self-start rounded-xl border border-emerald-400/30 bg-emerald-500/10 px-3 py-2 text-xs font-semibold text-emerald-100 transition hover:border-emerald-400/50 hover:bg-emerald-500/15"
-            >
-              <Sparkles className="h-3.5 w-3.5" />
-              Open Impact Intelligence
-            </Link>
-          </div>
-        </Card>
-
-        <Card title="Latest Impact Reports" className="lg:col-span-2">
-          <ul className="space-y-3">
-            {impactReports.length === 0 ? (
-              <li className="text-sm text-white/50">No published impact reports yet.</li>
-            ) : (
-              impactReports.map((r) => (
-                <li
-                  key={r.id}
-                  className="rounded-xl border border-white/8 bg-black/20 px-3 py-3"
-                >
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <p className="text-sm font-semibold text-white">{r.title}</p>
-                    <span className="text-[10px] uppercase tracking-wide text-white/40">
-                      {periodLabel(r.period)}
-                    </span>
-                  </div>
-                  <p className="mt-1 line-clamp-3 text-xs text-white/55">
-                    {r.summaries.executiveSummary}
-                  </p>
-                </li>
-              ))
-            )}
-          </ul>
-          <Link
-            href="/board/decks"
-            className="mt-3 inline-flex text-xs font-semibold text-emerald-200 hover:text-emerald-100"
-          >
-            Open Board Decks →
-          </Link>
-        </Card>
-
-        <Card title="Related Journey Stories" className="lg:col-span-2">
-          <ul className="space-y-3">
-            {(investorJourneys.length > 0 ? investorJourneys : journeys).map((j) => (
-              <li
-                key={j.id}
-                className="rounded-xl border border-white/8 bg-black/20 px-3 py-3"
-              >
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <p className="text-sm font-semibold text-white">{j.title}</p>
-                  <span className="text-[10px] uppercase tracking-wide text-white/40">
-                    {j.country} · {j.startDate}
-                  </span>
-                </div>
-                <p className="mt-1 line-clamp-2 text-xs text-white/55">
-                  {j.generated.executiveSummary}
-                </p>
-              </li>
-            ))}
-          </ul>
-          <Link
-            href="/board/journeys"
-            className="mt-3 inline-flex text-xs font-semibold text-emerald-200 hover:text-emerald-100"
-          >
-            Open Journey Stories →
-          </Link>
-        </Card>
-
-        <Card title="Strategic discussion topics">
-          <ul className="space-y-1.5 text-sm text-white/75">
-            {snap.strategicTopics.map((t) => (
-              <li key={t} className="flex gap-2">
-                <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-400" />
-                {t}
-              </li>
-            ))}
-          </ul>
-        </Card>
-
-        <Card title="Recent decisions">
-          <ul className="space-y-2">
-            {snap.recentDecisions.map((d) => (
-              <li key={d.id} className="text-sm">
-                <p className="text-white/85">{d.text}</p>
-                {d.resolution ? (
-                  <p className="mt-0.5 text-xs text-emerald-200/70">{d.resolution}</p>
-                ) : null}
-              </li>
-            ))}
-          </ul>
-        </Card>
-      </div>
-
-      <BoardMinutesDecisionsPanel />
-    </div>
-  );
-}
-
-function BoardMinutesDecisionsPanel() {
-  const records = useMemo(() => buildTiMinutesFromMeetings(), []);
-  const [q, setQ] = useState("");
-  const filtered = records.filter((r) => {
-    const hay =
-      `${r.title} ${r.minutesSummary} ${r.decisions.map((d) => d.text).join(" ")} ${r.resolutions.join(" ")} ${r.actions.map((a) => `${a.owner} ${a.title}`).join(" ")}`.toLowerCase();
-    return hay.includes(q.trim().toLowerCase());
-  });
-
-  return (
-    <section className="space-y-4 rounded-2xl border border-white/10 bg-white/[0.02] p-4 sm:p-5">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h2 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/40">
-            Minutes &amp; Decisions
-          </h2>
-          <p className="mt-1 text-sm text-white/55">
-            Held Talanton board meetings — minutes, resolutions, and action owners.
-          </p>
-        </div>
-        <Link
-          href="/internaldashboard?view=board-minutes"
-          className="text-xs font-semibold text-emerald-200 hover:text-emerald-100"
-        >
-          Open full register →
-        </Link>
-      </div>
-      <label className="relative block max-w-md">
-        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/35" />
-        <input
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          placeholder="Search minutes, decisions, owners…"
-          className="w-full rounded-xl border border-white/10 bg-black/30 py-2.5 pl-9 pr-3 text-sm text-white outline-none focus:border-emerald-400/50"
-        />
-      </label>
-      <div className="space-y-3">
-        {filtered.length === 0 ? (
-          <p className="text-sm text-white/50">No held meetings match your search.</p>
-        ) : (
-          filtered.map((r) => (
-            <article
-              key={r.id}
-              className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 sm:p-5"
-            >
-              <div className="flex flex-wrap items-start justify-between gap-2">
-                <div>
-                  <h3 className="text-lg font-semibold text-white">{r.title}</h3>
-                  <p className="text-sm text-white/45">{r.meetingDate}</p>
-                </div>
-                <span className="rounded-full border border-emerald-400/30 bg-emerald-500/10 px-2.5 py-1 text-[10px] font-semibold uppercase text-emerald-200">
-                  {r.status}
-                </span>
-              </div>
-              <p className="mt-3 text-sm leading-relaxed text-white/70">{r.minutesSummary}</p>
-              <div className="mt-4 grid gap-3 md:grid-cols-2">
-                <div className="rounded-xl border border-white/8 bg-black/20 px-3.5 py-3">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/40">
-                    Decisions / resolutions
-                  </p>
-                  <ul className="mt-2 space-y-1.5 text-sm text-white/70">
-                    {r.decisions.length === 0 ? (
-                      <li className="text-white/45">No decisions recorded.</li>
-                    ) : (
-                      r.decisions.map((d) => (
-                        <li key={d.id}>
-                          • {d.text}
-                          {d.resolution ? (
-                            <span className="text-white/45"> — {d.resolution}</span>
-                          ) : null}
-                        </li>
-                      ))
-                    )}
-                  </ul>
-                </div>
-                <div className="rounded-xl border border-white/8 bg-black/20 px-3.5 py-3">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/40">
-                    Action items
-                  </p>
-                  <ul className="mt-2 space-y-1.5 text-sm text-white/70">
-                    {r.actions.length === 0 ? (
-                      <li className="text-white/45">No actions.</li>
-                    ) : (
-                      r.actions.map((a) => (
-                        <li key={a.id}>
-                          • {a.title}
-                          <span className="text-white/45">
-                            {" "}
-                            — {a.owner}, due {a.dueDate}
-                          </span>
-                        </li>
-                      ))
-                    )}
-                  </ul>
-                </div>
-              </div>
-            </article>
-          ))
-        )}
-      </div>
-    </section>
-  );
-}
-
 function formatBoardMeetingDate(iso: string) {
   const d = new Date(`${iso.slice(0, 10)}T12:00:00`);
   if (Number.isNaN(d.getTime())) return iso;
@@ -509,6 +121,427 @@ function agendaLinesFromMinutes(minutes: string): string[] {
     .map((line) => line.replace(/^[\s•\-*]+/, "").trim())
     .filter(Boolean)
     .slice(0, 8);
+}
+
+function mapGovernanceToTiBoardMeeting(m: GovernanceMeeting): TiBoardMeeting {
+  return {
+    id: m.id,
+    meetingDate: m.meetingDate,
+    title: m.title,
+    status: m.status,
+    agenda: agendaLinesFromMinutes(m.minutes),
+    decisions: m.decisions.map((d) => ({
+      id: d.id,
+      text: d.text,
+      resolution: d.status === "Approved" ? "Approved" : undefined,
+    })),
+    actions: m.actions,
+    notes: m.minutes,
+    resolutions: m.decisions
+      .filter((d) => d.status === "Approved")
+      .map((d) => d.text),
+  };
+}
+
+function useBoardGovernanceMeetings() {
+  const snap = useSyncExternalStore(
+    subscribeTalantonGovernanceStore,
+    getTalantonGovernanceSnapshot,
+    getTalantonGovernanceServerSnapshot,
+  );
+  const boardMeetings = useMemo(
+    () =>
+      listMeetings({ includeArchived: true }).filter((m) => m.meetingType === "Board Meeting"),
+    [snap],
+  );
+  return { snap, boardMeetings };
+}
+
+function BoardDashboardTileCustomize({
+  layout,
+  onLayoutChange,
+  customizeOpen,
+  onCustomizeOpenChange,
+}: {
+  layout: BoardDashboardTileId[];
+  onLayoutChange: (next: BoardDashboardTileId[]) => void;
+  customizeOpen: boolean;
+  onCustomizeOpenChange: (open: boolean) => void;
+}) {
+  const hidden = BOARD_DASHBOARD_TILE_IDS.filter((id) => !layout.includes(id));
+
+  return (
+    <div className="flex flex-col items-end gap-2">
+      <button
+        type="button"
+        onClick={() => onCustomizeOpenChange(!customizeOpen)}
+        className={cn(
+          "inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-xs font-semibold transition-colors",
+          customizeOpen
+            ? "border-emerald-400/40 bg-emerald-500/15 text-emerald-100"
+            : "border-white/10 bg-white/[0.03] text-white/70 hover:border-white/20 hover:text-white",
+        )}
+      >
+        <LayoutGrid className="h-3.5 w-3.5" />
+        Customize Tiles
+      </button>
+      {customizeOpen ? (
+        <div className="w-full max-w-xl rounded-xl border border-white/10 bg-white/[0.02] p-3">
+          <p className="mb-2 text-xs text-white/45">Show or hide dashboard tiles. Order follows the grid below.</p>
+          <div className="flex flex-wrap items-center gap-2">
+            {hidden.map((id) => (
+              <button
+                key={id}
+                type="button"
+                onClick={() => onLayoutChange([...layout, id])}
+                className="inline-flex items-center gap-1 rounded-full border border-emerald-400/30 bg-emerald-500/10 px-3 py-1 text-[11px] font-medium text-emerald-200"
+              >
+                <Plus className="h-3 w-3" />
+                {BOARD_DASHBOARD_TILE_LABELS[id]}
+              </button>
+            ))}
+            <button
+              type="button"
+              onClick={() => onLayoutChange([...DEFAULT_BOARD_DASHBOARD_TILE_LAYOUT])}
+              className="inline-flex items-center gap-1 rounded-full border border-white/10 px-3 py-1 text-[11px] text-white/55 hover:text-white"
+            >
+              <RotateCcw className="h-3 w-3" />
+              Reset
+            </button>
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function MinutesMeetingSummary({ record }: { record: TiMinutesRecord }) {
+  return (
+    <article className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 sm:p-5">
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <div>
+          <h3 className="text-lg font-semibold text-white">{record.title}</h3>
+          <p className="text-sm text-white/45">{formatBoardMeetingDate(record.meetingDate)}</p>
+        </div>
+        <span className="rounded-full border border-emerald-400/30 bg-emerald-500/10 px-2.5 py-1 text-[10px] font-semibold uppercase text-emerald-200">
+          {record.status}
+        </span>
+      </div>
+      <p className="mt-3 text-sm leading-relaxed text-white/70">{record.minutesSummary}</p>
+      <div className="mt-4 grid gap-3 md:grid-cols-2">
+        <div className="rounded-xl border border-white/8 bg-black/20 px-3.5 py-3">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/40">
+            Decisions / resolutions
+          </p>
+          <ul className="mt-2 space-y-1.5 text-sm text-white/70">
+            {record.decisions.length === 0 ? (
+              <li className="text-white/45">No decisions recorded.</li>
+            ) : (
+              record.decisions.map((d) => (
+                <li key={d.id}>
+                  • {d.text}
+                  {d.resolution ? (
+                    <span className="text-white/45"> — {d.resolution}</span>
+                  ) : null}
+                </li>
+              ))
+            )}
+          </ul>
+        </div>
+        <div className="rounded-xl border border-white/8 bg-black/20 px-3.5 py-3">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/40">
+            Action items
+          </p>
+          <ul className="mt-2 space-y-1.5 text-sm text-white/70">
+            {record.actions.length === 0 ? (
+              <li className="text-white/45">No actions.</li>
+            ) : (
+              record.actions.map((a) => (
+                <li key={a.id}>
+                  • {a.title}
+                  <span className="text-white/45">
+                    {" "}
+                    — {a.owner}, due {a.dueDate}
+                  </span>
+                </li>
+              ))
+            )}
+          </ul>
+        </div>
+      </div>
+    </article>
+  );
+}
+
+function BoardDashboard() {
+  const impact = useMemo(() => buildBoardImpactIntelligence(), []);
+  const approvedPacks = useApprovedPacks();
+  const latestPack = useMemo(() => {
+    const sorted = [...approvedPacks].sort((a, b) => b.meetingDate.localeCompare(a.meetingDate));
+    return sorted[0] ?? getTiDemoApprovedBoardPacks()[0];
+  }, [approvedPacks]);
+  const { snap, boardMeetings } = useBoardGovernanceMeetings();
+
+  const nextMeeting = useMemo(() => {
+    const scheduled = boardMeetings
+      .filter((m) => m.status === "Scheduled" || m.status === "Draft")
+      .sort((a, b) => a.meetingDate.localeCompare(b.meetingDate));
+    return scheduled[0] ?? null;
+  }, [boardMeetings]);
+
+  const minutesRecords = useMemo(
+    () => buildTiMinutesFromMeetings(boardMeetings.map(mapGovernanceToTiBoardMeeting)),
+    [boardMeetings],
+  );
+  const latestMinutes = minutesRecords[0] ?? null;
+
+  const [tileLayout, setTileLayout] = useState<BoardDashboardTileId[]>(
+    DEFAULT_BOARD_DASHBOARD_TILE_LAYOUT,
+  );
+  const [tilesHydrated, setTilesHydrated] = useState(false);
+  const [customizeOpen, setCustomizeOpen] = useState(false);
+
+  useEffect(() => {
+    startTransition(() => {
+      const loaded = loadViewTileLayout(
+        BOARD_DASHBOARD_TILE_STORAGE_KEY,
+        DEFAULT_BOARD_DASHBOARD_TILE_LAYOUT,
+      ).filter((id): id is BoardDashboardTileId =>
+        (BOARD_DASHBOARD_TILE_IDS as readonly string[]).includes(id),
+      );
+      setTileLayout(loaded.length ? loaded : [...DEFAULT_BOARD_DASHBOARD_TILE_LAYOUT]);
+      setTilesHydrated(true);
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!tilesHydrated) return;
+    saveViewTileLayout(BOARD_DASHBOARD_TILE_STORAGE_KEY, tileLayout);
+  }, [tileLayout, tilesHydrated]);
+
+  function removeTile(id: BoardDashboardTileId) {
+    setTileLayout((current) => current.filter((tileId) => tileId !== id));
+  }
+
+  function renderTile(id: BoardDashboardTileId) {
+    switch (id) {
+      case "next-meeting":
+        return (
+          <Card title="Next board meeting">
+            {nextMeeting ? (
+              <>
+                <p className="text-lg font-semibold text-white">{nextMeeting.title}</p>
+                <p className="mt-1 text-sm text-white/60">
+                  {formatBoardMeetingDate(nextMeeting.meetingDate)} · {nextMeeting.status}
+                </p>
+                <ul className="mt-3 space-y-1 text-sm text-white/70">
+                  {agendaLinesFromMinutes(nextMeeting.minutes)
+                    .slice(0, 4)
+                    .map((item) => (
+                      <li key={item} className="flex gap-2">
+                        <CalendarDays className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-300" />
+                        {item}
+                      </li>
+                    ))}
+                </ul>
+                <Link
+                  href="/board/meetings"
+                  className="mt-4 inline-flex text-xs font-semibold text-emerald-200 hover:text-emerald-100"
+                >
+                  Open Board Meeting →
+                </Link>
+              </>
+            ) : (
+              <>
+                <p className="text-sm text-white/50">No scheduled board meeting.</p>
+                <Link
+                  href="/board/meetings"
+                  className="mt-3 inline-flex text-xs font-semibold text-emerald-200 hover:text-emerald-100"
+                >
+                  Open Board Meetings →
+                </Link>
+              </>
+            )}
+          </Card>
+        );
+      case "latest-pack":
+        return (
+          <Card title="Latest approved board pack">
+            {latestPack ? (
+              <>
+                <p className="text-lg font-semibold text-white">{latestPack.packName}</p>
+                <p className="mt-1 text-sm text-white/60">
+                  Meeting {formatBoardMeetingDate(latestPack.meetingDate)} · Generated{" "}
+                  {new Date(latestPack.createdAt).toLocaleDateString("en-GB")}
+                </p>
+                <p className="mt-2 text-xs text-emerald-200/80">Status: Approved (Final)</p>
+                <Link
+                  href="/board/decks"
+                  className="mt-4 inline-flex text-xs font-semibold text-emerald-200 hover:text-emerald-100"
+                >
+                  Open Board Pack →
+                </Link>
+              </>
+            ) : (
+              <p className="text-sm text-white/50">No approved board pack on file.</p>
+            )}
+          </Card>
+        );
+      case "minutes-snapshot":
+        return (
+          <Card title="Minutes & decisions">
+            {latestMinutes ? (
+              <>
+                <p className="text-sm font-semibold text-white">{latestMinutes.title}</p>
+                <p className="mt-1 text-xs text-white/45">
+                  {formatBoardMeetingDate(latestMinutes.meetingDate)} · {latestMinutes.status}
+                </p>
+                <p className="mt-2 line-clamp-3 text-sm text-white/65">{latestMinutes.minutesSummary}</p>
+                <p className="mt-2 text-xs text-white/40">
+                  {latestMinutes.decisions.length} decision(s) · {latestMinutes.actions.length}{" "}
+                  action item(s)
+                </p>
+                <Link
+                  href="/board/meetings"
+                  className="mt-4 inline-flex text-xs font-semibold text-emerald-200 hover:text-emerald-100"
+                >
+                  Open Minutes &amp; Decisions →
+                </Link>
+              </>
+            ) : (
+              <p className="text-sm text-white/50">No held board meetings with minutes yet.</p>
+            )}
+          </Card>
+        );
+      case "risk-heatmap":
+        return (
+          <Card title="Risk register heat map">
+            <BoardDashboardRiskHeatMap />
+          </Card>
+        );
+      default:
+        return null;
+    }
+  }
+
+  return (
+    <div className="space-y-5">
+      <header className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-300/80">
+            Board Dashboard
+          </p>
+          <h1 className="mt-1 text-2xl font-semibold tracking-tight text-white sm:text-3xl">
+            Governance at a glance
+          </h1>
+          <p className="mt-1 text-sm text-white/55">
+            Next meeting, board pack, minutes, risk posture, and portfolio impact for directors.
+          </p>
+        </div>
+        {tilesHydrated ? (
+          <BoardDashboardTileCustomize
+            layout={tileLayout}
+            onLayoutChange={setTileLayout}
+            customizeOpen={customizeOpen}
+            onCustomizeOpenChange={setCustomizeOpen}
+          />
+        ) : null}
+      </header>
+
+      {snap.status === "loading" ? (
+        <p className="text-sm text-white/50">Loading governance data…</p>
+      ) : null}
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        {tileLayout.map((tileId) => (
+          <div key={tileId} className="relative">
+            {customizeOpen ? (
+              <button
+                type="button"
+                aria-label={`Remove ${BOARD_DASHBOARD_TILE_LABELS[tileId]}`}
+                onClick={() => removeTile(tileId)}
+                className="absolute right-3 top-3 z-10 rounded-md border border-white/10 bg-black/40 p-1 text-white/45 hover:text-white"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            ) : null}
+            {renderTile(tileId)}
+          </div>
+        ))}
+      </div>
+
+      <Card title="Impact snapshot">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="rounded-xl border border-emerald-400/20 bg-emerald-500/5 px-3 py-3">
+            <p className="text-[10px] uppercase tracking-[0.14em] text-emerald-300/70">
+              Impact Health Score
+            </p>
+            <p className="mt-1 text-xl font-semibold text-white">
+              {impact.health.score}
+              <span className="text-sm text-white/40">/100</span>
+            </p>
+            <p className="mt-0.5 text-xs text-white/45">{impact.health.band}</p>
+          </div>
+          <div className="rounded-xl border border-white/8 bg-black/20 px-3 py-3">
+            <p className="text-[10px] uppercase tracking-[0.14em] text-white/40">Jobs Created</p>
+            <p className="mt-1 text-xl font-semibold text-white">
+              {impact.summary.jobsCreated.toLocaleString()}
+            </p>
+            <p className="mt-0.5 text-xs text-white/45">Across portfolio holdings</p>
+          </div>
+          <div className="rounded-xl border border-white/8 bg-black/20 px-3 py-3">
+            <p className="text-[10px] uppercase tracking-[0.14em] text-white/40">People Served</p>
+            <p className="mt-1 text-xl font-semibold text-white">
+              {impact.summary.peopleServed.toLocaleString()}
+            </p>
+            <p className="mt-0.5 text-xs text-white/45">Beneficiaries reached</p>
+          </div>
+          <div className="rounded-xl border border-white/8 bg-black/20 px-3 py-3">
+            <p className="text-[10px] uppercase tracking-[0.14em] text-white/40">Countries Impacted</p>
+            <p className="mt-1 text-xl font-semibold text-white">{impact.summary.countriesImpacted}</p>
+            <p className="mt-0.5 text-xs text-white/45">Geographic footprint</p>
+          </div>
+        </div>
+        <div className="mt-4 flex flex-col items-start gap-2">
+          <Link
+            href="/board/impact"
+            className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-400/30 bg-emerald-500/10 px-3 py-2 text-xs font-semibold text-emerald-100 transition hover:border-emerald-400/50 hover:bg-emerald-500/15"
+          >
+            <Sparkles className="h-3.5 w-3.5" />
+            Open Impact Intelligence
+          </Link>
+          <Link
+            href="/board/journeys"
+            className="inline-flex items-center gap-1.5 rounded-xl border border-white/15 bg-white/[0.03] px-3 py-2 text-xs font-semibold text-white/80 transition hover:border-white/25 hover:text-white"
+          >
+            Open Journey Stories
+          </Link>
+        </div>
+      </Card>
+
+      <BoardMinutesDecisionsPanel latestRecord={latestMinutes} />
+    </div>
+  );
+}
+
+function BoardMinutesDecisionsPanel({ latestRecord }: { latestRecord: TiMinutesRecord | null }) {
+  return (
+    <section className="space-y-4 rounded-2xl border border-white/10 bg-white/[0.02] p-4 sm:p-5">
+      <div>
+        <h2 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/40">
+          Minutes &amp; Decisions
+        </h2>
+        <p className="mt-1 text-sm text-white/55">
+          Latest held Talanton board meeting — minutes, resolutions, and action owners.
+        </p>
+      </div>
+      {latestRecord ? (
+        <MinutesMeetingSummary record={latestRecord} />
+      ) : (
+        <p className="text-sm text-white/50">No held board meetings with minutes yet.</p>
+      )}
+    </section>
+  );
 }
 
 function BoardMeetings() {
@@ -775,46 +808,6 @@ function BoardDecks() {
             </article>
           );
         })}
-      </div>
-    </div>
-  );
-}
-
-function BoardRisk() {
-  return (
-    <div className="space-y-5">
-      <header>
-        <h1 className="text-2xl font-semibold text-white">Risk Register</h1>
-        <p className="mt-1 text-sm text-white/55">Read-only board view.</p>
-      </header>
-      <div className="overflow-x-auto rounded-2xl border border-white/10">
-        <table className="min-w-full text-left text-sm">
-          <thead className="bg-white/[0.04] text-[10px] uppercase tracking-[0.14em] text-white/40">
-            <tr>
-              <th className="px-3 py-3">Risk</th>
-              <th className="px-3 py-3">Impact</th>
-              <th className="px-3 py-3">Likelihood</th>
-              <th className="px-3 py-3">Owner</th>
-              <th className="px-3 py-3">Mitigation</th>
-              <th className="px-3 py-3">Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {TI_BOARD_RISKS.map((r) => (
-              <tr key={r.id} className="border-t border-white/8 text-white/75">
-                <td className="px-3 py-3">
-                  <p className="font-medium text-white/90">{r.id}</p>
-                  <p className="mt-0.5 max-w-xs text-xs text-white/55">{r.description}</p>
-                </td>
-                <td className="px-3 py-3">{r.impact}</td>
-                <td className="px-3 py-3">{r.likelihood}</td>
-                <td className="px-3 py-3">{r.owner}</td>
-                <td className="px-3 py-3 max-w-xs text-xs text-white/55">{r.mitigation}</td>
-                <td className="px-3 py-3">{r.status}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
       </div>
     </div>
   );
