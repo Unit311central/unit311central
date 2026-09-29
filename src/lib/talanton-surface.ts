@@ -8,7 +8,7 @@ export const TALANTON_IMPACT_SLUG = "talantonimpact";
 /** Short host alias used for /portals briefing (maps to Talanton Impact workspace). */
 export const TALANTON_HOST_ALIAS_SLUG = "talanton";
 
-function resolveTalantonSlugFromHost(hostname: string): typeof TALANTON_IMPACT_SLUG | null {
+export function resolveTalantonSlugFromHost(hostname: string): typeof TALANTON_IMPACT_SLUG | null {
   const host = hostname.toLowerCase();
   const match = host.match(/^([a-z0-9-]+)\.unit311central\.com$/i);
   if (match?.[1] && isTalantonImpactSlug(match[1])) {

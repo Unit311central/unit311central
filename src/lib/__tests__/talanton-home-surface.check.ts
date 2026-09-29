@@ -13,6 +13,8 @@ import {
 import {
   getBrowserWorkspaceSlug,
   isBrowserTalantonImpactSurface,
+  resolveTalantonSlugFromHost,
+  TALANTON_HOST_ALIAS_SLUG,
   TALANTON_IMPACT_SLUG,
 } from "@/lib/talanton-surface";
 
@@ -29,6 +31,16 @@ function withMockWindow<T>(hostname: string, run: () => T): T {
     g.window = priorWindow;
   }
 }
+
+assert.equal(
+  resolveTalantonSlugFromHost("talantonimpact.unit311central.com"),
+  TALANTON_IMPACT_SLUG,
+);
+assert.equal(
+  resolveTalantonSlugFromHost(`${TALANTON_HOST_ALIAS_SLUG}.unit311central.com`),
+  TALANTON_IMPACT_SLUG,
+);
+assert.equal(resolveTalantonSlugFromHost("demo.unit311central.com"), null);
 
 withMockWindow("talantonimpact.unit311central.com", () => {
   setCachedJson(scopedPlatformCacheKey(PLATFORM_CACHE_KEYS.whoami, "talantonimpact"), {
