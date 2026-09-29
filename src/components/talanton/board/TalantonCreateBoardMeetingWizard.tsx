@@ -12,6 +12,7 @@ import {
 } from "@/lib/talanton/board-members-store";
 import {
   getTalantonGovernanceSnapshot,
+  mergeMeetingIntoGovernanceSnapshot,
   refreshGovernanceFromServer,
 } from "@/lib/talanton/governance-store";
 import type { GovernanceMeeting } from "@/lib/talanton/governance-types";
@@ -116,9 +117,20 @@ export function TalantonCreateBoardMeetingWizard({
 
   useEffect(() => {
     if (!open || step !== 2) return;
-    void loadCronofyStatus().catch((e) => {
-      setError(e instanceof Error ? e.message : "Failed to load Cronofy status.");
-    });
+    let cancelled = false;
+    void (async () => {
+      try {
+        await refreshGovernanceFromServer();
+        if (cancelled) return;
+        await loadCronofyStatus();
+      } catch (e) {
+        if (cancelled) return;
+        setError(e instanceof Error ? e.message : "Failed to load Cronofy status.");
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [open, step, loadCronofyStatus]);
 
   useEffect(() => {
@@ -182,7 +194,7 @@ export function TalantonCreateBoardMeetingWizard({
         ? await patchGovernanceMeeting({ ...meeting, ...payload, id: meeting.id })
         : await postGovernanceMeeting(payload);
       setMeeting(saved);
-      await refreshGovernanceFromServer();
+      mergeMeetingIntoGovernanceSnapshot(saved);
       setStep(2);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to save meeting.");

@@ -69,7 +69,6 @@ export function subscribeTalantonGovernanceStore(listener: Listener) {
 }
 
 export function getTalantonGovernanceSnapshot(): GovernanceSnapshot {
-  void ensureGovernanceLoaded();
   return snapshot;
 }
 
@@ -104,6 +103,15 @@ function ensureGovernanceLoaded() {
   if (typeof window === "undefined") return Promise.resolve();
   if (snapshot.status === "ready" || snapshot.status === "error") return Promise.resolve();
   return refreshGovernanceFromServer();
+}
+
+/** Merge a saved meeting into the client cache without refetching the full list. */
+export function mergeMeetingIntoGovernanceSnapshot(meeting: GovernanceMeeting): void {
+  const existing = snapshot.meetings.find((m) => m.id === meeting.id);
+  const meetings = existing
+    ? snapshot.meetings.map((m) => (m.id === meeting.id ? meeting : m))
+    : [meeting, ...snapshot.meetings];
+  setSnapshot({ meetings, status: "ready", error: null });
 }
 
 export function listMeetings(opts?: { includeArchived?: boolean }) {

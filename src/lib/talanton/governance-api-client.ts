@@ -16,11 +16,25 @@ async function parseJson<T>(res: Response): Promise<T & { error?: string }> {
   return (await res.json()) as T & { error?: string };
 }
 
+const GOVERNANCE_MEETINGS_FETCH_KEY = "__unit311_fetchGovernanceMeetingsInflight";
+
 export async function fetchGovernanceMeetings(): Promise<GovernanceMeeting[]> {
-  const res = await fetch("/api/talanton/governance/meetings", { credentials: "include" });
-  const data = await parseJson<{ meetings?: GovernanceMeeting[] }>(res);
-  if (!res.ok) throw new Error(data.error || "Failed to load governance meetings.");
-  return data.meetings ?? [];
+  type GlobalWithInflight = typeof globalThis & {
+    [GOVERNANCE_MEETINGS_FETCH_KEY]?: Promise<GovernanceMeeting[]>;
+  };
+  const g = globalThis as GlobalWithInflight;
+  if (g[GOVERNANCE_MEETINGS_FETCH_KEY]) {
+    return g[GOVERNANCE_MEETINGS_FETCH_KEY];
+  }
+  g[GOVERNANCE_MEETINGS_FETCH_KEY] = (async () => {
+    const res = await fetch("/api/talanton/governance/meetings", { credentials: "include" });
+    const data = await parseJson<{ meetings?: GovernanceMeeting[] }>(res);
+    if (!res.ok) throw new Error(data.error || "Failed to load governance meetings.");
+    return data.meetings ?? [];
+  })().finally(() => {
+    delete g[GOVERNANCE_MEETINGS_FETCH_KEY];
+  });
+  return g[GOVERNANCE_MEETINGS_FETCH_KEY];
 }
 
 export async function postGovernanceMeeting(
