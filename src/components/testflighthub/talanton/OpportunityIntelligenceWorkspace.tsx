@@ -6,6 +6,7 @@ import { buildOpportunityBriefing } from "@/lib/talanton/opportunity-intelligenc
 import { cn } from "@/lib/utils";
 import {
   TalantonGeneratedPanel,
+  TalantonImpactMetric,
   TalantonIntelligenceHeader,
   UNAVAILABLE_LABEL,
 } from "./talanton-intelligence-ui";
@@ -17,9 +18,67 @@ function formatShortDate(iso: string) {
   return d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
 }
 
+function BriefingTile({ heading, body }: { heading: string; body: string }) {
+  return (
+    <div className="rounded-xl border border-white/10 bg-black/20 p-4">
+      <h3 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-emerald-300/75">
+        {heading}
+      </h3>
+      <p className="mt-2 text-sm leading-relaxed text-white/60">{body}</p>
+    </div>
+  );
+}
+
 export default function OpportunityIntelligenceWorkspace() {
   const briefing = useTalantonMemo(() => buildOpportunityBriefing());
-  const { health } = briefing;
+
+  const mainTiles = [
+    { label: "Opportunity Health Score", hint: "Requires pipeline records" },
+    { label: "Pipeline Depth", hint: "Active prospects under review" },
+    { label: "High Conviction", hint: "Score ≥ 82" },
+    { label: "Sectors Covered", hint: "Distinct sectors in pipeline" },
+    { label: "Regions Covered", hint: "Distinct regions in pipeline" },
+    { label: "Live Data Connection", hint: "Supabase pipeline table" },
+  ] as const;
+
+  const briefingTiles = [
+    {
+      heading: "Emerging opportunities",
+      body: briefing.emergingOpportunities.length
+        ? briefing.emergingOpportunities.join(" ")
+        : UNAVAILABLE_LABEL,
+    },
+    {
+      heading: "Sector developments",
+      body: briefing.sectorDevelopments.length
+        ? briefing.sectorDevelopments.join(" ")
+        : UNAVAILABLE_LABEL,
+    },
+    {
+      heading: "Regional developments",
+      body: briefing.regionalDevelopments.length
+        ? briefing.regionalDevelopments.join(" ")
+        : UNAVAILABLE_LABEL,
+    },
+    {
+      heading: "Strategic opportunities",
+      body: briefing.strategicOpportunitiesNarrative.length
+        ? briefing.strategicOpportunitiesNarrative.join(" ")
+        : UNAVAILABLE_LABEL,
+    },
+    {
+      heading: "Risks and challenges",
+      body: briefing.risksAndChallenges.length
+        ? briefing.risksAndChallenges.join(" ")
+        : UNAVAILABLE_LABEL,
+    },
+    {
+      heading: "Recommended investigations",
+      body: briefing.recommendedInvestigations.length
+        ? briefing.recommendedInvestigations.join(" ")
+        : UNAVAILABLE_LABEL,
+    },
+  ] as const;
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-5 overflow-auto p-5 sm:p-6">
@@ -50,47 +109,46 @@ export default function OpportunityIntelligenceWorkspace() {
           {briefing.pipelineUnavailableReason}
         </p>
         <p className="mt-2 text-amber-100/70">
-          Missing data source: a Supabase (or API) table for Talanton opportunity / pipeline records (e.g. deal stage,
-          sector, region, conviction score). Configured prospect fixtures are not shown as live intelligence.
+          Missing data source: a Supabase (or API) table for Talanton opportunity / pipeline records (e.g. deal
+          stage, sector, region, conviction score). Configured prospect fixtures are not shown as live intelligence.
         </p>
       </div>
 
-      <TalantonGeneratedPanel
-        eyebrow="Scorecard"
-        title="Opportunity Health Score"
-        copyText={health.healthText}
-      >
-        <p className="mb-4 max-w-3xl text-sm leading-relaxed text-white/55">{health.postureReason}</p>
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          {(
-            [
-              { label: "Opportunity Health Score", hint: "Requires pipeline records" },
-              { label: "Pipeline Depth", hint: "Active prospects under review" },
-              { label: "High Conviction", hint: "Score ≥ 82" },
-              { label: "Coverage", hint: "Sectors and regions" },
-            ] as const
-          ).map((item) => (
-            <div
+      <section aria-label="Opportunity intelligence overview">
+        <div className="mb-3">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-300/80">
+            Overview
+          </p>
+          <h2 className="mt-1 text-lg font-semibold tracking-tight text-white sm:text-xl">
+            Pipeline scorecard
+          </h2>
+        </div>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {mainTiles.map((item) => (
+            <TalantonImpactMetric
               key={item.label}
-              className="rounded-xl border border-white/10 bg-black/20 px-4 py-3.5"
-            >
-              <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/45">
-                {item.label}
-              </p>
-              <p className="mt-2 text-2xl font-semibold tabular-nums tracking-tight text-white/35">
-                {UNAVAILABLE_LABEL}
-              </p>
-              <p className="mt-1 text-[11px] leading-snug text-white/35">{item.hint}</p>
-            </div>
+              label={item.label}
+              value={UNAVAILABLE_LABEL}
+              hint={item.hint}
+              unavailable
+            />
           ))}
         </div>
-      </TalantonGeneratedPanel>
+      </section>
 
-      <TalantonGeneratedPanel title="Opportunity Executive Briefing" copyText={briefing.briefingText}>
-        <p className="text-sm leading-relaxed text-white/60">
-          AI Opportunity Executive Briefing content is unavailable until pipeline records are persisted and wired to
-          this module.
+      <TalantonGeneratedPanel
+        eyebrow="AI generated"
+        title="Opportunity Executive Briefing"
+        copyText={briefing.briefingText}
+      >
+        <p className="mb-4 max-w-3xl text-sm leading-relaxed text-white/55">
+          {briefing.pipelineUnavailableReason}
         </p>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {briefingTiles.map((tile) => (
+            <BriefingTile key={tile.heading} heading={tile.heading} body={tile.body} />
+          ))}
+        </div>
       </TalantonGeneratedPanel>
     </div>
   );

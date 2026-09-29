@@ -1,9 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import L from "leaflet";
 import { MapContainer, TileLayer, useMap } from "react-leaflet";
-import { MapPin, X } from "lucide-react";
+import { ExternalLink, MapPin, X } from "lucide-react";
 import "leaflet/dist/leaflet.css";
 
 import {
@@ -12,8 +13,11 @@ import {
   buildPortfolioMapMarkers,
   type PortfolioMapMarker,
 } from "@/lib/talanton/portfolio-map";
+import { getInternalNavHref } from "@/lib/internal-operations-data";
+import { refreshTalantonPortfolioCompanies } from "@/lib/talanton/portfolio-companies-client-store";
 import { useTalantonPortfolioDataKey } from "@/lib/talanton/use-talanton-intelligence-briefing";
 import { URBAN_MAP_ATTRIBUTION } from "@/lib/map-tiles";
+import { useInternalOperationsBasePath } from "@/components/testflighthub/InternalOperationsBasePathContext";
 
 const CARTO_DARK_URL =
   "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png";
@@ -32,9 +36,13 @@ function markerIcon(active: boolean) {
 
 function MarkerCard({
   marker,
+  companyHref,
+  directoryHref,
   onClose,
 }: {
   marker: PortfolioMapMarker;
+  companyHref: string;
+  directoryHref: string;
   onClose: () => void;
 }) {
   return (
@@ -78,6 +86,21 @@ function MarkerCard({
           <dd className="mt-0.5 leading-relaxed text-white/80">{marker.companyPurpose}</dd>
         </div>
       </dl>
+      <div className="mt-4 flex flex-wrap gap-2">
+        <Link
+          href={companyHref}
+          className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-400/35 bg-emerald-500/15 px-3 py-1.5 text-xs font-semibold text-emerald-100 transition hover:bg-emerald-500/25"
+        >
+          Company Intelligence
+          <ExternalLink className="h-3.5 w-3.5" />
+        </Link>
+        <Link
+          href={directoryHref}
+          className="inline-flex items-center gap-1.5 rounded-lg border border-white/15 bg-white/[0.04] px-3 py-1.5 text-xs font-medium text-white/80 transition hover:border-emerald-400/30 hover:text-white"
+        >
+          Portfolio directory
+        </Link>
+      </div>
     </div>
   );
 }
@@ -166,8 +189,13 @@ function PortfolioMarkers({
 
 /** Africa-centred portfolio map for Talanton Executive Home. */
 export default function PortfolioCompanyMap() {
+  const basePath = useInternalOperationsBasePath();
   const dataKey = useTalantonPortfolioDataKey();
   const markers = useMemo(() => buildPortfolioMapMarkers(), [dataKey]);
+
+  useEffect(() => {
+    void refreshTalantonPortfolioCompanies();
+  }, []);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
 
@@ -231,6 +259,12 @@ export default function PortfolioCompanyMap() {
         {active ? (
           <MarkerCard
             marker={active}
+            companyHref={getInternalNavHref("portfolio-intelligence-company", basePath, {
+              companyId: active.id,
+            })}
+            directoryHref={getInternalNavHref("portfolio-directory", basePath, {
+              companyId: active.id,
+            })}
             onClose={() => {
               setActiveId(null);
               setHoveredId(null);

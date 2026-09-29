@@ -561,16 +561,9 @@ export default function Unit311SupportWorkspace() {
                 <div>
                   <p className="text-sm font-medium text-white/70">Select a request</p>
                   <p className="mt-1 text-xs text-white/45">
-                    Choose a ticket from the list or create a new support request.
+                    Choose a ticket from the list or use <span className="text-sky-200/90">New request</span>{" "}
+                    in the header to open a support ticket.
                   </p>
-                  <button
-                    type="button"
-                    onClick={startCreate}
-                    className="mt-4 inline-flex items-center gap-2 rounded-xl border border-sky-400/30 bg-sky-500/10 px-3 py-2 text-xs font-semibold text-sky-200 transition-colors hover:bg-sky-500/20"
-                  >
-                    <Plus className="h-3.5 w-3.5" />
-                    New request
-                  </button>
                 </div>
               </section>
             )

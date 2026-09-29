@@ -144,10 +144,53 @@ export default function WolfAiWildlifeVisionDemo() {
 
   return (
     <div className={`${wolfShellClass} px-4 py-6 sm:px-6 sm:py-8`}>
+      <section className={`${wolfCardClass} mb-6 p-5 sm:p-6`}>
+        <p className={wolfEyebrowClass}>Wildlife intelligence gap</p>
+        <h1 className="mt-2 max-w-4xl text-xl font-semibold leading-snug text-white sm:text-2xl">
+          Almost no major wildlife conservancy or safari range in Africa runs a long-endurance aerial
+          intelligence programme today.
+        </h1>
+        <p className="mt-4 max-w-3xl text-sm leading-relaxed text-white/55">
+          Reserve teams still rely on ground patrols, lodge reports, and short battery-life drones that
+          cannot stay on station long enough to watch wide, remote terrain.
+        </p>
+        <div className="mt-6 border-t border-white/[0.08] pt-5">
+          <h2 className="text-sm font-semibold uppercase tracking-[0.14em] text-emerald-300/85">
+            Why is that?
+          </h2>
+          <div className="mt-3 grid gap-4 sm:grid-cols-3">
+            <div className="rounded-lg border border-white/[0.08] bg-white/[0.03] p-3">
+              <p className="text-xs font-semibold text-white/85">Deployment is hard</p>
+              <p className="mt-1.5 text-xs leading-relaxed text-white/50">
+                Long-endurance platforms need secure comms, trained operators, airspace coordination, and
+                maintenance in harsh field conditions — beyond what most conservancies can sustain with
+                ad-hoc kit.
+              </p>
+            </div>
+            <div className="rounded-lg border border-white/[0.08] bg-white/[0.03] p-3">
+              <p className="text-xs font-semibold text-white/85">Short-endurance drones fall short</p>
+              <p className="mt-1.5 text-xs leading-relaxed text-white/50">
+                Typical multirotor flights last minutes, not hours. They are useful for spot checks, but
+                they cannot provide persistent coverage across migration corridors, fence lines, or
+                after-dark poaching routes.
+              </p>
+            </div>
+            <div className="rounded-lg border border-white/[0.08] bg-white/[0.03] p-3">
+              <p className="text-xs font-semibold text-white/85">Operations pay the price</p>
+              <p className="mt-1.5 text-xs leading-relaxed text-white/50">
+                Without durable aerial intelligence, rangers react late to incidents, wildlife health
+                signals are missed, and leadership lacks a continuous picture of what is happening on
+                the ground.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <header className="mb-6 flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className={wolfEyebrowClass}>Tools · Demo</p>
-          <h1 className="mt-1 text-2xl font-semibold text-white">AI Wildlife Vision</h1>
+          <h2 className="mt-1 text-2xl font-semibold text-white">AI Wildlife Vision</h2>
           <p className="mt-2 max-w-2xl text-sm text-white/50">
             High-altitude aerial survey demonstration — WOLF AI wildlife detection and unique-animal
             tracking over a game reserve.

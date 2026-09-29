@@ -8,6 +8,7 @@ import {
   Download,
   FileText,
   Plus,
+  RefreshCw,
   Trash2,
 } from "lucide-react";
 import dynamic from "next/dynamic";
@@ -46,6 +47,9 @@ const btnPrimary =
 
 const btnGhost =
   "inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-black/25 px-3 py-1.5 text-xs font-medium text-white/80 transition hover:border-emerald-400/35 hover:text-emerald-100";
+
+const btnIconOnly =
+  "inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/15 bg-black/25 text-white/80 transition hover:border-emerald-400/35 hover:text-emerald-100 disabled:opacity-50";
 
 function statusClass(status: QuarterlyUpdateStatus) {
   if (status === "Published") return "border-emerald-600/30 bg-emerald-50 text-emerald-800";
@@ -800,18 +804,21 @@ export default function QuarterlyPortfolioUpdateWorkspace() {
               <div className="mt-auto flex flex-wrap gap-2 pt-4">
                 <button
                   type="button"
-                  className={btnGhost}
+                  className={btnIconOnly}
+                  title="Open report"
+                  aria-label="Open report"
                   onClick={() => {
                     setActiveId(r.id);
                     setMode("viewer");
                   }}
                 >
-                  <FileText className="h-3.5 w-3.5" />
-                  Open
+                  <FileText className="h-4 w-4" />
                 </button>
                 <button
                   type="button"
-                  className={btnGhost}
+                  className={btnIconOnly}
+                  title="Refresh report from live platform data"
+                  aria-label="Refresh report from live platform data"
                   onClick={() => {
                     const next = regenerateQuarterlyPortfolioUpdate(r.id);
                     if (next) {
@@ -821,11 +828,13 @@ export default function QuarterlyPortfolioUpdateWorkspace() {
                     }
                   }}
                 >
-                  Refresh
+                  <RefreshCw className="h-4 w-4" />
                 </button>
                 <button
                   type="button"
-                  className={btnGhost}
+                  className={btnIconOnly}
+                  title="Duplicate report"
+                  aria-label="Duplicate report"
                   onClick={() => {
                     const copy = duplicateQuarterlyPortfolioUpdate(r.id);
                     if (copy) {
@@ -835,41 +844,43 @@ export default function QuarterlyPortfolioUpdateWorkspace() {
                     }
                   }}
                 >
-                  <Copy className="h-3.5 w-3.5" />
-                  Duplicate
+                  <Copy className="h-4 w-4" />
                 </button>
                 <button
                   type="button"
-                  className={btnGhost}
+                  className={btnIconOnly}
+                  title="Export PDF"
+                  aria-label="Export PDF"
                   onClick={() => {
                     void downloadQuarterlyPortfolioUpdatePdf(r).then(() => flash("Exported PDF."));
                   }}
                 >
-                  <Download className="h-3.5 w-3.5" />
-                  Export PDF
+                  <Download className="h-4 w-4" />
                 </button>
                 <button
                   type="button"
-                  className={btnGhost}
+                  className={btnIconOnly}
+                  title="Archive report"
+                  aria-label="Archive report"
                   onClick={() => {
                     archiveQuarterlyPortfolioUpdate(r.id);
                     flash("Archived.");
                   }}
                 >
-                  <Archive className="h-3.5 w-3.5" />
-                  Archive
+                  <Archive className="h-4 w-4" />
                 </button>
                 <button
                   type="button"
-                  className={cn(btnGhost, "border-rose-400/30 text-rose-200 hover:border-rose-400/50")}
+                  className={cn(btnIconOnly, "border-rose-400/30 text-rose-200 hover:border-rose-400/50")}
+                  title="Delete report"
+                  aria-label="Delete report"
                   onClick={() => {
                     deleteQuarterlyPortfolioUpdate(r.id);
                     if (activeId === r.id) setActiveId(null);
                     flash("Deleted.");
                   }}
                 >
-                  <Trash2 className="h-3.5 w-3.5" />
-                  Delete
+                  <Trash2 className="h-4 w-4" />
                 </button>
               </div>
             </article>

@@ -69,6 +69,8 @@ export default function UserManagementWorkspace({ onUsersChange }: UserManagemen
   const snapshottedIdRef = useRef<string | null>(null);
   const { showDetail, openDetail, closeDetail } = useMobileDetailPanel();
   const [wizardOpen, setWizardOpen] = useState<"create" | "edit" | null>(null);
+  const [checkedUserIds, setCheckedUserIds] = useState<Set<string>>(() => new Set());
+  const [actorUserId, setActorUserId] = useState<string | null>(null);
 
   const selectedUser = useMemo(
     () => users.find((user) => user.id === selectedUserId) ?? users[0] ?? null,
@@ -118,6 +120,24 @@ export default function UserManagementWorkspace({ onUsersChange }: UserManagemen
       void loadUsers();
     });
   }, [loadUsers]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const response = await fetch("/api/auth/whoami", { cache: "no-store" });
+        const data = await readApiJson<{ userId?: string }>(response);
+        if (!cancelled && response.ok && data.userId) {
+          setActorUserId(data.userId);
+        }
+      } catch {
+        /* optional — bulk delete still uses server-side protection */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     startTransition(() => {
@@ -329,6 +349,70 @@ export default function UserManagementWorkspace({ onUsersChange }: UserManagemen
     }
   }
 
+  function toggleUserChecked(userId: string, checked: boolean) {
+    setCheckedUserIds((current) => {
+      const next = new Set(current);
+      if (checked) next.add(userId);
+      else next.delete(userId);
+      return next;
+    });
+  }
+
+  async function handleBulkDeleteUsers() {
+    const ids = [...checkedUserIds];
+    if (ids.length === 0) return;
+
+    const deletable = ids.filter((id) => id !== actorUserId);
+    const skippedSelf = ids.length - deletable.length;
+
+    if (deletable.length === 0) {
+      setError("You cannot delete your own account from bulk delete.");
+      return;
+    }
+
+    const label =
+      deletable.length === 1
+        ? `Delete 1 selected user?`
+        : `Delete ${deletable.length} selected users?`;
+    const detail =
+      skippedSelf > 0
+        ? `\n\nYour own account will be skipped (${skippedSelf}).`
+        : "";
+    if (!window.confirm(`${label}${detail}\n\nThis permanently removes workspace login access.`)) {
+      return;
+    }
+
+    setBusy(true);
+    setError(null);
+    const failures: string[] = [];
+
+    for (const id of deletable) {
+      try {
+        const response = await fetch(`/api/users/${id}`, { method: "DELETE" });
+        const data = await readApiJson<{ error?: string }>(response);
+        if (!response.ok) {
+          failures.push(data.error ?? `Failed to delete user ${id}`);
+        }
+      } catch (deleteError) {
+        failures.push(
+          deleteError instanceof Error ? deleteError.message : `Failed to delete user ${id}`,
+        );
+      }
+    }
+
+    setCheckedUserIds(new Set());
+    await loadUsers();
+
+    if (failures.length) {
+      setError(failures.slice(0, 3).join(" · "));
+    } else {
+      setSaveMessage(
+        deletable.length === 1 ? "User deleted" : `${deletable.length} users deleted`,
+      );
+    }
+    setBusy(false);
+  }
+
   async function handleDeleteUser() {
     if (!selectedUser) return;
     if (!window.confirm(`Delete user "${selectedUser.fullName}"?`)) return;
@@ -388,8 +472,9 @@ export default function UserManagementWorkspace({ onUsersChange }: UserManagemen
           showDetail={showDetail && !!selectedUser}
           onBack={closeDetail}
           backLabel="Back to internal users"
+          columnsClassName="xl:grid-cols-[minmax(280px,380px)_minmax(0,1fr)] xl:items-start"
           master={
-            <section className="rounded-2xl border border-white/15 bg-white/[0.04] p-4 shadow-[0_24px_64px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl sm:p-6">
+            <section className="flex max-h-[min(78vh,720px)] flex-col rounded-2xl border border-white/15 bg-white/[0.04] p-4 shadow-[0_24px_64px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl sm:p-6">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <h2 className="text-lg font-semibold text-white">Internal Users</h2>
@@ -409,25 +494,58 @@ export default function UserManagementWorkspace({ onUsersChange }: UserManagemen
                 </button>
               </div>
 
-              <ul className="mt-4 space-y-2">
+              {checkedUserIds.size > 0 ? (
+                <div className="mt-4 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-rose-400/25 bg-rose-500/10 px-3 py-2">
+                  <p className="text-xs text-rose-100">
+                    {checkedUserIds.size} selected
+                    {actorUserId && checkedUserIds.has(actorUserId)
+                      ? " (your account will be skipped)"
+                      : ""}
+                  </p>
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => void handleBulkDeleteUsers()}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-rose-400/40 bg-rose-500/20 px-2.5 py-1.5 text-xs font-semibold text-rose-100 transition hover:bg-rose-500/30 disabled:opacity-50"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                    Delete selected
+                  </button>
+                </div>
+              ) : null}
+
+              <ul className="mt-4 min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
                 {users.map((user) => {
                   const selected = user.id === selectedUser?.id;
+                  const checked = checkedUserIds.has(user.id);
 
                   return (
                     <li key={user.id}>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setSelectedUserId(user.id);
-                          openDetail();
-                        }}
+                      <div
                         className={cn(
-                          "w-full rounded-xl border px-4 py-3.5 text-left transition-colors",
+                          "flex w-full items-stretch gap-2 rounded-xl border transition-colors",
                           selected
                             ? "border-sky-400/40 bg-sky-500/10 shadow-[inset_0_0_0_1px_rgba(56,189,248,0.15)]"
                             : "border-white/10 bg-white/[0.03] hover:border-white/20 hover:bg-white/[0.05]",
                         )}
                       >
+                        <label className="flex shrink-0 items-center px-3">
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={(event) => toggleUserChecked(user.id, event.target.checked)}
+                            aria-label={`Select ${user.fullName} for bulk delete`}
+                            className="h-4 w-4 rounded border-white/20 bg-[#0b1524] text-sky-500 focus:ring-sky-400/40"
+                          />
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedUserId(user.id);
+                            openDetail();
+                          }}
+                          className="min-w-0 flex-1 py-3.5 pr-4 text-left"
+                        >
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0 flex-1">
                             <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-sky-300/80">
@@ -452,7 +570,8 @@ export default function UserManagementWorkspace({ onUsersChange }: UserManagemen
                             {user.status}
                           </span>
                         </div>
-                      </button>
+                        </button>
+                      </div>
                     </li>
                   );
                 })}

@@ -6,10 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import {
   AlertTriangle,
   Building2,
-  CheckCircle2,
-  ClipboardList,
   FileText,
-  GraduationCap,
   ShieldAlert,
   Sparkles,
   TrendingUp,
@@ -20,17 +17,20 @@ import { CopyToClipboardButton } from "@/components/ui/CopyToClipboardButton";
 import { getInternalNavHref } from "@/lib/internal-operations-data";
 import {
   buildCompanyIntelligence,
-  formatCompanyActionText,
   formatCompanyRiskText,
   listCompanyIntelligenceOptions,
   resolveCompanyIntelligenceId,
-  type CompanyActivityItem,
-  type CompanyRecommendedAction,
 } from "@/lib/talanton/company-intelligence";
 import type { RiskRating } from "@/lib/talanton/portfolio-data";
 import { useTalantonMemo } from "@/lib/talanton/use-talanton-intelligence-briefing";
 import { cn } from "@/lib/utils";
 import { useInternalOperationsBasePath } from "../InternalOperationsBasePathContext";
+
+function formatShortDate(iso: string) {
+  const d = new Date(`${iso}T12:00:00`);
+  if (Number.isNaN(d.getTime())) return iso;
+  return d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+}
 
 function riskClass(rating: RiskRating) {
   switch (rating) {
@@ -45,40 +45,6 @@ function riskClass(rating: RiskRating) {
     default:
       return "bg-white/10 text-white/70 ring-white/10";
   }
-}
-
-function urgencyClass(urgency: CompanyRecommendedAction["urgency"]) {
-  switch (urgency) {
-    case "Today":
-      return "border-rose-400/30 bg-rose-500/10 text-rose-200";
-    case "This week":
-      return "border-amber-400/30 bg-amber-500/10 text-amber-100";
-    default:
-      return "border-emerald-400/25 bg-emerald-500/10 text-emerald-100";
-  }
-}
-
-function activityIcon(kind: CompanyActivityItem["kind"]) {
-  switch (kind) {
-    case "report":
-      return <FileText className="h-3.5 w-3.5 text-emerald-300" />;
-    case "training":
-      return <GraduationCap className="h-3.5 w-3.5 text-sky-300" />;
-    case "document":
-      return <ClipboardList className="h-3.5 w-3.5 text-teal-300" />;
-    case "review":
-      return <CheckCircle2 className="h-3.5 w-3.5 text-emerald-300" />;
-    case "risk":
-      return <ShieldAlert className="h-3.5 w-3.5 text-orange-300" />;
-    default:
-      return <Building2 className="h-3.5 w-3.5 text-white/50" />;
-  }
-}
-
-function formatShortDate(iso: string) {
-  const d = new Date(`${iso}T12:00:00`);
-  if (Number.isNaN(d.getTime())) return iso;
-  return d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
 }
 
 function GeneratedPanel({
@@ -460,63 +426,6 @@ export default function CompanyIntelligenceWorkspace() {
         </div>
       </GeneratedPanel>
       </div>
-
-      <GeneratedPanel eyebrow="Timeline" title="Recent Activity" copyText={intel.activityText}>
-        <ol className="relative space-y-0 border-l border-white/10 pl-5">
-          {intel.recentActivity.map((item) => (
-            <li key={item.id} className="relative pb-5 last:pb-0">
-              <span className="absolute -left-[1.55rem] top-0.5 flex h-6 w-6 items-center justify-center rounded-full border border-white/10 bg-[#0d1b14]">
-                {activityIcon(item.kind)}
-              </span>
-              <div className="flex flex-wrap items-baseline justify-between gap-2">
-                <p className="text-sm font-medium text-white">{item.title}</p>
-                <time className="text-[11px] tabular-nums text-white/40">
-                  {formatShortDate(item.occurredAt)}
-                </time>
-              </div>
-              <p className="mt-1 text-sm leading-relaxed text-white/55">{item.detail}</p>
-            </li>
-          ))}
-        </ol>
-      </GeneratedPanel>
-
-      <GeneratedPanel
-        eyebrow="Action centre"
-        title="Recommended Actions"
-        copyText={intel.actionsText}
-      >
-        <p className="mb-4 max-w-3xl text-sm text-white/55">
-          AI-generated recommendations for Talanton staff working {company.name}.
-        </p>
-        <div className="grid gap-3 lg:grid-cols-2">
-          {intel.recommendedActions.map((action) => (
-            <article
-              key={action.id}
-              className="relative rounded-xl border border-white/10 bg-black/20 p-4"
-            >
-              <div className="mb-3 flex items-start justify-between gap-3">
-                <span
-                  className={cn(
-                    "inline-flex rounded-md border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.1em]",
-                    urgencyClass(action.urgency),
-                  )}
-                >
-                  {action.urgency}
-                </span>
-                <CopyToClipboardButton
-                  text={formatCompanyActionText(action)}
-                  className="shrink-0"
-                />
-              </div>
-              <h3 className="text-sm font-semibold leading-snug text-white">{action.title}</h3>
-              <p className="mt-2 text-sm leading-relaxed text-white/55">{action.rationale}</p>
-              <p className="mt-3 text-[11px] uppercase tracking-[0.1em] text-white/40">
-                Owner · {action.owner}
-              </p>
-            </article>
-          ))}
-        </div>
-      </GeneratedPanel>
     </div>
   );
 }
