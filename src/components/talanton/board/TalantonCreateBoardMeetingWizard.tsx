@@ -10,7 +10,10 @@ import {
   getBoardMembersState,
   subscribeBoardMembersStore,
 } from "@/lib/talanton/board-members-store";
-import { refreshGovernanceFromServer } from "@/lib/talanton/governance-store";
+import {
+  getTalantonGovernanceSnapshot,
+  refreshGovernanceFromServer,
+} from "@/lib/talanton/governance-store";
 import type { GovernanceMeeting } from "@/lib/talanton/governance-types";
 import { cn } from "@/lib/utils";
 
@@ -82,7 +85,7 @@ export function TalantonCreateBoardMeetingWizard({
 
   useEffect(() => {
     if (!open) return;
-    setStep(initialStep ?? 1);
+    if (initialStep != null) setStep(initialStep);
     const cronofyParam = searchParams.get("cronofy");
     const cronofyMsg = searchParams.get("cronofyMessage");
     if (cronofyMsg) setCronofyMessage(cronofyMsg);
@@ -121,10 +124,9 @@ export function TalantonCreateBoardMeetingWizard({
   useEffect(() => {
     if (!open || !initialMeetingId) return;
     void refreshGovernanceFromServer()
-      .then(async () => {
-        const res = await fetch("/api/talanton/governance/meetings", { credentials: "include" });
-        const data = (await res.json()) as { meetings?: GovernanceMeeting[] };
-        const found = data.meetings?.find((m) => m.id === initialMeetingId) ?? null;
+      .then(() => {
+        const found =
+          getTalantonGovernanceSnapshot().meetings.find((m) => m.id === initialMeetingId) ?? null;
         if (found) {
           setMeeting(found);
           if (found.meetingInviteUrl?.trim()) {

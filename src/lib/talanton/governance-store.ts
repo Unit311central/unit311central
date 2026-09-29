@@ -77,7 +77,7 @@ export function getTalantonGovernanceServerSnapshot(): GovernanceSnapshot {
   return { meetings: [], status: "idle", error: null };
 }
 
-export async function refreshGovernanceFromServer(): Promise<void> {
+async function runGovernanceRefresh(): Promise<void> {
   setSnapshot({ status: "loading", error: null });
   try {
     await migrateLocalGovernanceOnce();
@@ -90,15 +90,20 @@ export async function refreshGovernanceFromServer(): Promise<void> {
   }
 }
 
+/** Single-flight refresh — safe to call from effects, event handlers, and getSnapshot. */
+export function refreshGovernanceFromServer(): Promise<void> {
+  if (typeof window === "undefined") return Promise.resolve();
+  if (loadPromise) return loadPromise;
+  loadPromise = runGovernanceRefresh().finally(() => {
+    loadPromise = null;
+  });
+  return loadPromise;
+}
+
 function ensureGovernanceLoaded() {
   if (typeof window === "undefined") return Promise.resolve();
   if (snapshot.status === "ready" || snapshot.status === "error") return Promise.resolve();
-  if (!loadPromise) {
-    loadPromise = refreshGovernanceFromServer().finally(() => {
-      loadPromise = null;
-    });
-  }
-  return loadPromise;
+  return refreshGovernanceFromServer();
 }
 
 export function listMeetings(opts?: { includeArchived?: boolean }) {
