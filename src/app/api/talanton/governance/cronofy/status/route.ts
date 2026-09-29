@@ -41,6 +41,25 @@ export async function GET() {
     const calendars = await listCronofyCalendars(accessToken);
     const writable = calendars.filter((c) => !c.calendar_deleted && !c.calendar_readonly);
 
+    console.info(
+      "[cronofy/status]",
+      JSON.stringify({
+        platformUserId: session.sub,
+        workspaceId: workspace.id,
+        linkedProviderName: account.linkedProviderName,
+        linkedProfileName: account.linkedProfileName,
+        writableCalendarCount: writable.length,
+        calendars: writable.map((c) => ({
+          calendarId: c.calendar_id,
+          calendarName: c.calendar_name,
+          providerName: c.provider_name,
+          profileName: c.profile_name,
+          calendarPrimary: c.calendar_primary,
+          integratedConferencingAvailable: c.calendar_integrated_conferencing_available,
+        })),
+      }),
+    );
+
     return NextResponse.json({
       configured: true,
       connected: true,

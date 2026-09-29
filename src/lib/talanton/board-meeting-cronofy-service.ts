@@ -97,6 +97,26 @@ export async function createTalantonBoardMeetingOnlineEvent(args: {
   }
 
   const calendars = await listCronofyCalendars(accessToken);
+  console.info(
+    "[cronofy/board-meeting] calendars",
+    JSON.stringify({
+      meetingId: args.meeting.id,
+      platformUserId: args.platformUserId,
+      workspaceId: args.workspace.id,
+      calendarCount: calendars.length,
+      calendars: calendars.map((c) => ({
+        calendarId: c.calendar_id,
+        calendarName: c.calendar_name,
+        providerName: c.provider_name,
+        profileName: c.profile_name,
+        calendarPrimary: c.calendar_primary,
+        integratedConferencingAvailable: c.calendar_integrated_conferencing_available,
+        readonly: c.calendar_readonly,
+        deleted: c.calendar_deleted,
+      })),
+    }),
+  );
+
   let calendar = args.calendarId
     ? calendars.find((c) => c.calendar_id === args.calendarId && !c.calendar_deleted && !c.calendar_readonly)
     : undefined;
@@ -115,9 +135,30 @@ export async function createTalantonBoardMeetingOnlineEvent(args: {
     integratedAvailable = picked.integratedAvailable;
   }
 
-  const conferencingProfileId: "integrated" | "default" = integratedAvailable
-    ? "integrated"
-    : "default";
+  console.info(
+    "[cronofy/board-meeting] selected-calendar",
+    JSON.stringify({
+      meetingId: args.meeting.id,
+      calendarId: calendar.calendar_id,
+      providerName: calendar.provider_name,
+      profileName: calendar.profile_name,
+      integratedConferencingAvailable: integratedAvailable,
+    }),
+  );
+
+  if (!integratedAvailable) {
+    return {
+      ok: false,
+      code: "INTEGRATED_CONFERENCING_UNAVAILABLE",
+      message:
+        "Microsoft Teams online meetings are not available for this calendar. Personal Outlook.com accounts and some Microsoft calendars cannot use Cronofy integrated Teams conferencing — connect a Microsoft 365 work or school account with Teams licensing.",
+      meeting: args.meeting,
+      calendarProvider: calendar.provider_name,
+      integratedConferencingAvailable: false,
+    };
+  }
+
+  const conferencingProfileId: "integrated" = "integrated";
   const { startLocal, endLocal } = localDateTimeParts(startIso, tzid);
   const eventId = args.meeting.cronofyEventId || args.meeting.id;
 
@@ -153,6 +194,17 @@ export async function createTalantonBoardMeetingOnlineEvent(args: {
     pending = parsed.pending;
     joinUrl = parsed.joinUrl;
     provider = parsed.provider;
+    console.info(
+      "[cronofy/board-meeting] poll-conferencing",
+      JSON.stringify({
+        meetingId: args.meeting.id,
+        attempt: attempt + 1,
+        eventFound: Boolean(event),
+        pending: parsed.pending,
+        provider: parsed.provider,
+        hasJoinUrl: Boolean(parsed.joinUrl),
+      }),
+    );
     if (joinUrl) break;
     if (!pending && !joinUrl) break;
   }
@@ -173,6 +225,10 @@ export async function createTalantonBoardMeetingOnlineEvent(args: {
 
   if (!joinUrl) {
     if (pending) {
+      console.warn(
+        "[cronofy/board-meeting] conferencing-pending-timeout",
+        JSON.stringify({ meetingId: args.meeting.id, eventId, calendarId: calendar.calendar_id }),
+      );
       return {
         ok: false,
         code: "CONFERENCING_PENDING_TIMEOUT",
@@ -183,12 +239,20 @@ export async function createTalantonBoardMeetingOnlineEvent(args: {
         integratedConferencingAvailable: integratedAvailable,
       };
     }
+    console.warn(
+      "[cronofy/board-meeting] conferencing-not-generated",
+      JSON.stringify({
+        meetingId: args.meeting.id,
+        eventId,
+        calendarId: calendar.calendar_id,
+        provider,
+      }),
+    );
     return {
       ok: false,
       code: "CONFERENCING_NOT_GENERATED",
-      message: integratedAvailable
-        ? "The calendar event was saved, but Cronofy did not return an integrated conferencing join URL. The connected account may not include Teams/Meet licensing."
-        : "The calendar event was saved without integrated conferencing. Personal Microsoft accounts and some calendars cannot provision Microsoft Teams through Cronofy — use a Microsoft 365 work or school account.",
+      message:
+        "The calendar event was saved, but Cronofy did not return an integrated conferencing join URL. The connected account may not include Teams licensing.",
       meeting: saved,
       calendarProvider: calendar.provider_name,
       integratedConferencingAvailable: integratedAvailable,
@@ -200,6 +264,23 @@ export async function createTalantonBoardMeetingOnlineEvent(args: {
     meetingInviteUrl: joinUrl,
     conferencingProvider: provider ?? saved.conferencingProvider ?? "",
   });
+
+  console.info(
+    "[cronofy/board-meeting] success",
+    JSON.stringify({
+      meetingId: args.meeting.id,
+      calendarId: calendar.calendar_id,
+      provider: provider ?? "",
+      joinUrlHost: (() => {
+        try {
+          return new URL(joinUrl).host;
+        } catch {
+          return "";
+        }
+      })(),
+      meetingInviteUrlPersisted: Boolean(withUrl.meetingInviteUrl),
+    }),
+  );
 
   return {
     ok: true,

@@ -116,6 +116,32 @@ async function cronofyBearerPost(path: string, accessToken: string, body: unknow
   });
 }
 
+export function isMicrosoftCronofyProvider(providerName: string): boolean {
+  const p = providerName.trim().toLowerCase();
+  return (
+    p.includes("outlook") ||
+    p.includes("office") ||
+    p.includes("live_connect") ||
+    p.includes("exchange") ||
+    p === "microsoft"
+  );
+}
+
+export function pickPreferredMicrosoftCalendar(
+  calendars: CronofyCalendar[],
+): CronofyCalendar | null {
+  const usable = calendars.filter((c) => !c.calendar_deleted && !c.calendar_readonly);
+  const microsoft = usable.filter((c) => isMicrosoftCronofyProvider(c.provider_name));
+  const pool = microsoft.length > 0 ? microsoft : usable;
+  return (
+    pool.find((c) => c.calendar_primary && c.calendar_integrated_conferencing_available) ??
+    pool.find((c) => c.calendar_integrated_conferencing_available) ??
+    pool.find((c) => c.calendar_primary) ??
+    pool[0] ??
+    null
+  );
+}
+
 export async function listCronofyCalendars(accessToken: string): Promise<CronofyCalendar[]> {
   const data = await cronofyBearerGet<{ calendars?: CronofyCalendar[] }>("/v1/calendars", accessToken);
   return data.calendars ?? [];
@@ -132,25 +158,56 @@ export async function createOrUpdateCronofyEvent(args: {
   conferencingProfileId: "default" | "integrated";
   description?: string;
 }): Promise<void> {
+  const payload = {
+    event_id: args.eventId,
+    summary: args.summary,
+    description: args.description ?? "",
+    start: args.start,
+    end: args.end,
+    tzid: args.tzid,
+    conferencing: {
+      profile_id: args.conferencingProfileId,
+    },
+  };
   const res = await cronofyBearerPost(
     `/v1/calendars/${encodeURIComponent(args.calendarId)}/events`,
     args.accessToken,
-    {
-      event_id: args.eventId,
-      summary: args.summary,
-      description: args.description ?? "",
-      start: args.start,
-      end: args.end,
-      tzid: args.tzid,
-      conferencing: {
-        profile_id: args.conferencingProfileId,
-      },
-    },
+    payload,
   );
-  if (!res.ok && res.status !== 202) {
-    const data = (await res.json().catch(() => ({}))) as { error?: string; error_description?: string };
-    throw new Error(data.error_description || data.error || `Cronofy event create failed (${res.status})`);
+  const responseText = await res.text().catch(() => "");
+  let responseJson: Record<string, unknown> = {};
+  try {
+    responseJson = responseText ? (JSON.parse(responseText) as Record<string, unknown>) : {};
+  } catch {
+    responseJson = { raw: responseText.slice(0, 500) };
   }
+  if (!res.ok && res.status !== 202) {
+    console.error(
+      "[cronofy/event-create]",
+      JSON.stringify({
+        calendarId: args.calendarId,
+        eventId: args.eventId,
+        conferencingProfileId: args.conferencingProfileId,
+        httpStatus: res.status,
+        body: responseJson,
+      }),
+    );
+    const message =
+      (responseJson.error_description as string | undefined) ||
+      (responseJson.error as string | undefined) ||
+      `Cronofy event create failed (${res.status})`;
+    throw new Error(message);
+  }
+  console.info(
+    "[cronofy/event-create]",
+    JSON.stringify({
+      calendarId: args.calendarId,
+      eventId: args.eventId,
+      conferencingProfileId: args.conferencingProfileId,
+      httpStatus: res.status,
+      acceptedAsync: res.status === 202,
+    }),
+  );
 }
 
 export async function readCronofyEvents(args: {
@@ -188,15 +245,11 @@ export function extractJoinUrlFromConferencing(
 export function pickWritableCalendarForConferencing(
   calendars: CronofyCalendar[],
 ): { calendar: CronofyCalendar; integratedAvailable: boolean } | null {
-  const usable = calendars.filter((c) => !c.calendar_deleted && !c.calendar_readonly);
-  const primary =
-    usable.find((c) => c.calendar_primary) ??
-    usable.find((c) => c.calendar_integrated_conferencing_available) ??
-    usable[0];
-  if (!primary) return null;
+  const picked = pickPreferredMicrosoftCalendar(calendars);
+  if (!picked) return null;
   return {
-    calendar: primary,
-    integratedAvailable: Boolean(primary.calendar_integrated_conferencing_available),
+    calendar: picked,
+    integratedAvailable: Boolean(picked.calendar_integrated_conferencing_available),
   };
 }
 

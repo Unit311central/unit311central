@@ -40,6 +40,20 @@ export async function POST(request: NextRequest, context: RouteContext) {
       calendarId: body.calendarId?.trim() || undefined,
     });
 
+    console.info(
+      "[governance/meetings cronofy-event]",
+      JSON.stringify({
+        meetingId: id,
+        platformUserId: session.sub,
+        ok: result.ok,
+        code: result.ok ? "OK" : result.code,
+        provider: result.ok ? result.provider : undefined,
+        integratedConferencingAvailable: result.integratedConferencingAvailable,
+        calendarProvider: result.ok ? undefined : result.calendarProvider,
+        hasJoinUrl: result.ok ? Boolean(result.joinUrl) : Boolean(result.meeting.meetingInviteUrl),
+      }),
+    );
+
     return NextResponse.json(result, { status: result.ok ? 200 : 422 });
   } catch (error) {
     if (error instanceof WorkspaceAccessError) {

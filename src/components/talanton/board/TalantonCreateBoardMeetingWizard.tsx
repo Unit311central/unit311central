@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
+import { isMicrosoftCronofyProvider, pickPreferredMicrosoftCalendar } from "@/lib/cronofy/client";
 import { TALANTON_BOARD_MEETING_TZID } from "@/lib/cronofy/config";
 import { postGovernanceMeeting, patchGovernanceMeeting } from "@/lib/talanton/governance-api-client";
 import {
@@ -63,6 +64,10 @@ export function TalantonCreateBoardMeetingWizard({
   const [cronofyStatus, setCronofyStatus] = useState<CronofyStatus | null>(null);
   const [selectedCalendarId, setSelectedCalendarId] = useState("");
   const [cronofyMessage, setCronofyMessage] = useState<string | null>(null);
+  const [onlineMeetingCreated, setOnlineMeetingCreated] = useState<{
+    joinUrl: string;
+    provider: string;
+  } | null>(null);
   const [selectedMemberIds, setSelectedMemberIds] = useState<Set<string>>(new Set());
   const [boardMembers, setBoardMembers] = useState(getBoardMembersState().members);
 
@@ -90,8 +95,19 @@ export function TalantonCreateBoardMeetingWizard({
     if (!res.ok) throw new Error(data.error || "Failed to load calendar connection status.");
     setCronofyStatus(data);
     if (data.calendars?.length) {
-      const primary = data.calendars.find((c) => c.calendarPrimary) ?? data.calendars[0];
-      setSelectedCalendarId(primary?.calendarId ?? "");
+      const preferred = pickPreferredMicrosoftCalendar(
+        data.calendars.map((c) => ({
+          calendar_id: c.calendarId,
+          calendar_name: c.calendarName,
+          calendar_readonly: false,
+          calendar_deleted: false,
+          calendar_primary: c.calendarPrimary,
+          calendar_integrated_conferencing_available: c.integratedConferencingAvailable,
+          provider_name: c.providerName,
+          profile_name: c.profileName,
+        })),
+      );
+      setSelectedCalendarId(preferred?.calendar_id ?? data.calendars[0]?.calendarId ?? "");
     }
   }, []);
 
@@ -111,6 +127,12 @@ export function TalantonCreateBoardMeetingWizard({
         const found = data.meetings?.find((m) => m.id === initialMeetingId) ?? null;
         if (found) {
           setMeeting(found);
+          if (found.meetingInviteUrl?.trim()) {
+            setOnlineMeetingCreated({
+              joinUrl: found.meetingInviteUrl.trim(),
+              provider: found.conferencingProvider?.trim() || "Online meeting",
+            });
+          }
           setTitle(found.title);
           setDate(found.meetingDate.slice(0, 10));
           if (found.meetingStartAt) {
@@ -129,6 +151,7 @@ export function TalantonCreateBoardMeetingWizard({
     setMeeting(null);
     setError(null);
     setCronofyMessage(null);
+    setOnlineMeetingCreated(null);
     onClose();
     router.replace("/board/meetings");
   }, [onClose, router]);
@@ -206,6 +229,7 @@ export function TalantonCreateBoardMeetingWizard({
       );
       const data = (await res.json()) as {
         ok?: boolean;
+        code?: string;
         message?: string;
         meeting?: GovernanceMeeting;
         joinUrl?: string;
@@ -215,11 +239,19 @@ export function TalantonCreateBoardMeetingWizard({
       };
       if (data.meeting) setMeeting(data.meeting);
       await refreshGovernanceFromServer();
-      if (data.ok) {
-        setStep(3);
+      if (data.ok && data.joinUrl) {
+        setOnlineMeetingCreated({
+          joinUrl: data.joinUrl,
+          provider: data.provider?.trim() || "Integrated conferencing",
+        });
+        setCronofyMessage(null);
         return;
       }
-      setCronofyMessage(data.message || "Online meeting could not be created.");
+      const detail =
+        data.code === "INTEGRATED_CONFERENCING_UNAVAILABLE" && data.calendarProvider
+          ? `${data.message ?? "Integrated Teams conferencing is unavailable."} (Calendar provider: ${data.calendarProvider})`
+          : data.message || "Online meeting could not be created.";
+      setCronofyMessage(detail);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to create online meeting.");
     } finally {
@@ -252,6 +284,22 @@ export function TalantonCreateBoardMeetingWizard({
 
   const connected = Boolean(cronofyStatus?.connected);
   const configured = cronofyStatus?.configured !== false;
+
+  const selectedCalendar = useMemo(() => {
+    if (!cronofyStatus?.calendars?.length) return null;
+    return (
+      cronofyStatus.calendars.find((c) => c.calendarId === selectedCalendarId) ??
+      cronofyStatus.calendars[0] ??
+      null
+    );
+  }, [cronofyStatus?.calendars, selectedCalendarId]);
+
+  const teamsConferencingAvailable = Boolean(selectedCalendar?.integratedConferencingAvailable);
+  const teamsMeetingCreated = Boolean(onlineMeetingCreated?.joinUrl || meeting?.meetingInviteUrl?.trim());
+  const createdJoinUrl = onlineMeetingCreated?.joinUrl || meeting?.meetingInviteUrl?.trim() || "";
+  const createdProvider =
+    onlineMeetingCreated?.provider || meeting?.conferencingProvider?.trim() || "";
+  const isTeamsProvider = /teams|microsoft/i.test(createdProvider);
 
   const stepLabel = useMemo(
     () =>
@@ -326,28 +374,39 @@ export function TalantonCreateBoardMeetingWizard({
               {configured && !connected ? (
                 <>
                   <p className="text-sm text-white/55">
-                    Connect your calendar to schedule this board meeting and provision an online meeting link
-                    through Cronofy.
+                    Connect a Microsoft calendar through Cronofy to provision a Teams online meeting for this
+                    board meeting. Unit311 does not connect to Microsoft directly — Cronofy handles calendar
+                    and conferencing.
                   </p>
                   <button type="button" className={primaryBtn} onClick={() => void connectCalendar()} disabled={busy}>
-                    Connect calendar
+                    Connect Microsoft calendar
                   </button>
                 </>
               ) : null}
               {connected ? (
                 <>
-                  <p className="text-sm text-white/55">
-                    Connected
-                    {cronofyStatus?.linkedProfileName
-                      ? `: ${cronofyStatus.linkedProfileName}`
-                      : ""}
-                    {cronofyStatus?.linkedProviderName
-                      ? ` (${cronofyStatus.linkedProviderName})`
-                      : ""}
-                  </p>
+                  <div className="space-y-2 rounded-xl border border-white/10 bg-black/20 px-3 py-3 text-sm">
+                    <p className="font-medium text-emerald-100/90">Calendar connected</p>
+                    <p className="text-white/65">
+                      {cronofyStatus?.linkedProfileName || "Linked account"}
+                      {cronofyStatus?.linkedProviderName
+                        ? ` · ${cronofyStatus.linkedProviderName}`
+                        : ""}
+                    </p>
+                    {selectedCalendar ? (
+                      <p className="text-xs text-white/45">
+                        Selected calendar: {selectedCalendar.calendarName} ({selectedCalendar.providerName})
+                        {selectedCalendar.integratedConferencingAvailable
+                          ? " · Integrated Teams conferencing available"
+                          : " · Integrated Teams conferencing not available"}
+                      </p>
+                    ) : (
+                      <p className="text-xs text-amber-200/80">No writable calendars returned from Cronofy.</p>
+                    )}
+                  </div>
                   {cronofyStatus?.calendars?.length ? (
                     <label className="block text-[11px] text-white/45">
-                      Calendar
+                      Microsoft / Outlook calendar
                       <select
                         className={cn(inputClass, "mt-1")}
                         value={selectedCalendarId}
@@ -356,22 +415,59 @@ export function TalantonCreateBoardMeetingWizard({
                         {cronofyStatus.calendars.map((c) => (
                           <option key={c.calendarId} value={c.calendarId}>
                             {c.calendarName} · {c.providerName}
-                            {c.integratedConferencingAvailable ? " · Teams/Meet available" : ""}
+                            {c.integratedConferencingAvailable
+                              ? " · Teams available"
+                              : " · Teams unavailable"}
                           </option>
                         ))}
                       </select>
                     </label>
                   ) : null}
-                  <button
-                    type="button"
-                    className={primaryBtn}
-                    onClick={() => void createOnlineMeeting()}
-                    disabled={busy}
-                  >
-                    Create online meeting
-                  </button>
+                  {!teamsConferencingAvailable && selectedCalendar ? (
+                    <p className="rounded-lg border border-amber-400/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-50">
+                      Microsoft Teams online meetings cannot be created for this calendar. Personal Outlook.com
+                      accounts and some Microsoft calendars do not support Cronofy integrated Teams conferencing.
+                      Use a Microsoft 365 work or school account with Teams licensing, then reconnect if needed.
+                      {isMicrosoftCronofyProvider(selectedCalendar.providerName)
+                        ? ""
+                        : " This calendar does not appear to be a Microsoft Outlook calendar."}
+                    </p>
+                  ) : null}
+                  {teamsMeetingCreated ? (
+                    <div className="rounded-lg border border-emerald-400/35 bg-emerald-500/10 px-3 py-3 text-sm text-emerald-50">
+                      <p className="font-semibold">
+                        {isTeamsProvider ? "Microsoft Teams meeting created" : "Online meeting created"}
+                      </p>
+                      {createdProvider ? (
+                        <p className="mt-1 text-xs text-emerald-100/80">Provider: {createdProvider}</p>
+                      ) : null}
+                      <a
+                        href={createdJoinUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="mt-2 block break-all text-xs font-medium text-emerald-100 underline"
+                      >
+                        {createdJoinUrl}
+                      </a>
+                    </div>
+                  ) : null}
+                  {!teamsMeetingCreated ? (
+                    <button
+                      type="button"
+                      className={primaryBtn}
+                      onClick={() => void createOnlineMeeting()}
+                      disabled={busy || !teamsConferencingAvailable || !selectedCalendarId}
+                      title={
+                        !teamsConferencingAvailable
+                          ? "Integrated Teams conferencing is not available for the selected calendar."
+                          : undefined
+                      }
+                    >
+                      Create Teams online meeting
+                    </button>
+                  ) : null}
                   <button type="button" className={secondaryBtn} onClick={() => setStep(3)} disabled={busy}>
-                    Skip online meeting for now
+                    {teamsMeetingCreated ? "Continue to board members" : "Skip online meeting for now"}
                   </button>
                 </>
               ) : null}
