@@ -1,5 +1,5 @@
 /**
- * Idempotent MAM workspace admin (admin@mam.me).
+ * Idempotent MAM workspace admin (admin@mam.ma).
  * Password: MAM_ADMIN_PLATFORM_PASSWORD env (never log).
  *
  *   MAM_ADMIN_PLATFORM_PASSWORD='...' node scripts/provision-mam-admin-user.mjs
@@ -45,7 +45,7 @@ const ACCESS_TOKEN = merged.SUPABASE_ACCESS_TOKEN;
 const PROJECT_REF = merged.SUPABASE_PROJECT_REF || "kkxtvzxqmbacjatkiupq";
 
 const MAM_SLUG = "mam";
-const EMAIL = "admin@mam.me";
+const EMAIL = "admin@mam.ma";
 const DISPLAY_NAME = "MAM Administrator";
 const COMPANY = "Moroccan Advanced Manufacturing";
 const PLATFORM_PASSWORD = merged.MAM_ADMIN_PLATFORM_PASSWORD?.trim();
@@ -123,7 +123,7 @@ async function main() {
 
   if (!SERVICE_KEY || !SUPABASE_URL) {
     console.log("No Supabase service role — applying migration SQL via management API");
-    await mgmtQuery(fs.readFileSync(path.join(root, "supabase/migrations/216_mam_admin_user.sql"), "utf8"));
+    await mgmtQuery(fs.readFileSync(path.join(root, "supabase/migrations/217_mam_admin_email_ma.sql"), "utf8"));
     console.log(JSON.stringify({ ok: true, method: "migration-sql", email: EMAIL }, null, 2));
     return;
   }

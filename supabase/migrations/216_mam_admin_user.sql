@@ -1,11 +1,11 @@
 -- MAM workspace administrator — full catalogue access.
--- Login: admin@mam.me (password set via provision script / migration hash).
+-- Login: admin@mam.ma (password set via provision script / migration hash).
 
 DO $$
 DECLARE
   v_mam_id uuid;
   v_user_id uuid;
-  v_password_hash text := 'admin@mam.me-salt-v1:587fd787b7c784d1bc6e3c4391fb69a609ed14cc5ae62ce3e5f0aa7d65c6f29eba64aa90d17e25826aa161c05cedc2bd7c006f9f3b9e5e64c06a80f75f54115f';
+  v_password_hash text := 'admin@mam.ma-salt-v1:6ed8262f1816001f3e7b7f68cefd6d4aa1a3a7a31d6170e420c6576faf48a595bf1d3ae22935d1373e950662dac918e1b72fe4be1734b5b4dd402a2f1d4e065b';
   v_roles jsonb := '["Board","Exec","Manager","Associate","Admin"]'::jsonb;
   v_departments jsonb := '["Board","Exec","Manager","Engineering","Sales","Finance","Operations","HR","Corporate","Technology"]'::jsonb;
   v_enabled_modules jsonb := '[
@@ -24,7 +24,7 @@ BEGIN
 
   UPDATE public.workspace_admin_metadata
   SET
-    contact_email = 'admin@mam.me',
+    contact_email = 'admin@mam.ma',
     contact_name = 'MAM Administrator',
     enabled_modules = v_enabled_modules,
     updated_at = v_now
@@ -32,7 +32,7 @@ BEGIN
 
   SELECT id INTO v_user_id
   FROM public.platform_users
-  WHERE lower(username) = 'admin@mam.me' OR lower(email) = 'admin@mam.me'
+  WHERE lower(username) IN ('admin@mam.ma', 'admin@mam.me') OR lower(email) IN ('admin@mam.ma', 'admin@mam.me')
   LIMIT 1;
 
   IF v_user_id IS NULL THEN
@@ -41,15 +41,15 @@ BEGIN
       id, workspace_id, username, email, display_name, user_type, is_active,
       password_hash, redirect_path, client_name, email_verified_at, created_at, updated_at
     ) VALUES (
-      v_user_id, v_mam_id, 'admin@mam.me', 'admin@mam.me', 'MAM Administrator', 'internal', true,
+      v_user_id, v_mam_id, 'admin@mam.ma', 'admin@mam.ma', 'MAM Administrator', 'internal', true,
       v_password_hash, '/dashboard', 'Moroccan Advanced Manufacturing', v_now, v_now, v_now
     );
-    RAISE NOTICE '216_mam_admin_user: created admin@mam.me';
+    RAISE NOTICE '216_mam_admin_user: created admin@mam.ma';
   ELSE
     UPDATE public.platform_users SET
       workspace_id = v_mam_id,
-      username = 'admin@mam.me',
-      email = 'admin@mam.me',
+      username = 'admin@mam.ma',
+      email = 'admin@mam.ma',
       password_hash = v_password_hash,
       display_name = 'MAM Administrator',
       user_type = 'internal',
@@ -59,7 +59,7 @@ BEGIN
       client_name = 'Moroccan Advanced Manufacturing',
       updated_at = v_now
     WHERE id = v_user_id;
-    RAISE NOTICE '216_mam_admin_user: updated admin@mam.me';
+    RAISE NOTICE '216_mam_admin_user: updated admin@mam.ma';
   END IF;
 
   INSERT INTO public.workspace_users (workspace_id, user_id, role, is_owner, created_at, updated_at)
@@ -77,7 +77,7 @@ BEGIN
     id, operator_label, full_name, username, email, phone, role, roles, department, departments,
     status, region, license_id, notes, allowed_views, dashboard_prefs, created_at, updated_at
   ) VALUES (
-    v_user_id::text, 'MAM Admin', 'MAM Administrator', 'admin@mam.me', 'admin@mam.me', null,
+    v_user_id::text, 'MAM Admin', 'MAM Administrator', 'admin@mam.ma', 'admin@mam.ma', null,
     'Admin', v_roles, 'Corporate', v_departments, 'Active', 'Morocco', null,
     'MAM full-access administrator', null,
     jsonb_build_object('homeTiles', jsonb_build_array('executive-brief', 'financial', 'commercial', 'projects', 'operations')),
