@@ -26,24 +26,32 @@ function emit() {
   for (const listener of listeners) listener();
 }
 
-async function runLoad(): Promise<void> {
-  snapshot = { ...snapshot, status: "loading", error: null };
+function setSnapshot(next: Snapshot) {
+  const unchanged =
+    snapshot.status === next.status &&
+    snapshot.error === next.error &&
+    snapshot.companies === next.companies;
+  if (unchanged) return;
+  snapshot = next;
   emit();
+}
+
+async function runLoad(): Promise<void> {
+  setSnapshot({ ...snapshot, status: "loading", error: null });
   try {
     const res = await fetch("/api/portfolio-companies", { credentials: "include" });
     const data = (await res.json()) as { companies?: PortfolioCompany[]; error?: string };
     if (!res.ok) throw new Error(data.error || "Failed to load portfolio companies.");
     const companies = data.companies?.length ? data.companies : TALANTON_PORTFOLIO_COMPANIES;
-    snapshot = { companies, status: "ready", error: null };
+    setSnapshot({ companies, status: "ready", error: null });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to load portfolio companies.";
-    snapshot = {
+    setSnapshot({
       companies: TALANTON_PORTFOLIO_COMPANIES,
       status: "error",
       error: message,
-    };
+    });
   }
-  emit();
 }
 
 export function refreshTalantonPortfolioCompanies(): Promise<void> {

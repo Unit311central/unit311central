@@ -65,7 +65,9 @@ function rebuildClientSnapshot(): void {
 }
 
 function emit() {
+  const before = clientSnapshot;
   rebuildClientSnapshot();
+  if (clientSnapshot === before) return;
   for (const l of listeners) l();
 }
 

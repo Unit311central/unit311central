@@ -14,8 +14,7 @@ import {
   type PortfolioMapMarker,
 } from "@/lib/talanton/portfolio-map";
 import { getInternalNavHref } from "@/lib/internal-operations-data";
-import { refreshTalantonPortfolioCompanies } from "@/lib/talanton/portfolio-companies-client-store";
-import { useTalantonPortfolioDataKey } from "@/lib/talanton/use-talanton-intelligence-briefing";
+import { useTalantonPortfolioCompanies } from "@/lib/talanton/use-talanton-portfolio-companies";
 import { URBAN_MAP_ATTRIBUTION } from "@/lib/map-tiles";
 import { useInternalOperationsBasePath } from "@/components/testflighthub/InternalOperationsBasePathContext";
 
@@ -190,12 +189,12 @@ function PortfolioMarkers({
 /** Africa-centred portfolio map for Talanton Executive Home. */
 export default function PortfolioCompanyMap() {
   const basePath = useInternalOperationsBasePath();
-  const dataKey = useTalantonPortfolioDataKey();
+  const { companies, status } = useTalantonPortfolioCompanies();
+  const dataKey = useMemo(
+    () => `${status}:${companies.map((c) => c.id).join(",")}`,
+    [companies, status],
+  );
   const markers = useMemo(() => buildPortfolioMapMarkers(), [dataKey]);
-
-  useEffect(() => {
-    void refreshTalantonPortfolioCompanies();
-  }, []);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
 

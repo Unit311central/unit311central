@@ -8,6 +8,7 @@ import ExecutiveMyWorkspace from "@/components/central-capabilities/ExecutiveMyW
 import NorthstarCompanyOverview from "@/components/demo/NorthstarCompanyOverview";
 
 import { WorkspaceDashboard } from "@/components/dashboard-framework";
+import WorkspaceErrorBoundary from "@/components/testflighthub/WorkspaceErrorBoundary";
 
 const PortfolioCompanyMap = dynamic(
   () => import("@/components/testflighthub/talanton/PortfolioCompanyMap"),
@@ -310,12 +311,17 @@ export default function ExecutiveHomeDashboard({
   }, []);
 
   const config = useMemo(() => {
-    const base = !bundle
-      ? executiveHomeDashboardConfig
-      : withExecutiveHomeLiveData(executiveHomeDashboardConfig, {
+    let base = executiveHomeDashboardConfig;
+    if (bundle) {
+      try {
+        base = withExecutiveHomeLiveData(executiveHomeDashboardConfig, {
           ...bundle,
           reportingCurrency,
         });
+      } catch (error) {
+        console.error("[ExecutiveHomeDashboard] Failed to merge live KPI data", error);
+      }
+    }
 
     const byId = new Map(base.sections.map((section) => [section.id, section]));
     const header = byId.get("header");
@@ -486,7 +492,11 @@ export default function ExecutiveHomeDashboard({
 
       <ExecutiveMyWorkspace />
 
-      {isTalanton ? <PortfolioCompanyMap /> : null}
+      {isTalanton && bundle && !loading ? (
+        <WorkspaceErrorBoundary title="Portfolio map" compact>
+          <PortfolioCompanyMap />
+        </WorkspaceErrorBoundary>
+      ) : null}
     </div>
   );
 }
