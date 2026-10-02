@@ -41,7 +41,7 @@
     "prove:talanton-home": "node --import tsx src/lib/__tests__/talanton-intelligence-context-client.check.ts && node --import tsx src/lib/__tests__/talanton-home-surface.check.ts",
     "prove:talanton-intelligence-briefing": "node --import tsx src/lib/__tests__/talanton-intelligence-briefing.check.ts",
     "prove:talanton-ea": "npm run prove:talanton-home && npm run prove:talanton-intelligence-briefing && node --import tsx src/lib/talanton/__tests__/executive-intelligence-intent.check.ts && node --require ./scripts/test-server-only-hook.cjs --import tsx src/lib/talanton/__tests__/ea-routing-regression.check.ts && node --require ./scripts/test-server-only-hook.cjs --import tsx src/lib/talanton/__tests__/ea-test-suite.check.ts",
-    "prove:abhi-ea": "node --import tsx src/lib/abhi/__tests__/ea-test-suite.check.ts",
+    "prove:abhi-ea": "node --require ./scripts/test-server-only-hook.cjs --import tsx src/lib/__tests__/abhi-demo-surfaces.check.ts && node --require ./scripts/test-server-only-hook.cjs --import tsx src/lib/__tests__/abhi-platform-access.check.ts && node --require ./scripts/test-server-only-hook.cjs --import tsx src/lib/abhi/__tests__/abhi-request-org-state.check.ts && node --require ./scripts/test-server-only-hook.cjs --import tsx src/lib/abhi/__tests__/ea-test-suite.check.ts",
     "prove:onwardair-ea": "node --import tsx src/lib/onwardair/__tests__/ea-test-suite.check.ts",
     "prove:internal-ea": "node --import tsx src/lib/internal/__tests__/ea-test-suite.check.ts",
     "prove:demo-ea": "node --import tsx src/lib/demo/__tests__/ea-test-suite.check.ts",

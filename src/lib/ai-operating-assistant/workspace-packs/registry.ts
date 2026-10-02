@@ -59,16 +59,12 @@ export function getEaWorkspacePackToolDefinitions(
 ): AssistantToolDefinition[] {
   const pack = getEaWorkspacePackForSlug(slug);
   if (!pack) return [];
-  try {
-    // Definitions live in a handler-free module to avoid circular imports on serverless cold start.
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { SERVER_PACK_TOOL_DEFINITIONS } =
-      require("./server-pack-tool-definitions") as typeof import("./server-pack-tool-definitions");
-    const tools = SERVER_PACK_TOOL_DEFINITIONS?.[pack.id];
-    return tools ? [...tools] : [];
-  } catch {
-    return [];
-  }
+  // Lazy require avoids circular init with ABHI PDF tool definitions at module load.
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { SERVER_PACK_TOOL_DEFINITIONS } =
+    require("./server-pack-tool-definitions") as typeof import("./server-pack-tool-definitions");
+  const tools = SERVER_PACK_TOOL_DEFINITIONS[pack.id];
+  return tools ? [...tools] : [];
 }
 
 export async function resolveEaWorkspacePackOrchestration(

@@ -153,6 +153,19 @@ export async function resolveOrchestrationRoute(
     }
   }
 
+  // ABHI — deterministic executive tools before semantic / evidence_gpt.
+  {
+    const { resolveAbhiEarlyOrchestrationRoute } = await import("@/lib/abhi/abhi-ea-orchestration");
+    const abhiRoute = resolveAbhiEarlyOrchestrationRoute(message, business);
+    if (abhiRoute) {
+      eaStage("ABHI early orchestration", {
+        kind: abhiRoute.kind,
+        tool: abhiRoute.kind === "tool" ? abhiRoute.intent.tool : undefined,
+      });
+      return abhiRoute;
+    }
+  }
+
   // General investigation / cross-module evidence — before single-capability routing.
   {
     const investigationPlan = planInvestigation(message, business);

@@ -29,3 +29,9 @@ Production: `https://talantonimpact.unit311central.com/dashboard` (Home view).
 Impact KPIs come from `buildPortfolioImpactBriefing()` — **portal submissions win** when present; otherwise holdings use the **portfolio impact model** in `impact-holdings-estimates.ts` (same behaviour as pre–real-data Home). Never call `.toLocaleString()` on nullable summary fields without a guard; prefer `displayImpactCount()`. Talanton customer hosts must resolve via host slug before scoped whoami cache (`talanton-surface.ts`).
 
 Run `npm run prove:talanton-home` before deploy when changing `executive-home-dashboard.ts`, `ExecutiveHomeDashboard.tsx`, or Talanton host routing. Run `npm run prove:talanton-intelligence-briefing` when changing `portfolio-intelligence.ts`, `CompanyImpactWorkspace.tsx`, board impact, or intelligence workspace packs. CI also runs `prove:talanton-ea` (includes both prove scripts plus EA routing/tests).
+
+## ABHI customer host
+
+Production: `https://abhi.unit311central.com/dashboard` (GBP reporting, member-centric Home KPIs).
+
+ABHI executive prompts must route to `abhi.*` tools before general `evidence_gpt` investigation (`abhi-ea-orchestration.ts`). Run `npm run prove:abhi-ea` before deploy when changing ABHI EA orchestration, application catalogue labels, or board meetings org-state overlay.

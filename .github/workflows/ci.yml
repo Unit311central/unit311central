@@ -52,5 +52,8 @@ jobs:
       - name: Talanton EA regression
         run: npm run prove:talanton-ea
 
+      - name: ABHI EA regression
+        run: npm run prove:abhi-ea
+
       - name: Production build
         run: npm run build

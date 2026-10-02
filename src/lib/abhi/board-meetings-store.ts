@@ -251,6 +251,14 @@ export function getAbhiBoardMeetingsState(): AbhiBoardMeetingsState {
 }
 
 export function getAbhiBoardMeetingsServerSnapshot(): AbhiBoardMeetingsState {
+  try {
+    const { getAbhiRequestMeetings } =
+      require("@/lib/abhi/abhi-request-org-state") as typeof import("@/lib/abhi/abhi-request-org-state");
+    const overlay = getAbhiRequestMeetings();
+    if (overlay?.meetings?.length) return overlay;
+  } catch {
+    /* ignore — server snapshot only */
+  }
   return serverSnapshot;
 }
 

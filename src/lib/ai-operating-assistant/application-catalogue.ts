@@ -195,6 +195,8 @@ const MODULE_DESCRIPTIONS: Record<string, string> = {
 
 const DISPLAY_NAMES: Record<string, string> = {
   qms: "Quality Management",
+  "abhi-intelligence": "ABHI Intelligence",
+  finances: "Financials",
 };
 
 function slugify(label: string): string {

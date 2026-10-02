@@ -2,7 +2,7 @@
  * Server-only workspace tool schemas (no handler imports — avoids circular deps).
  */
 
-import { ABHI_EA_PDF_TOOL_DEFINITIONS } from "@/lib/abhi/ea-pdf-tools";
+import { ABHI_EA_PDF_TOOL_DEFINITIONS } from "@/lib/abhi/abhi-ea-pdf-tool-definitions";
 import { NORTHSTAR_EXECUTIVE_TOOL_DEFINITIONS } from "@/lib/ai-operating-assistant/northstar-executive-tools";
 import { ONWARDAIR_EXECUTIVE_TOOL_DEFINITIONS } from "@/lib/ai-operating-assistant/onwardair-executive-tools";
 import {

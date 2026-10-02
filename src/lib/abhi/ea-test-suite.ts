@@ -46,7 +46,10 @@ import {
 } from "@/lib/ai-operating-assistant/artifact-store";
 import { getLatestConversationWithArtifacts } from "@/lib/ai-operating-assistant/conversation-service";
 import { getAbhiNavSections } from "@/lib/internal-role-views";
-import { getOpenAIToolSchemas } from "@/lib/ai-operating-assistant/tool-service";
+import {
+  getOpenAIToolSchemas,
+  toOpenAiFunctionToolName,
+} from "@/lib/ai-operating-assistant/tool-service";
 import type { AssistantBusinessContext } from "@/lib/ai-operating-assistant/types";
 
 export type EaTestStatus = "pass" | "fail";
@@ -313,7 +316,9 @@ export async function runAbhiEaTestSuite(): Promise<EaTestSuiteReport> {
         throw new Error(`missing module: ${label}`);
       }
     }
-    const intelligence = modules.find((m) => m.label === "ABHI Intelligence");
+    const intelligence = modules.find(
+      (m) => m.label === "ABHI INTELLIGENCE" || m.displayName === "ABHI Intelligence",
+    );
     if (!intelligence?.applications.some((a) => a.label === "Member Intelligence")) {
       throw new Error("missing Member Intelligence app");
     }
@@ -451,7 +456,9 @@ export async function runAbhiEaTestSuite(): Promise<EaTestSuiteReport> {
   const registry = new SectionRunner("Tool registry");
   sections.push(registry);
   await registry.run("Workspace-scoped OpenAI tools", () => {
-    const abhiTools = getOpenAIToolSchemas("abhi").map((t) => t.name);
+    const abhiTools = new Set(getOpenAIToolSchemas("abhi").map((t) => t.name));
+    const hasTool = (canonical: string) =>
+      abhiTools.has(canonical) || abhiTools.has(toOpenAiFunctionToolName(canonical));
     for (const name of [
       "abhi.getExecutiveBriefing",
       "abhi.getOrgHealth",
@@ -462,13 +469,13 @@ export async function runAbhiEaTestSuite(): Promise<EaTestSuiteReport> {
       "searchApplications",
       "queryBusiness",
     ]) {
-      if (!abhiTools.includes(name)) throw new Error(`missing ${name}`);
+      if (!hasTool(name)) throw new Error(`missing ${name}`);
     }
     const tiTools = getOpenAIToolSchemas("talantonimpact").map((t) => t.name);
-    if (tiTools.includes("abhi.getExecutiveBriefing")) {
+    if (tiTools.includes(toOpenAiFunctionToolName("abhi.getExecutiveBriefing"))) {
       throw new Error("abhi tools leaked to talanton schema");
     }
-  }, `abhiTools=${getOpenAIToolSchemas("abhi").filter((t) => t.name.startsWith("abhi.")).length}`);
+  }, `abhiTools=${getOpenAIToolSchemas("abhi").filter((t) => t.name.startsWith("abhi_")).length}`);
 
   const orchestration = new SectionRunner("Orchestration");
   sections.push(orchestration);
