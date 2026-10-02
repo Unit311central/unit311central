@@ -21,3 +21,11 @@ Production invite: `https://onwardair.unit311central.com/overview` (login requir
 Production homepage: `https://unit311central.com`
 
 **Frozen Aug 2026** — hero background video must stay `/images/video.mp4` via `HeroVideoBackground` in `HomeHero.tsx`. Do not remove the video, swap assets, or replace with gradient-only hero without explicit owner request. See `.cursor/rules/homepage-hero-frozen.mdc`. Run `npm run prove:homepage-hero` before any homepage deploy.
+
+## Talanton Executive Home (customer host)
+
+Production: `https://talantonimpact.unit311central.com/dashboard` (Home view).
+
+Impact KPIs come from `buildPortfolioImpactBriefing()` — aggregated fields are **`null`** until company portal impact submissions exist. Never call `.toLocaleString()` on briefing summary numbers without a null guard; prefer `displayImpactCount()` from `impact-intelligence.ts`. Talanton customer hosts must resolve via host slug before scoped whoami cache (`talanton-surface.ts`).
+
+Run `npm run prove:talanton-home` (also runs at the start of `prove:talanton-ea`) before deploy when changing `executive-home-dashboard.ts`, `ExecutiveHomeDashboard.tsx`, or Talanton impact/portfolio client paths.

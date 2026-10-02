@@ -43,5 +43,8 @@ jobs:
       - name: TypeScript check
         run: npx tsc --noEmit
 
+      - name: Talanton Executive Home regression
+        run: npm run prove:talanton-home
+
       - name: Production build
         run: npm run build
