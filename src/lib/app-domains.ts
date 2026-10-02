@@ -25,6 +25,7 @@ export const RESERVED_UNIT311_SUBDOMAINS = new Set([
   "demo",
   "unit311", // Internal workspace slug — use internal.unit311central.com
   "iw-website", // Interface Worx draft public site — not a workspace host
+  "wolf-website", // WOLF REALTIME draft public site — not a workspace host
   "api",
   "app",
   "admin",
