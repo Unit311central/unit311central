@@ -38,7 +38,7 @@
     "prove:saec-discovery-login": "node scripts/prove-saec-discovery-login.mjs",
     "import:unit311-tom-expenses-prod": "node scripts/import-unit311-tom-expenses-prod.mjs",
     "preview:android": "next dev",
-    "prove:talanton-home": "node --import tsx src/lib/__tests__/talanton-home-surface.check.ts",
+    "prove:talanton-home": "node --import tsx src/lib/__tests__/talanton-intelligence-context-client.check.ts && node --import tsx src/lib/__tests__/talanton-home-surface.check.ts",
     "prove:talanton-ea": "npm run prove:talanton-home && node --import tsx src/lib/talanton/__tests__/executive-intelligence-intent.check.ts && node --require ./scripts/test-server-only-hook.cjs --import tsx src/lib/talanton/__tests__/ea-routing-regression.check.ts && node --require ./scripts/test-server-only-hook.cjs --import tsx src/lib/talanton/__tests__/ea-test-suite.check.ts",
     "prove:abhi-ea": "node --import tsx src/lib/abhi/__tests__/ea-test-suite.check.ts",
     "prove:onwardair-ea": "node --import tsx src/lib/onwardair/__tests__/ea-test-suite.check.ts",

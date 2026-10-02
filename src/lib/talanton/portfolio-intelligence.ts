@@ -244,9 +244,10 @@ function buildAttentionCompanies(): PortfolioAttentionCompany[] {
 function buildHealthSummary(attention: PortfolioAttentionCompany[]): PortfolioHealthSummary {
   const companies = resolveTalantonPortfolioCompanies();
   const healthScores = companies.map(companyHealthScore);
-  const portfolioHealthScore = Math.round(
-    healthScores.reduce((sum, s) => sum + s, 0) / healthScores.length,
-  );
+  const portfolioHealthScore =
+    healthScores.length === 0
+      ? 0
+      : Math.round(healthScores.reduce((sum, s) => sum + s, 0) / healthScores.length);
   const reportsOutstanding = countPortfolioReportsOutstanding(companies);
   const ctx = resolveTalantonIntelligenceContext();
   const complianceIssues =

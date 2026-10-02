@@ -11,6 +11,7 @@ import {
   executiveHomeDashboardConfig,
 } from "@/lib/executive-home-dashboard";
 import { withTalantonPortfolioCompaniesOverride } from "@/lib/talanton/portfolio-companies-runtime";
+import { buildPortfolioExecutiveBriefing } from "@/lib/talanton/portfolio-intelligence";
 import {
   PLATFORM_CACHE_KEYS,
   scopedPlatformCacheKey,
@@ -85,6 +86,7 @@ withMockWindow("talantonimpact.unit311central.com", () => {
         clients: [],
       }),
     );
+    assert.doesNotThrow(() => buildPortfolioExecutiveBriefing());
   });
 });
 
