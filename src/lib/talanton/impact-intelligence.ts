@@ -200,9 +200,47 @@ function resolveSubmittedImpactReport(companyId: string) {
   return ctx.impactReportsByCompanyId[companyId] ?? getLatestImpactReportForIntelligence(companyId);
 }
 
+function buildUnavailableCompanyImpactProfile(companyId: string): CompanyImpactProfile {
+  const label = companyId.trim() || "portfolio";
+  const unavailable = `${UNAVAILABLE_LABEL} — no portfolio holdings loaded`;
+  return {
+    companyId: label,
+    companyName: UNAVAILABLE_LABEL,
+    country: UNAVAILABLE_LABEL,
+    sector: UNAVAILABLE_LABEL,
+    impactScore: 0,
+    trend: "Stable",
+    jobsCreated: 0,
+    jobsRetained: 0,
+    womenEmployed: 0,
+    womenEmployedPct: 0,
+    youthEmployed: 0,
+    youthEmployedPct: 0,
+    peopleServed: 0,
+    communitiesImpacted: 0,
+    economicContributionUsd: null,
+    economicContributionUnavailable: true,
+    keyImpactMetric: UNAVAILABLE_LABEL,
+    keyImpactMetricLabel: "Impact data",
+    aiSummary: unavailable,
+    aiCommentary: "",
+    risks: [],
+    opportunities: [],
+    summaryText: unavailable,
+    commentaryText: "",
+    risksText: unavailable,
+    opportunitiesText: unavailable,
+    metricsText: unavailable,
+    impactMetricsFromSubmission: false,
+  };
+}
+
 export function buildCompanyImpactProfile(companyId: string): CompanyImpactProfile {
-  const company =
-    resolveTalantonPortfolioCompanies().find((c) => c.id === companyId) ?? resolveTalantonPortfolioCompanies()[0];
+  const companies = resolveTalantonPortfolioCompanies();
+  const company = companies.find((c) => c.id === companyId) ?? companies[0];
+  if (!company) {
+    return buildUnavailableCompanyImpactProfile(companyId);
+  }
   const submitted = resolveSubmittedImpactReport(company.id);
   const impactMetricsFromSubmission = Boolean(submitted);
 

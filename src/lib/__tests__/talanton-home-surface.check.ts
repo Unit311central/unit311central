@@ -4,7 +4,13 @@
  */
 import assert from "node:assert/strict";
 
-import { buildExecutiveHomeLiveKpis } from "@/lib/executive-home-dashboard";
+import {
+  buildExecutiveHomeLiveKpis,
+  buildExecutiveHomeLiveNarrative,
+  withExecutiveHomeLiveData,
+  executiveHomeDashboardConfig,
+} from "@/lib/executive-home-dashboard";
+import { withTalantonPortfolioCompaniesOverride } from "@/lib/talanton/portfolio-companies-runtime";
 import {
   PLATFORM_CACHE_KEYS,
   scopedPlatformCacheKey,
@@ -56,6 +62,30 @@ withMockWindow("talantonimpact.unit311central.com", () => {
   });
   assert.equal(kpis.length, 6, "Talanton home must render six portfolio KPIs");
   assert.equal(kpis[0]?.id, "portfolio-companies");
+
+  const narrative = buildExecutiveHomeLiveNarrative({
+    financials: null,
+    projects: [],
+    clients: [],
+  });
+  assert.ok(narrative.ai.summary.length > 0, "Talanton narrative must populate");
+  assert.doesNotThrow(() =>
+    withExecutiveHomeLiveData(executiveHomeDashboardConfig, {
+      financials: null,
+      projects: [],
+      clients: [],
+    }),
+  );
+
+  withTalantonPortfolioCompaniesOverride([], () => {
+    assert.doesNotThrow(() =>
+      buildExecutiveHomeLiveKpis({
+        financials: null,
+        projects: [],
+        clients: [],
+      }),
+    );
+  });
 });
 
 console.log("talanton-home-surface.check.ts ok");

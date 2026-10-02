@@ -922,6 +922,8 @@ export function buildExecutiveHomeLiveNarrative(input: {
     const {
       buildPortfolioImpactBriefing,
     } = require("@/lib/talanton/impact-intelligence") as typeof import("@/lib/talanton/impact-intelligence");
+    const { UNAVAILABLE_LABEL } =
+      require("@/lib/talanton/intelligence-metric-types") as typeof import("@/lib/talanton/intelligence-metric-types");
     const briefing = buildPortfolioImpactBriefing();
     const alerts = briefing.risks.slice(0, 3).map((risk) => ({
       id: risk.id,
@@ -961,8 +963,19 @@ export function buildExecutiveHomeLiveNarrative(input: {
         summary: briefing.overallImpact,
         nextUp: briefing.recommendedActionsNarrative[0] ?? briefing.health.postureReason,
         metrics: [
-          { label: "Impact health", value: `${briefing.health.score}/100` },
-          { label: "Portfolio holdings", value: String(briefing.summary.countriesImpacted) },
+          {
+            label: "Impact health",
+            value: briefing.health.scoreUnavailable
+              ? UNAVAILABLE_LABEL
+              : `${briefing.health.score}/100`,
+          },
+          {
+            label: "Portfolio holdings",
+            value:
+              briefing.summary.countriesImpacted === null
+                ? UNAVAILABLE_LABEL
+                : String(briefing.summary.countriesImpacted),
+          },
           {
             label: "People served",
             value:
