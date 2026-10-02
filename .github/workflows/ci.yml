@@ -46,5 +46,11 @@ jobs:
       - name: Talanton Executive Home regression
         run: npm run prove:talanton-home
 
+      - name: Talanton intelligence briefing regression
+        run: npm run prove:talanton-intelligence-briefing
+
+      - name: Talanton EA regression
+        run: npm run prove:talanton-ea
+
       - name: Production build
         run: npm run build

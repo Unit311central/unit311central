@@ -17,6 +17,7 @@ import {
 import { useTalantonMemo } from "@/lib/talanton/use-talanton-intelligence-briefing";
 import { cn } from "@/lib/utils";
 import { useInternalOperationsBasePath } from "../InternalOperationsBasePathContext";
+import { formatUsd } from "@/lib/talanton/portfolio-data";
 import { UNAVAILABLE_LABEL } from "@/lib/talanton/intelligence-metric-types";
 import {
   TalantonGeneratedPanel,
@@ -113,9 +114,10 @@ export default function CompanyImpactWorkspace() {
           portfolio analytics.
         </div>
       ) : (
-        <div className="rounded-xl border border-white/15 bg-white/5 px-4 py-3 text-sm text-white/70">
-          No company portal impact submission on file for this holding. Core impact metrics show{" "}
-          {UNAVAILABLE_LABEL.toLowerCase()} until a report is submitted (local portal persistence — not Supabase).
+        <div className="rounded-xl border border-amber-400/25 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
+          No company portal impact submission on file. Core metrics below use the portfolio impact model
+          from holdings data; portal submissions replace modelled figures when reported (local portal
+          persistence — not Supabase).
         </div>
       )}
 
@@ -161,49 +163,57 @@ export default function CompanyImpactWorkspace() {
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           <TalantonImpactMetric
             label="Jobs Created"
-            value={formatNullableCount(profile.impactMetricsFromSubmission ? profile.jobsCreated : null)}
-            unavailable={!profile.impactMetricsFromSubmission}
+            value={formatNullableCount(profile.jobsCreated)}
+            unavailable={profile.companyName === UNAVAILABLE_LABEL}
+            hint={profile.impactMetricsFromSubmission ? "Portal submission" : "Holdings impact model"}
           />
           <TalantonImpactMetric
             label="Jobs Retained"
-            value={formatNullableCount(profile.impactMetricsFromSubmission ? profile.jobsRetained : null)}
-            unavailable={!profile.impactMetricsFromSubmission}
+            value={formatNullableCount(profile.jobsRetained)}
+            unavailable={profile.companyName === UNAVAILABLE_LABEL}
+            hint={profile.impactMetricsFromSubmission ? "Portal submission" : "Holdings impact model"}
           />
           <TalantonImpactMetric
             label="Women Employed"
-            value={formatNullableCount(profile.impactMetricsFromSubmission ? profile.womenEmployed : null)}
-            hint={
-              profile.impactMetricsFromSubmission
-                ? `${Math.round(profile.womenEmployedPct * 100)}% of workforce`
-                : undefined
-            }
-            unavailable={!profile.impactMetricsFromSubmission}
+            value={formatNullableCount(profile.womenEmployed)}
+            hint={`${Math.round(profile.womenEmployedPct * 100)}% of workforce · ${
+              profile.impactMetricsFromSubmission ? "portal submission" : "holdings model"
+            }`}
+            unavailable={profile.companyName === UNAVAILABLE_LABEL}
           />
           <TalantonImpactMetric
             label="Youth Employed"
-            value={formatNullableCount(profile.impactMetricsFromSubmission ? profile.youthEmployed : null)}
-            hint={
-              profile.impactMetricsFromSubmission
-                ? `${Math.round(profile.youthEmployedPct * 100)}% of workforce`
-                : undefined
-            }
-            unavailable={!profile.impactMetricsFromSubmission}
+            value={formatNullableCount(profile.youthEmployed)}
+            hint={`${Math.round(profile.youthEmployedPct * 100)}% of workforce · ${
+              profile.impactMetricsFromSubmission ? "portal submission" : "holdings model"
+            }`}
+            unavailable={profile.companyName === UNAVAILABLE_LABEL}
           />
           <TalantonImpactMetric
             label="People Served"
-            value={formatNullableCount(profile.impactMetricsFromSubmission ? profile.peopleServed : null)}
-            unavailable={!profile.impactMetricsFromSubmission}
+            value={formatNullableCount(profile.peopleServed)}
+            unavailable={profile.companyName === UNAVAILABLE_LABEL}
+            hint={profile.impactMetricsFromSubmission ? "Portal submission" : "Holdings impact model"}
           />
           <TalantonImpactMetric
             label="Communities Impacted"
-            value={formatNullableCount(profile.impactMetricsFromSubmission ? profile.communitiesImpacted : null)}
-            unavailable={!profile.impactMetricsFromSubmission}
+            value={formatNullableCount(profile.communitiesImpacted)}
+            unavailable={profile.companyName === UNAVAILABLE_LABEL}
+            hint={profile.impactMetricsFromSubmission ? "Portal submission" : "Holdings impact model"}
           />
           <TalantonImpactMetric
             label="Economic Contribution"
-            value={UNAVAILABLE_LABEL}
-            hint="Not in portal submission schema"
-            unavailable
+            value={
+              profile.economicContributionUnavailable
+                ? UNAVAILABLE_LABEL
+                : formatUsd(profile.economicContributionUsd ?? 0)
+            }
+            hint={
+              profile.economicContributionUnavailable
+                ? "Not in portal submission schema"
+                : "Holdings impact model"
+            }
+            unavailable={profile.economicContributionUnavailable}
           />
           <TalantonImpactMetric label="Country" value={profile.country} hint={profile.sector} />
         </div>

@@ -44,10 +44,10 @@ export type BoardImpactIntelligence = {
   healthText: string;
 };
 
-/** Trend series only when submitted impact data exists (no scaled historical fabrication). */
+/** Current-period snapshot only (no scaled historical fabrication). Uses portal totals or holdings model. */
 export function buildImpactTrendSeries(briefing: PortfolioImpactBriefing): ImpactTrendPoint[] {
   const { summary, health } = briefing;
-  if (!summary.hasAggregatedSubmissionData || summary.jobsCreated === null || summary.peopleServed === null) {
+  if (summary.jobsCreated === null || summary.peopleServed === null) {
     return [];
   }
   const score = health.score ?? 0;
@@ -195,7 +195,7 @@ export function buildBoardImpactIntelligence(): BoardImpactIntelligence {
               `${t.period}: Jobs created ${t.jobsCreated.toLocaleString()} · People served ${t.peopleServed.toLocaleString()} · Impact health ${t.impactHealthScore || UNAVAILABLE_LABEL}`,
           ),
         ].join("\n")
-      : `Impact Trends\n${UNAVAILABLE_LABEL} — no historical submission series persisted.`;
+      : `Impact Trends\n${UNAVAILABLE_LABEL} — no portfolio impact totals to chart.`;
 
   return {
     asOf: briefing.asOf,

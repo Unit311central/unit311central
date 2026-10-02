@@ -86,12 +86,20 @@ const impactProvider: IntelligenceDomainProvider = {
       {
         id: "summary",
         title: "Impact summary",
-        bullets: briefing.summary.hasAggregatedSubmissionData
-          ? [
-              `${briefing.summary.jobsCreated?.toLocaleString() ?? UNAVAILABLE_LABEL} jobs created`,
-              `${briefing.summary.peopleServed?.toLocaleString() ?? UNAVAILABLE_LABEL} people served`,
-            ]
-          : [UNAVAILABLE_LABEL],
+        bullets:
+          briefing.summary.jobsCreated === null && briefing.summary.peopleServed === null
+            ? [UNAVAILABLE_LABEL]
+            : [
+                `${briefing.summary.jobsCreated?.toLocaleString() ?? UNAVAILABLE_LABEL} jobs created${
+                  briefing.summary.hasAggregatedSubmissionData ? "" : " (holdings model)"
+                }`,
+                `${briefing.summary.peopleServed?.toLocaleString() ?? UNAVAILABLE_LABEL} people served${
+                  briefing.summary.hasAggregatedSubmissionData ? "" : " (holdings model)"
+                }`,
+                briefing.summary.hasAggregatedSubmissionData
+                  ? "Totals blend portal submissions with modelled holdings where needed."
+                  : "Totals use the portfolio impact model until portal submissions are on file.",
+              ],
       },
       {
         id: "risks",
