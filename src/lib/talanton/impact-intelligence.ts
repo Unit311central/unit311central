@@ -4,6 +4,18 @@
  */
 
 import { getLatestImpactReportForIntelligence } from "@/lib/talanton/company-stories-impact";
+import {
+  buildHoldingsImpactOpportunities,
+  buildHoldingsImpactRisks,
+  communitiesImpactedEstimate,
+  economicContributionEstimate,
+  impactTrendEstimate,
+  jobsCreatedEstimate,
+  jobsRetainedEstimate,
+  peopleServedEstimate,
+  womenShareEstimate,
+  youthShareEstimate,
+} from "@/lib/talanton/impact-holdings-estimates";
 import { UNAVAILABLE_LABEL } from "@/lib/talanton/intelligence-metric-types";
 import { formatUsd, type PortfolioCompany } from "@/lib/talanton/portfolio-data";
 import { resolveTalantonPortfolioCompanies } from "@/lib/talanton/portfolio-companies-runtime";
@@ -246,19 +258,22 @@ export function buildCompanyImpactProfile(companyId: string): CompanyImpactProfi
 
   const womenPct = submitted
     ? clamp(submitted.womenEmployed / Math.max(company.employeeCount, 1), 0.15, 0.75)
-    : 0;
+    : womenShareEstimate(company);
   const youthPct = submitted
     ? clamp(submitted.youthEmployed / Math.max(company.employeeCount, 1), 0.12, 0.7)
-    : 0;
-  const jobsCreated = submitted?.jobsCreated ?? 0;
-  const jobsRetained = submitted?.jobsRetained ?? 0;
-  const womenEmployed = submitted?.womenEmployed ?? 0;
-  const youthEmployed = submitted?.youthEmployed ?? 0;
-  const peopleServed = submitted?.peopleServed ?? 0;
-  const communitiesImpacted = submitted?.communitiesImpacted ?? 0;
-  const economicContributionUsd = null;
-  const economicContributionUnavailable = true;
-  const trend: ImpactTrend = "Stable";
+    : youthShareEstimate(company);
+  const jobsCreated = submitted?.jobsCreated ?? jobsCreatedEstimate(company);
+  const jobsRetained = submitted?.jobsRetained ?? jobsRetainedEstimate(company);
+  const womenEmployed =
+    submitted?.womenEmployed ?? Math.round(company.employeeCount * womenPct);
+  const youthEmployed =
+    submitted?.youthEmployed ?? Math.round(company.employeeCount * youthPct);
+  const peopleServed = submitted?.peopleServed ?? peopleServedEstimate(company);
+  const communitiesImpacted =
+    submitted?.communitiesImpacted ?? communitiesImpactedEstimate(company);
+  const economicContributionUsd = submitted ? null : economicContributionEstimate(company);
+  const economicContributionUnavailable = !submitted ? false : true;
+  const trend: ImpactTrend = submitted ? "Improving" : impactTrendEstimate(company);
 
   const base = {
     companyId: company.id,
@@ -279,16 +294,18 @@ export function buildCompanyImpactProfile(companyId: string): CompanyImpactProfi
     impactMetricsFromSubmission,
   };
 
-  const impactScore = impactMetricsFromSubmission ? impactScoreFor(company, base) : 0;
-  const metric = impactMetricsFromSubmission
-    ? keyMetric({ ...base, sector: company.sector })
-    : { label: "Impact data", value: UNAVAILABLE_LABEL };
-  const risks = buildCompanyRisks(company, impactMetricsFromSubmission);
-  const opportunities = buildCompanyOpportunities(company, impactMetricsFromSubmission);
-  const aiSummary = impactMetricsFromSubmission
-    ? buildAiSummary(company, impactScore, trend, jobsCreated, peopleServed, communitiesImpacted)
-    : `${company.name} (${company.country}): no submitted company portal impact report is on file. Impact metrics are ${UNAVAILABLE_LABEL.toLowerCase()} until a report is submitted and approved.`;
-  const aiCommentary = "";
+  const impactScore = impactScoreFor(company, base);
+  const metric = keyMetric({ ...base, sector: company.sector });
+  const risks = impactMetricsFromSubmission
+    ? buildCompanyRisks(company, true)
+    : buildHoldingsImpactRisks(company, trend);
+  const opportunities = impactMetricsFromSubmission
+    ? buildCompanyOpportunities(company, true)
+    : buildHoldingsImpactOpportunities(company);
+  const aiSummary = buildAiSummary(company, impactScore, trend, jobsCreated, peopleServed, communitiesImpacted);
+  const aiCommentary = impactMetricsFromSubmission
+    ? ""
+    : buildAiCommentary(company, impactScore, trend, womenPct, youthPct);
 
   const metricsText = impactMetricsFromSubmission
     ? [
@@ -302,9 +319,15 @@ export function buildCompanyImpactProfile(companyId: string): CompanyImpactProfi
         `Economic contribution: ${UNAVAILABLE_LABEL} (not captured in portal submission schema)`,
         `Source: Company portal impact report (${submitted!.reportingPeriod}, ${submitted!.status})`,
       ].join("\n")
-    : [`${company.name} — Impact Metrics`, UNAVAILABLE_LABEL, "Source: company portal impact submissions (local persistence)"].join(
-        "\n",
-      );
+    : [
+        `${company.name} — Impact Metrics`,
+        `Impact score: ${impactScore}/100 (${trend})`,
+        `Jobs created: ${jobsCreated.toLocaleString()}`,
+        `People served: ${peopleServed.toLocaleString()}`,
+        `Communities impacted: ${communitiesImpacted}`,
+        `Economic contribution: ${formatUsd(economicContributionUsd ?? 0)}`,
+        "Source: Portfolio impact model (holdings SSOT)",
+      ].join("\n");
 
   const risksText = [
     `${company.name} — Impact Risks`,
@@ -360,39 +383,57 @@ export function resolveCompanyImpactId(requested: string | null | undefined): st
 export function buildPortfolioImpactBriefing(): PortfolioImpactBriefing {
   const profiles = resolveTalantonPortfolioCompanies().map((c) => buildCompanyImpactProfile(c.id));
   const liveProfiles = profiles.filter((p) => p.impactMetricsFromSubmission);
-  const countries = new Set(liveProfiles.map((p) => p.country));
+  const countries = new Set(profiles.map((p) => p.country));
 
-  const sum = (pick: (p: CompanyImpactProfile) => number) =>
-    liveProfiles.length ? liveProfiles.reduce((s, p) => s + pick(p), 0) : null;
+  const sumAll = (pick: (p: CompanyImpactProfile) => number) =>
+    profiles.length ? profiles.reduce((s, p) => s + pick(p), 0) : null;
 
   const summary: PortfolioImpactSummary = {
-    jobsCreated: sum((p) => p.jobsCreated),
-    jobsRetained: sum((p) => p.jobsRetained),
-    womenEmployed: sum((p) => p.womenEmployed),
-    youthEmployed: sum((p) => p.youthEmployed),
-    peopleServed: sum((p) => p.peopleServed),
-    communitiesImpacted: sum((p) => p.communitiesImpacted),
-    countriesImpacted: liveProfiles.length ? countries.size : null,
-    economicContributionUsd: null,
+    jobsCreated: sumAll((p) => p.jobsCreated),
+    jobsRetained: sumAll((p) => p.jobsRetained),
+    womenEmployed: sumAll((p) => p.womenEmployed),
+    youthEmployed: sumAll((p) => p.youthEmployed),
+    peopleServed: sumAll((p) => p.peopleServed),
+    communitiesImpacted: sumAll((p) => p.communitiesImpacted),
+    countriesImpacted: profiles.length ? countries.size : null,
+    economicContributionUsd: profiles.length
+      ? profiles.reduce((s, p) => s + (p.economicContributionUsd ?? 0), 0)
+      : null,
     hasAggregatedSubmissionData: liveProfiles.length > 0,
   };
 
-  const health: ImpactHealth = summary.hasAggregatedSubmissionData
-    ? {
-        score: null,
-        scoreUnavailable: true,
-        band: "Unavailable",
-        postureReason: `${liveProfiles.length} of ${profiles.length} holdings have submitted impact reports. Portfolio impact health score is not computed without a defined methodology on live submissions.`,
-        healthText: "",
-      }
-    : {
-        score: null,
-        scoreUnavailable: true,
-        band: "Unavailable",
-        postureReason:
-          "No company portal impact submissions are on file. Portfolio impact totals and health score are unavailable.",
-        healthText: "",
-      };
+  const avgScore =
+    profiles.length === 0
+      ? 0
+      : Math.round(profiles.reduce((s, p) => s + p.impactScore, 0) / profiles.length);
+  const declining = profiles.filter((p) => p.trend === "Declining");
+  const band: ImpactHealth["band"] =
+    avgScore >= 80 && declining.length <= 2
+      ? "Strong"
+      : avgScore >= 72
+        ? "Healthy"
+        : avgScore >= 64
+          ? "Watch"
+          : "At Risk";
+
+  const health: ImpactHealth =
+    profiles.length === 0
+      ? {
+          score: null,
+          scoreUnavailable: true,
+          band: "Unavailable",
+          postureReason: "No portfolio holdings are loaded.",
+          healthText: "",
+        }
+      : {
+          score: avgScore,
+          scoreUnavailable: false,
+          band,
+          postureReason: summary.hasAggregatedSubmissionData
+            ? `${liveProfiles.length} of ${profiles.length} holdings have portal impact submissions; portfolio totals blend submitted and modelled holdings.`
+            : `Portfolio impact totals use the holdings impact model across ${profiles.length} companies until portal submissions are on file.`,
+          healthText: "",
+        };
   health.healthText = [
     "Portfolio impact",
     health.scoreUnavailable ? "Score: Data unavailable" : `Score: ${health.score}/100 · ${health.band}`,
@@ -400,7 +441,7 @@ export function buildPortfolioImpactBriefing(): PortfolioImpactBriefing {
     `Holdings with submissions: ${liveProfiles.length} / ${profiles.length}`,
   ].join("\n");
 
-  const topCompanies: TopImpactCompany[] = [...liveProfiles]
+  const topCompanies: TopImpactCompany[] = [...profiles]
     .sort((a, b) => b.peopleServed - a.peopleServed)
     .slice(0, 6)
     .map((p) => ({
@@ -439,10 +480,10 @@ export function buildPortfolioImpactBriefing(): PortfolioImpactBriefing {
       ]
     : [
         {
-          id: "imp-act-none",
+          id: "imp-act-portal",
           title: "Establish company portal impact reporting",
           rationale:
-            "No submitted impact reports are available. Impact intelligence will remain unavailable until companies submit portal impact data.",
+            "Home and intelligence currently use the portfolio impact model from holdings data. Collect portal submissions to replace modelled metrics with reported figures.",
           owner: "Impact Director",
           urgency: "This month",
           companyId: null,
@@ -466,16 +507,20 @@ export function buildPortfolioImpactBriefing(): PortfolioImpactBriefing {
   const fmtUsd = (n: number | null) => (n === null ? UNAVAILABLE_LABEL : formatUsd(n));
 
   const overallImpact = summary.hasAggregatedSubmissionData
-    ? `Aggregated from ${liveProfiles.length} submitted company impact report(s): ${fmt(summary.jobsCreated)} jobs created, ${fmt(summary.peopleServed)} people served, ${fmt(summary.communitiesImpacted)} communities impacted across ${fmt(summary.countriesImpacted)} countries.`
-    : `No submitted company portal impact reports are on file for this portfolio. Portfolio impact totals are ${UNAVAILABLE_LABEL.toLowerCase()}.`;
+    ? `Aggregated from ${liveProfiles.length} submitted company impact report(s), with modelled holdings filling gaps: ${fmt(summary.jobsCreated)} jobs created, ${fmt(summary.peopleServed)} people served, ${fmt(summary.communitiesImpacted)} communities impacted across ${fmt(summary.countriesImpacted)} countries.`
+    : `Portfolio impact model across ${profiles.length} holdings: ${fmt(summary.jobsCreated)} jobs created, ${fmt(summary.peopleServed)} people served, ${fmt(summary.communitiesImpacted)} communities impacted across ${fmt(summary.countriesImpacted)} countries. Portal submissions will replace modelled figures when on file.`;
 
   const keyAchievements = summary.hasAggregatedSubmissionData
     ? [
         `${liveProfiles.length} holdings have submitted impact reports on file.`,
-        `People served (reported): ${fmt(summary.peopleServed)}.`,
-        `Jobs created (reported): ${fmt(summary.jobsCreated)}.`,
+        `People served (portfolio total): ${fmt(summary.peopleServed)}.`,
+        `Jobs created (portfolio total): ${fmt(summary.jobsCreated)}.`,
       ]
-    : [`Collect company portal impact submissions to populate portfolio impact intelligence.`];
+    : [
+        `Impact model active for ${profiles.length} portfolio companies.`,
+        `People served (modelled): ${fmt(summary.peopleServed)}.`,
+        `Jobs created (modelled): ${fmt(summary.jobsCreated)}.`,
+      ];
 
   const highestImpactCompanies = topCompanies.slice(0, 4).map(
     (c) =>

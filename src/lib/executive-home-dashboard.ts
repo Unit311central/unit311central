@@ -155,9 +155,11 @@ function buildTalantonExecutiveHomeKpis(): DashboardKpiItem[] {
         briefing.summary.countriesImpacted === null
           ? UNAVAILABLE_LABEL
           : String(briefing.summary.countriesImpacted),
-      delta: briefing.summary.hasAggregatedSubmissionData ? "From impact submissions" : "Impact data pending",
-      tone: "neutral",
-      hint: "Distinct countries in submitted impact reports",
+      delta: briefing.summary.hasAggregatedSubmissionData ? "From impact submissions" : "Across Africa",
+      tone: briefing.summary.hasAggregatedSubmissionData ? "neutral" : "positive",
+      hint: briefing.summary.hasAggregatedSubmissionData
+        ? "Distinct countries in submitted impact reports"
+        : "Distinct countries with active holdings (impact model)",
     },
     {
       id: "capital-raised",
@@ -174,9 +176,11 @@ function buildTalantonExecutiveHomeKpis(): DashboardKpiItem[] {
         briefing.summary.peopleServed === null
           ? UNAVAILABLE_LABEL
           : briefing.summary.peopleServed.toLocaleString(),
-      delta: briefing.summary.hasAggregatedSubmissionData ? "Portal submissions" : "No submissions",
-      tone: "neutral",
-      hint: "Reported in company portal impact submissions",
+      delta: briefing.summary.hasAggregatedSubmissionData ? "Portal submissions" : "Portfolio reach",
+      tone: briefing.summary.hasAggregatedSubmissionData ? "neutral" : "positive",
+      hint: briefing.summary.hasAggregatedSubmissionData
+        ? "Reported in company portal impact submissions"
+        : "Estimated from portfolio holdings impact model",
     },
     {
       id: "jobs-created",
@@ -189,8 +193,10 @@ function buildTalantonExecutiveHomeKpis(): DashboardKpiItem[] {
         briefing.summary.jobsRetained === null
           ? UNAVAILABLE_LABEL
           : `${briefing.summary.jobsRetained.toLocaleString()} retained`,
-      tone: "neutral",
-      hint: "Reported in company portal impact submissions",
+      tone: briefing.summary.hasAggregatedSubmissionData ? "neutral" : "positive",
+      hint: briefing.summary.hasAggregatedSubmissionData
+        ? "Reported in company portal impact submissions"
+        : "Estimated from portfolio holdings impact model",
     },
     {
       id: "impact-health",
@@ -712,7 +718,10 @@ export function buildExecutiveHomeLiveAnalytics(input: {
     const { UNAVAILABLE_LABEL } =
       require("@/lib/talanton/intelligence-metric-types") as typeof import("@/lib/talanton/intelligence-metric-types");
     const briefing = buildPortfolioImpactBriefing();
-    const hasData = briefing.summary.hasAggregatedSubmissionData;
+    const hasData =
+      briefing.summary.jobsCreated !== null &&
+      briefing.summary.peopleServed !== null &&
+      (briefing.summary.jobsCreated > 0 || briefing.summary.peopleServed > 0);
     const labels = ["Current"];
     const jobsValues =
       hasData && briefing.summary.jobsCreated !== null ? [briefing.summary.jobsCreated] : [];

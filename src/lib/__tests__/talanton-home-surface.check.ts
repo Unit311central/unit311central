@@ -11,6 +11,7 @@ import {
   executiveHomeDashboardConfig,
 } from "@/lib/executive-home-dashboard";
 import { withTalantonPortfolioCompaniesOverride } from "@/lib/talanton/portfolio-companies-runtime";
+import { buildPortfolioImpactBriefing } from "@/lib/talanton/impact-intelligence";
 import { buildPortfolioExecutiveBriefing } from "@/lib/talanton/portfolio-intelligence";
 import {
   PLATFORM_CACHE_KEYS,
@@ -63,6 +64,12 @@ withMockWindow("talantonimpact.unit311central.com", () => {
   });
   assert.equal(kpis.length, 6, "Talanton home must render six portfolio KPIs");
   assert.equal(kpis[0]?.id, "portfolio-companies");
+
+  const impact = buildPortfolioImpactBriefing();
+  assert.ok((impact.summary.peopleServed ?? 0) > 0, "Home impact KPIs must show modelled totals");
+  assert.ok((impact.summary.jobsCreated ?? 0) > 0, "Home jobs KPI must show modelled totals");
+  assert.equal(impact.health.scoreUnavailable, false, "Impact health score should render on Home");
+  assert.ok(kpis.some((k) => k.id === "people-served" && k.value !== "Data unavailable"));
 
   const narrative = buildExecutiveHomeLiveNarrative({
     financials: null,
