@@ -8,7 +8,7 @@ import {
   parseAbhiClientOrgState,
   runWithAbhiRequestOrgState,
 } from "../abhi-request-org-state";
-import { getAbhiBoardMeetingsServerSnapshot } from "../board-meetings-store";
+import { getAbhiBoardMeetingsServerSnapshot } from "../abhi-board-meetings-server";
 
 async function main() {
   const parsed = parseAbhiClientOrgState({

@@ -1,3 +1,5 @@
+import "server-only";
+
 /**
  * Request-scoped ABHI Board Meetings + Risk Register overlay for EA turns.
  * Browser localStorage is authoritative in the UI; the client sends a snapshot

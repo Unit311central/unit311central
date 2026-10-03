@@ -19,7 +19,7 @@ import {
   parseAbhiClientOrgState,
   runWithAbhiRequestOrgState,
 } from "@/lib/abhi/abhi-request-org-state";
-import { getAbhiBoardMeetingsServerSnapshot } from "@/lib/abhi/board-meetings-store";
+import { getAbhiBoardMeetingsServerSnapshot } from "@/lib/abhi/abhi-board-meetings-server";
 import { generateAbhiBoardDeck } from "@/lib/abhi/board-deck-generator";
 import {
   answerPlatformQuestion,
