@@ -13,6 +13,7 @@ import {
   parseClientPlatformSubdomainSafe,
 } from "@/lib/app-domains";
 import { isInterfaceWorxWebsiteHost } from "@/lib/interface-worx-surface";
+import { isMamWebsiteHost } from "@/lib/mam/mam-website";
 import { homeMetadata } from "@/lib/metadata";
 import {
   organizationJsonLd,
@@ -71,6 +72,7 @@ export default async function RootLayout({
     Boolean(parseClientPlatformSubdomainSafe(host)) ||
     isInternalOpsShellHost(host) ||
     isInterfaceWorxWebsiteHost(host) ||
+    isMamWebsiteHost(host) ||
     requestHeaders.get("x-unit311-bare-chrome") === "1";
 
   return (
