@@ -41,8 +41,11 @@ test("mam public paths allowlist", () => {
   assert.equal(isMamPublicWebsitePath("/login"), false);
 });
 
-test("canonical origin is configured", () => {
-  assert.equal(MAM_WEBSITE_CANONICAL_ORIGIN, "https://mam.vercel.app");
+test("draft public hostname and canonical origin", () => {
+  assert.equal(MAM_WEBSITE_CANONICAL_ORIGIN, "https://mam-ma.vercel.app");
+  assert.ok(isMamWebsiteHost("mam-ma.vercel.app"));
+  assert.equal(isMamWebsiteHost("mam.vercel.app"), false);
+  assert.equal(isMamWebsiteHost("mam.ma"), false);
 });
 
 console.log("ok  mam-website checks passed\n");

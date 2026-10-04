@@ -387,7 +387,7 @@ export async function middleware(request: NextRequest) {
     return response;
   }
 
-  // --- MAM public marketing website (mam.vercel.app / mam.ma) — not workspace host ---
+  // --- MAM public marketing website (mam-ma.vercel.app) — not workspace host ---
   if (isMamWebsiteHost(host)) {
     const headers = new Headers(request.headers);
     headers.set("x-unit311-bare-chrome", "1");

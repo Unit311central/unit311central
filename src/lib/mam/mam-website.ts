@@ -1,19 +1,17 @@
 /**
  * MAM public marketing website — host routing and site constants.
  * Workspace app: mam.unit311central.com
- * Public site: mam.vercel.app (staging) → mam.ma (production)
+ * Public site draft: mam-ma.vercel.app → mam.ma (production, later)
  */
 
 import { normalizeHost } from "@/lib/app-domains";
 
-/** Change once when mam.ma is live — metadata, canonical URLs, sitemap. */
-export const MAM_WEBSITE_CANONICAL_ORIGIN = "https://mam.vercel.app";
+/** Draft public site — update when mam.ma is approved for production. */
+export const MAM_WEBSITE_CANONICAL_ORIGIN = "https://mam-ma.vercel.app";
 
-/** Staging / alternate hosts that serve the public site (not the Unit311 workspace). */
+/** Hosts that serve the public marketing site (not the Unit311 workspace). */
 export const MAM_WEBSITE_HOSTS = [
-  "mam.vercel.app",
-  "mam.ma",
-  "www.mam.ma",
+  "mam-ma.vercel.app",
   "mam-website.localhost",
 ] as const;
 
