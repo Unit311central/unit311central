@@ -6,9 +6,7 @@ import { getNorthstarScheduledCalls } from "@/lib/demo/northstar-messaging-fixtu
 import { createScheduledCall, listScheduledCalls } from "@/lib/internal-messaging-service";
 import { localListScheduledCalls } from "@/lib/internal-messaging-local-store";
 import { INTERNAL_MESSAGING_ROOM } from "@/lib/internal-messaging-data";
-import { ensureInternalOperatorsTable } from "@/lib/internal-db-migrations";
-import { listInternalOperators } from "@/lib/internal-operators-service";
-import { listWorkspaceTenantUsers } from "@/lib/platform-users-service";
+import { listActiveMessagingOperatorsForWorkspace } from "@/lib/workspace-scoped-platform-users";
 import { requirePlatformSession } from "@/lib/platform-session";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
 import {
@@ -92,12 +90,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Scheduled call details are incomplete." }, { status: 400 });
     }
 
-    const messagingOperators = isWolfCentralSlug(workspace.slug)
-      ? (await listWorkspaceTenantUsers(workspace.id)).filter((user) => user.status === "Active")
-      : await (async () => {
-          await ensureInternalOperatorsTable();
-          return (await listInternalOperators()).filter((user) => user.status === "Active");
-        })();
+    const messagingOperators = await listActiveMessagingOperatorsForWorkspace(workspace.id);
     assertWolfMessagingOperatorIdAllowed(
       workspace.slug,
       messagingOperators,

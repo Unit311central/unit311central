@@ -240,6 +240,8 @@ export type HrEmployee = {
   vacationDaysTaken: number;
   offboarding: HrOffboarding;
   archivedAt: string | null;
+  /** Optional login identity in this workspace (public.platform_users.id). */
+  platformUserId: string | null;
   profilePhotoUrl?: string | null;
   dateOfBirth?: string | null;
 };
@@ -341,6 +343,8 @@ type DbEmployee = {
   final_amount_paid?: number | string | null;
   final_payment_date?: string | null;
   archived_at?: string | null;
+  platform_user_id?: string | null;
+  operator_id?: string | null;
   created_at?: string;
   updated_at?: string;
 };
@@ -403,6 +407,7 @@ export function mapHrEmployee(row: DbEmployee): HrEmployee {
       finalPaymentDate: row.final_payment_date?.slice(0, 10) ?? null,
     },
     archivedAt: row.archived_at ?? null,
+    platformUserId: row.platform_user_id ? String(row.platform_user_id) : null,
   };
 }
 
@@ -464,6 +469,7 @@ export function createBlankEmployeeInput(): Omit<HrEmployee, "id" | "employeeNum
     vacationDaysTaken: 0,
     offboarding: emptyOffboarding(),
     archivedAt: null,
+    platformUserId: null,
   };
 }
 

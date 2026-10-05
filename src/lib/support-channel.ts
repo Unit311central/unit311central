@@ -13,9 +13,9 @@ import {
   mapMessageChannel,
   type MessageChannel,
 } from "@/lib/internal-messaging-data";
-import { listInternalOperators } from "@/lib/internal-operators-service";
 import type { MessagingWorkspaceScope } from "@/lib/messaging-workspace";
 import { resolveMessagingWorkspaceId } from "@/lib/messaging-workspace";
+import { listActiveMessagingOperatorsForWorkspace } from "@/lib/workspace-scoped-platform-users";
 import { createSupabaseServerClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import { createInitialUsers } from "@/lib/user-management-data";
 import {
@@ -33,8 +33,13 @@ export {
   isClientSupportChannelRoom,
 } from "@/lib/support-channel-shared";
 
-export async function resolveDefaultSupportOperatorIds(): Promise<string[]> {
-  const operators = await listInternalOperators().catch(() => createInitialUsers());
+export async function resolveDefaultSupportOperatorIds(
+  scope?: MessagingWorkspaceScope,
+): Promise<string[]> {
+  const workspaceId = await resolveMessagingWorkspaceId(scope);
+  const operators = await listActiveMessagingOperatorsForWorkspace(workspaceId).catch(
+    () => createInitialUsers(),
+  );
   const wanted = new Set(DEFAULT_SUPPORT_EMAILS.map((email) => email.toLowerCase()));
   const matched = operators
     .filter((operator) => {
@@ -65,7 +70,7 @@ export async function ensureClientSupportChannel(input: {
   });
   const workspaceId = await resolveMessagingWorkspaceId(input.scope);
   const workspaceScope = { workspaceId };
-  const memberIds = await resolveDefaultSupportOperatorIds();
+  const memberIds = await resolveDefaultSupportOperatorIds(input.scope);
 
   const existing =
     (await getChannelByRoom(room, workspaceScope).catch(() => null)) ??

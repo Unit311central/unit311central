@@ -537,27 +537,8 @@ export async function listWorkspaceTenantUsers(workspaceId: string): Promise<Man
   const { data: users, error: usersError } = await supabase
     .from("platform_users")
     .select("id, username, display_name, email, is_active, user_type, client_name")
-    .in("id", userIds)
-    .eq("workspace_id", workspaceId);
+    .in("id", userIds);
   if (usersError) throw new Error(usersError.message);
-
-  const usernames = (users ?? [])
-    .map((user) => String(user.username ?? "").trim().toLowerCase())
-    .filter(Boolean);
-
-  const operatorByUsername = new Map<string, Parameters<typeof mergeWorkspaceTenantUserRecord>[0]["operator"]>();
-  if (usernames.length > 0) {
-    const { data: operators, error: operatorError } = await supabase
-      .from("internal_operators")
-      .select(
-        "id, operator_label, full_name, username, email, phone, role, roles, status, region, license_id, notes, department, departments, allowed_views, dashboard_prefs, created_at, updated_at",
-      )
-      .in("username", usernames);
-    if (operatorError) throw new Error(operatorError.message);
-    for (const operator of operators ?? []) {
-      operatorByUsername.set(String(operator.username).toLowerCase(), operator);
-    }
-  }
 
   const membershipByUser = new Map(
     (memberships ?? []).map((row) => [String(row.user_id), row] as const),
@@ -579,7 +560,7 @@ export async function listWorkspaceTenantUsers(workspaceId: string): Promise<Man
         clientName: user.client_name ? String(user.client_name) : null,
         workspaceRole: String(membership?.role ?? ""),
         isOwner: Boolean(membership?.is_owner),
-        operator: operatorByUsername.get(username.toLowerCase()) ?? null,
+        operator: null,
       });
     })
     .sort((a, b) => a.fullName.localeCompare(b.fullName));

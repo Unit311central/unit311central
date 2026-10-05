@@ -257,12 +257,13 @@ export function getNorthstarHrEmployees(): NorthstarHrEmployee[] {
       vacationDaysTaken: 6 + (index % 7),
       offboarding: emptyOffboarding(),
       archivedAt: null,
+      platformUserId: null,
       profilePhotoUrl: northstarEmployeePhotoUrl(row.id),
       dateOfBirth: DATE_OF_BIRTH_BY_ID[row.id] ?? null,
     };
   });
 
-  return cachedEmployees;
+  return cachedEmployees ?? [];
 }
 
 export function getNorthstarEmployeeDetail(id: string): HrEmployeeDetail | null {

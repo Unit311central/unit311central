@@ -17,6 +17,11 @@ import {
 } from "@/lib/hr-data";
 import type { HrWorkspaceScope } from "@/lib/hr-workspace";
 import { resolveHrWorkspaceId } from "@/lib/hr-workspace";
+import {
+  HrEmployeePlatformUserLinkError,
+  normalizePlatformUserId,
+  validateEmployeePlatformUserLink,
+} from "@/lib/hr-employee-platform-user-link";
 import { INTERNAL_FILES_BUCKET } from "@/lib/internal-files-data";
 import {
   ensureHrEmployeesTable,
@@ -1112,6 +1117,123 @@ export async function updateHrEmployee(
 
 export async function archiveHrEmployee(id: string, scope?: HrWorkspaceScope): Promise<HrEmployee> {
   return updateHrEmployee(id, { employmentStatus: "archived" }, scope);
+}
+
+/**
+ * Case C — link an existing platform user to an employee in the same workspace.
+ * Does not create platform_users or workspace_users rows.
+ */
+export async function linkHrEmployeeToPlatformUser(
+  employeeId: string,
+  platformUserId: string,
+  scope?: HrWorkspaceScope,
+): Promise<HrEmployee> {
+  const workspaceId = await resolveHrWorkspaceId(scope);
+  await ensureHrEmployeesTable();
+  return withHrEmployeesTable(async () => {
+    await requireHrEmployeeInWorkspace(employeeId, { workspaceId });
+    const normalizedUserId = normalizePlatformUserId(platformUserId);
+    if (!normalizedUserId) {
+      throw new HrEmployeePlatformUserLinkError("A valid platform user id is required.", 400);
+    }
+
+    const supabase = requireHrSupabase();
+    const { data: platformUser, error: userError } = await supabase
+      .from("platform_users")
+      .select("id, workspace_id")
+      .eq("id", normalizedUserId)
+      .maybeSingle();
+    if (userError) throw new Error(userError.message);
+    if (!platformUser?.id) {
+      throw new HrEmployeePlatformUserLinkError("Platform user not found.", 404);
+    }
+
+    const { data: memberships, error: membershipError } = await supabase
+      .from("workspace_users")
+      .select("workspace_id")
+      .eq("user_id", normalizedUserId);
+    if (membershipError) throw new Error(membershipError.message);
+
+    const { data: conflict, error: conflictError } = await supabase
+      .from("hr_employees")
+      .select("id")
+      .eq("workspace_id", workspaceId)
+      .eq("platform_user_id", normalizedUserId)
+      .neq("id", employeeId)
+      .maybeSingle();
+    if (conflictError) throw new Error(conflictError.message);
+
+    validateEmployeePlatformUserLink({
+      employeeWorkspaceId: workspaceId,
+      platformUserId: normalizedUserId,
+      platformUserPrimaryWorkspaceId: platformUser.workspace_id
+        ? String(platformUser.workspace_id)
+        : null,
+      platformUserMembershipWorkspaceIds: (memberships ?? []).map((row) =>
+        String(row.workspace_id),
+      ),
+      conflictingEmployeeId: conflict?.id ? String(conflict.id) : null,
+      employeeId,
+    });
+
+    const { error: updateError } = await supabase
+      .from("hr_employees")
+      .update({
+        platform_user_id: normalizedUserId,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", employeeId)
+      .eq("workspace_id", workspaceId);
+    if (updateError) throw new Error(updateError.message);
+
+    await addTimelineEvent(workspaceId, employeeId, {
+      eventType: "platform_access_linked",
+      title: "Platform login linked",
+      detail: `Linked to platform user ${normalizedUserId}`,
+      source: "employees",
+    });
+
+    return requireHrEmployeeInWorkspace(employeeId, { workspaceId });
+  });
+}
+
+/**
+ * Case D — remove platform login association from the employee record.
+ * Does not delete the platform user or workspace membership.
+ */
+export async function unlinkHrEmployeePlatformUser(
+  employeeId: string,
+  scope?: HrWorkspaceScope,
+): Promise<HrEmployee> {
+  const workspaceId = await resolveHrWorkspaceId(scope);
+  await ensureHrEmployeesTable();
+  return withHrEmployeesTable(async () => {
+    const employee = await requireHrEmployeeInWorkspace(employeeId, { workspaceId });
+    if (!employee.platformUserId) {
+      return employee;
+    }
+
+    const supabase = requireHrSupabase();
+    const { error } = await supabase
+      .from("hr_employees")
+      .update({
+        platform_user_id: null,
+        operator_id: null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", employeeId)
+      .eq("workspace_id", workspaceId);
+    if (error) throw new Error(error.message);
+
+    await addTimelineEvent(workspaceId, employeeId, {
+      eventType: "platform_access_unlinked",
+      title: "Platform login unlinked",
+      detail: "Employee record retained; platform access managed separately.",
+      source: "employees",
+    });
+
+    return requireHrEmployeeInWorkspace(employeeId, { workspaceId });
+  });
 }
 
 export async function deleteHrEmployees(

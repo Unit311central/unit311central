@@ -1,6 +1,5 @@
 import {
   createBlankUserInput,
-  mapInternalOperator,
   normalizeUserDepartments,
   normalizeUserRoles,
   primaryUserDepartment,
@@ -12,7 +11,6 @@ import {
   type UserRole,
   type UserStatus,
 } from "@/lib/user-management-data";
-import { ensureInternalOperatorsTable } from "@/lib/internal-db-migrations";
 import {
   generatePlatformPassword,
   hashPlatformPasswordForUser,
@@ -21,15 +19,8 @@ import {
 import { validatePlatformSignupPassword } from "@/lib/platform-password-validation";
 import { createTenancyServerClient } from "@/lib/supabase/tenancy-server";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
-import { defaultAllowedViewsForRoles, defaultHomeTilesForRoles } from "@/lib/access-presets";
-import {
-  allowedViewsForRolePatch,
-  isSuperOperatorRole,
-} from "@/lib/operator-entitlements-resolve";
+import { defaultAllowedViewsForRoles } from "@/lib/access-presets";
 import type { InternalOperationsView } from "@/lib/internal-operations-data";
-
-const OPERATOR_SELECT =
-  "id, operator_label, full_name, username, email, phone, role, roles, status, region, license_id, notes, department, departments, allowed_views, dashboard_prefs, created_at, updated_at";
 
 function requireTenancySupabase() {
   if (!isSupabaseConfigured()) {
@@ -107,12 +98,11 @@ async function loadWorkspaceTenantUserContext(workspaceId: string, userId: strin
     .from("platform_users")
     .select("id, username, email, display_name, is_active, workspace_id, client_name")
     .eq("id", userId)
-    .eq("workspace_id", workspaceId)
     .maybeSingle();
 
   if (platformError) throw new Error(platformError.message);
   if (!platformUser?.id) {
-    throw new WorkspaceTenantUserError("User not found in this workspace.", 404);
+    throw new WorkspaceTenantUserError("User not found.", 404);
   }
 
   return {
@@ -120,6 +110,16 @@ async function loadWorkspaceTenantUserContext(workspaceId: string, userId: strin
     membership: membership as WorkspaceTenantMembership,
     platformUser: platformUser as WorkspaceTenantPlatformUser,
   };
+}
+
+async function countWorkspaceMembershipsForUser(userId: string) {
+  const supabase = requireTenancySupabase();
+  const { count, error } = await supabase
+    .from("workspace_users")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", userId);
+  if (error) throw new Error(error.message);
+  return count ?? 0;
 }
 
 async function countWorkspaceAdministrators(workspaceId: string) {
@@ -136,41 +136,6 @@ async function countWorkspaceAdministrators(workspaceId: string) {
       is_owner: Boolean(row.is_owner),
     }),
   ).length;
-}
-
-function buildTenantOperatorPatch(patch: WorkspaceTenantUserPatch) {
-  const blank = createBlankUserInput();
-  const roles = patch.roles
-    ? normalizeUserRoles(patch.roles, patch.role ?? primaryUserRole(patch.roles))
-    : patch.role
-      ? normalizeUserRoles([patch.role], patch.role)
-      : undefined;
-  const role = roles ? primaryUserRole(roles) : undefined;
-  const departments = patch.departments
-    ? normalizeUserDepartments(patch.departments, patch.department ?? primaryUserDepartment(patch.departments))
-    : patch.department
-      ? normalizeUserDepartments([patch.department], patch.department)
-      : undefined;
-  const department = departments ? primaryUserDepartment(departments) : undefined;
-
-  return {
-    operator_label: patch.operatorLabel?.trim(),
-    full_name: patch.fullName?.trim(),
-    username: patch.username?.trim().toLowerCase() ?? patch.email?.trim().toLowerCase(),
-    email: patch.email?.trim().toLowerCase(),
-    phone: patch.phone?.trim(),
-    role,
-    roles,
-    department,
-    departments,
-    status: patch.status,
-    region: patch.region !== undefined ? String(patch.region).trim() : undefined,
-    license_id: patch.licenseId?.trim(),
-    notes: patch.notes?.trim(),
-    allowed_views: patch.allowedViews,
-    dashboard_prefs: patch.dashboardPrefs,
-    updated_at: new Date().toISOString(),
-  };
 }
 
 async function assertEmailAvailableForWorkspace(
@@ -251,20 +216,8 @@ export function mergeWorkspaceTenantUserRecord(input: {
   clientName: string | null;
   workspaceRole: string;
   isOwner: boolean;
-  operator: Parameters<typeof mapInternalOperator>[0] | null;
+  operator?: null;
 }): ManagedUser {
-  if (input.operator) {
-    const mapped = mapInternalOperator(input.operator);
-    return {
-      ...mapped,
-      id: input.platformUserId,
-      username: input.username,
-      email: input.email,
-      fullName: mapped.fullName || input.fullName,
-      status: input.isActive ? mapped.status : "Inactive",
-    };
-  }
-
   const role = mapWorkspaceRoleToUserRole(input.workspaceRole, input.isOwner);
   const roles = [role];
   const departments = ["Operations"] as const;
@@ -298,25 +251,11 @@ export function mapWorkspaceRoleToUserRole(role: string | null | undefined, isOw
   return "Associate";
 }
 
-export async function findWorkspaceTenantOperatorByUsername(username: string) {
-  await ensureInternalOperatorsTable();
-  const supabase = requireTenancySupabase();
-  const normalized = normalizePlatformUsername(username);
-  const { data, error } = await supabase
-    .from("internal_operators")
-    .select(OPERATOR_SELECT)
-    .eq("username", normalized)
-    .maybeSingle();
-  if (error) throw new Error(error.message);
-  return (data as Parameters<typeof mapInternalOperator>[0] | null) ?? null;
-}
-
 export async function createWorkspaceTenantUser(
   workspaceId: string,
   companyName: string,
   input: Partial<ManagedUser> & { fullName: string; username: string; password?: string },
 ): Promise<{ user: ManagedUser; temporaryPassword: string }> {
-  await ensureInternalOperatorsTable();
   const supabase = requireTenancySupabase();
   const blank = createBlankUserInput();
   const username = normalizePlatformUsername(
@@ -455,57 +394,6 @@ export async function createWorkspaceTenantUser(
     if (error) throw new Error(error.message);
   }
 
-  const operatorPayload = {
-    id: platformUserId,
-    operator_label: input.operatorLabel?.trim() || fullName.split(/\s+/)[0] || "Operator",
-    full_name: fullName,
-    username,
-    email,
-    phone: input.phone?.trim() || null,
-    role,
-    roles,
-    department,
-    departments,
-    status: input.status ?? blank.status,
-    region: (input.region ?? blank.region).trim(),
-    license_id: input.licenseId?.trim() || null,
-    notes: input.notes?.trim() || null,
-    allowed_views: input.allowedViews ?? blank.allowedViews,
-    dashboard_prefs: input.dashboardPrefs ?? blank.dashboardPrefs,
-    updated_at: new Date().toISOString(),
-  };
-
-  const { data: existingOperatorById } = await supabase
-    .from("internal_operators")
-    .select("id")
-    .eq("id", platformUserId)
-    .maybeSingle();
-
-  const { data: existingOperatorByUsername } = existingOperatorById?.id
-    ? { data: null }
-    : await supabase
-        .from("internal_operators")
-        .select("id")
-        .eq("username", username)
-        .maybeSingle();
-
-  const existingOperator = existingOperatorById ?? existingOperatorByUsername;
-
-  if (existingOperator?.id) {
-    const { error } = await supabase
-      .from("internal_operators")
-      .update(operatorPayload)
-      .eq("id", existingOperator.id);
-    if (error) throw new Error(error.message);
-  } else {
-    const { error } = await supabase.from("internal_operators").insert({
-      ...operatorPayload,
-      created_at: new Date().toISOString(),
-    });
-    if (error) throw new Error(error.message);
-  }
-
-  const operator = await findWorkspaceTenantOperatorByUsername(username);
   const user = mergeWorkspaceTenantUserRecord({
     platformUserId,
     username,
@@ -515,7 +403,6 @@ export async function createWorkspaceTenantUser(
     clientName: companyName.trim() || null,
     workspaceRole,
     isOwner: false,
-    operator,
   });
 
   return { user, temporaryPassword: password };
@@ -527,7 +414,6 @@ export async function updateWorkspaceTenantUser(
   userId: string,
   patch: WorkspaceTenantUserPatch,
 ): Promise<ManagedUser> {
-  await ensureInternalOperatorsTable();
   const { supabase, membership, platformUser } = await loadWorkspaceTenantUserContext(
     workspaceId,
     userId,
@@ -602,76 +488,6 @@ export async function updateWorkspaceTenantUser(
     if (membershipError) throw new Error(membershipError.message);
   }
 
-  const operatorPatch = buildTenantOperatorPatch({
-    ...patch,
-    fullName,
-    username,
-    email,
-    role: membership.is_owner ? "Admin" : role,
-    roles: membership.is_owner ? ["Admin"] : roles,
-  });
-
-  if (roles && isSuperOperatorRole(roles)) {
-    operatorPatch.allowed_views = null;
-    operatorPatch.dashboard_prefs = patch.dashboardPrefs ?? {
-      homeTiles: defaultHomeTilesForRoles(roles, patch.departments ?? []),
-    };
-  } else if (roles && patch.allowedViews === undefined) {
-    operatorPatch.allowed_views = allowedViewsForRolePatch(
-      roles,
-      patch.departments ?? [],
-      undefined,
-    );
-  }
-
-  const operatorPayload = Object.fromEntries(
-    Object.entries(operatorPatch).filter(([, value]) => value !== undefined),
-  );
-
-  const { data: existingOperator } = await supabase
-    .from("internal_operators")
-    .select("id")
-    .eq("id", userId)
-    .maybeSingle();
-
-  if (existingOperator?.id) {
-    const { error } = await supabase
-      .from("internal_operators")
-      .update(operatorPayload)
-      .eq("id", userId);
-    if (error) throw new Error(error.message);
-  } else {
-    const departments = patch.departments
-      ? normalizeUserDepartments(patch.departments, patch.department ?? blank.department)
-      : normalizeUserDepartments([blank.department], blank.department);
-    const effectiveRoles = membership.is_owner
-      ? (["Admin"] as UserRole[])
-      : roles ?? [mapWorkspaceRoleToUserRole(membership.role, membership.is_owner)];
-    const { error } = await supabase.from("internal_operators").insert({
-      id: userId,
-      operator_label:
-        patch.operatorLabel?.trim() || fullName.split(/\s+/)[0] || blank.operatorLabel,
-      full_name: fullName,
-      username,
-      email,
-      phone: patch.phone?.trim() || null,
-      role: primaryUserRole(effectiveRoles),
-      roles: effectiveRoles,
-      department: primaryUserDepartment(departments),
-      departments,
-      status: patch.status ?? blank.status,
-      region: (patch.region ?? blank.region).trim(),
-      license_id: patch.licenseId?.trim() || null,
-      notes: patch.notes?.trim() || null,
-      allowed_views: patch.allowedViews ?? defaultAllowedViewsForRoles(effectiveRoles, departments),
-      dashboard_prefs: patch.dashboardPrefs ?? blank.dashboardPrefs,
-      created_at: new Date().toISOString(),
-      ...operatorPayload,
-    });
-    if (error) throw new Error(error.message);
-  }
-
-  const operator = await findWorkspaceTenantOperatorByUsername(username);
   return mergeWorkspaceTenantUserRecord({
     platformUserId: userId,
     username,
@@ -681,7 +497,6 @@ export async function updateWorkspaceTenantUser(
     clientName: companyName.trim() || platformUser.client_name,
     workspaceRole: workspaceRole ?? membership.role,
     isOwner: membership.is_owner,
-    operator,
   });
 }
 
@@ -690,7 +505,6 @@ export async function removeWorkspaceTenantUser(
   userId: string,
   actorUserId?: string | null,
 ): Promise<void> {
-  await ensureInternalOperatorsTable();
   const { supabase, membership } = await loadWorkspaceTenantUserContext(workspaceId, userId);
 
   if (membership.is_owner) {
@@ -727,21 +541,17 @@ export async function removeWorkspaceTenantUser(
     .eq("workspace_id", workspaceId);
   if (membershipError) throw new Error(membershipError.message);
 
-  const { error: platformError } = await supabase
-    .from("platform_users")
-    .update({
-      is_active: false,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", userId)
-    .eq("workspace_id", workspaceId);
-  if (platformError) throw new Error(platformError.message);
-
-  const { error: operatorError } = await supabase
-    .from("internal_operators")
-    .delete()
-    .eq("id", userId);
-  if (operatorError) throw new Error(operatorError.message);
+  const remainingMemberships = await countWorkspaceMembershipsForUser(userId);
+  if (remainingMemberships === 0) {
+    const { error: platformError } = await supabase
+      .from("platform_users")
+      .update({
+        is_active: false,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", userId);
+    if (platformError) throw new Error(platformError.message);
+  }
 }
 
 export async function setWorkspaceTenantUserPassword(
@@ -749,13 +559,12 @@ export async function setWorkspaceTenantUserPassword(
   userId: string,
   password?: string,
 ): Promise<{ password: string }> {
-  await ensureInternalOperatorsTable();
-  const { supabase, membership, platformUser } = await loadWorkspaceTenantUserContext(
+  const { supabase, platformUser } = await loadWorkspaceTenantUserContext(
     workspaceId,
     userId,
   );
 
-  if (membership.is_owner === false && platformUser.is_active === false) {
+  if (platformUser.is_active === false) {
     throw new WorkspaceTenantUserError("Inactive users cannot receive password resets.", 400);
   }
 
@@ -769,7 +578,6 @@ export async function setWorkspaceTenantUserPassword(
 
   const username = normalizePlatformUsername(platformUser.username);
   const passwordHash = hashPlatformPasswordForUser(username, newPassword);
-  const displayName = platformUser.display_name || platformUser.username;
 
   const { error } = await supabase
     .from("platform_users")
@@ -778,39 +586,8 @@ export async function setWorkspaceTenantUserPassword(
       is_active: true,
       updated_at: new Date().toISOString(),
     })
-    .eq("id", userId)
-    .eq("workspace_id", workspaceId);
+    .eq("id", userId);
   if (error) throw new Error(error.message);
-
-  const { data: existingOperator } = await supabase
-    .from("internal_operators")
-    .select("id")
-    .eq("id", userId)
-    .maybeSingle();
-
-  if (!existingOperator?.id) {
-    const role = mapWorkspaceRoleToUserRole(membership.role, membership.is_owner);
-    const roles = [role];
-    const departments = ["Operations"] as UserDepartment[];
-    const { error: insertError } = await supabase.from("internal_operators").insert({
-      id: userId,
-      operator_label: displayName.split(/\s+/)[0] || "Operator",
-      full_name: displayName,
-      username,
-      email: platformUser.email || username,
-      role,
-      roles,
-      department: "Operations",
-      departments,
-      status: "Active",
-      region: "",
-      allowed_views: defaultAllowedViewsForRoles(roles, departments),
-      dashboard_prefs: null,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    });
-    if (insertError) throw new Error(insertError.message);
-  }
 
   return { password: newPassword };
 }

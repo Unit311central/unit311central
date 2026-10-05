@@ -143,6 +143,7 @@ export const UNIT311_PENDING_MIGRATIONS = [
   "supabase/migrations/216_workspace_governance.sql",
   "supabase/migrations/217_workspace_governance_meeting_invite.sql",
   "supabase/migrations/218_talanton_board_meeting_cronofy.sql",
+  "supabase/migrations/219_hr_employee_platform_user_link.sql",
 ] as const;
 
 export const SALES_MANAGEMENT_FOUNDATION_MIGRATION =

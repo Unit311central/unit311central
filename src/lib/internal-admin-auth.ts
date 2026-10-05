@@ -218,21 +218,28 @@ export async function requireUsersModuleAdministratorSession(): Promise<
     return { session, workspace };
   }
 
+  if (isUnit311GlobalAdminUsername(session.username)) {
+    return { session, workspace };
+  }
+
   if (!usesWorkspaceTenantUserManagement(workspace.slug, session.username)) {
     return requireInternalAdministratorWorkspaceSession();
   }
 
-  // Customer tenant: session user must be an active workspace owner/admin.
+  // Customer tenant: session user must be an active workspace owner/admin member.
   try {
     const supabase = createTenancyServerClient();
-    const username = session.username.trim().toLowerCase();
-    // Quote values so emails with @ work in PostgREST `.or(...)` filters.
-    const escaped = username.replace(/"/g, '\\"');
+    const userId = session.sub?.trim();
+    if (!userId) {
+      return {
+        error: NextResponse.json({ error: INSUFFICIENT_PRIVILEGES }, { status: 403 }),
+      };
+    }
+
     const { data: platformUser } = await supabase
       .from("platform_users")
-      .select("id, is_active, workspace_id")
-      .eq("workspace_id", workspace.id)
-      .or(`username.eq."${escaped}",email.eq."${escaped}"`)
+      .select("id, is_active")
+      .eq("id", userId)
       .maybeSingle();
 
     if (!platformUser?.id || platformUser.is_active === false) {
@@ -245,7 +252,7 @@ export async function requireUsersModuleAdministratorSession(): Promise<
       .from("workspace_users")
       .select("role, is_owner")
       .eq("workspace_id", workspace.id)
-      .eq("user_id", platformUser.id)
+      .eq("user_id", userId)
       .maybeSingle();
 
     const role = String(membership?.role ?? "").toLowerCase();

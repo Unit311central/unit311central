@@ -43,7 +43,6 @@ import {
   type AssistantToolResult,
 } from "@/lib/ai-operating-assistant/tool-result";
 import { listInternalClients } from "@/lib/internal-clients-service";
-import { listInternalOperators } from "@/lib/internal-operators-service";
 import { listProjects } from "@/lib/internal-projects-service";
 import { listWorkspaceTenantUsers } from "@/lib/platform-users-service";
 import type { ManagedUser } from "@/lib/user-management-data";
@@ -328,13 +327,12 @@ async function loadAuthorisedPlatformUsers(
   const workspaceId = ctx.business.workspace.id?.trim();
   if (workspaceId) {
     try {
-      const workspaceUsers = await listWorkspaceTenantUsers(workspaceId);
-      if (workspaceUsers.length > 0) return workspaceUsers;
+      return await listWorkspaceTenantUsers(workspaceId);
     } catch {
-      // Fall through to internal operators catalogue.
+      return [];
     }
   }
-  return listInternalOperators();
+  return [];
 }
 
 export async function generateAbhiPlatformAccessPdfTool(

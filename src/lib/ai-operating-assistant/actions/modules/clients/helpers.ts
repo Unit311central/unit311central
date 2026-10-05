@@ -9,7 +9,7 @@ import {
   listInternalClients,
   type ClientsWorkspaceScope,
 } from "@/lib/internal-clients-service";
-import { listInternalOperators } from "@/lib/internal-operators-service";
+import { listWorkspacePersonDirectory } from "@/lib/workspace-scoped-platform-users";
 import type { AssistantBusinessContext } from "../../../types";
 import type { AssistantActionValidationResult } from "../../types";
 
@@ -280,6 +280,7 @@ export async function findPotentialDuplicates(
 
 export async function resolveAccountManager(
   input: Record<string, unknown>,
+  workspaceId?: string | null,
 ): Promise<
   | { ok: true; manager: ClientAccountManagerMeta }
   | { ok: false; errors: string[] }
@@ -291,11 +292,14 @@ export async function resolveAccountManager(
     asTrimmedString(input.accountManager) ||
     asTrimmedString(input.manager);
 
-  let operators: Awaited<ReturnType<typeof listInternalOperators>> = [];
-  try {
-    operators = await listInternalOperators();
-  } catch {
-    operators = [];
+  const resolvedWorkspaceId = workspaceId?.trim();
+  let operators: Awaited<ReturnType<typeof listWorkspacePersonDirectory>> = [];
+  if (resolvedWorkspaceId) {
+    try {
+      operators = await listWorkspacePersonDirectory(resolvedWorkspaceId);
+    } catch {
+      operators = [];
+    }
   }
 
   if (managerId) {
