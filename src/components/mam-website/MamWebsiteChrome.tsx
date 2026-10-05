@@ -16,21 +16,39 @@ import { cn } from "@/lib/utils";
 const MAM_LOGO_WIDTH = 1416;
 const MAM_LOGO_HEIGHT = 1111;
 
+/** Visible artwork bounds in logo.png (excludes transparent padding; file unchanged). */
+const MAM_LOGO_OBJECT_VIEW_BOX = "inset(27.81% 5.65% 24.75% 5.93%)";
+
 function MamLogo({ compact }: { compact?: boolean }) {
+  if (compact) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={MAM_WEBSITE_LOGO_SRC}
+        alt="MAM — Moroccan Advanced Manufacturing"
+        width={MAM_LOGO_WIDTH}
+        height={MAM_LOGO_HEIGHT}
+        decoding="async"
+        className="block h-auto w-auto max-h-[56px] max-w-[150px] shrink-0 object-contain object-left"
+        style={{ objectViewBox: MAM_LOGO_OBJECT_VIEW_BOX }}
+      />
+    );
+  }
+
   return (
-    // eslint-disable-next-line @next/next/no-img-element -- intrinsic width/height + max box keeps aspect ratio without overflow
-    <img
-      src={MAM_WEBSITE_LOGO_SRC}
-      alt="MAM — Moroccan Advanced Manufacturing"
-      width={MAM_LOGO_WIDTH}
-      height={MAM_LOGO_HEIGHT}
-      decoding="async"
-      fetchPriority={compact ? "auto" : "high"}
-      className={cn(
-        "block h-auto w-auto shrink-0 object-contain object-left",
-        compact ? "max-h-[56px] max-w-[150px]" : "max-h-[70px] max-w-[190px]",
-      )}
-    />
+    <span className="flex h-[75px] w-[210px] shrink-0 items-center justify-center">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={MAM_WEBSITE_LOGO_SRC}
+        alt="MAM — Moroccan Advanced Manufacturing"
+        width={MAM_LOGO_WIDTH}
+        height={MAM_LOGO_HEIGHT}
+        decoding="async"
+        fetchPriority="high"
+        className="h-full w-full object-contain object-center"
+        style={{ objectViewBox: MAM_LOGO_OBJECT_VIEW_BOX }}
+      />
+    </span>
   );
 }
 
