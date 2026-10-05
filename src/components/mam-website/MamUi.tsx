@@ -159,6 +159,43 @@ export function MamIndustryPill({ label }: { label: string }) {
   );
 }
 
+export function MamWorkflowStrip({ steps }: { steps: readonly string[] }) {
+  return (
+    <div className="mt-12 overflow-hidden border border-white/10 bg-[linear-gradient(180deg,#101419_0%,#0c0e11_100%)]">
+      <ol className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5">
+        {steps.map((label, index) => (
+          <li
+            key={label}
+            className={cn(
+              "relative flex min-h-[5.5rem] flex-col items-center justify-center px-4 py-6 text-center",
+              index > 0 && "border-t border-white/10 sm:border-t-0 sm:border-l lg:border-l",
+            )}
+          >
+            {index < steps.length - 1 ? (
+              <span
+                className="pointer-events-none absolute right-0 top-1/2 z-10 hidden -translate-y-1/2 translate-x-1/2 text-lg text-[#8fa4b8]/35 lg:inline"
+                aria-hidden
+              >
+                →
+              </span>
+            ) : null}
+            <span className="font-mono text-[10px] font-medium tabular-nums tracking-[0.24em] text-[#8fa4b8]/75">
+              {String(index + 1).padStart(2, "0")}
+            </span>
+            <span className="mt-3 max-w-[9rem] text-[11px] font-semibold uppercase leading-snug tracking-[0.14em] text-white sm:text-xs">
+              {label}
+            </span>
+            <span
+              className="mt-4 h-px w-10 bg-gradient-to-r from-transparent via-[#8fa4b8]/50 to-transparent"
+              aria-hidden
+            />
+          </li>
+        ))}
+      </ol>
+    </div>
+  );
+}
+
 export function MamProcessStep({
   step,
   title,

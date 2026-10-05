@@ -19,6 +19,7 @@ import {
   MamSection,
   MamServiceCard,
   MamWhyItem,
+  MamWorkflowStrip,
 } from "./MamUi";
 
 const WORKFLOW = ["Design", "Engineering", "Production", "Finishing", "Delivery"] as const;
@@ -104,18 +105,7 @@ export default function MamHomeContent() {
               />
             </div>
           </div>
-          <div className="mt-12 flex flex-wrap items-center justify-between gap-4 border border-white/10 bg-[#0c0e11] px-4 py-6 sm:px-8">
-            {WORKFLOW.map((step, i) => (
-              <div key={step} className="flex items-center gap-3">
-                <span className="font-mono text-xs text-[#8fa4b8]">{step}</span>
-                {i < WORKFLOW.length - 1 ? (
-                  <span className="hidden text-white/25 sm:inline" aria-hidden>
-                    →
-                  </span>
-                ) : null}
-              </div>
-            ))}
-          </div>
+          <MamWorkflowStrip steps={WORKFLOW} />
         </MamContainer>
       </MamSection>
 

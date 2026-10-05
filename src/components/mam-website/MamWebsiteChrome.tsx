@@ -14,27 +14,9 @@ import {
 import { cn } from "@/lib/utils";
 
 const MAM_LOGO_WIDTH = 1416;
-const MAM_LOGO_HEIGHT = 1111;
+const MAM_LOGO_HEIGHT = 738;
 
-/** Visible artwork bounds in logo.png (excludes transparent padding; file unchanged). */
-const MAM_LOGO_OBJECT_VIEW_BOX = "inset(27.81% 5.65% 24.75% 5.93%)";
-
-function MamLogo({ compact }: { compact?: boolean }) {
-  if (compact) {
-    return (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img
-        src={MAM_WEBSITE_LOGO_SRC}
-        alt="MAM — Moroccan Advanced Manufacturing"
-        width={MAM_LOGO_WIDTH}
-        height={MAM_LOGO_HEIGHT}
-        decoding="async"
-        className="block h-auto w-auto max-h-[56px] max-w-[150px] shrink-0 object-contain object-left"
-        style={{ objectViewBox: MAM_LOGO_OBJECT_VIEW_BOX }}
-      />
-    );
-  }
-
+function MamLogo({ priority }: { priority?: boolean }) {
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img
@@ -43,9 +25,8 @@ function MamLogo({ compact }: { compact?: boolean }) {
       width={MAM_LOGO_WIDTH}
       height={MAM_LOGO_HEIGHT}
       decoding="async"
-      fetchPriority="high"
+      fetchPriority={priority ? "high" : "auto"}
       className="block h-auto w-[150px] max-h-[60px] shrink-0 object-contain object-left"
-      style={{ objectViewBox: MAM_LOGO_OBJECT_VIEW_BOX }}
     />
   );
 }
@@ -60,7 +41,7 @@ export default function MamWebsiteNav() {
     <header className="sticky top-0 z-50 border-b border-white/10 bg-[#0c0e11]/95 backdrop-blur-md">
       <div className="mx-auto flex h-[92px] max-w-6xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
         <Link href="/" className="inline-flex h-full shrink-0 items-center" aria-label="MAM home">
-          <MamLogo />
+          <MamLogo priority />
         </Link>
 
         <nav className="hidden items-center gap-7 lg:flex" aria-label="Main">
@@ -77,15 +58,6 @@ export default function MamWebsiteNav() {
             </Link>
           ))}
         </nav>
-
-        <div className="hidden items-center gap-3 lg:flex">
-          <Link
-            href="/contact"
-            className="inline-flex items-center justify-center rounded-sm bg-[#8fa4b8] px-4 py-2 text-sm font-semibold text-[#0c0e11] transition-colors hover:bg-[#a8bac9] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8fa4b8]"
-          >
-            Request a Quote
-          </Link>
-        </div>
 
         <button
           type="button"
@@ -117,15 +89,6 @@ export default function MamWebsiteNav() {
                 </Link>
               </li>
             ))}
-            <li className="pt-2">
-              <Link
-                href="/contact"
-                className="block rounded-sm bg-[#8fa4b8] px-4 py-2.5 text-center text-sm font-semibold text-[#0c0e11]"
-                onClick={() => setOpen(false)}
-              >
-                Request a Quote
-              </Link>
-            </li>
           </ul>
         </nav>
       ) : null}
