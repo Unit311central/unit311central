@@ -28,18 +28,14 @@ export const MAM_CONTACT_EMAIL = "info@mam.ma";
 
 export const MAM_LOCATION_LABEL = "Casablanca, Morocco";
 
-/** Unsplash — replace with owned assets when available. */
-export const MAM_HERO_IMAGE =
-  "https://images.unsplash.com/photo-1565793298595-6a879b1d9492?auto=format&fit=crop&w=2400&q=80";
+/** Static assets under public/images/mam — served from the Unit311 deployment. */
+export const MAM_HERO_IMAGE = "/images/mam/hero.jpg";
 
-export const MAM_MANUFACTURING_HERO_IMAGE =
-  "https://images.unsplash.com/photo-1581092160562-40aa08e78837?auto=format&fit=crop&w=2400&q=80";
+export const MAM_MANUFACTURING_HERO_IMAGE = "/images/mam/manufacturing.jpg";
 
-export const MAM_PROCESS_IMAGE =
-  "https://images.unsplash.com/photo-1537462718619-9953ed47382b?auto=format&fit=crop&w=2000&q=80";
+export const MAM_PROCESS_IMAGE = "/images/mam/process.jpg";
 
-export const MAM_CASA_IMAGE =
-  "https://images.unsplash.com/photo-1590073242678-70ee282f8e76?auto=format&fit=crop&w=2000&q=80";
+export const MAM_CASA_IMAGE = "/images/mam/casablanca.jpg";
 
 export const MAM_PUBLIC_NAV = [
   { href: "/", label: "Home" },
