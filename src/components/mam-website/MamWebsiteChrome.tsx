@@ -18,8 +18,7 @@ const MAM_LOGO_HEIGHT = 1111;
 
 function MamLogo({ compact }: { compact?: boolean }) {
   return (
-    // Native img: width + height attributes preserve intrinsic ratio; CSS sets width only and height: auto.
-    // eslint-disable-next-line @next/next/no-img-element -- avoids Next/Image layout box squashing this wordmark
+    // eslint-disable-next-line @next/next/no-img-element -- intrinsic width/height + max box keeps aspect ratio without overflow
     <img
       src={MAM_WEBSITE_LOGO_SRC}
       alt="MAM — Moroccan Advanced Manufacturing"
@@ -28,10 +27,8 @@ function MamLogo({ compact }: { compact?: boolean }) {
       decoding="async"
       fetchPriority={compact ? "auto" : "high"}
       className={cn(
-        "block h-auto max-h-none shrink-0 object-contain object-left",
-        compact
-          ? "w-[140px] sm:w-[150px]"
-          : "w-[150px] sm:w-[160px] lg:w-[190px]",
+        "block h-auto w-auto shrink-0 object-contain object-left",
+        compact ? "max-h-[56px] max-w-[150px]" : "max-h-[70px] max-w-[190px]",
       )}
     />
   );
@@ -45,8 +42,8 @@ export default function MamWebsiteNav() {
 
   return (
     <header className="sticky top-0 z-50 border-b border-white/10 bg-[#0c0e11]/95 backdrop-blur-md">
-      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
-        <Link href="/" className="inline-flex shrink-0 items-center self-center" aria-label="MAM home">
+      <div className="mx-auto flex h-[92px] max-w-6xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
+        <Link href="/" className="inline-flex h-full shrink-0 items-center" aria-label="MAM home">
           <MamLogo />
         </Link>
 
