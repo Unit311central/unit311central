@@ -3,6 +3,7 @@ import Image from "next/image";
 import {
   MAM_CASA_IMAGE,
   MAM_HERO_IMAGE,
+  MAM_HERO_VIDEO,
   MAM_PROCESS_IMAGE,
 } from "@/lib/mam/mam-website";
 
@@ -68,6 +69,7 @@ export default function MamHomeContent() {
         title="Advanced Manufacturing. Engineered in Morocco."
         lead="MAM provides advanced additive manufacturing and precision production services from Casablanca, helping businesses turn digital designs into high-quality physical components and products."
         imageSrc={MAM_HERO_IMAGE}
+        videoSrc={MAM_HERO_VIDEO}
         imageAlt="Precision manufactured metal component in an industrial setting"
         primaryCta={{ href: "/contact", label: "Request a Quote" }}
         secondaryCta={{ href: "/capabilities", label: "Explore Capabilities" }}

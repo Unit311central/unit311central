@@ -31,6 +31,8 @@ export const MAM_LOCATION_LABEL = "Casablanca, Morocco";
 /** Static assets under public/images/mam — served from the Unit311 deployment. */
 export const MAM_HERO_IMAGE = "/images/mam/hero.jpg";
 
+export const MAM_HERO_VIDEO = "/videos/mam-website-hero.mp4";
+
 export const MAM_MANUFACTURING_HERO_IMAGE = "/images/mam/manufacturing.jpg";
 
 export const MAM_PROCESS_IMAGE = "/images/mam/process.jpg";

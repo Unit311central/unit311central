@@ -8,6 +8,7 @@ import { isMamHost } from "@/lib/mam/mam-surface";
 import {
   MAM_CASA_IMAGE,
   MAM_HERO_IMAGE,
+  MAM_HERO_VIDEO,
   MAM_MANUFACTURING_HERO_IMAGE,
   MAM_PROCESS_IMAGE,
   MAM_WEBSITE_LOGO_SRC,
@@ -70,6 +71,11 @@ test("mam marketing image assets exist in public/", () => {
     const diskPath = join(process.cwd(), "public", webPath.replace(/^\//, ""));
     assert.ok(existsSync(diskPath), `missing ${diskPath}`);
   }
+});
+
+test("mam hero background video exists in public/", () => {
+  const diskPath = join(process.cwd(), "public", MAM_HERO_VIDEO.replace(/^\//, ""));
+  assert.ok(existsSync(diskPath), `missing ${diskPath}`);
 });
 
 console.log("ok  mam-website checks passed\n");
