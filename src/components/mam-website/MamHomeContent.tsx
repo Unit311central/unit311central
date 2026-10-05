@@ -67,7 +67,7 @@ export default function MamHomeContent() {
     <>
       <MamPageHero
         title="Advanced Manufacturing. Engineered in Morocco."
-        lead="MAM provides advanced additive manufacturing and precision production services from Casablanca, helping businesses turn digital designs into high-quality physical components and products."
+        lead="MAM provides advanced additive manufacturing and precision production services, helping businesses turn digital designs into high-quality physical components and products."
         imageSrc={MAM_HERO_IMAGE}
         videoSrc={MAM_HERO_VIDEO}
         imageAlt="Precision manufactured metal component in an industrial setting"
