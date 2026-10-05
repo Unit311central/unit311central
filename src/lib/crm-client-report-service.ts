@@ -28,7 +28,7 @@ import {
   sendMessage,
   updateChannelMembers,
 } from "@/lib/internal-messaging-service";
-import { listInternalOperators } from "@/lib/internal-operators-service";
+import { listActiveMessagingOperatorsForWorkspace } from "@/lib/workspace-scoped-platform-users";
 import { CONTACT } from "@/lib/site";
 
 const REPORT_CHAT_OPERATOR_LIMIT = 3;
@@ -54,12 +54,11 @@ function appendNotes(existing: string, addition: string) {
   return `${current}\n\n${addition}`;
 }
 
-async function resolveReportChatOperatorIds() {
-  const operators = await listInternalOperators().catch(() => []);
-  return operators
-    .filter((operator) => operator.status === "Active")
-    .slice(0, REPORT_CHAT_OPERATOR_LIMIT)
-    .map((operator) => operator.id);
+async function resolveReportChatOperatorIds(scope: { workspaceId?: string | null }) {
+  const workspaceId = scope.workspaceId?.trim();
+  if (!workspaceId) return [];
+  const operators = await listActiveMessagingOperatorsForWorkspace(workspaceId).catch(() => []);
+  return operators.slice(0, REPORT_CHAT_OPERATOR_LIMIT).map((operator) => operator.id);
 }
 
 async function ensureReportMessagingChannel(lead: CrmLead, operatorIds: string[]) {
@@ -234,7 +233,7 @@ export async function generateAndSendCrmClientReportPdf(
   const savedPdf = await downloadFileBuffer(uploadedPdf.id);
   const fileName = pdfFileName || savedPdf.name;
 
-  const operatorIds = await resolveReportChatOperatorIds();
+  const operatorIds = await resolveReportChatOperatorIds(leadWorkspaceScope(lead));
   const accessToken = lead.clientChatAccessToken?.trim() || randomUUID();
   const { channel, clientChatKey } = await ensureReportMessagingChannel(lead, operatorIds);
   const chatUrl = buildReportChatUrl(accessToken);

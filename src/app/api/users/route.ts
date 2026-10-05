@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 import {
   requireUsersModuleAdministratorSession,
 } from "@/lib/internal-admin-auth";
-import { createInternalOperator, listInternalOperators } from "@/lib/internal-operators-service";
+import { createInternalOperator } from "@/lib/internal-operators-service";
 import { listWorkspaceTenantUsers } from "@/lib/platform-users-service";
 import { createWorkspaceTenantUser } from "@/lib/workspace-tenant-users-service";
 import { isAbhiSlug } from "@/lib/abhi-surface";
@@ -43,15 +43,11 @@ export async function GET() {
       return NextResponse.json({ users: await listDemoWorkspaceUsers() });
     }
 
-    if (usesWorkspaceTenantUserManagement(auth.workspace.slug, auth.session.username)) {
-      const users = isAbhiSlug(auth.workspace.slug)
-        ? listAbhiTenantUsers()
-        : await listWorkspaceTenantUsers(auth.workspace.id);
-      return NextResponse.json({ users });
+    if (isAbhiSlug(auth.workspace.slug)) {
+      return NextResponse.json({ users: listAbhiTenantUsers() });
     }
 
-    await ensureInternalOperatorsTable();
-    const users = await listInternalOperators();
+    const users = await listWorkspaceTenantUsers(auth.workspace.id);
     return NextResponse.json({ users });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to load users";

@@ -6,7 +6,8 @@ import type { MessagingWorkspaceScope } from "@/lib/messaging-workspace";
 import type { SupportWorkspaceScope } from "@/lib/support-workspace";
 import { formatAssigneeForClient, notifyClientTicketAssigned } from "@/lib/support-client-notify";
 import { createInitialUsers } from "@/lib/user-management-data";
-import { listInternalOperators } from "@/lib/internal-operators-service";
+import { resolveMessagingWorkspaceId } from "@/lib/messaging-workspace";
+import { listActiveMessagingOperatorsForWorkspace } from "@/lib/workspace-scoped-platform-users";
 
 const ASSIGN_USER_RE = /^user\s*(\d+)\.?$/i;
 const TICKET_ID_RE = /\b(SUP-\d{3,}|CC-SUP-\d{3,})\b/i;
@@ -17,14 +18,20 @@ function extractTicketId(content: string) {
   return content.match(TICKET_ID_RE)?.[1]?.toUpperCase() ?? null;
 }
 
-async function resolveNamedAssignee(raw: string): Promise<string | null> {
+async function resolveNamedAssignee(
+  raw: string,
+  scope?: MessagingWorkspaceScope & SupportWorkspaceScope,
+): Promise<string | null> {
   const value = raw.trim();
   if (!value) return null;
 
   const userMatch = value.match(ASSIGN_USER_RE);
   if (userMatch) return `User ${userMatch[1]}`;
 
-  const operators = await listInternalOperators().catch(() => createInitialUsers());
+  const workspaceId = await resolveMessagingWorkspaceId(scope);
+  const operators = await listActiveMessagingOperatorsForWorkspace(workspaceId).catch(
+    () => createInitialUsers(),
+  );
   const needle = value.toLowerCase();
   const match = operators.find((operator) => {
     const candidates = [
@@ -80,7 +87,7 @@ export async function handleSupportChannelClaimMessage(
   const rawAssignee = parseAssigneeFromMessage(message.content);
   if (!rawAssignee) return { handled: false as const };
 
-  const assignee = await resolveNamedAssignee(rawAssignee);
+  const assignee = await resolveNamedAssignee(rawAssignee, scope);
   if (!assignee) return { handled: false as const };
 
   const ticketId = await resolveTicketId(message.content, scope);

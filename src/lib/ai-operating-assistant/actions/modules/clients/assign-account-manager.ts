@@ -83,7 +83,7 @@ export const assignAccountManagerAction: AssistantActionDefinition = {
       if (!ws.ok) return ws.validation;
       const resolved = await resolveClientRef(input, ws.scope);
       if (!resolved.ok) return { ok: false, errors: resolved.errors, warnings: [] };
-      const manager = await resolveAccountManager(input);
+      const manager = await resolveAccountManager(input, ctx.business.workspace.id);
       if (!manager.ok) return { ok: false, errors: manager.errors, warnings: [] };
       const warnings: string[] = [];
       if (manager.manager.id.startsWith("name:")) {
@@ -105,7 +105,7 @@ export const assignAccountManagerAction: AssistantActionDefinition = {
         };
       }
       const resolved = await resolveClientRef(input, ws.scope);
-      const manager = await resolveAccountManager(input);
+      const manager = await resolveAccountManager(input, ctx.business.workspace.id);
       if (!resolved.ok || !manager.ok) {
         return {
           summary: "Assign account manager",
@@ -149,7 +149,7 @@ export const assignAccountManagerAction: AssistantActionDefinition = {
       if (!resolved.ok) {
         return { ok: false, message: resolved.errors.join("; "), error: "NOT_FOUND" };
       }
-      const manager = await resolveAccountManager(input);
+      const manager = await resolveAccountManager(input, ctx.business.workspace.id);
       if (!manager.ok) {
         return { ok: false, message: manager.errors.join("; "), error: "VALIDATION" };
       }

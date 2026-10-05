@@ -1,31 +1,33 @@
-# Workspace identity — Stage 2 backlog
+# Workspace identity — Stage 2 (implemented)
 
-Stage 1 established `hr_employees.platform_user_id` and link/unlink services only. Do not start until approved.
+Stage 2 stops tenant user mirroring into `internal_operators` and scopes person/user directories by **workspace membership**.
 
-## UI
+## Code changes (summary)
 
-- Add Employee modal: employee-only vs create/link user.
-- Employee record: platform access status, link existing user, create user, unlink.
-- Users module: stop implying every user is an employee.
+- `createWorkspaceTenantUser` / update / remove / password: `platform_users` + `workspace_users` only.
+- `GET /api/users`: `listWorkspaceTenantUsers(current workspace)` (Demo/ABHI fixtures unchanged).
+- Messaging operators/channels/scheduled calls: `listActiveMessagingOperatorsForWorkspace`.
+- Support, CRM enquiries, CRM report chat, AI account manager: workspace-scoped person directory.
+- `requireUsersModuleAdministratorSession`: membership via `session.sub` + `workspace_users`; platform admin bypass.
+- Demo user list: fixtures only (no global operator merge).
 
-## Users / operators
+## Read-only production audit
 
-- Remove `internal_operators` insert/update from `createWorkspaceTenantUser` / `updateWorkspaceTenantUser` for customer tenants.
-- Restrict `listInternalOperators()` to Unit311 internal surfaces only.
-- Messaging / scheduled calls / channels: workspace-scoped operator lists (Wolf/Green Desert pattern generalised).
+```bash
+node --require ./scripts/test-server-only-hook.cjs --import tsx scripts/audit-workspace-identity-stage2-readonly.ts
+```
 
-## Admin layers
+Output: `/opt/cursor/artifacts/workspace-isolation-stage2/readonly-audit.json`
 
-- Platform admin grant table separate from `workspace_users`.
-- Fix `requireUsersModuleAdministratorSession` primary-`workspace_id` vs multi-membership.
-- HR mutations: role-based admin gate.
-
-## Data cleanup (explicit, reviewed)
+## Data cleanup (explicit, reviewed — not executed in Stage 2)
 
 - Reconcile production `platform_users.workspace_id` vs `workspace_users`.
-- Fix mis-assigned HR rows (e.g. employee workspace ≠ user workspace).
-- Audit log on user/employee/membership mutations.
+- Classify remaining `internal_operators` rows (genuine Unit311 vs legacy tenant mirrors).
+- Fix mis-assigned HR rows (employee workspace ≠ platform user membership).
+- Do **not** delete operator rows or move users until remediation is approved.
 
-## Call sites using global `listInternalOperators()`
+## Stage 3+ (future)
 
-See repository grep for `listInternalOperators` — includes `/api/users` (internal), `/api/messaging/operators`, support/CRM/AI helpers, `demo-users-service` (admin extras).
+- UI: Add Employee / Users module clarity (employee ≠ platform user).
+- HR mutations: role-based admin gate.
+- Optional platform admin grant table separate from workspace membership.

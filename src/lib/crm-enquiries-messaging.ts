@@ -12,14 +12,17 @@ import {
   sendMessage,
   updateChannelMembers,
 } from "@/lib/internal-messaging-service";
-import { listInternalOperators } from "@/lib/internal-operators-service";
 import type { MessagingWorkspaceScope } from "@/lib/messaging-workspace";
 import { resolveMessagingWorkspaceId } from "@/lib/messaging-workspace";
 import { createSupabaseServerClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import { createInitialUsers } from "@/lib/user-management-data";
+import { listActiveMessagingOperatorsForWorkspace } from "@/lib/workspace-scoped-platform-users";
 
-async function resolveAllOperatorIds() {
-  const operators = await listInternalOperators().catch(() => createInitialUsers());
+async function resolveAllOperatorIds(scope?: MessagingWorkspaceScope) {
+  const workspaceId = await resolveMessagingWorkspaceId(scope);
+  const operators = await listActiveMessagingOperatorsForWorkspace(workspaceId).catch(
+    () => createInitialUsers(),
+  );
   const ids = operators.map((operator) => operator.id).filter(Boolean);
   return ids.length > 0 ? ids : createInitialUsers().map((operator) => operator.id);
 }
@@ -34,7 +37,7 @@ export async function ensureEnquiriesChannel(
 
   const workspaceId = await resolveMessagingWorkspaceId(scope);
   const workspaceScope = { workspaceId };
-  const operatorIds = await resolveAllOperatorIds();
+  const operatorIds = await resolveAllOperatorIds(scope);
   const existing =
     (await getChannelByRoom(ENQUIRIES_MESSAGING_ROOM, workspaceScope).catch(() => null)) ??
     (await getChannelByName(ENQUIRIES_CHANNEL_NAME, workspaceScope).catch(() => null));

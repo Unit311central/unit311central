@@ -91,10 +91,10 @@ assert.match(hrService, /unlinkHrEmployeePlatformUser/, "unlink helper exported"
 
 const tenantUsersPath = path.join(process.cwd(), "src/lib/workspace-tenant-users-service.ts");
 const tenantUsers = fs.readFileSync(tenantUsersPath, "utf8");
-assert.match(
+assert.doesNotMatch(
   tenantUsers,
   /from\("internal_operators"\)/,
-  "tenant user flow still documents internal_operators coupling (Stage 2 removal)",
+  "tenant user flow must not mirror into internal_operators (Stage 2)",
 );
 
 const migrationPath = path.join(
