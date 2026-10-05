@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
@@ -19,17 +18,20 @@ const MAM_LOGO_HEIGHT = 1111;
 
 function MamLogo({ compact }: { compact?: boolean }) {
   return (
-    <Image
+    // Native img: width + height attributes preserve intrinsic ratio; CSS sets width only and height: auto.
+    // eslint-disable-next-line @next/next/no-img-element -- avoids Next/Image layout box squashing this wordmark
+    <img
       src={MAM_WEBSITE_LOGO_SRC}
       alt="MAM — Moroccan Advanced Manufacturing"
       width={MAM_LOGO_WIDTH}
       height={MAM_LOGO_HEIGHT}
-      priority={!compact}
+      decoding="async"
+      fetchPriority={compact ? "auto" : "high"}
       className={cn(
-        "h-auto w-auto object-contain object-left",
+        "block h-auto max-h-none shrink-0 object-contain object-left",
         compact
-          ? "w-[150px] sm:w-[170px]"
-          : "w-[170px] sm:w-[180px] lg:w-[200px]",
+          ? "w-[140px] sm:w-[150px]"
+          : "w-[150px] sm:w-[160px] lg:w-[190px]",
       )}
     />
   );
@@ -43,8 +45,8 @@ export default function MamWebsiteNav() {
 
   return (
     <header className="sticky top-0 z-50 border-b border-white/10 bg-[#0c0e11]/95 backdrop-blur-md">
-      <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
-        <Link href="/" className="inline-flex shrink-0 items-center" aria-label="MAM home">
+      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
+        <Link href="/" className="inline-flex shrink-0 items-center self-center" aria-label="MAM home">
           <MamLogo />
         </Link>
 
