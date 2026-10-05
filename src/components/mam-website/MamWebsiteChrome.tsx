@@ -36,19 +36,17 @@ function MamLogo({ compact }: { compact?: boolean }) {
   }
 
   return (
-    <span className="flex h-[75px] w-[210px] shrink-0 items-center justify-center">
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={MAM_WEBSITE_LOGO_SRC}
-        alt="MAM — Moroccan Advanced Manufacturing"
-        width={MAM_LOGO_WIDTH}
-        height={MAM_LOGO_HEIGHT}
-        decoding="async"
-        fetchPriority="high"
-        className="h-full w-full object-contain object-center"
-        style={{ objectViewBox: MAM_LOGO_OBJECT_VIEW_BOX }}
-      />
-    </span>
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={MAM_WEBSITE_LOGO_SRC}
+      alt="MAM — Moroccan Advanced Manufacturing"
+      width={MAM_LOGO_WIDTH}
+      height={MAM_LOGO_HEIGHT}
+      decoding="async"
+      fetchPriority="high"
+      className="block h-auto w-[150px] max-h-[60px] shrink-0 object-contain object-left"
+      style={{ objectViewBox: MAM_LOGO_OBJECT_VIEW_BOX }}
+    />
   );
 }
 
