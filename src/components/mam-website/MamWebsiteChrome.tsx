@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
@@ -9,14 +10,28 @@ import {
   MAM_CONTACT_EMAIL,
   MAM_LOCATION_LABEL,
   MAM_PUBLIC_NAV,
+  MAM_WEBSITE_LOGO_SRC,
 } from "@/lib/mam/mam-website";
 import { cn } from "@/lib/utils";
 
+const MAM_LOGO_WIDTH = 1416;
+const MAM_LOGO_HEIGHT = 1111;
+
 function MamLogo({ compact }: { compact?: boolean }) {
   return (
-    <span className={cn("font-semibold tracking-[0.22em] text-white", compact ? "text-sm" : "text-base")}>
-      MAM
-    </span>
+    <Image
+      src={MAM_WEBSITE_LOGO_SRC}
+      alt="MAM — Moroccan Advanced Manufacturing"
+      width={MAM_LOGO_WIDTH}
+      height={MAM_LOGO_HEIGHT}
+      priority={!compact}
+      className={cn(
+        "h-auto w-auto object-contain object-left",
+        compact
+          ? "w-[150px] sm:w-[170px]"
+          : "w-[170px] sm:w-[180px] lg:w-[200px]",
+      )}
+    />
   );
 }
 
@@ -28,8 +43,8 @@ export default function MamWebsiteNav() {
 
   return (
     <header className="sticky top-0 z-50 border-b border-white/10 bg-[#0c0e11]/95 backdrop-blur-md">
-      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
-        <Link href="/" className="inline-flex shrink-0 items-center gap-2" aria-label="MAM home">
+      <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
+        <Link href="/" className="inline-flex shrink-0 items-center" aria-label="MAM home">
           <MamLogo />
         </Link>
 

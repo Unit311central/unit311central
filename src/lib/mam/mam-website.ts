@@ -37,6 +37,9 @@ export const MAM_PROCESS_IMAGE = "/images/mam/process.jpg";
 
 export const MAM_CASA_IMAGE = "/images/mam/casablanca.jpg";
 
+/** Official MAM wordmark (header / footer). */
+export const MAM_WEBSITE_LOGO_SRC = "/images/mam/logo.png";
+
 export const MAM_PUBLIC_NAV = [
   { href: "/", label: "Home" },
   { href: "/manufacturing", label: "Manufacturing" },

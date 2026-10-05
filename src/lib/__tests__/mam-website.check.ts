@@ -10,6 +10,7 @@ import {
   MAM_HERO_IMAGE,
   MAM_MANUFACTURING_HERO_IMAGE,
   MAM_PROCESS_IMAGE,
+  MAM_WEBSITE_LOGO_SRC,
   MAM_WEBSITE_CANONICAL_ORIGIN,
   MAM_WEBSITE_HOSTS,
   mamWebsiteImplPath,
@@ -22,6 +23,7 @@ const MAM_IMAGE_PATHS = [
   MAM_MANUFACTURING_HERO_IMAGE,
   MAM_PROCESS_IMAGE,
   MAM_CASA_IMAGE,
+  MAM_WEBSITE_LOGO_SRC,
 ] as const;
 
 test("mam workspace host is not the public marketing website", () => {
