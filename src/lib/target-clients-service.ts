@@ -17,7 +17,9 @@ import {
   normalizeTargetClientSectorForSave,
   normalizeTargetClientWebsiteInput,
   resolveTargetClientContactNameForSave,
+  normalizeTargetClientNotesForSave,
   validateAddTargetClientForm,
+  validateTargetClientNotes,
   validateTargetClientSector,
   type AddTargetClientFormValues,
   type TargetClientRow,
@@ -101,6 +103,7 @@ function formValuesToLeadPatch(values: AddTargetClientFormValues) {
     companyWebsite: websiteNorm,
     industry: normalizeTargetClientSectorForSave(values.sector),
     role: values.contactPosition.trim(),
+    notes: normalizeTargetClientNotesForSave(values.notes),
     source: TARGET_CLIENTS_CRM_SOURCE,
     status: "Cold" as const,
   };
@@ -153,6 +156,16 @@ export async function importTargetClientsBatch(
       });
       continue;
     }
+    const notesError = validateTargetClientNotes(row.values.notes);
+    if (notesError) {
+      results.push({
+        sourceRowNumber: row.sourceRowNumber,
+        status: "skipped",
+        reason: notesError,
+        code: "VALIDATION",
+      });
+      continue;
+    }
     try {
       const client = await createTargetClientFromForm(row.values, scope);
       results.push({ sourceRowNumber: row.sourceRowNumber, status: "imported", client });
@@ -192,6 +205,7 @@ export async function createTargetClientFromForm(
       companyWebsite: patch.companyWebsite || undefined,
       industry: patch.industry || undefined,
       role: patch.role || undefined,
+      notes: patch.notes || undefined,
       status: "Cold",
       source: TARGET_CLIENTS_CRM_SOURCE,
     },
@@ -219,6 +233,7 @@ export async function updateTargetClientFromForm(
       companyWebsite: patch.companyWebsite,
       industry: patch.industry,
       role: patch.role,
+      notes: patch.notes,
       source: TARGET_CLIENTS_CRM_SOURCE,
       status: "Cold",
     },

@@ -1,6 +1,10 @@
 import type { CrmLead } from "@/lib/crm-data";
+import { CRM_CLIENT_REPORT_NOTES_PREFIX } from "@/lib/crm-client-report-notes";
 import { CLIENT_INDUSTRY_OPTIONS } from "@/lib/client-management-data";
 import { isTargetClientsRolloutHost } from "@/lib/sales-management-target-clients";
+
+/** Stored on `crm_leads.notes` for Target Client free-text (separate from opportunity client-report JSON block). */
+export const TARGET_CLIENT_NOTES_MAX_LENGTH = 5000;
 
 /** Stored on `crm_leads.industry` — free text with suggested values for UI/import. */
 export const TARGET_CLIENT_SECTOR_MAX_LENGTH = 120;
@@ -57,6 +61,7 @@ export type TargetClientRow = {
   contactName: string;
   contactPosition: string;
   email: string;
+  notes: string;
   contacted: boolean;
 };
 
@@ -67,6 +72,7 @@ export type AddTargetClientFormValues = {
   contactName: string;
   contactPosition: string;
   email: string;
+  notes: string;
 };
 
 /** Modal field order (Add Target Client). */
@@ -77,7 +83,29 @@ export const ADD_TARGET_CLIENT_FIELD_ORDER = [
   "contactName",
   "contactPosition",
   "email",
+  "notes",
 ] as const satisfies readonly (keyof AddTargetClientFormValues)[];
+
+export function normalizeTargetClientNotesForSave(notes: string): string {
+  return notes.replace(/^\s+|\s+$/g, "");
+}
+
+/** User-visible notes only (strips embedded CRM client-report JSON block if present). */
+export function displayTargetClientNotes(stored: string | null | undefined): string {
+  if (!stored) return "";
+  const prefixIndex = stored.indexOf(CRM_CLIENT_REPORT_NOTES_PREFIX);
+  const text = prefixIndex >= 0 ? stored.slice(0, prefixIndex) : stored;
+  return normalizeTargetClientNotesForSave(text);
+}
+
+export function validateTargetClientNotes(notes: string): string | null {
+  const normalized = normalizeTargetClientNotesForSave(notes);
+  if (!normalized) return null;
+  if (normalized.length > TARGET_CLIENT_NOTES_MAX_LENGTH) {
+    return `Notes must be ${TARGET_CLIENT_NOTES_MAX_LENGTH} characters or fewer.`;
+  }
+  return null;
+}
 
 export type TargetClientFieldErrors = Partial<
   Record<keyof AddTargetClientFormValues, string>
@@ -108,6 +136,7 @@ export function mapLeadToTargetClientRow(lead: CrmLead): TargetClientRow {
     contactName: displayContactName(lead.contactName),
     contactPosition: lead.role?.trim() ?? "",
     email: lead.email?.trim() ?? "",
+    notes: displayTargetClientNotes(lead.notes),
     contacted: lead.contactCount > 0 || Boolean(lead.lastContactAt),
   };
 }
@@ -171,6 +200,7 @@ export function rowToFormValues(row: TargetClientRow): AddTargetClientFormValues
     contactName: row.contactName,
     contactPosition: row.contactPosition,
     email: row.email,
+    notes: row.notes,
   };
 }
 
@@ -197,6 +227,8 @@ export function validateAddTargetClientForm(
   }
   const emailError = validateTargetClientEmail(values.email);
   if (emailError) errors.email = emailError;
+  const notesError = validateTargetClientNotes(values.notes);
+  if (notesError) errors.notes = notesError;
   return errors;
 }
 

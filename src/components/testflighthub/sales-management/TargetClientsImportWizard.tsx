@@ -435,7 +435,8 @@ export default function TargetClientsImportWizard({
                       <th className="px-2 py-2">Company</th>
                       <th className="px-2 py-2">Website</th>
                       <th className="px-2 py-2">Email</th>
-                      <th className="px-2 py-2">Notes</th>
+                      <th className="px-2 py-2">Client notes</th>
+                      <th className="px-2 py-2">Issues</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -457,8 +458,15 @@ export default function TargetClientsImportWizard({
                           {p.normalizedWebsite || p.values.website || "—"}
                         </td>
                         <td className="max-w-[140px] truncate px-2 py-1.5">{p.values.email || "—"}</td>
+                        <td className="max-w-[160px] truncate px-2 py-1.5 text-white/55" title={p.values.notes}>
+                          {p.values.notes
+                            ? p.values.notes.length > 80
+                              ? `${p.values.notes.slice(0, 80)}…`
+                              : p.values.notes
+                            : "—"}
+                        </td>
                         <td className="max-w-[200px] truncate px-2 py-1.5 text-white/50">
-                          {p.messages.join(" ")}
+                          {p.messages.join(" ") || "—"}
                         </td>
                       </tr>
                     ))}

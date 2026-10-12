@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Loader2, X } from "lucide-react";
 
 import {
+  TARGET_CLIENT_NOTES_MAX_LENGTH,
   TARGET_CLIENT_SECTOR_SUGGESTIONS,
   validateAddTargetClientForm,
   validateTargetClientSector,
@@ -19,6 +20,7 @@ const EMPTY_FORM: AddTargetClientFormValues = {
   contactName: "",
   contactPosition: "",
   email: "",
+  notes: "",
 };
 
 function fieldClass(hasError: boolean) {
@@ -252,6 +254,29 @@ function TargetClientFormModal({
             {fieldErrors.email ? (
               <p className="mt-1 text-xs text-red-300">{fieldErrors.email}</p>
             ) : null}
+          </div>
+
+          <div>
+            <label className="text-xs font-medium text-white/70">Notes</label>
+            <textarea
+              value={values.notes}
+              onChange={(e) => updateField("notes", e.target.value)}
+              rows={4}
+              maxLength={TARGET_CLIENT_NOTES_MAX_LENGTH}
+              placeholder="Optional research notes, context, or follow-up reminders"
+              className={cn(fieldClass(Boolean(fieldErrors.notes)), "resize-y min-h-[88px]")}
+              disabled={saving}
+            />
+            <div className="mt-1 flex flex-wrap items-center justify-between gap-1">
+              {fieldErrors.notes ? (
+                <p className="text-xs text-red-300">{fieldErrors.notes}</p>
+              ) : (
+                <p className="text-[11px] text-white/40">Optional — line breaks are preserved.</p>
+              )}
+              <p className="text-[11px] tabular-nums text-white/40">
+                {values.notes.length}/{TARGET_CLIENT_NOTES_MAX_LENGTH}
+              </p>
+            </div>
           </div>
 
           <div className="flex flex-col-reverse gap-2 border-t border-white/10 pt-4 sm:flex-row sm:justify-end">

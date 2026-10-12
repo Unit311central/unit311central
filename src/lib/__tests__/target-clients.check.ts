@@ -11,11 +11,16 @@ import {
   isTargetClientLead,
   mapLeadToTargetClientRow,
   normalizeTargetClientWebsiteInput,
+  normalizeTargetClientNotesForSave,
   resolveTargetClientContactNameForSave,
   searchTargetClientRows,
   validateAddTargetClientForm,
   validateTargetClientEmail,
+  validateTargetClientNotes,
+  TARGET_CLIENT_NOTES_MAX_LENGTH,
+  displayTargetClientNotes,
 } from "@/lib/target-clients";
+import { CRM_CLIENT_REPORT_NOTES_PREFIX } from "@/lib/crm-client-report-notes";
 import { isTargetClientsRolloutHost } from "@/lib/sales-management-target-clients";
 
 assert.deepEqual(ADD_TARGET_CLIENT_FIELD_ORDER, [
@@ -25,9 +30,21 @@ assert.deepEqual(ADD_TARGET_CLIENT_FIELD_ORDER, [
   "contactName",
   "contactPosition",
   "email",
+  "notes",
 ]);
 
-assert.equal(validateAddTargetClientForm({ companyName: "  ", website: "", sector: "", contactName: "", contactPosition: "", email: "" }).companyName, "Company name is required.");
+assert.equal(
+  validateAddTargetClientForm({
+    companyName: "  ",
+    website: "",
+    sector: "",
+    contactName: "",
+    contactPosition: "",
+    email: "",
+    notes: "",
+  }).companyName,
+  "Company name is required.",
+);
 
 assert.equal(normalizeTargetClientWebsiteInput("").error, null);
 assert.equal(normalizeTargetClientWebsiteInput("not a url").error, "Enter a valid website address.");
@@ -100,6 +117,21 @@ const row = mapLeadToTargetClientRow(sampleLead);
 assert.equal(row.companyName, "Acme Ltd");
 assert.equal(row.sector, "Construction");
 assert.equal(row.contacted, false);
+assert.equal(row.notes, "");
+
+const notesLead = {
+  ...sampleLead,
+  notes: "Line one\nLine two",
+};
+assert.equal(mapLeadToTargetClientRow(notesLead).notes, "Line one\nLine two");
+
+const reportBlock = `${CRM_CLIENT_REPORT_NOTES_PREFIX}\n{"clientReportFileId":"x"}`;
+assert.equal(displayTargetClientNotes(`Research memo\n\n${reportBlock}`), "Research memo");
+
+assert.equal(normalizeTargetClientNotesForSave("  hello  "), "hello");
+assert.equal(validateTargetClientNotes(""), null);
+assert.equal(validateTargetClientNotes("a".repeat(TARGET_CLIENT_NOTES_MAX_LENGTH)), null);
+assert.match(validateTargetClientNotes("a".repeat(TARGET_CLIENT_NOTES_MAX_LENGTH + 1)) ?? "", /5000/);
 
 const contactedLead = { ...sampleLead, contactCount: 1 };
 assert.equal(mapLeadToTargetClientRow(contactedLead).contacted, true);

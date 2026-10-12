@@ -40,6 +40,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       contactName: String(body.contactName ?? ""),
       contactPosition: String(body.contactPosition ?? ""),
       email: String(body.email ?? ""),
+      notes: String(body.notes ?? ""),
     };
 
     const fieldErrors = validateAddTargetClientForm(values);

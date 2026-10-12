@@ -1,8 +1,10 @@
 import {
   normalizeTargetClientWebsiteInput,
   normalizeTargetClientSectorForSave,
+  normalizeTargetClientNotesForSave,
   validateAddTargetClientForm,
   validateTargetClientEmail,
+  validateTargetClientNotes,
   validateTargetClientSector,
   type AddTargetClientFormValues,
 } from "@/lib/target-clients";
@@ -19,6 +21,7 @@ export const TARGET_CLIENT_IMPORT_FIELDS: TargetClientImportField[] = [
   "contactName",
   "contactPosition",
   "email",
+  "notes",
 ];
 
 export const TARGET_CLIENT_IMPORT_FIELD_LABELS: Record<TargetClientImportField, string> = {
@@ -28,6 +31,7 @@ export const TARGET_CLIENT_IMPORT_FIELD_LABELS: Record<TargetClientImportField, 
   contactName: "Contact Name",
   contactPosition: "Contact Position",
   email: "Email Address",
+  notes: "Notes",
 };
 
 const FIELD_ALIASES: Record<TargetClientImportField, readonly string[]> = {
@@ -45,6 +49,7 @@ const FIELD_ALIASES: Record<TargetClientImportField, readonly string[]> = {
   contactName: ["contact name", "contact", "primary contact", "full name", "name"],
   contactPosition: ["contact position", "position", "job title", "role", "contact's role", "title"],
   email: ["email", "email address", "work email", "business email", "e-mail"],
+  notes: ["notes", "client notes", "research notes", "prospect notes", "comments"],
 };
 
 export type ParsedSpreadsheet = {
@@ -190,6 +195,7 @@ export function applyColumnMapping(
       contactName: pick("contactName"),
       contactPosition: pick("contactPosition"),
       email: pick("email"),
+      notes: pick("notes"),
     };
   });
 }
@@ -282,6 +288,11 @@ export function previewImportRows(
           messages.push(sectorError);
           status = "error";
         }
+        const notesError = validateTargetClientNotes(row.notes);
+        if (notesError) {
+          messages.push(notesError);
+          status = "error";
+        }
       }
     }
 
@@ -294,6 +305,7 @@ export function previewImportRows(
         contactName: row.contactName.trim(),
         contactPosition: row.contactPosition.trim(),
         email: row.email.trim(),
+        notes: normalizeTargetClientNotesForSave(row.notes),
       },
       normalizedWebsite: websiteNorm,
       status,

@@ -15,7 +15,11 @@ import {
   suggestColumnMapping,
 } from "@/lib/target-clients-import";
 import type { TargetClientRow } from "@/lib/target-clients";
-import { validateTargetClientSector } from "@/lib/target-clients";
+import {
+  TARGET_CLIENT_NOTES_MAX_LENGTH,
+  validateTargetClientNotes,
+  validateTargetClientSector,
+} from "@/lib/target-clients";
 
 assert.deepEqual(splitCsvLine('"a,b",c'), ["a,b", "c"]);
 assert.deepEqual(splitCsvLine('"say ""hi""",x'), ['say "hi"', "x"]);
@@ -51,6 +55,7 @@ assert.equal(
       contactName: "",
       contactPosition: "",
       email: "",
+      notes: "",
     },
     crmKeys,
   ),
@@ -66,6 +71,7 @@ const previewRows = [
     contactName: "",
     contactPosition: "",
     email: "good@example.com",
+    notes: "",
   },
   {
     sourceRowNumber: 3,
@@ -75,6 +81,7 @@ const previewRows = [
     contactName: "",
     contactPosition: "",
     email: "",
+    notes: "",
   },
   {
     sourceRowNumber: 4,
@@ -84,6 +91,7 @@ const previewRows = [
     contactName: "",
     contactPosition: "",
     email: "not-an-email",
+    notes: "",
   },
   {
     sourceRowNumber: 5,
@@ -93,6 +101,7 @@ const previewRows = [
     contactName: "",
     contactPosition: "",
     email: "other@example.com",
+    notes: "",
   },
 ];
 
@@ -113,13 +122,44 @@ const exportRow: TargetClientRow = {
   contactName: "Sam",
   contactPosition: "CEO",
   email: "sam@test.example",
+  notes: "Line A\nLine B",
   contacted: true,
 };
 const csvOut = buildTargetClientsExportCsv([exportRow]);
 assert.ok(csvOut.startsWith("\uFEFF"));
 assert.ok(csvOut.includes("Company Name"));
 assert.ok(csvOut.includes("Contacted?"));
+assert.ok(csvOut.includes("Notes"));
 assert.ok(csvOut.includes("Yes"));
+assert.ok(csvOut.includes('"Line A\nLine B"'));
+
+const notesHeaderCsv = "Company Name,Comments\nAcme Co,Research: priority account\n";
+const notesParsed = parseTargetClientsCsv(notesHeaderCsv);
+const notesMapping = suggestColumnMapping(notesParsed.headers);
+assert.equal(notesMapping.companyName, 0);
+assert.equal(notesMapping.notes, 1);
+const notesMapped = applyColumnMapping(notesParsed.headers, notesParsed.rows, notesMapping);
+assert.equal(notesMapped[0].notes, "Research: priority account");
+
+assert.equal(validateTargetClientNotes("x".repeat(TARGET_CLIENT_NOTES_MAX_LENGTH + 1))?.includes("5000"), true);
+
+const longNotesPreview = previewImportRows(
+  [
+    {
+      sourceRowNumber: 2,
+      companyName: "Long Notes Co",
+      website: "",
+      sector: "",
+      contactName: "",
+      contactPosition: "",
+      email: "long@example.com",
+      notes: "n".repeat(TARGET_CLIENT_NOTES_MAX_LENGTH + 1),
+    },
+  ],
+  new Set(),
+);
+assert.equal(longNotesPreview[0]?.status, "error");
+assert.ok(longNotesPreview[0]?.messages.some((m) => m.includes("Notes")));
 assert.match(targetClientsExportFilename(new Date("2026-10-12T12:00:00Z")), /^unit311-target-clients-2026-10-12\.csv$/);
 
 const emptyParsed = parseTargetClientsCsv("\n\n");

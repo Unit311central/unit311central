@@ -51,6 +51,7 @@ export async function POST(request: NextRequest) {
       contactName: String(body.contactName ?? ""),
       contactPosition: String(body.contactPosition ?? ""),
       email: String(body.email ?? ""),
+      notes: String(body.notes ?? ""),
     };
 
     const fieldErrors = validateAddTargetClientForm(values);

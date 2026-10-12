@@ -9,6 +9,7 @@ export const TARGET_CLIENTS_EXPORT_HEADERS = [
   "Contact Position",
   "Email Address",
   "Contacted?",
+  "Notes",
 ] as const;
 
 function escapeCsvCell(value: string): string {
@@ -41,6 +42,7 @@ export function buildTargetClientsExportCsv(rows: TargetClientRow[]): string {
         row.contactPosition,
         row.email,
         row.contacted ? "Yes" : "No",
+        row.notes,
       ]
         .map(escapeCsvCell)
         .join(","),

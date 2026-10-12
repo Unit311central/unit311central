@@ -70,6 +70,14 @@ export default function ViewTargetClientModal({
           <Field label="Contact Name" value={row.contactName} />
           <Field label="Contact Position" value={row.contactPosition} />
           <Field label="Email Address" value={row.email} />
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-white/40">Notes</p>
+            {row.notes ? (
+              <p className="mt-1 whitespace-pre-wrap text-sm text-white/90">{row.notes}</p>
+            ) : (
+              <p className="mt-1 text-sm text-white/90">—</p>
+            )}
+          </div>
         </div>
 
         <div className="border-t border-white/10 px-5 py-4">

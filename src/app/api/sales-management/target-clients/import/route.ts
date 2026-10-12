@@ -49,6 +49,7 @@ export async function POST(request: NextRequest) {
         contactName: String(row.contactName ?? ""),
         contactPosition: String(row.contactPosition ?? ""),
         email: String(row.email ?? ""),
+        notes: String(row.notes ?? ""),
       };
       const fieldErrors = validateAddTargetClientForm(values);
       if (Object.keys(fieldErrors).length > 0) {
@@ -72,6 +73,7 @@ export async function POST(request: NextRequest) {
           contactName: String(row.contactName ?? ""),
           contactPosition: String(row.contactPosition ?? ""),
           email: String(row.email ?? ""),
+          notes: String(row.notes ?? ""),
         },
       })),
       { workspaceId: workspace.id },
