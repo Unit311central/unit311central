@@ -55,9 +55,8 @@ assert.equal(
 function assertInternalPipelineIncludesTargetClients() {
   const prevWindow = globalThis.window;
   try {
-    globalThis.window = {
-      location: { hostname: "internal.unit311central.com" },
-    } as Window;
+    // @ts-expect-error minimal browser stub for internal host detection in nav pipeline
+    globalThis.window = { location: { hostname: "internal.unit311central.com" } };
     const { internalSurveyNavSections } =
       require("@/lib/internal-operations-data") as typeof import("@/lib/internal-operations-data");
     const { filterInternalNavSectionsForDemoSurface } =
