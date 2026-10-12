@@ -32,14 +32,27 @@ import {
   SalesManagementReportsTab,
   SalesManagementTargetsTab,
 } from "./SalesManagementManagementTabs";
+import {
+  isTargetClientsRolloutHost,
+  isTargetClientsTab,
+  TARGET_CLIENTS_PREVIEW_TAB_LEGACY,
+  TARGET_CLIENTS_TAB,
+} from "@/lib/sales-management-target-clients";
+
+import TargetClientsOpeningScreen from "./TargetClientsOpeningScreen";
 import { SalesTabHeader } from "./sales-management-ui";
 import {
   isInternalOpportunitiesArchitectureEnabled,
   isSalesTabHiddenInInternalOpportunitiesArchitecture,
 } from "@/lib/internal-sales-opportunities-architecture";
 
-function resolveTab(searchParams: URLSearchParams): SalesManagementTabId {
+function resolveTab(
+  searchParams: URLSearchParams,
+): SalesManagementTabId | typeof TARGET_CLIENTS_TAB | typeof TARGET_CLIENTS_PREVIEW_TAB_LEGACY {
   const fromTab = searchParams.get("tab");
+  if (isTargetClientsTab(fromTab)) {
+    return fromTab === TARGET_CLIENTS_PREVIEW_TAB_LEGACY ? TARGET_CLIENTS_PREVIEW_TAB_LEGACY : TARGET_CLIENTS_TAB;
+  }
   if (isSalesManagementTab(fromTab)) return fromTab;
   return DEFAULT_SALES_MANAGEMENT_TAB;
 }
@@ -49,14 +62,21 @@ export default function SalesManagementWorkspace() {
   const searchParams = useSearchParams();
   const activeTab = useMemo(() => resolveTab(searchParams), [searchParams]);
   const basePath = useInternalOperationsBasePath();
+  const [targetClientsEnabled, setTargetClientsEnabled] = useState(false);
+  const [representatives, setRepresentatives] = useState<Representative[]>([]);
+
+  useEffect(() => {
+    setTargetClientsEnabled(isTargetClientsRolloutHost(window.location.hostname));
+  }, []);
 
   useEffect(() => {
     if (!isInternalOpportunitiesArchitectureEnabled()) return;
+    if (!isSalesManagementTab(activeTab)) return;
     if (!isSalesTabHiddenInInternalOpportunitiesArchitecture(activeTab)) return;
     const href = getInternalNavHref("sales-management", basePath, { tab: "opportunities" });
     router.replace(href);
   }, [activeTab, basePath, router]);
-  const [representatives, setRepresentatives] = useState<Representative[]>([]);
+
   const [selectedRepresentativeId, setSelectedRepresentativeId] = useState("rep-1");
 
   useEffect(() => {
@@ -79,6 +99,13 @@ export default function SalesManagementWorkspace() {
         return <SalesManagementMySalesTab />;
       case "sales-team":
         return <SalesManagementSalesTeamTab />;
+      case "target-clients":
+      case "target-clients-preview":
+        return targetClientsEnabled ? (
+          <TargetClientsOpeningScreen variant="live" />
+        ) : (
+          <SalesManagementDashboard />
+        );
       case "prospects":
         return (
           <div className="space-y-4">
@@ -132,7 +159,7 @@ export default function SalesManagementWorkspace() {
       default:
         return null;
     }
-  }, [activeTab, quotesReturnHref, representatives, selectedRepresentativeId]);
+  }, [activeTab, quotesReturnHref, representatives, selectedRepresentativeId, targetClientsEnabled]);
 
   return (
     <div className="w-full min-w-0 space-y-4" aria-label="Sales Management">

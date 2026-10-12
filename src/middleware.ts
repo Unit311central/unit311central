@@ -45,36 +45,15 @@ import {
   clearPortalsBriefingCookies,
 } from "@/lib/portals/briefing/cookies";
 import { getOnwardAirClientPortalByPath } from "@/lib/onwardair/client-portal-routes";
-import { getWolfPailexPortalByPath } from "@/lib/wolf/wolf-pailex-portal-routes";
-import { getOmnitransitPortalByPath } from "@/lib/saec/client-portal-routes";
 import { isOverviewPortalAccessAllowed, isFreshOverviewDocumentNavigation, isOverviewAuthBypassEnabled } from "@/lib/onwardair/overview-gate";
 import { isOnwardAirSlug } from "@/lib/onwardair-surface";
 import { isTalantonImpactSlug, TALANTON_HOST_ALIAS_SLUG, TALANTON_IMPACT_SLUG } from "@/lib/talanton-surface";
-import {
-  OMNITRANSIT_HOST_ALIAS_SLUG,
-  SAEC_SLUG,
-  canonicalizeSaecWorkspaceSlug,
-} from "@/lib/saec-surface";
-import {
-  WOLF_CENTRAL_HOST_ALIAS,
-  WOLF_CENTRAL_SLUG,
-  canonicalizeWolfCentralSlug,
-} from "@/lib/wolf/wolf-surface";
-import {
-  isVercelPreviewEnvironment,
-  isVercelPreviewHost,
-  isWolfCentralPreviewPathname,
-  mapWolfCentralPreviewPathToInternal,
-  parseWolfCentralPreviewLoginReturnTo,
-  wolfCentralPreviewLoginReturnTo,
-} from "@/lib/wolf/wolf-preview-tenancy";
 import {
   matchDemoClientPortalPathname,
   PRIMARY_DEMO_CLIENT_PORTAL_SLUG,
 } from "@/lib/demo/demo-client-portal-routes";
 import { matchNorthstarDemoClientPortalPathname } from "@/lib/demo/northstar-client-portal-routes";
 import { ABHI_SLUG } from "@/lib/abhi-surface";
-import { isGreenDesertSlug } from "@/lib/greendesert-surface";
 import {
   applyOverviewViewCookie,
   clearOverviewGateCookie,
@@ -94,11 +73,6 @@ import {
   interfaceWorxWebsiteImplPath,
   isInterfaceWorxWebsiteHost,
 } from "@/lib/interface-worx-surface";
-import {
-  isMamPublicWebsitePath,
-  isMamWebsiteHost,
-  mamWebsiteImplPath,
-} from "@/lib/mam/mam-website";
 import { INTERNAL_WORKSPACE_SLUG } from "@/lib/workspace-host";
 
 /** Next.js / browser prefetch must not clear auth gates or bounce live sessions. */
@@ -221,92 +195,6 @@ function demoEaTestingPublicResponse(request: NextRequest, pathname: string): Ne
   return response;
 }
 
-async function handleWolfCentralPreviewRequest(
-  request: NextRequest,
-  host: string | null,
-  pathname: string,
-  search: string,
-): Promise<NextResponse | null> {
-  if (!isVercelPreviewEnvironment() || !isVercelPreviewHost(host)) {
-    return null;
-  }
-
-  const previewOrigin = `${request.nextUrl.protocol}//${host}`;
-  const returnToParam = request.nextUrl.searchParams.get("return_to");
-  const wolfPath = isWolfCentralPreviewPathname(pathname);
-  const wolfLoginReturn = parseWolfCentralPreviewLoginReturnTo(returnToParam, previewOrigin);
-  const wolfLoginContext =
-    pathname === "/login" ||
-    pathname.startsWith("/login/") ||
-    pathname === "/resetpassword" ||
-    pathname.startsWith("/resetpassword/");
-  const wolfContext = wolfPath || (wolfLoginContext && Boolean(wolfLoginReturn));
-
-  if (!wolfContext) {
-    return null;
-  }
-
-  const headers = withHostHeaders(request, { workspaceSlug: WOLF_CENTRAL_SLUG });
-  headers.set("x-unit311-pathname", pathname);
-  const workspaceResponseHeaders = {
-    "x-unit311-workspace": "1",
-    "x-unit311-workspace-slug": WOLF_CENTRAL_SLUG,
-  };
-
-  if (pathname.startsWith("/api/") || pathname.startsWith("/_next/")) {
-    return NextResponse.next({ request: { headers } });
-  }
-
-  if (
-    pathname === "/login" ||
-    pathname.startsWith("/login/") ||
-    pathname === "/resetpassword" ||
-    pathname.startsWith("/resetpassword/")
-  ) {
-    const gate = await evaluateCustomerHostSessionGate(request, WOLF_CENTRAL_SLUG);
-    const response = NextResponse.next({ request: { headers } });
-    if (gate.status === "invalid" || gate.status === "forbidden") {
-      clearPlatformSessionCookie(response, request);
-    }
-    for (const [key, value] of Object.entries(workspaceResponseHeaders)) {
-      response.headers.set(key, value);
-    }
-    response.headers.set(
-      "Cache-Control",
-      "private, no-cache, no-store, max-age=0, must-revalidate",
-    );
-    return response;
-  }
-
-  const gate = await evaluateCustomerHostSessionGate(request, WOLF_CENTRAL_SLUG);
-  if (gate.status === "anonymous" || gate.status === "invalid") {
-    const bounce = redirectExternal(
-      `${previewOrigin}/login?return_to=${encodeURIComponent(wolfCentralPreviewLoginReturnTo(previewOrigin))}`,
-    );
-    if (gate.status === "invalid") {
-      clearPlatformSessionCookie(bounce, request);
-    }
-    return bounce;
-  }
-
-  if (gate.status === "forbidden" || gate.status === "workspace_missing") {
-    const bounce = redirectExternal(
-      `${previewOrigin}/login?return_to=${encodeURIComponent(wolfCentralPreviewLoginReturnTo(previewOrigin))}`,
-    );
-    clearPlatformSessionCookie(bounce, request);
-    return bounce;
-  }
-
-  const internalPath = mapWolfCentralPreviewPathToInternal(pathname);
-  const response = rewriteTo(
-    request,
-    `${internalPath}${search}`,
-    headers,
-    workspaceResponseHeaders,
-  );
-  return applyCustomerHostRebindIfNeeded({ request, response, gate });
-}
-
 /**
  * Apex (public site): marketing + permanent redirects of legacy internal paths.
  * Internal host: rewrite `/` onto /internaldashboard (App Router); never
@@ -326,30 +214,12 @@ export async function middleware(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
   const normalizedHost = normalizeHost(host);
 
-  // SAEC Discovery — standalone app chrome on every host (incl. Vercel preview).
-  if (pathname === "/saec-discovery" || pathname.startsWith("/saec-discovery/")) {
-    const headers = new Headers(request.headers);
-    headers.set("x-unit311-bare-chrome", "1");
-    headers.set("x-unit311-pathname", pathname);
-    return NextResponse.next({ request: { headers } });
-  }
-
   // Northstar demo EA test suite — public (no login), must run before any auth gate.
   if (
     isDemoHostForEaTesting(host, normalizedHost) &&
     (isDemoEaTestingPath(pathname) || isDemoEaTestingApiPath(pathname))
   ) {
     return demoEaTestingPublicResponse(request, pathname);
-  }
-
-  const wolfPreviewResponse = await handleWolfCentralPreviewRequest(
-    request,
-    host,
-    pathname,
-    search,
-  );
-  if (wolfPreviewResponse) {
-    return wolfPreviewResponse;
   }
 
   // Internal workspace slug must never be a customer subdomain host.
@@ -387,104 +257,36 @@ export async function middleware(request: NextRequest) {
     return response;
   }
 
-  // --- MAM public marketing website (mam-ma.vercel.app) — not workspace host ---
-  if (isMamWebsiteHost(host)) {
-    const headers = new Headers(request.headers);
-    headers.set("x-unit311-bare-chrome", "1");
-    headers.set("x-unit311-mam-website", "1");
-
-    if (pathname.startsWith("/api/") || pathname.startsWith("/_next/")) {
-      return NextResponse.next({ request: { headers } });
-    }
-
-    const normalizedPath =
-      pathname === "/" || pathname === "" ? "/" : pathname.replace(/\/$/, "");
-
-    if (!isMamPublicWebsitePath(normalizedPath)) {
-      return redirectExternal(`https://${host}/`);
-    }
-
-    const implPath = mamWebsiteImplPath(normalizedPath);
-    const response = rewriteTo(request, implPath, headers, {
-      "x-unit311-mam-website": "1",
-    });
-    response.headers.set(
-      "Cache-Control",
-      "private, no-cache, no-store, max-age=0, must-revalidate",
-    );
-    return response;
-  }
-
   // --- Customer workspace hosts: route into the app (existence checked in /ws/[slug]) ---
-  const workspaceSlugFromCentral = parseClientPlatformSubdomainSafe(host);
-  const workspaceSlug = workspaceSlugFromCentral;
+  const workspaceSlug = parseClientPlatformSubdomainSafe(host);
   if (workspaceSlug) {
     // Canonical CorpCentre host is corpcentre.*; keep old corporatecentre.* working.
-    if (workspaceSlugFromCentral === "corporatecentre") {
+    if (workspaceSlug === "corporatecentre") {
       return redirectExternal(
         `https://corpcentre.${UNIT311_SITE_HOST}${pathname === "/" ? "" : pathname}${search}`,
       );
     }
 
     // Canonical OnwardAir host is onwardair.*; keep short onward.* bookmarks branded correctly.
-    if (workspaceSlugFromCentral === "onward") {
+    if (workspaceSlug === "onward") {
       return redirectExternal(
         `https://onwardair.${UNIT311_SITE_HOST}${pathname === "/" ? "" : pathname}${search}`,
       );
     }
 
     // Canonical Talanton host is talantonimpact.*; keep short talanton.* bookmarks working.
-    if (workspaceSlugFromCentral === TALANTON_HOST_ALIAS_SLUG) {
+    if (workspaceSlug === TALANTON_HOST_ALIAS_SLUG) {
       return redirectExternal(
         `https://${TALANTON_IMPACT_SLUG}.${UNIT311_SITE_HOST}${pathname === "/" ? "" : pathname}${search}`,
       );
     }
 
-    // Canonical OmniTransit host is omnitransit.* (workspace slug remains saec).
-    if (workspaceSlugFromCentral === SAEC_SLUG) {
-      return redirectExternal(
-        `https://${OMNITRANSIT_HOST_ALIAS_SLUG}.${UNIT311_SITE_HOST}${pathname === "/" ? "" : pathname}${search}`,
-      );
-    }
-
-    // Canonical WOLF Central host is wolf.* (workspace slug remains wolf-central).
-    if (workspaceSlugFromCentral === WOLF_CENTRAL_SLUG) {
-      return redirectExternal(
-        `https://${WOLF_CENTRAL_HOST_ALIAS}.${UNIT311_SITE_HOST}${pathname === "/" ? "" : pathname}${search}`,
-      );
-    }
-
-    const resolvedWorkspaceSlug =
-      canonicalizeWolfCentralSlug(workspaceSlug) ??
-      canonicalizeSaecWorkspaceSlug(workspaceSlug) ??
-      workspaceSlug;
-    const publicHostSubdomain =
-      resolvedWorkspaceSlug === SAEC_SLUG
-        ? OMNITRANSIT_HOST_ALIAS_SLUG
-        : resolvedWorkspaceSlug === WOLF_CENTRAL_SLUG
-          ? WOLF_CENTRAL_HOST_ALIAS
-          : workspaceSlug;
-
-    const headers = withHostHeaders(request, { workspaceSlug: resolvedWorkspaceSlug });
-    const workspaceOrigin = `https://${publicHostSubdomain}.${UNIT311_SITE_HOST}`;
+    const headers = withHostHeaders(request, { workspaceSlug });
+    const workspaceOrigin = `https://${workspaceSlug}.${UNIT311_SITE_HOST}`;
     const workspaceResponseHeaders = {
       "x-unit311-workspace": "1",
-      "x-unit311-workspace-slug": resolvedWorkspaceSlug,
+      "x-unit311-workspace-slug": workspaceSlug,
     };
-
-    // OmniTransit: never expose /omnitransit-portal/* implementation URLs on public hosts.
-    if (
-      (workspaceSlug === OMNITRANSIT_HOST_ALIAS_SLUG || resolvedWorkspaceSlug === SAEC_SLUG) &&
-      (pathname === "/omnitransit-portal" || pathname.startsWith("/omnitransit-portal/"))
-    ) {
-      const parts = pathname.split("/").filter(Boolean);
-      const route = getOmnitransitPortalByPath(parts[1] ?? "");
-      if (route) {
-        const rest = parts.length > 2 ? `/${parts.slice(2).join("/")}` : "";
-        return redirectExternal(`${workspaceOrigin}/${route.path}${rest}${search}`);
-      }
-      return redirectExternal(`${workspaceOrigin}/login${search}`);
-    }
 
     // OnwardAir: never expose /client-portal/* implementation URLs on the customer host.
     if (
@@ -500,27 +302,13 @@ export async function middleware(request: NextRequest) {
       return redirectExternal(`${workspaceOrigin}/login${search}`);
     }
 
-    // WOLF Central: never expose /wolf-client-portal/* implementation URLs on wolf.* host.
-    if (
-      canonicalizeWolfCentralSlug(workspaceSlug) &&
-      (pathname === "/wolf-client-portal" || pathname.startsWith("/wolf-client-portal/"))
-    ) {
-      const parts = pathname.split("/").filter(Boolean);
-      const route = getWolfPailexPortalByPath(parts[1] ?? "");
-      if (route) {
-        const rest = parts.length > 2 ? `/${parts.slice(2).join("/")}` : "";
-        return redirectExternal(`${workspaceOrigin}/${route.path}${rest}${search}`);
-      }
-      return redirectExternal(`${workspaceOrigin}/login${search}`);
-    }
-
     // Route-based company/member portals: /{company}/... on talantonimpact and abhi hosts only.
     // These URLs must NEVER fall through to the admin /internaldashboard shell.
     if (isPortalWorkspaceSlug(workspaceSlug)) {
       const portalMatch = matchPortalPathnameForSlug(workspaceSlug, pathname);
       const portalImplBase = portalImplBaseForSlug(workspaceSlug);
       if (portalMatch && portalImplBase) {
-        const gate = await evaluateCustomerHostSessionGate(request, resolvedWorkspaceSlug);
+        const gate = await evaluateCustomerHostSessionGate(request, workspaceSlug);
         const isLoginRest =
           portalMatch.rest === "/login" || portalMatch.rest.startsWith("/login/");
 
@@ -701,38 +489,10 @@ export async function middleware(request: NextRequest) {
       return response;
     }
 
-    // Green Desert board portal externals — /board only when assigned to board home.
-    if (isGreenDesertSlug(workspaceSlug)) {
-      const externalGate = await evaluateCustomerHostSessionGate(request, resolvedWorkspaceSlug);
-      if (externalGate.status === "ok" && externalGate.session.userType === "external") {
-        const portalHome = canonicalizePortalRedirect(externalGate.session.redirectPath);
-        const isBoardPath = pathname === "/board" || pathname.startsWith("/board/");
-        const isOrgEntry = pathname === "/login" || pathname.startsWith("/login/");
-        const isAllowedUtility =
-          isOrgEntry || pathname.startsWith("/api/") || pathname.startsWith("/_next/");
-
-        if (!portalHome) {
-          const clear = redirectExternal(`${workspaceOrigin}/login`);
-          clearPlatformSessionCookie(clear, request);
-          return clear;
-        }
-
-        const isBoardHome = portalHome === "/board";
-        if (isBoardHome && !isBoardPath && !isAllowedUtility) {
-          const bounce = redirectExternal(`${workspaceOrigin}${portalHome}`);
-          return applyCustomerHostRebindIfNeeded({
-            request,
-            response: bounce,
-            gate: externalGate,
-          });
-        }
-      }
-    }
-
     // Talanton / ABHI externals may only use login/api/static + their assigned portal.
     // Apex `/` and `/login` are the organisation entry — never hijack into /{company}.
     if (isPortalWorkspaceSlug(workspaceSlug)) {
-      const externalGate = await evaluateCustomerHostSessionGate(request, resolvedWorkspaceSlug);
+      const externalGate = await evaluateCustomerHostSessionGate(request, workspaceSlug);
       if (externalGate.status === "ok" && externalGate.session.userType === "external") {
         const portalHome = canonicalizePortalRedirect(externalGate.session.redirectPath);
         const isPortalPath = matchPortalPathnameForSlug(workspaceSlug, pathname) != null;
@@ -750,12 +510,7 @@ export async function middleware(request: NextRequest) {
           return clear;
         }
 
-        const isBoardPortalPath = pathname === "/board" || pathname.startsWith("/board/");
-        const isBoardPortalHome = portalHome === "/board";
-        const allowGreenDesertBoardPortal =
-          isGreenDesertSlug(workspaceSlug) && isBoardPortalHome && isBoardPortalPath;
-
-        if (!isPortalPath && !isAllowedUtility && !allowGreenDesertBoardPortal) {
+        if (!isPortalPath && !isAllowedUtility) {
           const bounce = redirectExternal(`${workspaceOrigin}${portalHome}`);
           return applyCustomerHostRebindIfNeeded({
             request,
@@ -785,7 +540,7 @@ export async function middleware(request: NextRequest) {
         }
       }
 
-      const gate = await evaluateCustomerHostSessionGate(request, resolvedWorkspaceSlug);
+      const gate = await evaluateCustomerHostSessionGate(request, workspaceSlug);
       const response = NextResponse.next({ request: { headers } });
 
       if (gate.status === "invalid" || gate.status === "forbidden") {
@@ -887,7 +642,7 @@ export async function middleware(request: NextRequest) {
         }
       }
 
-      const gate = await evaluateCustomerHostSessionGate(request, resolvedWorkspaceSlug);
+      const gate = await evaluateCustomerHostSessionGate(request, workspaceSlug);
       if (gate.status === "anonymous" || gate.status === "invalid") {
         const bounce = customerHostLoginRedirect(workspaceOrigin, "/testing");
         if (gate.status === "invalid") {
@@ -897,7 +652,7 @@ export async function middleware(request: NextRequest) {
       }
 
       if (gate.status === "workspace_missing") {
-        const gatewayPath = `${WORKSPACE_HOST_ROUTE_PREFIX}/${encodeURIComponent(resolvedWorkspaceSlug)}`;
+        const gatewayPath = `${WORKSPACE_HOST_ROUTE_PREFIX}/${encodeURIComponent(workspaceSlug)}`;
         return rewriteTo(request, gatewayPath, headers, workspaceResponseHeaders);
       }
 
@@ -912,69 +667,6 @@ export async function middleware(request: NextRequest) {
         response: rewriteTo(request, "/testing", headers, workspaceResponseHeaders),
         gate,
       });
-    }
-
-    // Green Desert board portal — /board on greendesert host (external board members only).
-    if (
-      isGreenDesertSlug(workspaceSlug) &&
-      (pathname === "/board" || pathname.startsWith("/board/"))
-    ) {
-      const isLoginRest = pathname === "/board/login" || pathname.startsWith("/board/login/");
-      const gate = await evaluateCustomerHostSessionGate(request, resolvedWorkspaceSlug);
-
-      const boardLoginGate = (clearSession = false) => {
-        if (!isLoginRest) {
-          const response = redirectExternal(`${workspaceOrigin}/board/login${search}`);
-          if (clearSession) clearPlatformSessionCookie(response, request);
-          return response;
-        }
-        const response = NextResponse.next({ request: { headers } });
-        for (const [key, value] of Object.entries(workspaceResponseHeaders)) {
-          response.headers.set(key, value);
-        }
-        response.headers.set(
-          "Cache-Control",
-          "private, no-cache, no-store, max-age=0, must-revalidate",
-        );
-        if (clearSession) clearPlatformSessionCookie(response, request);
-        return response;
-      };
-
-      if (gate.status === "anonymous") {
-        return boardLoginGate();
-      }
-
-      if (
-        gate.status === "invalid" ||
-        gate.status === "forbidden" ||
-        gate.status === "workspace_missing"
-      ) {
-        return boardLoginGate(true);
-      }
-
-      if (gate.session.userType !== "external") {
-        return boardLoginGate();
-      }
-
-      const allowed = canonicalizePortalRedirect(gate.session.redirectPath);
-      if (allowed !== "/board") {
-        return boardLoginGate(true);
-      }
-
-      if (isLoginRest) {
-        const bounce = redirectExternal(`${workspaceOrigin}/board${search}`);
-        return applyCustomerHostRebindIfNeeded({ request, response: bounce, gate });
-      }
-
-      const response = NextResponse.next({ request: { headers } });
-      for (const [key, value] of Object.entries(workspaceResponseHeaders)) {
-        response.headers.set(key, value);
-      }
-      response.headers.set(
-        "Cache-Control",
-        "private, no-cache, no-store, max-age=0, must-revalidate",
-      );
-      return applyCustomerHostRebindIfNeeded({ request, response, gate });
     }
 
     const requiresAuthenticatedApp =
@@ -1011,7 +703,7 @@ export async function middleware(request: NextRequest) {
         }
       }
 
-      const gate = await evaluateCustomerHostSessionGate(request, resolvedWorkspaceSlug);
+      const gate = await evaluateCustomerHostSessionGate(request, workspaceSlug);
 
       if (gate.status === "anonymous" || gate.status === "invalid") {
         const bounce = customerHostLoginRedirect(workspaceOrigin);
@@ -1022,7 +714,7 @@ export async function middleware(request: NextRequest) {
       }
 
       if (gate.status === "workspace_missing") {
-        const gatewayPath = `${WORKSPACE_HOST_ROUTE_PREFIX}/${encodeURIComponent(resolvedWorkspaceSlug)}`;
+        const gatewayPath = `${WORKSPACE_HOST_ROUTE_PREFIX}/${encodeURIComponent(workspaceSlug)}`;
         return rewriteTo(request, gatewayPath, headers, workspaceResponseHeaders);
       }
 
@@ -1475,9 +1167,7 @@ export async function middleware(request: NextRequest) {
     if (
       pathname === "/partners" ||
       pathname.startsWith("/partners/") ||
-      pathname.startsWith("/dev/android-preview") ||
-      pathname === "/saec-discovery" ||
-      pathname.startsWith("/saec-discovery/")
+      pathname.startsWith("/dev/android-preview")
     ) {
       headers.set("x-unit311-bare-chrome", "1");
     }
@@ -1512,7 +1202,9 @@ export async function middleware(request: NextRequest) {
     if (
       pathname === "/partners" ||
       pathname.startsWith("/partners/") ||
-      pathname.startsWith("/dev/android-preview")
+      pathname.startsWith("/dev/android-preview") ||
+      pathname === "/dev/target-clients-preview" ||
+      pathname.startsWith("/dev/target-clients-preview/")
     ) {
       const headers = new Headers(request.headers);
       headers.set("x-unit311-bare-chrome", "1");
