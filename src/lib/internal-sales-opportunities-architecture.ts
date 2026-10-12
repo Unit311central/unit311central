@@ -1,12 +1,12 @@
-import { isInternalDomainHost } from "@/lib/app-domains";
 import type { InternalNavSection } from "@/lib/internal-operations-data";
+import { isCanonicalSalesManagementHost } from "@/lib/sales-management-rollout";
 import { SALES_MANAGEMENT_MODULE_LABEL } from "@/lib/sales-management-nav";
 import type { SalesManagementTabId } from "@/lib/sales-management-tabs";
 
-/** Internal Unit311 Central host only — not demo or customer tenants. */
+/** Canonical Sales Management hosts (Internal, Demo, WOLF). */
 export function isInternalOpportunitiesArchitectureEnabled(): boolean {
   if (typeof window === "undefined") return false;
-  return isInternalDomainHost(window.location.hostname);
+  return isCanonicalSalesManagementHost(window.location.hostname);
 }
 
 /** Tabs hidden from LHS nav in the internal architecture (data/APIs unchanged). */

@@ -124,6 +124,21 @@ export function isViewAllowedForWorkspaceGrants(
   return enabledViews.includes(view);
 }
 
+/** WOLF operators: union explicit grants with enabled catalogue views (incl. Sales Management). */
+export function applyWolfWorkspaceAllowedViews(
+  allowedViews: InternalOperationsView[] | null | undefined,
+  workspaceSlug: string | null | undefined,
+  enabledModules: readonly string[] | null | undefined,
+  enabledSubModules: readonly string[] | null | undefined,
+): InternalOperationsView[] | null {
+  if (!isWolfCentralSlug(workspaceSlug)) return allowedViews ?? null;
+  return mergeAllowedViewsWithWorkspaceEnablement(
+    allowedViews,
+    enabledModules,
+    enabledSubModules,
+  );
+}
+
 /** Demo operators: union legacy explicit grants with all enabled catalogue views. */
 export function applyDemoWorkspaceAllowedViews(
   allowedViews: InternalOperationsView[] | null | undefined,
@@ -175,8 +190,14 @@ export function applyWorkspaceCatalogueAllowedViews(
     enabledModules,
     enabledSubModules,
   );
-  return applyGreenDesertWorkspaceAllowedViews(
+  const wolfMerged = applyWolfWorkspaceAllowedViews(
     demoMerged,
+    workspaceSlug,
+    enabledModules,
+    enabledSubModules,
+  );
+  return applyGreenDesertWorkspaceAllowedViews(
+    wolfMerged,
     workspaceSlug,
     enabledModules,
     enabledSubModules,

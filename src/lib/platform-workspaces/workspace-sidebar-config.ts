@@ -19,6 +19,7 @@ import { isPailexSlug } from "@/lib/pailex/pailex-surface";
 import { isWolfCentralSlug } from "@/lib/wolf/wolf-surface";
 
 const WOLF_CENTRAL_SHARK_MODULE_ID = "wolf-shark";
+const WOLF_CENTRAL_SALES_MODULE_ID = "sales-management";
 import {
   getNavSectionKey,
   isFixedPinSection,
@@ -547,6 +548,40 @@ export function applyMetadataEnabledModuleHints(
   );
 }
 
+function applyWolfCentralMandatoryModuleRow(
+  rows: WorkspaceSidebarModuleRecord[],
+  moduleId: string,
+  displayOrder: number,
+): WorkspaceSidebarModuleRecord[] {
+  const idx = rows.findIndex((row) => row.moduleId === moduleId);
+  if (idx >= 0) {
+    rows[idx] = { ...rows[idx]!, enabled: true, displayOrder };
+  } else {
+    rows.push({ moduleId, enabled: true, displayOrder });
+  }
+  return rows;
+}
+
+/** WOLF Central always shows Sales Management (canonical rollout; not optional trim). */
+export function applyWolfCentralSalesManagementSidebarRows(
+  rows: readonly WorkspaceSidebarModuleRecord[],
+  workspaceSlug?: string | null,
+): WorkspaceSidebarModuleRecord[] {
+  if (!isWolfCentralSlug(workspaceSlug)) return [...rows];
+
+  const next = [...rows];
+  const businessCentral = next.find((row) => row.moduleId === "business-central");
+  const safari = next.find((row) => row.moduleId === "wolf-animals");
+  const displayOrder =
+    businessCentral && safari
+      ? Math.round((businessCentral.displayOrder + safari.displayOrder) / 2)
+      : businessCentral
+        ? businessCentral.displayOrder + 50
+        : 1250;
+
+  return applyWolfCentralMandatoryModuleRow(next, WOLF_CENTRAL_SALES_MODULE_ID, displayOrder);
+}
+
 /** WOLF Central always shows SHARK in the LHS (product module, not optional trim). */
 export function applyWolfCentralSharkSidebarRows(
   rows: readonly WorkspaceSidebarModuleRecord[],
@@ -554,7 +589,7 @@ export function applyWolfCentralSharkSidebarRows(
 ): WorkspaceSidebarModuleRecord[] {
   if (!isWolfCentralSlug(workspaceSlug)) return [...rows];
 
-  const next = [...rows];
+  const next = applyWolfCentralSalesManagementSidebarRows(rows, workspaceSlug);
   const sharkIndex = next.findIndex((row) => row.moduleId === WOLF_CENTRAL_SHARK_MODULE_ID);
   const engineering = next.find((row) => row.moduleId === "engineering");
   const external = next.find((row) => row.moduleId === "external-client-access");

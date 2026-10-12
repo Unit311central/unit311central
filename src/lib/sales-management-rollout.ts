@@ -12,9 +12,10 @@
  * an explicit product decision and tenancy review.
  */
 
-import { DEMO_WORKSPACE_SLUG } from "@/lib/app-domains";
+import { DEMO_WORKSPACE_SLUG, isDemoDomainHost } from "@/lib/app-domains";
+import { isInternalUnit311CentralHost } from "@/lib/sales-management-target-clients";
 import { INTERNAL_WORKSPACE_SLUG } from "@/lib/workspace-host";
-import { WOLF_CENTRAL_SLUG } from "@/lib/wolf/wolf-surface";
+import { isWolfCentralHost, WOLF_CENTRAL_SLUG } from "@/lib/wolf/wolf-surface";
 
 export const SALES_MANAGEMENT_CANONICAL_WORKSPACE_SLUGS = [
   INTERNAL_WORKSPACE_SLUG,
@@ -41,4 +42,13 @@ export function assertSalesManagementTargetClientsWorkspace(slug: string): void 
       "Target Clients is only available on Internal, Demo and WOLF Sales Management workspaces.",
     );
   }
+}
+
+/** Hosts that run the canonical Internal Sales Management UI (not legacy CRM subviews). */
+export function isCanonicalSalesManagementHost(hostname: string | null | undefined): boolean {
+  return (
+    isInternalUnit311CentralHost(hostname) ||
+    isDemoDomainHost(hostname) ||
+    isWolfCentralHost(hostname)
+  );
 }

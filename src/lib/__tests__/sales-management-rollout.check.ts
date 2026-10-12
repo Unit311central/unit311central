@@ -6,8 +6,10 @@ import assert from "node:assert/strict";
 import {
   SALES_MANAGEMENT_CANONICAL_WORKSPACE_SLUGS,
   assertSalesManagementTargetClientsWorkspace,
+  isCanonicalSalesManagementHost,
   isSalesManagementCanonicalWorkspace,
 } from "@/lib/sales-management-rollout";
+import { applyWolfCentralSalesManagementSidebarRows } from "@/lib/platform-workspaces/workspace-sidebar-config";
 import { isTargetClientsRolloutHost } from "@/lib/sales-management-target-clients";
 import { buildWolfCentralNavSections, wolfCentralNavViews } from "@/lib/wolf/wolf-nav";
 import { SALES_MANAGEMENT_MODULE_LABEL } from "@/lib/sales-management-nav";
@@ -38,5 +40,16 @@ assert.ok(childLabels.includes("Target Clients"), `WOLF Sales nav: ${childLabels
 assert.ok(childLabels.indexOf("Target Clients") < childLabels.indexOf("Opportunities"));
 
 assert.ok(wolfCentralNavViews().includes("sales-management"));
+
+assert.equal(isCanonicalSalesManagementHost("demo.unit311central.com"), true);
+assert.equal(isCanonicalSalesManagementHost("wolf.unit311central.com"), true);
+assert.equal(isCanonicalSalesManagementHost("abhi.unit311central.com"), false);
+
+const wolfSidebarRows = applyWolfCentralSalesManagementSidebarRows(
+  [{ moduleId: "business-central", enabled: true, displayOrder: 400 }],
+  "wolf-central",
+);
+const salesRow = wolfSidebarRows.find((row) => row.moduleId === "sales-management");
+assert.ok(salesRow?.enabled, "WOLF sidebar config must enable sales-management");
 
 console.log("ok  sales-management-rollout.check.ts");
