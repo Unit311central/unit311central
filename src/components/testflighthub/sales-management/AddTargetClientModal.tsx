@@ -27,13 +27,23 @@ function fieldClass(hasError: boolean) {
   );
 }
 
-export type AddTargetClientModalProps = {
+export type TargetClientFormModalProps = {
   open: boolean;
+  mode: "add" | "edit";
+  clientId?: string | null;
+  initialValues?: AddTargetClientFormValues | null;
   onClose: () => void;
   onSaved: () => void | Promise<void>;
 };
 
-export default function AddTargetClientModal({ open, onClose, onSaved }: AddTargetClientModalProps) {
+function TargetClientFormModal({
+  open,
+  mode,
+  clientId,
+  initialValues,
+  onClose,
+  onSaved,
+}: TargetClientFormModalProps) {
   const [values, setValues] = useState<AddTargetClientFormValues>(EMPTY_FORM);
   const [fieldErrors, setFieldErrors] = useState<TargetClientFieldErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
@@ -41,11 +51,11 @@ export default function AddTargetClientModal({ open, onClose, onSaved }: AddTarg
 
   useEffect(() => {
     if (!open) return;
-    setValues(EMPTY_FORM);
+    setValues(initialValues ? { ...initialValues } : EMPTY_FORM);
     setFieldErrors({});
     setFormError(null);
     setSaving(false);
-  }, [open]);
+  }, [open, initialValues, mode]);
 
   const updateField = useCallback(
     (key: keyof AddTargetClientFormValues, value: string) => {
@@ -64,6 +74,10 @@ export default function AddTargetClientModal({ open, onClose, onSaved }: AddTarg
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (saving) return;
+    if (mode === "edit" && !clientId) {
+      setFormError("Missing record id.");
+      return;
+    }
 
     const errors = validateAddTargetClientForm(values);
     if (Object.keys(errors).length > 0) {
@@ -76,15 +90,18 @@ export default function AddTargetClientModal({ open, onClose, onSaved }: AddTarg
     setFieldErrors({});
 
     try {
-      const response = await fetch("/api/sales-management/target-clients", {
-        method: "POST",
+      const url =
+        mode === "edit"
+          ? `/api/sales-management/target-clients/${encodeURIComponent(clientId!)}`
+          : "/api/sales-management/target-clients";
+      const response = await fetch(url, {
+        method: mode === "edit" ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(values),
       });
       const body = (await response.json()) as {
         error?: string;
         fieldErrors?: TargetClientFieldErrors;
-        code?: string;
       };
 
       if (!response.ok) {
@@ -104,17 +121,20 @@ export default function AddTargetClientModal({ open, onClose, onSaved }: AddTarg
 
   if (!open) return null;
 
+  const title = mode === "edit" ? "Edit Target Client" : "Add Target Client";
+  const submitLabel = mode === "edit" ? "Save Target Client" : "Save Target Client";
+
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/65 p-4 pt-[max(1rem,env(safe-area-inset-top))] backdrop-blur-sm sm:items-center sm:p-6">
       <div
         role="dialog"
         aria-modal="true"
-        aria-labelledby="add-target-client-title"
+        aria-labelledby="target-client-form-title"
         className="my-auto w-full max-w-lg rounded-2xl border border-white/15 bg-[#0b1220] shadow-[0_24px_64px_rgba(0,0,0,0.55)]"
       >
         <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
-          <h2 id="add-target-client-title" className="text-base font-semibold text-white">
-            Add Target Client
+          <h2 id="target-client-form-title" className="text-base font-semibold text-white">
+            {title}
           </h2>
           <button
             type="button"
@@ -154,10 +174,11 @@ export default function AddTargetClientModal({ open, onClose, onSaved }: AddTarg
           <div>
             <label className="text-xs font-medium text-white/70">Website</label>
             <input
-              type="url"
+              type="text"
+              inputMode="url"
               value={values.website}
               onChange={(e) => updateField("website", e.target.value)}
-              placeholder="https://example.com"
+              placeholder="website.com"
               className={fieldClass(Boolean(fieldErrors.website))}
               disabled={saving}
             />
@@ -236,7 +257,7 @@ export default function AddTargetClientModal({ open, onClose, onSaved }: AddTarg
               className="inline-flex items-center justify-center gap-2 rounded-lg border border-violet-400/35 bg-violet-500/25 px-4 py-2.5 text-sm font-semibold text-violet-50 hover:bg-violet-500/35 disabled:cursor-not-allowed disabled:opacity-70"
             >
               {saving ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : null}
-              Save Target Client
+              {submitLabel}
             </button>
           </div>
         </form>
@@ -244,3 +265,5 @@ export default function AddTargetClientModal({ open, onClose, onSaved }: AddTarg
     </div>
   );
 }
+
+export default TargetClientFormModal;

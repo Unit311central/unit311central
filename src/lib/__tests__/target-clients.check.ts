@@ -6,7 +6,9 @@ import assert from "node:assert/strict";
 import type { CrmLead } from "@/lib/crm-data";
 import {
   ADD_TARGET_CLIENT_FIELD_ORDER,
+  TARGET_CLIENTS_CRM_SOURCE,
   assertTargetClientsApiHost,
+  isTargetClientLead,
   mapLeadToTargetClientRow,
   normalizeTargetClientWebsiteInput,
   resolveTargetClientContactNameForSave,
@@ -28,8 +30,11 @@ assert.deepEqual(ADD_TARGET_CLIENT_FIELD_ORDER, [
 assert.equal(validateAddTargetClientForm({ companyName: "  ", website: "", sector: "", contactName: "", contactPosition: "", email: "" }).companyName, "Company name is required.");
 
 assert.equal(normalizeTargetClientWebsiteInput("").error, null);
-assert.equal(normalizeTargetClientWebsiteInput("not a url").error, "Enter a valid website URL.");
-assert.ok(normalizeTargetClientWebsiteInput("acme.com").normalized.startsWith("https://"));
+assert.equal(normalizeTargetClientWebsiteInput("not a url").error, "Enter a valid website address.");
+assert.equal(normalizeTargetClientWebsiteInput("acme.com").normalized, "https://acme.com");
+assert.equal(normalizeTargetClientWebsiteInput("www.acme.com").normalized, "https://www.acme.com");
+assert.equal(normalizeTargetClientWebsiteInput("http://acme.com").normalized, "http://acme.com");
+assert.equal(normalizeTargetClientWebsiteInput("javascript:alert(1)").error, "Enter a valid website address.");
 
 assert.equal(validateTargetClientEmail(""), null);
 assert.equal(validateTargetClientEmail("bad"), "Enter a valid email address.");
@@ -86,6 +91,10 @@ const sampleLead = {
   createdAt: "2026-01-01T00:00:00.000Z",
   updatedAt: "2026-01-01T00:00:00.000Z",
 } satisfies CrmLead;
+
+assert.equal(isTargetClientLead({ ...sampleLead, source: "Website", status: "Cold" }), false);
+assert.equal(isTargetClientLead({ ...sampleLead, source: TARGET_CLIENTS_CRM_SOURCE, status: "Warm" }), false);
+assert.equal(isTargetClientLead({ ...sampleLead, source: TARGET_CLIENTS_CRM_SOURCE, status: "Cold" }), true);
 
 const row = mapLeadToTargetClientRow(sampleLead);
 assert.equal(row.companyName, "Acme Ltd");

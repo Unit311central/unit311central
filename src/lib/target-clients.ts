@@ -40,8 +40,18 @@ export type TargetClientFieldErrors = Partial<
   form?: string;
 };
 
+/** Target Clients register: explicit source + pre-opportunity Cold status. */
 export function isTargetClientLead(lead: CrmLead): boolean {
-  return lead.status === "Cold";
+  return (
+    lead.status === "Cold" &&
+    lead.source.trim().toLowerCase() === TARGET_CLIENTS_CRM_SOURCE.toLowerCase()
+  );
+}
+
+export function assertTargetClientLead(lead: CrmLead): void {
+  if (!isTargetClientLead(lead)) {
+    throw new Error("Record is not a Target Client in this workspace.");
+  }
 }
 
 export function mapLeadToTargetClientRow(lead: CrmLead): TargetClientRow {
@@ -74,16 +84,49 @@ export function normalizeTargetClientWebsiteInput(value: string): {
 } {
   const trimmed = value.trim();
   if (!trimmed) return { normalized: "", error: null };
-  const withScheme = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+
+  const hasScheme = /^[a-z][a-z0-9+.-]*:/i.test(trimmed);
+  const toParse = hasScheme ? trimmed : `https://${trimmed}`;
+
   try {
-    const url = new URL(withScheme);
-    if (!url.hostname.includes(".")) {
-      return { normalized: "", error: "Enter a valid website URL." };
+    const url = new URL(toParse);
+    if (url.protocol !== "http:" && url.protocol !== "https:") {
+      return { normalized: "", error: "Enter a valid website address." };
     }
-    return { normalized: withScheme, error: null };
+    const hostname = url.hostname;
+    if (!hostname || !hostname.includes(".")) {
+      return { normalized: "", error: "Enter a valid website address." };
+    }
+    const normalized =
+      url.pathname === "/" && !url.search && !url.hash ? url.origin : url.href.replace(/\/$/, "");
+    return { normalized, error: null };
   } catch {
-    return { normalized: "", error: "Enter a valid website URL." };
+    return { normalized: "", error: "Enter a valid website address." };
   }
+}
+
+/** Safe external href for table/view links; null when not http(s). */
+export function targetClientWebsiteHref(website: string): string | null {
+  const trimmed = website.trim();
+  if (!trimmed) return null;
+  try {
+    const url = new URL(trimmed);
+    if (url.protocol !== "http:" && url.protocol !== "https:") return null;
+    return url.href;
+  } catch {
+    return null;
+  }
+}
+
+export function rowToFormValues(row: TargetClientRow): AddTargetClientFormValues {
+  return {
+    companyName: row.companyName,
+    website: row.website,
+    sector: row.sector,
+    contactName: row.contactName,
+    contactPosition: row.contactPosition,
+    email: row.email,
+  };
 }
 
 export function validateTargetClientEmail(value: string): string | null {
