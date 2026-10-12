@@ -21,6 +21,10 @@ import {
 import { ONWARDAIR_LOCKED_WORKSPACE_SECTION_ORDER } from "@/lib/onwardair-nav-order";
 import { TALANTON_LOCKED_WORKSPACE_SECTION_ORDER } from "@/lib/talanton-nav-order";
 import { buildManagementNavItem } from "@/lib/central-capabilities/management-nav";
+import {
+  isTargetClientsRolloutHost,
+  withTargetClientsNav,
+} from "@/lib/sales-management-target-clients";
 
 import type {
   InternalNavItem,
@@ -1727,11 +1731,15 @@ function injectInternalWorkspacesNav(
 function injectInternalOnlyNav(sections: readonly InternalNavSection[]): InternalNavSection[] {
   const { reshapeSalesManagementNavForInternalOpportunities } =
     require("@/lib/internal-sales-opportunities-architecture") as typeof import("@/lib/internal-sales-opportunities-architecture");
-  return applyUnit311SupportNavOverlays(
+  let next = applyUnit311SupportNavOverlays(
     reshapeSalesManagementNavForInternalOpportunities(
       injectInternalWorkspacesNav(injectInternalPlatformAnalytics(sections)),
     ),
   );
+  if (typeof window !== "undefined" && isTargetClientsRolloutHost(window.location.hostname)) {
+    next = withTargetClientsNav(next);
+  }
+  return next;
 }
 
 function stripUnit311SupportFromTools(
