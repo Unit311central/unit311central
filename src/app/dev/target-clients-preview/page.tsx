@@ -3,14 +3,21 @@ import { notFound } from "next/navigation";
 import TargetClientsOpeningScreen from "@/components/testflighthub/sales-management/TargetClientsOpeningScreen";
 import PlatformThemeProvider from "@/components/testflighthub/PlatformThemeProvider";
 
+type DevPreviewPageProps = {
+  searchParams: Promise<{ variant?: string }>;
+};
+
 /**
  * Design-only Target Clients opening screen — development environment only.
  * No auth, no API, no database. Not linked from production workspace hosts.
  */
-export default function TargetClientsDevPreviewPage() {
+export default async function TargetClientsDevPreviewPage({ searchParams }: DevPreviewPageProps) {
   if (process.env.NODE_ENV === "production") {
     notFound();
   }
+
+  const params = await searchParams;
+  const variant = params.variant === "live" ? "live" : "design-preview";
 
   return (
     <PlatformThemeProvider>
@@ -33,7 +40,7 @@ export default function TargetClientsDevPreviewPage() {
           </p>
         </header>
         <main className="mx-auto max-w-[1400px] px-4 py-5 sm:px-6 md:px-8">
-          <TargetClientsOpeningScreen variant="design-preview" />
+          <TargetClientsOpeningScreen variant={variant} />
         </main>
       </div>
     </PlatformThemeProvider>
