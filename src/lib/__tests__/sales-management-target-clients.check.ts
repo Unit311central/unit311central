@@ -14,9 +14,10 @@ import {
 assert.equal(isTargetClientsRolloutHost("internal.unit311central.com"), true);
 assert.equal(isTargetClientsRolloutHost("INTERNAL.UNIT311CENTRAL.COM"), true);
 assert.equal(isTargetClientsRolloutHost("internal.localhost"), true);
-assert.equal(isTargetClientsRolloutHost("demo.unit311central.com"), false);
-assert.equal(isTargetClientsRolloutHost("talantonimpact.unit311central.com"), false);
+assert.equal(isTargetClientsRolloutHost("demo.unit311central.com"), true);
+assert.equal(isTargetClientsRolloutHost("wolf.unit311central.com"), true);
 assert.equal(isTargetClientsRolloutHost("abhi.unit311central.com"), false);
+assert.equal(isTargetClientsRolloutHost("talantonimpact.unit311central.com"), false);
 
 const simplifiedSalesSection: InternalNavSection = {
   kind: "workspace",

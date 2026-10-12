@@ -1,26 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { getRequestHost } from "@/lib/app-domains";
 import { assertDemoMutationAllowedForRequest } from "@/lib/demo/mutation-guard";
-import { requirePlatformSession } from "@/lib/platform-session";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
 import { TARGET_CLIENTS_IMPORT_MAX_ROWS } from "@/lib/target-clients-import";
 import {
-  assertTargetClientsApiHost,
+  requireTargetClientsApiContext,
+  targetClientsErrorResponse,
+} from "@/lib/target-clients-api-context";
+import {
   validateAddTargetClientForm,
   type AddTargetClientFormValues,
 } from "@/lib/target-clients";
 import { importTargetClientsBatch } from "@/lib/target-clients-service";
-import { INTERNAL_WORKSPACE_SLUG } from "@/lib/workspace-host";
-import { requireCurrentWorkspace } from "@/lib/workspace-context";
 
 export const dynamic = "force-dynamic";
-
-function assertInternalCentralWorkspace(slug: string) {
-  if (slug !== INTERNAL_WORKSPACE_SLUG) {
-    throw new Error("Target Clients is only available on the internal Unit311Central workspace.");
-  }
-}
 
 type ImportBody = {
   rows?: Array<AddTargetClientFormValues & { sourceRowNumber: number }>;
@@ -35,11 +28,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    await requirePlatformSession();
-    const workspace = await requireCurrentWorkspace();
-    assertTargetClientsApiHost(getRequestHost(request));
-    assertInternalCentralWorkspace(workspace.slug);
-
+    const workspace = await requireTargetClientsApiContext(request);
     const body = (await request.json()) as ImportBody;
     const rows = body.rows ?? [];
     if (rows.length === 0) {
@@ -97,13 +86,6 @@ export async function POST(request: NextRequest) {
       results,
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Import failed.";
-    let status = 500;
-    if (message.includes("Authentication required") || message.includes("Session")) {
-      status = 401;
-    } else if (message.includes("only available on the internal")) {
-      status = 403;
-    }
-    return NextResponse.json({ error: message }, { status });
+    return targetClientsErrorResponse(error);
   }
 }

@@ -1,11 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { getRequestHost } from "@/lib/app-domains";
 import { assertDemoMutationAllowedForRequest } from "@/lib/demo/mutation-guard";
-import { requirePlatformSession } from "@/lib/platform-session";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
+import { requireTargetClientsApiContext, targetClientsErrorResponse } from "@/lib/target-clients-api-context";
 import {
-  assertTargetClientsApiHost,
   validateAddTargetClientForm,
   type AddTargetClientFormValues,
 } from "@/lib/target-clients";
@@ -14,14 +12,6 @@ import {
   createTargetClientFromForm,
   listTargetClients,
 } from "@/lib/target-clients-service";
-import { INTERNAL_WORKSPACE_SLUG } from "@/lib/workspace-host";
-import { requireCurrentWorkspace } from "@/lib/workspace-context";
-
-function assertInternalCentralWorkspace(slug: string) {
-  if (slug !== INTERNAL_WORKSPACE_SLUG) {
-    throw new Error("Target Clients is only available on the internal Unit311Central workspace.");
-  }
-}
 
 export const dynamic = "force-dynamic";
 
@@ -31,11 +21,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    await requirePlatformSession();
-    const workspace = await requireCurrentWorkspace();
-    assertTargetClientsApiHost(getRequestHost(request));
-    assertInternalCentralWorkspace(workspace.slug);
-
+    const workspace = await requireTargetClientsApiContext(request);
     const clients = await listTargetClients({ workspaceId: workspace.id });
     return NextResponse.json({
       clients,
@@ -55,10 +41,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    await requirePlatformSession();
-    const workspace = await requireCurrentWorkspace();
-    assertTargetClientsApiHost(getRequestHost(request));
-    assertInternalCentralWorkspace(workspace.slug);
+    const workspace = await requireTargetClientsApiContext(request);
 
     const body = (await request.json()) as Partial<AddTargetClientFormValues>;
     const values: AddTargetClientFormValues = {
@@ -95,19 +78,4 @@ export async function POST(request: NextRequest) {
     }
     return targetClientsErrorResponse(error);
   }
-}
-
-function targetClientsErrorResponse(error: unknown) {
-  const message = error instanceof Error ? error.message : "Request failed.";
-  let status = 500;
-  if (
-    message.includes("Authentication required") ||
-    message.includes("Workspace context") ||
-    message.includes("Session")
-  ) {
-    status = 401;
-  } else if (message.includes("only available on the internal")) {
-    status = 403;
-  }
-  return NextResponse.json({ error: message }, { status });
 }

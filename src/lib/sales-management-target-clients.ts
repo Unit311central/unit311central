@@ -1,4 +1,5 @@
-import { INTERNAL_SITE_HOST } from "@/lib/app-domains";
+import { INTERNAL_SITE_HOST, isDemoDomainHost } from "@/lib/app-domains";
+import { isWolfCentralHost } from "@/lib/wolf/wolf-surface";
 import type { InternalNavChildItem, InternalNavSection } from "@/lib/internal-operations-data";
 import { SALES_MANAGEMENT_MODULE_LABEL } from "@/lib/sales-management-nav";
 
@@ -16,9 +17,16 @@ export function isInternalUnit311CentralHost(hostname: string | null | undefined
   return normalized === INTERNAL_SITE_HOST || normalized === "internal.localhost";
 }
 
-/** Live Target Clients opening screen + LHS nav — internal.unit311central.com only. */
+/**
+ * Live Target Clients opening screen + LHS nav — Internal, Demo and WOLF Central hosts only.
+ * @see sales-management-rollout.ts for workspace slug pairing on APIs.
+ */
 export function isTargetClientsRolloutHost(hostname: string | null | undefined): boolean {
-  return isInternalUnit311CentralHost(hostname);
+  return (
+    isInternalUnit311CentralHost(hostname) ||
+    isDemoDomainHost(hostname) ||
+    isWolfCentralHost(hostname)
+  );
 }
 
 /** Dev-only URL — no login, may show fictional sample rows. */
@@ -34,7 +42,7 @@ const TARGET_CLIENTS_NAV_ITEM: InternalNavChildItem = {
   query: { tab: TARGET_CLIENTS_TAB },
 };
 
-/** Inserts Target Clients before Opportunities in Sales Management → Sales (internal central only). */
+/** Inserts Target Clients before Opportunities in Sales Management → Sales (canonical rollout hosts). */
 export function withTargetClientsNav(
   sections: readonly InternalNavSection[],
 ): InternalNavSection[] {

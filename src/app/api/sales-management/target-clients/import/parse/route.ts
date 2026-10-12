@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { getRequestHost } from "@/lib/app-domains";
-import { requirePlatformSession } from "@/lib/platform-session";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
 import {
   TARGET_CLIENTS_IMPORT_MAX_FILE_BYTES,
@@ -9,17 +7,12 @@ import {
   parseTargetClientsCsv,
 } from "@/lib/target-clients-import";
 import { parseTargetClientsXlsxBuffer } from "@/lib/target-clients-import-xlsx.server";
-import { assertTargetClientsApiHost } from "@/lib/target-clients";
-import { INTERNAL_WORKSPACE_SLUG } from "@/lib/workspace-host";
-import { requireCurrentWorkspace } from "@/lib/workspace-context";
+import {
+  requireTargetClientsApiContext,
+  targetClientsErrorResponse,
+} from "@/lib/target-clients-api-context";
 
 export const dynamic = "force-dynamic";
-
-function assertInternalCentralWorkspace(slug: string) {
-  if (slug !== INTERNAL_WORKSPACE_SLUG) {
-    throw new Error("Target Clients is only available on the internal Unit311Central workspace.");
-  }
-}
 
 function extensionOf(name: string): string {
   const idx = name.lastIndexOf(".");
@@ -32,10 +25,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    await requirePlatformSession();
-    const workspace = await requireCurrentWorkspace();
-    assertTargetClientsApiHost(getRequestHost(request));
-    assertInternalCentralWorkspace(workspace.slug);
+    await requireTargetClientsApiContext(request);
 
     const form = await request.formData();
     const file = form.get("file");
@@ -111,13 +101,6 @@ export async function POST(request: NextRequest) {
       fileSize: file.size,
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Parse failed.";
-    let status = 500;
-    if (message.includes("Authentication required") || message.includes("Session")) {
-      status = 401;
-    } else if (message.includes("only available on the internal")) {
-      status = 403;
-    }
-    return NextResponse.json({ error: message }, { status });
+    return targetClientsErrorResponse(error);
   }
 }

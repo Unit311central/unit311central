@@ -27,7 +27,7 @@ const allLabels = wolfNav.flatMap((section) => collectLabels(section.items));
 
 assert.ok(!allLabels.some((label) => /coming soon/i.test(label)), "nav must not expose Coming soon items");
 assert.equal(wolfNav.filter((section) => section.kind === "pin").length, 2);
-assert.equal(wolfNav.filter((section) => section.kind === "workspace").length, 18);
+assert.equal(wolfNav.filter((section) => section.kind === "workspace").length, 19);
 
 const sectionTitles = wolfNav
   .filter((section) => section.kind === "workspace")
@@ -35,6 +35,7 @@ const sectionTitles = wolfNav
 
 assert.ok(sectionTitles.includes("SHARK"));
 assert.ok(sectionTitles.includes("Business Central"));
+assert.ok(sectionTitles.includes("Sales Management"));
 assert.ok(sectionTitles.includes("External Client Access"));
 assert.ok(sectionTitles.includes("Business Productivity"));
 assert.ok(sectionTitles.includes("Support Desk"));
@@ -53,6 +54,7 @@ for (const label of hiddenPrototypeSections) {
 }
 
 const views = wolfCentralNavViews();
+assert.ok(views.includes("sales-management"));
 assert.ok(views.includes("executive-assistant"));
 assert.ok(views.includes("users"));
 assert.ok(views.includes("projects-dashboard"));

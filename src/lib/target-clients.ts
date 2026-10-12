@@ -220,6 +220,8 @@ export function searchTargetClientRows(rows: TargetClientRow[], query: string): 
 
 export function assertTargetClientsApiHost(hostname: string | null | undefined): void {
   if (!isTargetClientsRolloutHost(hostname)) {
-    throw new Error("Target Clients is only available on the internal Unit311Central workspace.");
+    throw new Error(
+      "Target Clients is only available on Internal, Demo and WOLF Sales Management workspaces.",
+    );
   }
 }

@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { getRequestHost } from "@/lib/app-domains";
 import { assertDemoMutationAllowedForRequest } from "@/lib/demo/mutation-guard";
-import { requirePlatformSession } from "@/lib/platform-session";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
 import {
-  assertTargetClientsApiHost,
+  requireTargetClientsApiContext,
+  targetClientsErrorResponse,
+} from "@/lib/target-clients-api-context";
+import {
   validateAddTargetClientForm,
   type AddTargetClientFormValues,
 } from "@/lib/target-clients";
@@ -14,35 +15,10 @@ import {
   deleteTargetClient,
   updateTargetClientFromForm,
 } from "@/lib/target-clients-service";
-import { INTERNAL_WORKSPACE_SLUG } from "@/lib/workspace-host";
-import { requireCurrentWorkspace } from "@/lib/workspace-context";
 
 export const dynamic = "force-dynamic";
 
 type RouteContext = { params: Promise<{ id: string }> };
-
-function assertInternalCentralWorkspace(slug: string) {
-  if (slug !== INTERNAL_WORKSPACE_SLUG) {
-    throw new Error("Target Clients is only available on the internal Unit311Central workspace.");
-  }
-}
-
-function targetClientsErrorResponse(error: unknown) {
-  const message = error instanceof Error ? error.message : "Request failed.";
-  let status = 500;
-  if (
-    message.includes("Authentication required") ||
-    message.includes("Workspace context") ||
-    message.includes("Session")
-  ) {
-    status = 401;
-  } else if (message.includes("only available on the internal") || message.includes("not a Target Client")) {
-    status = 403;
-  } else if (message.includes("Lead not found")) {
-    status = 404;
-  }
-  return NextResponse.json({ error: message }, { status });
-}
 
 export async function PATCH(request: NextRequest, context: RouteContext) {
   const demoMutationBlock = await assertDemoMutationAllowedForRequest(request);
@@ -53,10 +29,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
   }
 
   try {
-    await requirePlatformSession();
-    const workspace = await requireCurrentWorkspace();
-    assertTargetClientsApiHost(getRequestHost(request));
-    assertInternalCentralWorkspace(workspace.slug);
+    const workspace = await requireTargetClientsApiContext(request);
 
     const { id } = await context.params;
     const body = (await request.json()) as Partial<AddTargetClientFormValues>;
@@ -105,10 +78,7 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
   }
 
   try {
-    await requirePlatformSession();
-    const workspace = await requireCurrentWorkspace();
-    assertTargetClientsApiHost(getRequestHost(request));
-    assertInternalCentralWorkspace(workspace.slug);
+    const workspace = await requireTargetClientsApiContext(request);
 
     const { id } = await context.params;
     await deleteTargetClient(id, { workspaceId: workspace.id });

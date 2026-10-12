@@ -112,8 +112,10 @@ assert.equal(searchTargetClientRows(rows, "").length, 2);
 assert.equal(searchTargetClientRows(rows, "beta").length, 1);
 assert.equal(searchTargetClientRows(rows, "nomatch").length, 0);
 
-assert.throws(() => assertTargetClientsApiHost("demo.unit311central.com"));
 assert.doesNotThrow(() => assertTargetClientsApiHost("internal.unit311central.com"));
-assert.equal(isTargetClientsRolloutHost("wolf.unit311central.com"), false);
+assert.doesNotThrow(() => assertTargetClientsApiHost("demo.unit311central.com"));
+assert.doesNotThrow(() => assertTargetClientsApiHost("wolf.unit311central.com"));
+assert.throws(() => assertTargetClientsApiHost("abhi.unit311central.com"));
+assert.equal(isTargetClientsRolloutHost("wolf.unit311central.com"), true);
 
 console.log("ok  target-clients checks passed\n");

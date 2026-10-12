@@ -15,6 +15,8 @@ import {
   buildCentralEngineeringNavSection,
 } from "@/lib/platform-workspaces/central-product-nav";
 import { buildProjectManagementNavSection } from "@/lib/project-management-nav";
+import { buildSalesManagementNavSection } from "@/lib/sales-management-nav";
+import { withTargetClientsNav } from "@/lib/sales-management-target-clients";
 import { buildWolfAnalyticsNavSection } from "@/lib/wolf/wolf-analytics-nav";
 
 const WOLF_GREEN = "#1a4d3a";
@@ -86,7 +88,7 @@ export function buildWolfCentralNavSections(): readonly InternalNavSection[] {
   const operations = requireWorkspaceSection("Operations");
   const training = requireWorkspaceSection("Training");
 
-  return [
+  const sections: InternalNavSection[] = [
     {
       kind: "pin",
       label: null,
@@ -99,6 +101,7 @@ export function buildWolfCentralNavSections(): readonly InternalNavSection[] {
       items: [{ label: "EXECUTIVE ASSISTANT", icon: "Bot", view: "executive-assistant" }],
     },
     buildCentralBusinessCentralNavSection(),
+    buildSalesManagementNavSection({ color: "#1a4d3a", icon: "TrendingUp" }),
     {
       kind: "workspace",
       label: "Safari Parks",
@@ -200,6 +203,8 @@ export function buildWolfCentralNavSections(): readonly InternalNavSection[] {
       ],
     },
   ];
+
+  return withTargetClientsNav(sections);
 }
 
 /** Views exposed in the WOLF Central sidebar (for regression checks). */

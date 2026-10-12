@@ -95,6 +95,11 @@ export function isViewAllowedForWorkspaceGrants(
 
   if (isWolfCentralSlug(slug)) {
     if ((WOLF_CENTRAL_ANALYTICS_VIEWS as readonly string[]).includes(view)) return true;
+    const enabledViews = viewsForWorkspaceEnablement(
+      options?.enabledModules,
+      options?.enabledSubModules,
+    );
+    if (enabledViews.includes(view)) return true;
   }
 
   if (isGreenDesertSlug(slug)) {
