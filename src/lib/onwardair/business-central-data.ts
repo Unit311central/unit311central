@@ -92,6 +92,8 @@ function lead(partial: {
     id: partial.id,
     workspaceId: OA_WS,
     companyName: partial.companyName,
+    companyWebsite: "",
+    industry: "",
     contactName: partial.contactName,
     firstName: partial.firstName,
     surname: partial.surname,

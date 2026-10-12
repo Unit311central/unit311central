@@ -6,6 +6,8 @@ export type CrmLead = {
   id: string;
   workspaceId: string;
   companyName: string;
+  companyWebsite: string;
+  industry: string;
   contactName: string;
   firstName: string;
   surname: string;
@@ -74,6 +76,8 @@ type DbLead = {
   id: string;
   workspace_id?: string | null;
   company_name: string;
+  company_website?: string | null;
+  industry?: string | null;
   contact_name: string;
   first_name?: string | null;
   surname?: string | null;
@@ -124,6 +128,8 @@ export function mapCrmLead(row: DbLead): CrmLead {
     id: row.id,
     workspaceId: row.workspace_id ? String(row.workspace_id) : "",
     companyName: row.company_name,
+    companyWebsite: row.company_website ?? "",
+    industry: row.industry ?? "",
     contactName: row.contact_name,
     firstName: row.first_name ?? "",
     surname: row.surname ?? "",
@@ -227,6 +233,8 @@ export function formatLeadDate(iso: string | null) {
 export function createBlankLeadInput() {
   return {
     companyName: "",
+    companyWebsite: "",
+    industry: "",
     contactName: "",
     firstName: "",
     surname: "",

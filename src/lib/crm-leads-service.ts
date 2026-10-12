@@ -125,6 +125,9 @@ export async function createLead(
   input: Partial<ReturnType<typeof createBlankLeadInput>> & {
     companyName: string;
     contactName: string;
+    companyWebsite?: string;
+    industry?: string;
+    role?: string;
     workspaceId?: string;
     ownerUserId?: string | null;
     winProbability?: number | null;
@@ -140,7 +143,10 @@ export async function createLead(
     .insert({
       workspace_id: workspaceId,
       company_name: input.companyName.trim(),
+      company_website: input.companyWebsite?.trim() || null,
+      industry: input.industry?.trim() || null,
       contact_name: input.contactName.trim(),
+      role: input.role?.trim() || null,
       email: input.email?.trim() || null,
       phone: input.phone?.trim() || null,
       status: input.status ?? "Cold",
@@ -163,7 +169,10 @@ export async function updateLead(
   id: string,
   patch: Partial<{
     companyName: string;
+    companyWebsite: string;
+    industry: string;
     contactName: string;
+    role: string;
     email: string;
     phone: string;
     status: LeadStatus;
@@ -202,7 +211,12 @@ export async function updateLead(
   };
 
   if (patch.companyName !== undefined) payload.company_name = patch.companyName.trim();
+  if (patch.companyWebsite !== undefined) {
+    payload.company_website = patch.companyWebsite.trim() || null;
+  }
+  if (patch.industry !== undefined) payload.industry = patch.industry.trim() || null;
   if (patch.contactName !== undefined) payload.contact_name = patch.contactName.trim();
+  if (patch.role !== undefined) payload.role = patch.role.trim() || null;
   if (patch.email !== undefined) payload.email = patch.email.trim() || null;
   if (patch.phone !== undefined) payload.phone = patch.phone.trim() || null;
   if (patch.status !== undefined) payload.status = patch.status;

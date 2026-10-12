@@ -10,6 +10,8 @@ const NOW = "2026-08-16T10:00:00.000Z";
 function lead(partial: Partial<CrmLead> & Pick<CrmLead, "id" | "companyName" | "contactName" | "status">): CrmLead {
   return {
     workspaceId: DEMO_WS,
+    companyWebsite: "",
+    industry: "",
     firstName: "",
     surname: "",
     role: "",

@@ -64,6 +64,8 @@ function lead(partial: {
     id: partial.id,
     workspaceId: WS,
     companyName: partial.companyName,
+    companyWebsite: "",
+    industry: "",
     contactName: partial.contactName,
     firstName,
     surname,
