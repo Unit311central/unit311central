@@ -1,10 +1,13 @@
 "use client";
 
-import { useCallback, useState } from "react";
-import { Download, Plus, Search, Upload } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Download, Loader2, Plus, Search, Upload } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import type { TargetClientRow } from "@/lib/target-clients";
+import { searchTargetClientRows } from "@/lib/target-clients";
 
+import AddTargetClientModal from "./AddTargetClientModal";
 import { SalesEmptyState, SalesTabHeader } from "./sales-management-ui";
 
 export type TargetClientDesignSampleRow = {
@@ -51,6 +54,8 @@ export const TARGET_CLIENTS_DESIGN_SAMPLE_ROWS: readonly TargetClientDesignSampl
     contacted: true,
   },
 ] as const;
+
+const SEARCH_DEBOUNCE_MS = 300;
 
 function ToolbarButton({
   primary,
@@ -125,19 +130,23 @@ function RowActions({ disabled, onDisabledAction }: { disabled?: boolean; onDisa
   );
 }
 
-function TargetClientRow({ row, actionsDisabled, onDisabledAction }: {
-  row: TargetClientDesignSampleRow;
+function TargetClientRow({
+  row,
+  actionsDisabled,
+  onDisabledAction,
+}: {
+  row: TargetClientDesignSampleRow | TargetClientRow;
   actionsDisabled?: boolean;
   onDisabledAction?: () => void;
 }) {
   return (
     <tr className="border-t border-white/10 text-[13px] text-white/80">
       <td className="px-3 py-2.5 font-medium text-white">{row.companyName}</td>
-      <td className="max-w-[140px] truncate px-3 py-2.5 text-white/60">{row.website}</td>
-      <td className="whitespace-nowrap px-3 py-2.5">{row.sector}</td>
-      <td className="whitespace-nowrap px-3 py-2.5">{row.contactName}</td>
-      <td className="max-w-[120px] truncate px-3 py-2.5 text-white/65">{row.contactPosition}</td>
-      <td className="max-w-[180px] truncate px-3 py-2.5 text-white/60">{row.email}</td>
+      <td className="max-w-[140px] truncate px-3 py-2.5 text-white/60">{row.website || "—"}</td>
+      <td className="whitespace-nowrap px-3 py-2.5">{row.sector || "—"}</td>
+      <td className="whitespace-nowrap px-3 py-2.5">{row.contactName || "—"}</td>
+      <td className="max-w-[120px] truncate px-3 py-2.5 text-white/65">{row.contactPosition || "—"}</td>
+      <td className="max-w-[180px] truncate px-3 py-2.5 text-white/60">{row.email || "—"}</td>
       <td className="px-3 py-2.5 text-center">
         <input
           type="checkbox"
@@ -156,21 +165,68 @@ function TargetClientRow({ row, actionsDisabled, onDisabledAction }: {
 }
 
 export type TargetClientsOpeningScreenProps = {
-  /** Live internal page — empty list, no fictional companies. */
+  /** Live internal page loads CRM data; design-preview uses fictional rows. */
   variant?: "live" | "design-preview";
 };
 
-/**
- * Target Clients opening screen (layout only). Data import, export, add form and CRUD come later.
- */
+async function fetchTargetClients(): Promise<TargetClientRow[]> {
+  const response = await fetch("/api/sales-management/target-clients", { cache: "no-store" });
+  const body = (await response.json()) as { clients?: TargetClientRow[]; error?: string };
+  if (!response.ok) throw new Error(body.error ?? "Failed to load target clients");
+  return body.clients ?? [];
+}
+
 export default function TargetClientsOpeningScreen({ variant = "live" }: TargetClientsOpeningScreenProps) {
   const isLive = variant === "live";
-  const rows = isLive ? [] : TARGET_CLIENTS_DESIGN_SAMPLE_ROWS;
+  const [allRows, setAllRows] = useState<TargetClientRow[]>([]);
+  const [loading, setLoading] = useState(isLive);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [searchInput, setSearchInput] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [addModalOpen, setAddModalOpen] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+  const [successNotice, setSuccessNotice] = useState<string | null>(null);
+
+  const designRows = isLive ? [] : TARGET_CLIENTS_DESIGN_SAMPLE_ROWS;
+
+  const reload = useCallback(async () => {
+    if (!isLive) return;
+    setLoading(true);
+    setLoadError(null);
+    try {
+      const clients = await fetchTargetClients();
+      setAllRows(clients);
+    } catch (err) {
+      setLoadError(err instanceof Error ? err.message : "Failed to load target clients");
+    } finally {
+      setLoading(false);
+    }
+  }, [isLive]);
+
+  useEffect(() => {
+    if (isLive) void reload();
+  }, [isLive, reload]);
+
+  useEffect(() => {
+    if (!isLive) return;
+    const timer = window.setTimeout(() => setSearchQuery(searchInput), SEARCH_DEBOUNCE_MS);
+    return () => window.clearTimeout(timer);
+  }, [searchInput, isLive]);
 
   const onComingSoon = useCallback(() => {
     setNotice("This action will be available in a future release.");
   }, []);
+
+  const displayedRows = useMemo(() => {
+    if (!isLive) return designRows;
+    return searchTargetClientRows(allRows, searchQuery);
+  }, [allRows, designRows, isLive, searchQuery]);
+
+  const handleSaved = useCallback(async () => {
+    await reload();
+    setSuccessNotice("Target client saved.");
+    window.setTimeout(() => setSuccessNotice(null), 5000);
+  }, [reload]);
 
   return (
     <div className="space-y-4">
@@ -179,9 +235,24 @@ export default function TargetClientsOpeningScreen({ variant = "live" }: TargetC
         description="Organisations in scope for outbound sales before they become opportunities."
       />
 
+      {successNotice ? (
+        <p
+          className="rounded-lg border border-emerald-400/25 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-100"
+          role="status"
+        >
+          {successNotice}
+        </p>
+      ) : null}
+
       {notice ? (
         <p className="rounded-lg border border-violet-400/25 bg-violet-500/10 px-3 py-2 text-sm text-violet-100" role="status">
           {notice}
+        </p>
+      ) : null}
+
+      {loadError ? (
+        <p className="rounded-lg border border-red-400/25 bg-red-500/10 px-3 py-2 text-sm text-red-100" role="alert">
+          {loadError}
         </p>
       ) : null}
 
@@ -198,8 +269,10 @@ export default function TargetClientsOpeningScreen({ variant = "live" }: TargetC
           />
           <input
             type="search"
-            readOnly
-            disabled={isLive}
+            value={isLive ? searchInput : ""}
+            readOnly={!isLive}
+            disabled={!isLive}
+            onChange={isLive ? (e) => setSearchInput(e.target.value) : undefined}
             placeholder="Search name, company, country, city, industry..."
             className="h-[42px] w-full rounded-lg border border-white/12 bg-white/[0.04] py-2 pl-9 pr-3 text-[13px] text-white/90 placeholder:text-white/38 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] disabled:cursor-not-allowed disabled:opacity-80"
             aria-label="Search Target Clients"
@@ -209,8 +282,8 @@ export default function TargetClientsOpeningScreen({ variant = "live" }: TargetC
         <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-stretch">
           <button
             type="button"
-            disabled={isLive}
-            onClick={isLive ? onComingSoon : undefined}
+            disabled={!isLive}
+            onClick={isLive ? () => setAddModalOpen(true) : onComingSoon}
             className="flex min-h-[42px] min-w-0 flex-1 items-center justify-center gap-1.5 rounded-lg border border-violet-400/35 bg-violet-500/20 px-3 py-2 text-[13px] font-semibold text-violet-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] transition-colors hover:bg-violet-500/28 disabled:cursor-not-allowed disabled:opacity-80 disabled:hover:bg-violet-500/20 sm:px-3.5"
           >
             <Plus className="h-4 w-4 shrink-0 text-violet-200" strokeWidth={2} aria-hidden />
@@ -234,32 +307,49 @@ export default function TargetClientsOpeningScreen({ variant = "live" }: TargetC
       </div>
 
       <div className="overflow-x-auto rounded-xl border border-white/10 bg-white/[0.02] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
-        <table className="min-w-[960px] w-full text-left">
+        <table className="min-w-full w-full table-fixed text-left">
           <thead className="bg-white/[0.03] text-[11px] font-semibold uppercase tracking-wide text-white/45">
             <tr>
-              <th className="px-3 py-2.5">Company Name</th>
-              <th className="px-3 py-2.5">Website</th>
-              <th className="px-3 py-2.5">Sector</th>
-              <th className="px-3 py-2.5">Contact Name</th>
-              <th className="px-3 py-2.5">Contact Position</th>
-              <th className="px-3 py-2.5">Email Address</th>
-              <th className="px-3 py-2.5 text-center">Contacted?</th>
-              <th className="px-3 py-2.5 text-right">Actions</th>
+              <th className="w-[18%] px-3 py-2.5">Company Name</th>
+              <th className="w-[14%] px-3 py-2.5">Website</th>
+              <th className="w-[12%] px-3 py-2.5">Sector</th>
+              <th className="w-[12%] px-3 py-2.5">Contact Name</th>
+              <th className="w-[12%] px-3 py-2.5">Contact Position</th>
+              <th className="w-[14%] px-3 py-2.5">Email Address</th>
+              <th className="w-[8%] px-3 py-2.5 text-center">Contacted?</th>
+              <th className="w-[10%] px-3 py-2.5 text-right">Actions</th>
             </tr>
           </thead>
           <tbody>
-            {rows.length === 0 ? (
+            {loading ? (
+              <tr>
+                <td colSpan={8} className="px-3 py-10 text-center text-sm text-white/50">
+                  <Loader2 className="mx-auto h-5 w-5 animate-spin text-violet-300" aria-hidden />
+                  <span className="sr-only">Loading target clients</span>
+                </td>
+              </tr>
+            ) : displayedRows.length === 0 ? (
               <tr>
                 <td colSpan={8} className="px-3 py-8">
                   <SalesEmptyState
-                    title="No target clients yet"
-                    description="Target client records will appear here once the add and import flows are enabled. Nothing has been stored in the database for this view yet."
+                    title={
+                      isLive && searchQuery.trim()
+                        ? "No matching target clients"
+                        : "No target clients yet"
+                    }
+                    description={
+                      isLive && searchQuery.trim()
+                        ? "Try a different search term. Search matches company, contact, sector, website and email fields stored on CRM records."
+                        : isLive
+                          ? "Add a target client to start building your outbound list. Records are stored in the shared CRM register for this workspace."
+                          : "Target client records will appear here once the add and import flows are enabled. Nothing has been stored in the database for this view yet."
+                    }
                     compact
                   />
                 </td>
               </tr>
             ) : (
-              rows.map((row) => (
+              displayedRows.map((row) => (
                 <TargetClientRow
                   key={row.id}
                   row={row}
@@ -276,6 +366,14 @@ export default function TargetClientsOpeningScreen({ variant = "live" }: TargetC
         <p className="text-[11px] text-white/35">
           Design preview — fictional sample rows for layout review only.
         </p>
+      ) : null}
+
+      {isLive ? (
+        <AddTargetClientModal
+          open={addModalOpen}
+          onClose={() => setAddModalOpen(false)}
+          onSaved={handleSaved}
+        />
       ) : null}
     </div>
   );
