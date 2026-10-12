@@ -10,14 +10,15 @@ import {
 import { isOpportunityLead } from "@/lib/sales-management-insights";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
 import { createTenancyServerClient } from "@/lib/supabase/tenancy-server";
-import { validateTargetClientSector } from "@/lib/target-clients-import";
 import {
   TARGET_CLIENTS_CRM_SOURCE,
   assertTargetClientLead,
   mapLeadToTargetClientRow,
+  normalizeTargetClientSectorForSave,
   normalizeTargetClientWebsiteInput,
   resolveTargetClientContactNameForSave,
   validateAddTargetClientForm,
+  validateTargetClientSector,
   type AddTargetClientFormValues,
   type TargetClientRow,
 } from "@/lib/target-clients";
@@ -98,7 +99,7 @@ function formValuesToLeadPatch(values: AddTargetClientFormValues) {
     contactName: resolveTargetClientContactNameForSave(values.contactName),
     email: values.email.trim(),
     companyWebsite: websiteNorm,
-    industry: values.sector.trim(),
+    industry: normalizeTargetClientSectorForSave(values.sector),
     role: values.contactPosition.trim(),
     source: TARGET_CLIENTS_CRM_SOURCE,
     status: "Cold" as const,

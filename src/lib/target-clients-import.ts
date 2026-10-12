@@ -1,8 +1,9 @@
-import { CLIENT_INDUSTRY_OPTIONS } from "@/lib/client-management-data";
 import {
   normalizeTargetClientWebsiteInput,
+  normalizeTargetClientSectorForSave,
   validateAddTargetClientForm,
   validateTargetClientEmail,
+  validateTargetClientSector,
   type AddTargetClientFormValues,
 } from "@/lib/target-clients";
 
@@ -193,16 +194,6 @@ export function applyColumnMapping(
   });
 }
 
-export function validateTargetClientSector(sector: string): string | null {
-  const trimmed = sector.trim();
-  if (!trimmed) return null;
-  const allowed = new Set(CLIENT_INDUSTRY_OPTIONS.map((s) => s.toLowerCase()));
-  if (!allowed.has(trimmed.toLowerCase())) {
-    return `Sector must be one of: ${CLIENT_INDUSTRY_OPTIONS.join(", ")}.`;
-  }
-  return null;
-}
-
 export type ImportRowPreviewStatus =
   | "ready"
   | "error"
@@ -249,39 +240,47 @@ export function previewImportRows(
     const messages: string[] = [];
     let status: ImportRowPreviewStatus = "ready";
 
+    const companyName = row.companyName.trim();
     const formErrors = validateAddTargetClientForm(row);
-    if (formErrors.companyName) {
-      messages.push(formErrors.companyName);
-      status = "error";
-    }
-    if (formErrors.website) {
-      messages.push(formErrors.website);
-      status = "error";
-    }
-    if (formErrors.email) {
-      messages.push(formErrors.email);
-      status = "error";
-    }
-
-    const sectorError = validateTargetClientSector(row.sector);
-    if (sectorError) {
-      messages.push(sectorError);
-      status = "error";
+    const missingCompany = Boolean(formErrors.companyName);
+    if (missingCompany) {
+      messages.push(formErrors.companyName!);
     }
 
     const websiteNorm = normalizeTargetClientWebsiteInput(row.website).normalized;
+    const sectorNormalized = normalizeTargetClientSectorForSave(row.sector);
 
-    if (status !== "error") {
-      const keys = duplicateKeysForRow(row);
-      const fileDup = keys.some((key) => seenInFile.has(key));
-      if (fileDup) {
-        status = "duplicate_file";
-        messages.push("Duplicate row within this spreadsheet (same company or email).");
+    const keys = duplicateKeysForRow(row);
+    let fileDuplicate = false;
+    if (companyName && keys.some((key) => seenInFile.has(key))) {
+      fileDuplicate = true;
+      status = "duplicate_file";
+      messages.push("Duplicate row within this spreadsheet (same company or email).");
+    } else if (companyName) {
+      for (const key of keys) seenInFile.add(key);
+    }
+
+    if (!fileDuplicate && companyName && matchesExistingCrm(row, existingCrmDuplicateKeys)) {
+      status = "duplicate_crm";
+      messages.push("Matches an existing CRM record (company or email).");
+    }
+
+    if (!fileDuplicate && status !== "duplicate_crm") {
+      if (missingCompany) {
+        status = "error";
       } else {
-        for (const key of keys) seenInFile.add(key);
-        if (matchesExistingCrm(row, existingCrmDuplicateKeys)) {
-          status = "duplicate_crm";
-          messages.push("Matches an existing CRM record (company or email).");
+        if (formErrors.website) {
+          messages.push(formErrors.website);
+          status = "error";
+        }
+        if (formErrors.email) {
+          messages.push(formErrors.email);
+          status = "error";
+        }
+        const sectorError = validateTargetClientSector(row.sector);
+        if (sectorError) {
+          messages.push(sectorError);
+          status = "error";
         }
       }
     }
@@ -289,9 +288,9 @@ export function previewImportRows(
     previews.push({
       sourceRowNumber: row.sourceRowNumber,
       values: {
-        companyName: row.companyName.trim(),
+        companyName,
         website: row.website.trim(),
-        sector: row.sector.trim(),
+        sector: sectorNormalized,
         contactName: row.contactName.trim(),
         contactPosition: row.contactPosition.trim(),
         email: row.email.trim(),

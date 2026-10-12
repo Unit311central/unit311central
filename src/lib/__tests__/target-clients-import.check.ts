@@ -15,6 +15,7 @@ import {
   suggestColumnMapping,
 } from "@/lib/target-clients-import";
 import type { TargetClientRow } from "@/lib/target-clients";
+import { validateTargetClientSector } from "@/lib/target-clients";
 
 assert.deepEqual(splitCsvLine('"a,b",c'), ["a,b", "c"]);
 assert.deepEqual(splitCsvLine('"say ""hi""",x'), ['say "hi"', "x"]);
@@ -123,5 +124,42 @@ assert.match(targetClientsExportFilename(new Date("2026-10-12T12:00:00Z")), /^un
 
 const emptyParsed = parseTargetClientsCsv("\n\n");
 assert.equal(emptyParsed.headers.length, 0);
+
+assert.equal(validateTargetClientSector("Technology"), null);
+assert.equal(validateTargetClientSector("Construction"), null);
+assert.equal(validateTargetClientSector("a".repeat(121)), validateTargetClientSector("x".repeat(121)));
+
+const sevenRowCsv = `Organisation,Web address,Market sector,Primary contact,Contact's role,Work email
+Northstar Fixtures Ltd,northstar-fixtures.example,Manufacturing,Alex Mercer,Head of Procurement,alex.m@northstar-fixtures.example
+Harborline Analytics,harborline-analytics.example,Technology,Priya Nair,VP Commercial,priya.nair@harborline-analytics.example
+Summit Civic Partners,summit-civic.example,Government & Public,Jordan Ellis,Programme Director,j.ellis@summit-civic.example
+Delta Logistics Ltd,delta-logistics.example,Logistics & Ports,Sam Lee,Operations Director,sam@delta-logistics.example
+Northstar Fixtures Ltd,northstar-fixtures.example,Manufacturing,Alex Mercer,Head of Procurement,alex.m@northstar-fixtures.example
+Bad Email Co,bad.example.com,Construction,Chris Epsilon,Manager,not-an-email
+,ghost.example.com,Other,Ghost User,Intern,ghost@example.com
+`;
+
+const sevenParsed = parseTargetClientsCsv(sevenRowCsv);
+assert.equal(sevenParsed.rows.length, 7);
+const sevenMapping = suggestColumnMapping(sevenParsed.headers);
+const sevenMapped = applyColumnMapping(sevenParsed.headers, sevenParsed.rows, sevenMapping);
+const sevenPreviews = previewImportRows(sevenMapped, new Set());
+assert.equal(sevenPreviews.length, 7);
+assert.equal(sevenPreviews.filter((p) => p.status === "ready").length, 4);
+assert.equal(sevenPreviews.filter((p) => p.status === "duplicate_file").length, 1);
+assert.equal(sevenPreviews.filter((p) => p.status === "error").length, 2);
+assert.equal(
+  sevenPreviews.find((p) => p.sourceRowNumber === 6)?.status,
+  "duplicate_file",
+  "second Northstar row should be a file duplicate",
+);
+assert.equal(
+  sevenPreviews.find((p) => p.sourceRowNumber === 7)?.messages.some((m) => m.includes("email")),
+  true,
+);
+assert.equal(
+  sevenPreviews.find((p) => p.sourceRowNumber === 8)?.messages.some((m) => m.includes("Company name")),
+  true,
+);
 
 console.log("target-clients-import.check.ts: ok");

@@ -1,5 +1,50 @@
 import type { CrmLead } from "@/lib/crm-data";
+import { CLIENT_INDUSTRY_OPTIONS } from "@/lib/client-management-data";
 import { isTargetClientsRolloutHost } from "@/lib/sales-management-target-clients";
+
+/** Stored on `crm_leads.industry` — free text with suggested values for UI/import. */
+export const TARGET_CLIENT_SECTOR_MAX_LENGTH = 120;
+
+const TARGET_CLIENT_SECTOR_EXTRA_SUGGESTIONS = [
+  "Technology",
+  "Manufacturing",
+  "Financial Services",
+  "Professional Services",
+  "Healthcare & Life Sciences",
+  "Retail & Consumer",
+  "Telecom & Media",
+  "Agriculture",
+  "Aerospace & Defence",
+  "Real Estate",
+  "Hospitality & Leisure",
+  "Education",
+  "Non-profit & Charity",
+  "Transport",
+] as const;
+
+/** Datalist / import hints — not an exhaustive allow-list. */
+export const TARGET_CLIENT_SECTOR_SUGGESTIONS: readonly string[] = [
+  ...CLIENT_INDUSTRY_OPTIONS,
+  ...TARGET_CLIENT_SECTOR_EXTRA_SUGGESTIONS.filter(
+    (value) => !CLIENT_INDUSTRY_OPTIONS.includes(value as (typeof CLIENT_INDUSTRY_OPTIONS)[number]),
+  ),
+];
+
+export function normalizeTargetClientSectorForSave(sector: string): string {
+  return sector.trim().replace(/\s+/g, " ");
+}
+
+export function validateTargetClientSector(sector: string): string | null {
+  const normalized = normalizeTargetClientSectorForSave(sector);
+  if (!normalized) return null;
+  if (normalized.length > TARGET_CLIENT_SECTOR_MAX_LENGTH) {
+    return `Sector must be ${TARGET_CLIENT_SECTOR_MAX_LENGTH} characters or fewer.`;
+  }
+  if (/[\r\n\t\u0000-\u001f]/.test(normalized)) {
+    return "Sector contains invalid characters.";
+  }
+  return null;
+}
 
 /** CRM source value for records created from Sales → Target Clients (internal central). */
 export const TARGET_CLIENTS_CRM_SOURCE = "Target Clients";

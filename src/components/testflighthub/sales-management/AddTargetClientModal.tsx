@@ -3,9 +3,10 @@
 import { useCallback, useEffect, useState } from "react";
 import { Loader2, X } from "lucide-react";
 
-import { CLIENT_INDUSTRY_OPTIONS } from "@/lib/client-management-data";
 import {
+  TARGET_CLIENT_SECTOR_SUGGESTIONS,
   validateAddTargetClientForm,
+  validateTargetClientSector,
   type AddTargetClientFormValues,
   type TargetClientFieldErrors,
 } from "@/lib/target-clients";
@@ -80,6 +81,8 @@ function TargetClientFormModal({
     }
 
     const errors = validateAddTargetClientForm(values);
+    const sectorError = validateTargetClientSector(values.sector);
+    if (sectorError) errors.sector = sectorError;
     if (Object.keys(errors).length > 0) {
       setFieldErrors(errors);
       return;
@@ -189,19 +192,28 @@ function TargetClientFormModal({
 
           <div>
             <label className="text-xs font-medium text-white/70">Sector</label>
-            <select
+            <input
+              type="text"
+              list="target-client-sector-suggestions"
               value={values.sector}
               onChange={(e) => updateField("sector", e.target.value)}
-              className={fieldClass(false)}
+              placeholder="e.g. Technology, Construction"
+              className={fieldClass(Boolean(fieldErrors.sector))}
               disabled={saving}
-            >
-              <option value="">Select sector (optional)</option>
-              {CLIENT_INDUSTRY_OPTIONS.map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
+              maxLength={120}
+            />
+            <datalist id="target-client-sector-suggestions">
+              {TARGET_CLIENT_SECTOR_SUGGESTIONS.map((option) => (
+                <option key={option} value={option} />
               ))}
-            </select>
+            </datalist>
+            {fieldErrors.sector ? (
+              <p className="mt-1 text-xs text-red-300">{fieldErrors.sector}</p>
+            ) : (
+              <p className="mt-1 text-[11px] text-white/40">
+                Optional — choose a suggestion or enter your own sector label.
+              </p>
+            )}
           </div>
 
           <div>
