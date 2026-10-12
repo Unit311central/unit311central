@@ -13,6 +13,7 @@ import {
   isSalesManagementTab,
   type SalesManagementTabId,
 } from "@/lib/sales-management-tabs";
+import { isTargetClientsPreviewTab } from "@/lib/sales-management-target-clients-preview";
 
 export const SALES_MANAGEMENT_MODULE_LABEL = "Sales Management";
 
@@ -22,6 +23,13 @@ export function resolveSalesManagementShellTitles(tabParam: string | null | unde
   subtitle: string;
   breadcrumb: readonly string[];
 } {
+  if (isTargetClientsPreviewTab(tabParam)) {
+    return {
+      title: "Target Clients",
+      subtitle: SALES_MANAGEMENT_MODULE_LABEL,
+      breadcrumb: [SALES_MANAGEMENT_MODULE_LABEL, "Sales", "Target Clients"],
+    };
+  }
   const tab = isSalesManagementTab(tabParam) ? tabParam : DEFAULT_SALES_MANAGEMENT_TAB;
   const tabLabel = getSalesManagementTabLabel(tab);
   const groupLabel = getSalesManagementNavGroupForTab(tab);

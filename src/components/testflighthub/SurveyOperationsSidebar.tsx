@@ -16,6 +16,10 @@ import {
   type InternalOperationsView,
 } from "@/lib/internal-operations-data";
 import { filterInternalNavSectionsByGrants, filterInternalNavSectionsForDemoSurface } from "@/lib/internal-role-views";
+import {
+  isInternalUnit311CentralHost,
+  withTargetClientsPreviewNav,
+} from "@/lib/sales-management-target-clients-preview";
 import { isInternalDomainHost } from "@/lib/app-domains";
 import { useOperatorEntitlements } from "./OperatorEntitlementsProvider";
 import {
@@ -206,15 +210,23 @@ export default function SurveyOperationsSidebar({
   const resolvedActiveView = (activeView as InternalOperationsView | undefined) ?? "home";
   const [expandedParents, setExpandedParents] = useState<Record<string, boolean>>({});
   const { allowedViews } = useOperatorEntitlements();
+  const [isInternalCentralHost] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return isInternalUnit311CentralHost(window.location.hostname);
+  });
   const internalNavSections = useMemo(
     () => {
       const base =
         mode === "internal"
           ? filterInternalNavSectionsByGrants(internalSurveyNavSections, allowedViews)
           : internalSurveyNavSections;
-      return mode === "internal" ? filterInternalNavSectionsForDemoSurface(base) : base;
+      let sections = mode === "internal" ? filterInternalNavSectionsForDemoSurface(base) : base;
+      if (mode === "internal" && isInternalCentralHost) {
+        sections = withTargetClientsPreviewNav(sections);
+      }
+      return sections;
     },
-    [allowedViews, mode],
+    [allowedViews, isInternalCentralHost, mode],
   );
   const internalBasePath = basePath;
   const [isInternalOpsHost] = useState(() => {

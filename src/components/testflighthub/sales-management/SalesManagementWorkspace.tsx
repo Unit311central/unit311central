@@ -32,10 +32,17 @@ import {
   SalesManagementReportsTab,
   SalesManagementTargetsTab,
 } from "./SalesManagementManagementTabs";
+import {
+  isInternalUnit311CentralHost,
+  isTargetClientsPreviewTab,
+} from "@/lib/sales-management-target-clients-preview";
+
+import TargetClientsOpeningMock from "./TargetClientsOpeningMock";
 import { SalesTabHeader } from "./sales-management-ui";
 
-function resolveTab(searchParams: URLSearchParams): SalesManagementTabId {
+function resolveTab(searchParams: URLSearchParams): SalesManagementTabId | "target-clients-preview" {
   const fromTab = searchParams.get("tab");
+  if (isTargetClientsPreviewTab(fromTab)) return "target-clients-preview";
   if (isSalesManagementTab(fromTab)) return fromTab;
   return DEFAULT_SALES_MANAGEMENT_TAB;
 }
@@ -43,7 +50,12 @@ function resolveTab(searchParams: URLSearchParams): SalesManagementTabId {
 export default function SalesManagementWorkspace() {
   const searchParams = useSearchParams();
   const activeTab = useMemo(() => resolveTab(searchParams), [searchParams]);
+  const [targetClientsPreviewEnabled, setTargetClientsPreviewEnabled] = useState(false);
   const [representatives, setRepresentatives] = useState<Representative[]>([]);
+
+  useEffect(() => {
+    setTargetClientsPreviewEnabled(isInternalUnit311CentralHost(window.location.hostname));
+  }, []);
   const [selectedRepresentativeId, setSelectedRepresentativeId] = useState("rep-1");
 
   useEffect(() => {
@@ -67,6 +79,12 @@ export default function SalesManagementWorkspace() {
         return <SalesManagementMySalesTab />;
       case "sales-team":
         return <SalesManagementSalesTeamTab />;
+      case "target-clients-preview":
+        return targetClientsPreviewEnabled ? (
+          <TargetClientsOpeningMock />
+        ) : (
+          <SalesManagementDashboard />
+        );
       case "prospects":
         return (
           <div className="space-y-4">
@@ -120,7 +138,7 @@ export default function SalesManagementWorkspace() {
       default:
         return null;
     }
-  }, [activeTab, quotesReturnHref, representatives, selectedRepresentativeId]);
+  }, [activeTab, quotesReturnHref, representatives, selectedRepresentativeId, targetClientsPreviewEnabled]);
 
   return (
     <div className="w-full min-w-0 space-y-4" aria-label="Sales Management">
