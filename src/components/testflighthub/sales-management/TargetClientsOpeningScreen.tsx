@@ -20,6 +20,7 @@ import { rowToFormValues, searchTargetClientRows, targetClientWebsiteHref } from
 import TargetClientFormModal from "./AddTargetClientModal";
 import DeleteTargetClientDialog from "./DeleteTargetClientDialog";
 import ViewTargetClientModal from "./ViewTargetClientModal";
+import TargetClientsImportWizard from "./TargetClientsImportWizard";
 import { SalesEmptyState, SalesTabHeader } from "./sales-management-ui";
 
 export type TargetClientDesignSampleRow = {
@@ -75,6 +76,7 @@ function ToolbarButton({
   label,
   caption,
   disabled,
+  onClick,
   onDisabledAction,
 }: {
   primary?: boolean;
@@ -82,13 +84,14 @@ function ToolbarButton({
   label: string;
   caption?: string;
   disabled?: boolean;
+  onClick?: () => void;
   onDisabledAction?: () => void;
 }) {
   return (
     <button
       type="button"
       disabled={disabled}
-      onClick={disabled ? onDisabledAction : undefined}
+      onClick={disabled ? onDisabledAction : onClick}
       className={cn(
         "flex min-h-[42px] min-w-0 flex-1 items-center gap-2 rounded-lg border px-3 py-2 text-left transition-colors sm:px-3.5",
         disabled && "cursor-not-allowed opacity-70",
@@ -299,6 +302,8 @@ export default function TargetClientsOpeningScreen({ variant = "live" }: TargetC
   const [promoteBusyId, setPromoteBusyId] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [successNotice, setSuccessNotice] = useState<string | null>(null);
+  const [importOpen, setImportOpen] = useState(false);
+  const [exportBusy, setExportBusy] = useState(false);
 
   const designRows = isLive ? [] : TARGET_CLIENTS_DESIGN_SAMPLE_ROWS;
 
@@ -329,6 +334,38 @@ export default function TargetClientsOpeningScreen({ variant = "live" }: TargetC
   const onComingSoon = useCallback(() => {
     setNotice("This action will be available in a future release.");
   }, []);
+
+  const runExport = useCallback(async () => {
+    if (!isLive || exportBusy) return;
+    setExportBusy(true);
+    setNotice(null);
+    try {
+      const params = new URLSearchParams();
+      if (searchQuery.trim()) params.set("search", searchQuery.trim());
+      const url = `/api/sales-management/target-clients/export${params.toString() ? `?${params}` : ""}`;
+      const response = await fetch(url, { cache: "no-store" });
+      if (!response.ok) {
+        const body = (await response.json()) as { error?: string };
+        throw new Error(body.error ?? "Export failed");
+      }
+      const blob = await response.blob();
+      const disposition = response.headers.get("Content-Disposition") ?? "";
+      const match = /filename="([^"]+)"/.exec(disposition);
+      const filename = match?.[1] ?? "unit311-target-clients.csv";
+      const objectUrl = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = objectUrl;
+      anchor.download = filename;
+      anchor.click();
+      URL.revokeObjectURL(objectUrl);
+      setSuccessNotice("Export downloaded.");
+      window.setTimeout(() => setSuccessNotice(null), 5000);
+    } catch (err) {
+      setNotice(err instanceof Error ? err.message : "Export failed");
+    } finally {
+      setExportBusy(false);
+    }
+  }, [exportBusy, isLive, searchQuery]);
 
   const displayedRows = useMemo(() => {
     if (!isLive) return designRows;
@@ -478,14 +515,16 @@ export default function TargetClientsOpeningScreen({ variant = "live" }: TargetC
             icon={Upload}
             label="Import CSV / Excel"
             caption="Upload spreadsheet"
-            disabled={isLive}
+            disabled={!isLive}
+            onClick={() => setImportOpen(true)}
             onDisabledAction={onComingSoon}
           />
           <ToolbarButton
             icon={Download}
             label="Export"
-            caption="Download filtered results"
-            disabled={isLive}
+            caption={exportBusy ? "Preparing download…" : "Download filtered results"}
+            disabled={!isLive || exportBusy}
+            onClick={() => void runExport()}
             onDisabledAction={onComingSoon}
           />
         </div>
@@ -575,6 +614,11 @@ export default function TargetClientsOpeningScreen({ variant = "live" }: TargetC
             busy={deleteBusy}
             onCancel={() => !deleteBusy && setDeleteRow(null)}
             onConfirm={() => void confirmDelete()}
+          />
+          <TargetClientsImportWizard
+            open={importOpen}
+            onClose={() => setImportOpen(false)}
+            onImported={reload}
           />
         </>
       ) : null}

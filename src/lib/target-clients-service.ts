@@ -10,12 +10,14 @@ import {
 import { isOpportunityLead } from "@/lib/sales-management-insights";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
 import { createTenancyServerClient } from "@/lib/supabase/tenancy-server";
+import { validateTargetClientSector } from "@/lib/target-clients-import";
 import {
   TARGET_CLIENTS_CRM_SOURCE,
   assertTargetClientLead,
   mapLeadToTargetClientRow,
   normalizeTargetClientWebsiteInput,
   resolveTargetClientContactNameForSave,
+  validateAddTargetClientForm,
   type AddTargetClientFormValues,
   type TargetClientRow,
 } from "@/lib/target-clients";
@@ -101,6 +103,77 @@ function formValuesToLeadPatch(values: AddTargetClientFormValues) {
     source: TARGET_CLIENTS_CRM_SOURCE,
     status: "Cold" as const,
   };
+}
+
+export async function listCrmLeadContactKeysForImport(scope?: {
+  workspaceId?: string;
+}): Promise<Array<{ companyName: string; email: string }>> {
+  const workspaceId = await resolveCrmWorkspaceId(scope);
+  if (!isSupabaseConfigured()) return [];
+  const supabase = createTenancyServerClient();
+  const { data, error } = await supabase
+    .from("crm_leads")
+    .select("company_name, email")
+    .eq("workspace_id", workspaceId);
+  if (error) throw new Error(error.message);
+  return (data ?? []).map((row) => ({
+    companyName: String((row as { company_name: string }).company_name ?? ""),
+    email: String((row as { email?: string }).email ?? ""),
+  }));
+}
+
+export type TargetClientImportRowResult =
+  | { sourceRowNumber: number; status: "imported"; client: TargetClientRow }
+  | { sourceRowNumber: number; status: "skipped"; reason: string; code?: string };
+
+export async function importTargetClientsBatch(
+  rows: Array<{ sourceRowNumber: number; values: AddTargetClientFormValues }>,
+  scope?: { workspaceId?: string },
+): Promise<TargetClientImportRowResult[]> {
+  const results: TargetClientImportRowResult[] = [];
+  for (const row of rows) {
+    const fieldErrors = validateAddTargetClientForm(row.values);
+    if (Object.keys(fieldErrors).length > 0) {
+      results.push({
+        sourceRowNumber: row.sourceRowNumber,
+        status: "skipped",
+        reason: Object.values(fieldErrors).filter(Boolean).join(" "),
+        code: "VALIDATION",
+      });
+      continue;
+    }
+    const sectorError = validateTargetClientSector(row.values.sector);
+    if (sectorError) {
+      results.push({
+        sourceRowNumber: row.sourceRowNumber,
+        status: "skipped",
+        reason: sectorError,
+        code: "VALIDATION",
+      });
+      continue;
+    }
+    try {
+      const client = await createTargetClientFromForm(row.values, scope);
+      results.push({ sourceRowNumber: row.sourceRowNumber, status: "imported", client });
+    } catch (error) {
+      if (error instanceof TargetClientDuplicateError) {
+        results.push({
+          sourceRowNumber: row.sourceRowNumber,
+          status: "skipped",
+          reason: error.message,
+          code: error.code,
+        });
+        continue;
+      }
+      results.push({
+        sourceRowNumber: row.sourceRowNumber,
+        status: "skipped",
+        reason: error instanceof Error ? error.message : "Import failed.",
+        code: "ERROR",
+      });
+    }
+  }
+  return results;
 }
 
 export async function createTargetClientFromForm(
