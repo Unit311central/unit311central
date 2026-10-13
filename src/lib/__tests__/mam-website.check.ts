@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import test from "node:test";
 
@@ -62,6 +62,13 @@ test("draft public hostname and canonical origin", () => {
   assert.ok(isMamWebsiteHost("mam-ma.vercel.app"));
   assert.equal(isMamWebsiteHost("mam.vercel.app"), false);
   assert.equal(isMamWebsiteHost("mam.ma"), false);
+});
+
+test("middleware rewrites MAM public website hosts to /sites/mam", () => {
+  const middleware = readFileSync(join(process.cwd(), "src/middleware.ts"), "utf8");
+  assert.match(middleware, /isMamWebsiteHost\(host\)/);
+  assert.match(middleware, /mamWebsiteImplPath/);
+  assert.match(middleware, /x-unit311-mam-website/);
 });
 
 test("mam marketing image assets exist in public/", () => {
