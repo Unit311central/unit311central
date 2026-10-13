@@ -135,9 +135,9 @@ function TargetClientFormModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="target-client-form-title"
-        className="my-auto w-full max-w-lg rounded-2xl border border-white/15 bg-[#0b1220] shadow-[0_24px_64px_rgba(0,0,0,0.55)]"
+        className="my-auto flex max-h-[min(92vh,720px)] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-white/15 bg-[#0b1220] shadow-[0_24px_64px_rgba(0,0,0,0.55)]"
       >
-        <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
+        <div className="flex shrink-0 items-center justify-between border-b border-white/10 px-5 py-4">
           <h2 id="target-client-form-title" className="text-base font-semibold text-white">
             {title}
           </h2>
@@ -152,7 +152,7 @@ function TargetClientFormModal({
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4 px-5 py-5">
+        <form onSubmit={handleSubmit} className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-5">
           {formError ? (
             <p className="rounded-lg border border-red-400/30 bg-red-500/10 px-3 py-2 text-sm text-red-100" role="alert">
               {formError}
@@ -219,6 +219,29 @@ function TargetClientFormModal({
           </div>
 
           <div>
+            <label className="text-xs font-medium text-white/70">Notes</label>
+            <textarea
+              value={values.notes}
+              onChange={(e) => updateField("notes", e.target.value)}
+              rows={4}
+              maxLength={TARGET_CLIENT_NOTES_MAX_LENGTH}
+              placeholder="Optional research notes, context, or follow-up reminders"
+              className={cn(fieldClass(Boolean(fieldErrors.notes)), "min-h-[88px] resize-y")}
+              disabled={saving}
+            />
+            <div className="mt-1 flex flex-wrap items-center justify-between gap-1">
+              {fieldErrors.notes ? (
+                <p className="text-xs text-red-300">{fieldErrors.notes}</p>
+              ) : (
+                <p className="text-[11px] text-white/40">Optional — line breaks are preserved.</p>
+              )}
+              <p className="text-[11px] tabular-nums text-white/40">
+                {values.notes.length}/{TARGET_CLIENT_NOTES_MAX_LENGTH}
+              </p>
+            </div>
+          </div>
+
+          <div>
             <label className="text-xs font-medium text-white/70">Contact Name</label>
             <input
               type="text"
@@ -256,30 +279,7 @@ function TargetClientFormModal({
             ) : null}
           </div>
 
-          <div>
-            <label className="text-xs font-medium text-white/70">Notes</label>
-            <textarea
-              value={values.notes}
-              onChange={(e) => updateField("notes", e.target.value)}
-              rows={4}
-              maxLength={TARGET_CLIENT_NOTES_MAX_LENGTH}
-              placeholder="Optional research notes, context, or follow-up reminders"
-              className={cn(fieldClass(Boolean(fieldErrors.notes)), "resize-y min-h-[88px]")}
-              disabled={saving}
-            />
-            <div className="mt-1 flex flex-wrap items-center justify-between gap-1">
-              {fieldErrors.notes ? (
-                <p className="text-xs text-red-300">{fieldErrors.notes}</p>
-              ) : (
-                <p className="text-[11px] text-white/40">Optional — line breaks are preserved.</p>
-              )}
-              <p className="text-[11px] tabular-nums text-white/40">
-                {values.notes.length}/{TARGET_CLIENT_NOTES_MAX_LENGTH}
-              </p>
-            </div>
-          </div>
-
-          <div className="flex flex-col-reverse gap-2 border-t border-white/10 pt-4 sm:flex-row sm:justify-end">
+          <div className="flex shrink-0 flex-col-reverse gap-2 border-t border-white/10 pt-4 sm:flex-row sm:justify-end">
             <button
               type="button"
               onClick={onClose}

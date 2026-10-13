@@ -27,10 +27,10 @@ assert.deepEqual(ADD_TARGET_CLIENT_FIELD_ORDER, [
   "companyName",
   "website",
   "sector",
+  "notes",
   "contactName",
   "contactPosition",
   "email",
-  "notes",
 ]);
 
 assert.equal(

@@ -454,7 +454,7 @@ export default function TargetClientsOpeningScreen({ variant = "live" }: TargetC
     <div className="space-y-4">
       <SalesTabHeader
         title="Target Clients"
-        description="Organisations in scope for outbound sales before they become opportunities."
+        description="Organisations in scope for outbound sales before they become opportunities. Use Add or Edit to capture optional notes; open View (eye icon) to read them — notes are not shown in the table."
       />
 
       {successNotice ? (

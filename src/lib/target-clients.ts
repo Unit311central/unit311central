@@ -80,10 +80,10 @@ export const ADD_TARGET_CLIENT_FIELD_ORDER = [
   "companyName",
   "website",
   "sector",
+  "notes",
   "contactName",
   "contactPosition",
   "email",
-  "notes",
 ] as const satisfies readonly (keyof AddTargetClientFormValues)[];
 
 export function normalizeTargetClientNotesForSave(notes: string): string {

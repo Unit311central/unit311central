@@ -1,5 +1,5 @@
 import { INTERNAL_SITE_HOST, isDemoDomainHost } from "@/lib/app-domains";
-import { isWolfCentralHost } from "@/lib/wolf/wolf-surface";
+import { isBrowserWolfCentralSurface, isWolfCentralHost } from "@/lib/wolf/wolf-surface";
 import type { InternalNavChildItem, InternalNavSection } from "@/lib/internal-operations-data";
 import { SALES_MANAGEMENT_MODULE_LABEL } from "@/lib/sales-management-nav";
 
@@ -27,6 +27,13 @@ export function isTargetClientsRolloutHost(hostname: string | null | undefined):
     isDemoDomainHost(hostname) ||
     isWolfCentralHost(hostname)
   );
+}
+
+/** Client-side gate for Target Clients UI (hostname + WOLF preview paths on Vercel). */
+export function isTargetClientsRolloutSurface(): boolean {
+  if (typeof window === "undefined") return false;
+  if (isTargetClientsRolloutHost(window.location.hostname)) return true;
+  return isBrowserWolfCentralSurface();
 }
 
 /** Dev-only URL — no login, may show fictional sample rows. */

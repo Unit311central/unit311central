@@ -33,7 +33,7 @@ import {
   SalesManagementTargetsTab,
 } from "./SalesManagementManagementTabs";
 import {
-  isTargetClientsRolloutHost,
+  isTargetClientsRolloutSurface,
   isTargetClientsTab,
   TARGET_CLIENTS_PREVIEW_TAB_LEGACY,
   TARGET_CLIENTS_TAB,
@@ -62,11 +62,13 @@ export default function SalesManagementWorkspace() {
   const searchParams = useSearchParams();
   const activeTab = useMemo(() => resolveTab(searchParams), [searchParams]);
   const basePath = useInternalOperationsBasePath();
-  const [targetClientsEnabled, setTargetClientsEnabled] = useState(false);
+  const [targetClientsEnabled, setTargetClientsEnabled] = useState(() =>
+    typeof window !== "undefined" ? isTargetClientsRolloutSurface() : false,
+  );
   const [representatives, setRepresentatives] = useState<Representative[]>([]);
 
   useEffect(() => {
-    setTargetClientsEnabled(isTargetClientsRolloutHost(window.location.hostname));
+    setTargetClientsEnabled(isTargetClientsRolloutSurface());
   }, []);
 
   useEffect(() => {

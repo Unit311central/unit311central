@@ -33,9 +33,9 @@ export default function ViewTargetClientModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="view-target-client-title"
-        className="my-auto w-full max-w-lg rounded-2xl border border-white/15 bg-[#0b1220] shadow-[0_24px_64px_rgba(0,0,0,0.55)]"
+        className="my-auto flex max-h-[min(92vh,720px)] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-white/15 bg-[#0b1220] shadow-[0_24px_64px_rgba(0,0,0,0.55)]"
       >
-        <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
+        <div className="flex shrink-0 items-center justify-between border-b border-white/10 px-5 py-4">
           <h2 id="view-target-client-title" className="text-base font-semibold text-white">
             Target Client
           </h2>
@@ -49,7 +49,7 @@ export default function ViewTargetClientModal({
           </button>
         </div>
 
-        <div className="space-y-4 px-5 py-5">
+        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-5">
           <Field label="Company Name" value={row.companyName} />
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-wide text-white/40">Website</p>
@@ -67,20 +67,20 @@ export default function ViewTargetClientModal({
             )}
           </div>
           <Field label="Sector" value={row.sector} />
-          <Field label="Contact Name" value={row.contactName} />
-          <Field label="Contact Position" value={row.contactPosition} />
-          <Field label="Email Address" value={row.email} />
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-wide text-white/40">Notes</p>
             {row.notes ? (
               <p className="mt-1 whitespace-pre-wrap text-sm text-white/90">{row.notes}</p>
             ) : (
-              <p className="mt-1 text-sm text-white/90">—</p>
+              <p className="mt-1 text-sm text-white/50">No notes recorded.</p>
             )}
           </div>
+          <Field label="Contact Name" value={row.contactName} />
+          <Field label="Contact Position" value={row.contactPosition} />
+          <Field label="Email Address" value={row.email} />
         </div>
 
-        <div className="border-t border-white/10 px-5 py-4">
+        <div className="shrink-0 border-t border-white/10 px-5 py-4">
           <button
             type="button"
             onClick={onClose}
