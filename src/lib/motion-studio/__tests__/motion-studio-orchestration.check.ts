@@ -65,7 +65,9 @@ async function main() {
   assert.match(String(deniedWorkspace.message ?? ""), /demo workspace/i);
 
   const marginRoute = await resolveOrchestrationRoute(MARGIN_PROMPT, [], contentStudio);
-  assert.notEqual(marginRoute.intent?.tool, MOTION_STUDIO_TOOL_NAME);
+  if (marginRoute.kind === "tool") {
+    assert.notEqual(marginRoute.intent.tool, MOTION_STUDIO_TOOL_NAME);
+  }
   assert.ok(
     marginRoute.kind === "tool" ||
       marginRoute.kind === "evidence_gpt" ||
