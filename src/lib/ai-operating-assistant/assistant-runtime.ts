@@ -40,6 +40,9 @@ import type {
 } from "./types";
 import type { PlatformSession } from "@/lib/platform-auth";
 import { isSupabaseServiceRoleConfigured } from "@/lib/supabase/server";
+import { validateMotionStudioSpec } from "@/lib/motion-studio/validate";
+import type { MotionStudioPreviewPayload } from "@/lib/motion-studio/types";
+import { MOTION_STUDIO_TOOL_NAME } from "@/lib/motion-studio/motion-studio-tool";
 import {
   buildExecutiveSynthesisDeveloperMessage,
   shouldSynthesizeExecutiveToolResult,
@@ -658,6 +661,17 @@ function messageHasDurableArtifacts(message: AssistantChatMessage) {
         typeof artifact.contentBase64 === "string" && artifact.contentBase64.length > 0,
     ),
   );
+}
+
+function motionPreviewFromToolResult(result: unknown): MotionStudioPreviewPayload | undefined {
+  const summary = (result as { summary?: { motionSpec?: unknown } })?.summary;
+  if (!summary?.motionSpec) return undefined;
+  try {
+    const spec = validateMotionStudioSpec(summary.motionSpec);
+    return { ...spec, id: createMessageId() };
+  } catch {
+    return undefined;
+  }
 }
 
 export function extractArtifactsFromToolResult(
@@ -1526,6 +1540,17 @@ async function* runAssistantTurnInner(input: {
               : "Board Pack Generated Successfully";
       }
 
+      const motionPreview =
+        directIntent.tool === MOTION_STUDIO_TOOL_NAME && !extracted.errorText
+          ? motionPreviewFromToolResult(result)
+          : undefined;
+      if (directIntent.tool === MOTION_STUDIO_TOOL_NAME && !extracted.errorText) {
+        assistantText =
+          typeof (result as { summary?: { message?: string } })?.summary?.message === "string"
+            ? String((result as { summary: { message: string } }).summary.message)
+            : "Motion Studio preview is ready.";
+      }
+
       const synthesisCtx = {
         workspaceSlug: context.workspace.slug ?? "",
         toolName: directIntent.tool,
@@ -1568,6 +1593,7 @@ async function* runAssistantTurnInner(input: {
         artifacts: turnArtifacts.length > 0 ? turnArtifacts : undefined,
         executionCards: executionCards.length > 0 ? executionCards : undefined,
         responseBlocks: capabilityBlocks?.length ? capabilityBlocks : undefined,
+        motionStudio: motionPreview,
       };
 
       const saved = await persistTurn({

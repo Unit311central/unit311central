@@ -3,6 +3,11 @@
  */
 
 import { DEMO_WORKSPACE_SLUG } from "@/lib/app-domains";
+import {
+  isMotionStudioRequest,
+  motionStudioToolArgs,
+} from "@/lib/motion-studio/intent";
+import { MOTION_STUDIO_TOOL_NAME } from "@/lib/motion-studio/motion-studio-tool";
 import { isBrowserDemoSurface } from "@/lib/demo-enterprise";
 import { resolveAbhiBoardPackIntent } from "@/lib/abhi/board-pack-intent";
 import { resolveNorthstarExecutiveIntelligenceIntent } from "@/lib/demo/executive-intelligence-intent";
@@ -131,6 +136,21 @@ export const demoWorkspacePack: EaWorkspacePack = {
     },
   ],
   intentResolvers: [
+    ({ message, business }) => {
+      if (!isMotionStudioRequest(message)) return null;
+      if (business.workspace.slug?.trim().toLowerCase() !== DEMO_WORKSPACE_SLUG) {
+        return {
+          kind: "capability_answer",
+          message:
+            "Motion Studio is available on the demo workspace only (demo.unit311central.com). Switch to the demo host to generate animated explainers.",
+        };
+      }
+      return packToolRoute({
+        tool: MOTION_STUDIO_TOOL_NAME,
+        args: motionStudioToolArgs(message),
+        reason: "motion_studio",
+      });
+    },
     ({ message }) => {
       const lower = message.toLowerCase();
       if (/\bon leave|leave request|who is on leave|absence|time off|pto\b|out of office\b/.test(lower)) {

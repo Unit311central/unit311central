@@ -2,7 +2,12 @@
  * Server-only workspace tool schemas (no handler imports — avoids circular deps).
  */
 
+<<<<<<< HEAD
 import { ABHI_EA_PDF_TOOL_DEFINITIONS } from "@/lib/abhi/abhi-ea-pdf-tool-definitions";
+=======
+import { ABHI_EA_PDF_TOOL_DEFINITIONS } from "@/lib/abhi/ea-pdf-tools";
+import { MOTION_STUDIO_TOOL_DEFINITION } from "@/lib/motion-studio/motion-studio-tool";
+>>>>>>> ec0246ae (feat(demo-ea): add Motion Studio animated explainers for demo workspace)
 import { NORTHSTAR_EXECUTIVE_TOOL_DEFINITIONS } from "@/lib/ai-operating-assistant/northstar-executive-tools";
 import { ONWARDAIR_EXECUTIVE_TOOL_DEFINITIONS } from "@/lib/ai-operating-assistant/onwardair-executive-tools";
 import {
@@ -18,5 +23,5 @@ export const SERVER_PACK_TOOL_DEFINITIONS: Record<
   abhi: [...ABHI_EXECUTIVE_TOOL_DEFINITIONS, ...ABHI_EA_PDF_TOOL_DEFINITIONS],
   talanton: [...TALANTON_EXECUTIVE_TOOL_DEFINITIONS],
   onwardair: [...ONWARDAIR_EXECUTIVE_TOOL_DEFINITIONS],
-  demo: [...NORTHSTAR_EXECUTIVE_TOOL_DEFINITIONS],
+  demo: [...NORTHSTAR_EXECUTIVE_TOOL_DEFINITIONS, MOTION_STUDIO_TOOL_DEFINITION],
 };

@@ -29,6 +29,8 @@ export type AssistantChatMessage = {
   responseBlocks?: import("./capabilities/types").EaResponseBlock[];
   /** Structured COO-style response surfaces (forms, workflows, approvals, summaries). */
   executionCards?: import("./execution-cards").EaExecutionCard[];
+  /** Demo Motion Studio — validated animation spec rendered in-chat. */
+  motionStudio?: import("@/lib/motion-studio/types").MotionStudioPreviewPayload;
 };
 
 export type AssistantPageSelection = {

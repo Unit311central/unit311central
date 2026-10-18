@@ -76,7 +76,8 @@ export type DirectAssistantIntent = {
     | "northstar.getOrgHealth"
     | "northstar.queryActions"
     | "northstar.getBoardInsights"
-    | "northstar.queryModule";
+    | "northstar.queryModule"
+    | "demo.motionStudio.generate";
   args: Record<string, unknown>;
   reason: string;
 };
