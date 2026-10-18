@@ -24,6 +24,7 @@ import { packToolRoute } from "./orchestration-helpers";
 import type { EaWorkspacePack } from "./types";
 
 const DEMO_DEFAULT_PROMPTS = [
+  "Create a 30-second animated walkthrough of the sales opportunity lifecycle.",
   "Why did margin fall?",
   "Which customers are at risk?",
   "What projects are over budget?",
