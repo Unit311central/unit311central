@@ -45,5 +45,5 @@ export function filterMotionStudioToolDefinitions<T extends { name: string }>(
   activeView?: string | null,
 ): T[] {
   if (isMotionStudioEaActiveView(activeView)) return [...tools];
-  return tools.filter((tool) => tool.name !== MOTION_STUDIO_TOOL_NAME);
+  return tools.filter((tool) => tool.name !== MOTION_STUDIO_TOOL);
 }
