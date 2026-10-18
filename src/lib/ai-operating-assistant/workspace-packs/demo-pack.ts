@@ -4,6 +4,10 @@
 
 import { DEMO_WORKSPACE_SLUG } from "@/lib/app-domains";
 import {
+  canUseMotionStudioInBusinessContext,
+  motionStudioAccessDeniedMessage,
+} from "@/lib/motion-studio/access";
+import {
   isMotionStudioRequest,
   motionStudioToolArgs,
 } from "@/lib/motion-studio/intent";
@@ -23,8 +27,10 @@ import {
 import { packToolRoute } from "./orchestration-helpers";
 import type { EaWorkspacePack } from "./types";
 
+const MOTION_STUDIO_SUGGESTED_PROMPT =
+  "Create a 30-second animated walkthrough of the sales opportunity lifecycle.";
+
 const DEMO_DEFAULT_PROMPTS = [
-  "Create a 30-second animated walkthrough of the sales opportunity lifecycle.",
   "Why did margin fall?",
   "Which customers are at risk?",
   "What projects are over budget?",
@@ -109,6 +115,11 @@ export const demoWorkspacePack: EaWorkspacePack = {
     },
   },
   defaultSuggestedPrompts: DEMO_DEFAULT_PROMPTS,
+  suggestedPromptsByView: {
+    "content-studio": {
+      suggestedPrompts: [MOTION_STUDIO_SUGGESTED_PROMPT, ...DEMO_DEFAULT_PROMPTS],
+    },
+  },
   synthesisRules: [
     {
       id: "demo-northstar-query-module",
@@ -139,11 +150,10 @@ export const demoWorkspacePack: EaWorkspacePack = {
   intentResolvers: [
     ({ message, business }) => {
       if (!isMotionStudioRequest(message)) return null;
-      if (business.workspace.slug?.trim().toLowerCase() !== DEMO_WORKSPACE_SLUG) {
+      if (!canUseMotionStudioInBusinessContext(business)) {
         return {
           kind: "capability_answer",
-          message:
-            "Motion Studio is available on the demo workspace only (demo.unit311central.com). Switch to the demo host to generate animated explainers.",
+          message: motionStudioAccessDeniedMessage(business),
         };
       }
       return packToolRoute({

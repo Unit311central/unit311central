@@ -10,6 +10,7 @@ import type { BusinessSnapshotDomain } from "@/lib/ai-operating-assistant/busine
 import type { DailyExecutiveBrief } from "@/lib/ai-operating-assistant/executive-types";
 import type { AssistantPdfBrand } from "@/lib/ai-operating-assistant/pdf-brand";
 import type { AssistantBusinessContext, AssistantToolDefinition } from "@/lib/ai-operating-assistant/types";
+import { filterMotionStudioToolDefinitions } from "@/lib/motion-studio/access";
 import type { HrCandidate } from "@/lib/hr-recruitment-data";
 import type { HrLeaveRequest } from "@/lib/hr-leave-data";
 import type { HrPerformanceReview } from "@/lib/hr-performance-data";
@@ -56,6 +57,7 @@ export { resolveEaSuggestedPromptsFromPack } from "./registry-client";
 
 export function getEaWorkspacePackToolDefinitions(
   slug: string | null | undefined,
+  activeView?: string | null,
 ): AssistantToolDefinition[] {
   const pack = getEaWorkspacePackForSlug(slug);
   if (!pack) return [];
@@ -63,8 +65,12 @@ export function getEaWorkspacePackToolDefinitions(
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const { SERVER_PACK_TOOL_DEFINITIONS } =
     require("./server-pack-tool-definitions") as typeof import("./server-pack-tool-definitions");
-  const tools = SERVER_PACK_TOOL_DEFINITIONS[pack.id];
-  return tools ? [...tools] : [];
+  const tools = SERVER_PACK_TOOL_DEFINITIONS?.[pack.id];
+  if (!tools?.length) return [];
+  if (pack.id === "demo") {
+    return filterMotionStudioToolDefinitions(tools, activeView);
+  }
+  return [...tools];
 }
 
 export async function resolveEaWorkspacePackOrchestration(

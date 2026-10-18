@@ -1,7 +1,7 @@
-import { DEMO_WORKSPACE_SLUG } from "@/lib/app-domains";
 import { toolOk, toolError } from "@/lib/ai-operating-assistant/tool-result";
 import type { AssistantToolExecutionContext } from "@/lib/ai-operating-assistant/tool-result";
 
+import { assertMotionStudioAccess } from "./access";
 import { buildMotionSpecFromPrompt } from "./pick-template";
 import type { MotionStudioSpec } from "./types";
 import { assertSceneTimeline, validateMotionStudioSpec } from "./validate";
@@ -11,7 +11,7 @@ export const MOTION_STUDIO_TOOL_NAME = "demo.motionStudio.generate";
 export const MOTION_STUDIO_TOOL_DEFINITION = {
   name: MOTION_STUDIO_TOOL_NAME,
   description:
-    "Demo workspace only. Generate a structured, playable Motion Studio animation (16:9 explainer) from a natural-language brief. Use when the user asks to create or animate a product walkthrough, sales workflow, module introduction, or similar motion-style explainer. Returns an interactive in-chat preview — not an MP4 file.",
+    "Demo workspace Content Studio only. Generate a structured, playable Motion Studio animation (16:9 explainer) from a natural-language brief. Use when the user asks to create or animate a product walkthrough, sales workflow, module introduction, or similar motion-style explainer. Returns an interactive in-chat preview — not an MP4 file.",
   parameters: {
     type: "object",
     properties: {
@@ -29,19 +29,12 @@ export const MOTION_STUDIO_TOOL_DEFINITION = {
   },
 } as const;
 
-function assertDemoWorkspace(ctx: AssistantToolExecutionContext): void {
-  const slug = ctx.business.workspace.slug?.trim().toLowerCase() ?? "";
-  if (slug !== DEMO_WORKSPACE_SLUG) {
-    throw new Error("Motion Studio is available on the demo workspace only.");
-  }
-}
-
 export async function generateMotionStudioTool(
   args: Record<string, unknown>,
   ctx: AssistantToolExecutionContext,
 ) {
   try {
-    assertDemoWorkspace(ctx);
+    assertMotionStudioAccess(ctx);
     const prompt =
       typeof args.prompt === "string" && args.prompt.trim()
         ? args.prompt.trim()

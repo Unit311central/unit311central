@@ -1047,7 +1047,9 @@ async function* runAssistantTurnInner(input: {
   let turnArtifacts: NonNullable<AssistantChatMessage["artifacts"]> = [];
 
   try {
-    tools = getOpenAIToolSchemas(context.workspace.slug);
+    tools = getOpenAIToolSchemas(context.workspace.slug, {
+      activeView: context.page.activeView,
+    });
     ensureActionModulesRegistered();
 
     // Intent → registered action → propose/execute. Never fall through to workflow teaching.
