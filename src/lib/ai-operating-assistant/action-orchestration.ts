@@ -62,6 +62,12 @@ import {
   resolveSemanticCapability,
   detectAmbiguousEaQuery,
 } from "@/lib/central-application-model";
+import {
+  canUseMotionStudioInBusinessContext,
+  motionStudioAccessDeniedMessage,
+} from "@/lib/motion-studio/access";
+import { isMotionStudioRequest, motionStudioToolArgs } from "@/lib/motion-studio/intent";
+import { MOTION_STUDIO_TOOL_NAME } from "@/lib/motion-studio/motion-studio-tool";
 
 export { formatActionSuccess, formatPlanReadyMessage };
 /** @deprecated Prefer formatActionSuccess */
@@ -164,6 +170,26 @@ export async function resolveOrchestrationRoute(
       });
       return abhiRoute;
     }
+  }
+
+  // Demo Motion Studio — animation briefs must not be classified as CRM / explain investigations.
+  if (isMotionStudioRequest(message)) {
+    if (canUseMotionStudioInBusinessContext(business)) {
+      eaStage("Motion Studio intent", { tool: MOTION_STUDIO_TOOL_NAME });
+      return {
+        kind: "tool",
+        intent: {
+          tool: MOTION_STUDIO_TOOL_NAME as DirectAssistantIntent["tool"],
+          args: motionStudioToolArgs(message),
+          reason: "motion_studio",
+        },
+        skipSynthesis: true,
+      };
+    }
+    return {
+      kind: "capability_answer",
+      message: motionStudioAccessDeniedMessage(business),
+    };
   }
 
   // General investigation / cross-module evidence — before single-capability routing.
