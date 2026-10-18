@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
 
+import { ensureEaClientWorkspacePacksRegistered } from "@/lib/ai-operating-assistant/workspace-packs/client-bootstrap";
+import { resolveEaSuggestedPromptsFromPack } from "@/lib/ai-operating-assistant/workspace-packs/registry-client";
 import { demoWorkspacePack } from "@/lib/ai-operating-assistant/workspace-packs/demo-pack";
 import { MOTION_STUDIO_TOOL_DEFINITION, MOTION_STUDIO_TOOL_NAME } from "../motion-studio-tool";
 import { isMotionStudioRequest } from "../intent";
@@ -49,6 +51,16 @@ const contentStudioCtx = { business: demoBusiness("content-studio") };
 const globalEaCtx = { business: demoBusiness("executive-assistant") };
 
 async function main() {
+  ensureEaClientWorkspacePacksRegistered();
+  const contentStudioPrompts = resolveEaSuggestedPromptsFromPack(demoWorkspacePack, "content-studio", {
+    label: "Content Studio",
+    suggestedPrompts: [],
+  }).suggestedPrompts;
+  assert.ok(
+    contentStudioPrompts.some((p) => /30-second animated walkthrough/i.test(p)),
+    "Content Studio EA should surface Motion Studio sample prompt",
+  );
+
   assert.equal(canUseMotionStudioInBusinessContext(contentStudioCtx.business), true);
   assert.equal(canUseMotionStudioInBusinessContext(globalEaCtx.business), false);
 
