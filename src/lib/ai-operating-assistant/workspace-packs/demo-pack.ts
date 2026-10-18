@@ -117,6 +117,7 @@ export const demoWorkspacePack: EaWorkspacePack = {
   defaultSuggestedPrompts: DEMO_DEFAULT_PROMPTS,
   suggestedPromptsByView: {
     "content-studio": {
+      label: "Content Studio",
       suggestedPrompts: [MOTION_STUDIO_SUGGESTED_PROMPT, ...DEMO_DEFAULT_PROMPTS],
     },
   },
