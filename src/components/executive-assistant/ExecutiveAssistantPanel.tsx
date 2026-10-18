@@ -20,6 +20,7 @@ import {
 } from "@/lib/ai-operating-assistant/proactive-client";
 import type { AiExplanation } from "@/lib/ai-operating-assistant/explainability";
 import AbhiBoardPackProgress from "@/components/executive-assistant/AbhiBoardPackProgress";
+import { MotionStudioPreview } from "@/components/motion-studio/MotionStudioPreview";
 import { PlanViewer } from "@/components/executive-assistant/PlanViewer";
 import { ExecutionCardsList } from "@/components/executive-assistant/execution-cards";
 import EaResponseBlocks from "@/components/executive-assistant/EaResponseBlocks";
@@ -797,6 +798,15 @@ export default function ExecutiveAssistantPanel({
               ),
             );
           }
+          if (event.type === "tool_call" && event.name === "demo.motionStudio.generate") {
+            setMessages((current) =>
+              current.map((entry) =>
+                entry.id === assistantId
+                  ? { ...entry, content: "Building Motion Studio animation…" }
+                  : entry,
+              ),
+            );
+          }
           if (event.type === "tool_result") {
             applyGuidedToolResult(event.result);
             applyProactiveToolResult(event.name, event.result);
@@ -998,6 +1008,7 @@ export default function ExecutiveAssistantPanel({
                         event.message.executionCards?.length
                           ? event.message.executionCards
                           : entry.executionCards,
+                      motionStudio: event.message.motionStudio ?? entry.motionStudio,
                     }
                   : entry,
               ),
@@ -1386,11 +1397,21 @@ export default function ExecutiveAssistantPanel({
                   : "ml-8 border border-sky-400/20 bg-sky-500/10 text-sky-50",
               )}
             >
-              {entry.artifacts?.length || entry.executionCards?.length ? null : (
+              {entry.artifacts?.length ||
+              entry.executionCards?.length ||
+              entry.motionStudio ? null : (
                 <p className="whitespace-pre-wrap">
                   {entry.content || (sending ? "…" : "")}
                 </p>
               )}
+              {entry.role === "assistant" && entry.motionStudio ? (
+                <div className="space-y-2">
+                  {entry.content?.trim() ? (
+                    <p className="text-[12px] text-white/70">{entry.content}</p>
+                  ) : null}
+                  <MotionStudioPreview payload={entry.motionStudio} />
+                </div>
+              ) : null}
               {entry.role === "assistant" && entry.responseBlocks?.length ? (
                 <EaResponseBlocks blocks={entry.responseBlocks} />
               ) : null}

@@ -46,6 +46,7 @@
     "prove:onwardair-ea": "node --import tsx src/lib/onwardair/__tests__/ea-test-suite.check.ts",
     "prove:internal-ea": "node --import tsx src/lib/internal/__tests__/ea-test-suite.check.ts",
     "prove:demo-ea": "node --import tsx src/lib/demo/__tests__/ea-test-suite.check.ts",
+    "prove:motion-studio": "node --import tsx src/lib/motion-studio/__tests__/motion-studio.check.ts",
     "prove:track-c": "node --import tsx src/lib/accounting/__tests__/track-c-money-workflow.check.ts && node scripts/prove-track-c.mjs",
     "prove:sales-quotes-core-no-sharp": "node --require ./scripts/test-server-only-hook.cjs --import tsx src/lib/__tests__/sales-quotes-core-no-sharp.check.ts",
     "prove:sales-quotes-list-compose-no-sharp": "node --require ./scripts/test-server-only-hook.cjs --import tsx src/lib/__tests__/sales-quotes-list-compose-no-sharp.check.ts",

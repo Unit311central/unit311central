@@ -1047,10 +1047,13 @@ export function assertOpenAiToolNamesValid(
   }
 }
 
-export function getOpenAIToolSchemas(workspaceSlug?: string | null) {
+export function getOpenAIToolSchemas(
+  workspaceSlug?: string | null,
+  options?: { activeView?: string | null },
+) {
   ensureEaWorkspacePacksRegistered();
   const slug = workspaceSlug?.trim().toLowerCase() ?? "";
-  const packTools = getEaWorkspacePackToolDefinitions(slug);
+  const packTools = getEaWorkspacePackToolDefinitions(slug, options?.activeView);
   const schemas = [...ASSISTANT_TOOL_DEFINITIONS, ...packTools].map((tool) => ({
     type: "function" as const,
     name: toOpenAiFunctionToolName(tool.name),

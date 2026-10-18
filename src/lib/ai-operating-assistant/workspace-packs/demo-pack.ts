@@ -3,6 +3,15 @@
  */
 
 import { DEMO_WORKSPACE_SLUG } from "@/lib/app-domains";
+import {
+  canUseMotionStudioInBusinessContext,
+  motionStudioAccessDeniedMessage,
+} from "@/lib/motion-studio/access";
+import {
+  isMotionStudioRequest,
+  motionStudioToolArgs,
+} from "@/lib/motion-studio/intent";
+import { MOTION_STUDIO_TOOL_NAME } from "@/lib/motion-studio/motion-studio-tool";
 import { isBrowserDemoSurface } from "@/lib/demo-enterprise";
 import { resolveAbhiBoardPackIntent } from "@/lib/abhi/board-pack-intent";
 import { resolveNorthstarExecutiveIntelligenceIntent } from "@/lib/demo/executive-intelligence-intent";
@@ -17,6 +26,9 @@ import {
 
 import { packToolRoute } from "./orchestration-helpers";
 import type { EaWorkspacePack } from "./types";
+
+const MOTION_STUDIO_SUGGESTED_PROMPT =
+  "Create a 30-second animated walkthrough of the sales opportunity lifecycle.";
 
 const DEMO_DEFAULT_PROMPTS = [
   "Why did margin fall?",
@@ -103,6 +115,12 @@ export const demoWorkspacePack: EaWorkspacePack = {
     },
   },
   defaultSuggestedPrompts: DEMO_DEFAULT_PROMPTS,
+  suggestedPromptsByView: {
+    "content-studio": {
+      label: "Content Studio",
+      suggestedPrompts: [MOTION_STUDIO_SUGGESTED_PROMPT, ...DEMO_DEFAULT_PROMPTS],
+    },
+  },
   synthesisRules: [
     {
       id: "demo-northstar-query-module",
@@ -131,6 +149,20 @@ export const demoWorkspacePack: EaWorkspacePack = {
     },
   ],
   intentResolvers: [
+    ({ message, business }) => {
+      if (!isMotionStudioRequest(message)) return null;
+      if (!canUseMotionStudioInBusinessContext(business)) {
+        return {
+          kind: "capability_answer",
+          message: motionStudioAccessDeniedMessage(business),
+        };
+      }
+      return packToolRoute({
+        tool: MOTION_STUDIO_TOOL_NAME,
+        args: motionStudioToolArgs(message),
+        reason: "motion_studio",
+      });
+    },
     ({ message }) => {
       const lower = message.toLowerCase();
       if (/\bon leave|leave request|who is on leave|absence|time off|pto\b|out of office\b/.test(lower)) {
