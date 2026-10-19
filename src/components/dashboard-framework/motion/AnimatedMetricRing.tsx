@@ -2,7 +2,12 @@
 
 import { motion } from "framer-motion";
 
-import { LIVING_CHART_MS, useLivingMotionEnabled } from "./living-motion";
+import {
+  LIVING_CHART_MS,
+  useHomeLivingIntroPending,
+  useIntroAnimationLock,
+  useLivingMotionEnabled,
+} from "./living-motion";
 
 type AnimatedMetricRingProps = {
   value: number;
@@ -18,6 +23,9 @@ export function AnimatedMetricRing({
   strokeWidth = 3,
 }: AnimatedMetricRingProps) {
   const motionEnabled = useLivingMotionEnabled();
+  const { introPending } = useHomeLivingIntroPending();
+  const playIntro = useIntroAnimationLock(introPending, motionEnabled);
+  const animateRing = playIntro;
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
   const ratio = max > 0 ? Math.min(1, value / max) : 0;
@@ -42,9 +50,9 @@ export function AnimatedMetricRing({
         strokeWidth={strokeWidth}
         strokeLinecap="round"
         strokeDasharray={circumference}
-        initial={motionEnabled ? { strokeDashoffset: circumference } : false}
+        initial={animateRing ? { strokeDashoffset: circumference } : false}
         animate={{ strokeDashoffset: targetOffset }}
-        transition={motionEnabled ? { duration: LIVING_CHART_MS, ease: "easeOut" } : { duration: 0 }}
+        transition={animateRing ? { duration: LIVING_CHART_MS, ease: "easeOut" } : { duration: 0 }}
       />
     </svg>
   );

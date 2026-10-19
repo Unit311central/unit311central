@@ -2,25 +2,25 @@
 
 import { useEffect, useRef, useState } from "react";
 
-import { LIVING_COUNT_UP_MS, useLivingMotionEnabled } from "./living-motion";
+import { readHomeLivingIntroPlayed } from "./living-motion-session";
+import { LIVING_COUNT_UP_MS, useHomeLivingIntroPending, useLivingMotionEnabled } from "./living-motion";
 
 type AnimatedCountUpProps = {
   target: number;
   format: (value: number) => string;
   suffix?: string;
   className?: string;
-  onComplete?: () => void;
 };
 
-export function AnimatedCountUp({
-  target,
-  format,
-  suffix = "",
-  className,
-  onComplete,
-}: AnimatedCountUpProps) {
+export function AnimatedCountUp({ target, format, suffix = "", className }: AnimatedCountUpProps) {
   const motionEnabled = useLivingMotionEnabled();
-  const [display, setDisplay] = useState(() => (motionEnabled ? format(0) : format(target)));
+  const { introPending } = useHomeLivingIntroPending();
+  const introPlayedRef = useRef(readHomeLivingIntroPlayed());
+  const shouldAnimateFromZero = motionEnabled && introPending && !introPlayedRef.current;
+
+  const [display, setDisplay] = useState(() =>
+    shouldAnimateFromZero ? format(0) + suffix : format(target) + suffix,
+  );
   const prevTarget = useRef(target);
 
   useEffect(() => {
@@ -29,12 +29,28 @@ export function AnimatedCountUp({
       return;
     }
 
-    const from = prevTarget.current === target ? 0 : prevTarget.current;
+    if (!introPending && prevTarget.current === target) {
+      setDisplay(format(target) + suffix);
+      return;
+    }
+
+    const from =
+      introPending && !introPlayedRef.current
+        ? 0
+        : prevTarget.current === target
+          ? target
+          : prevTarget.current;
     prevTarget.current = target;
+
+    if (from === target) {
+      setDisplay(format(target) + suffix);
+      return;
+    }
+
     const start = performance.now();
     const duration = LIVING_COUNT_UP_MS;
-
     let frame = 0;
+
     const tick = (now: number) => {
       const t = Math.min(1, (now - start) / duration);
       const eased = 1 - (1 - t) ** 3;
@@ -44,13 +60,13 @@ export function AnimatedCountUp({
         frame = requestAnimationFrame(tick);
       } else {
         setDisplay(format(target) + suffix);
-        onComplete?.();
+        if (introPending) introPlayedRef.current = true;
       }
     };
 
     frame = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frame);
-  }, [target, format, suffix, motionEnabled, onComplete]);
+  }, [target, format, suffix, motionEnabled, introPending]);
 
   return <span className={className}>{display}</span>;
 }

@@ -8,6 +8,8 @@ import ExecutiveMyWorkspace from "@/components/central-capabilities/ExecutiveMyW
 import NorthstarCompanyOverview from "@/components/demo/NorthstarCompanyOverview";
 
 import { WorkspaceDashboard } from "@/components/dashboard-framework";
+import { LivingHomeMotionProvider } from "@/components/dashboard-framework/motion/living-motion-context";
+import { HomeLivingIntroScheduler } from "@/components/dashboard-framework/motion/living-motion";
 import WorkspaceErrorBoundary from "@/components/testflighthub/WorkspaceErrorBoundary";
 
 const PortfolioCompanyMap = dynamic(
@@ -225,6 +227,7 @@ export default function ExecutiveHomeDashboard({
   const [customizeOpen, setCustomizeOpen] = useState(false);
   const [overviewOpen, setOverviewOpen] = useState(false);
   const [layoutHydrated, setLayoutHydrated] = useState(false);
+  const [introReady, setIntroReady] = useState(false);
   const isTalanton = typeof window !== "undefined" ? isBrowserTalantonImpactSurface() : false;
   const isDemo = typeof window !== "undefined" ? isBrowserDemoSurface() : false;
 
@@ -265,6 +268,23 @@ export default function ExecutiveHomeDashboard({
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    if (loading || !bundle) {
+      setIntroReady(false);
+      return;
+    }
+    let cancelled = false;
+    const frame = requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        if (!cancelled) setIntroReady(true);
+      });
+    });
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(frame);
+    };
+  }, [loading, bundle]);
 
   // OnwardAir: defer weekly competitor brief until after first paint / idle.
   useEffect(() => {
@@ -483,12 +503,15 @@ export default function ExecutiveHomeDashboard({
         </div>
       ) : null}
 
-      <WorkspaceDashboard
-        config={config}
-        audience={{ workspaceId: "home", role: "ceo" }}
-        loading={loading && !bundle}
-        preserveSectionOrder
-      />
+      <LivingHomeMotionProvider armed={introReady}>
+        <HomeLivingIntroScheduler />
+        <WorkspaceDashboard
+          config={config}
+          audience={{ workspaceId: "home", role: "ceo" }}
+          loading={(loading && !bundle) || (Boolean(bundle) && !introReady)}
+          preserveSectionOrder
+        />
+      </LivingHomeMotionProvider>
 
       <ExecutiveMyWorkspace />
 
