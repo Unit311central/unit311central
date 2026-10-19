@@ -5,7 +5,11 @@ import { motion } from "framer-motion";
 import { AnimatedCountUp } from "@/components/dashboard-framework/motion/AnimatedCountUp";
 import { DashboardReveal } from "@/components/dashboard-framework/motion/DashboardReveal";
 import { formatCountUpValue } from "@/components/dashboard-framework/motion/format-count-up";
-import { LIVING_CHART_MS, useLivingMotionEnabled } from "@/components/dashboard-framework/motion/living-motion";
+import {
+  LIVING_CHART_MS,
+  useHomeLivingIntroPending,
+  useLivingMotionEnabled,
+} from "@/components/dashboard-framework/motion/living-motion";
 import type {
   DashboardAnalyticsAnnotation,
   DashboardAnalyticsSeries,
@@ -71,15 +75,17 @@ function AnimatedBar({
   delay: number;
 }) {
   const motionEnabled = useLivingMotionEnabled();
+  const { introPending } = useHomeLivingIntroPending();
+  const animateBars = motionEnabled && introPending;
   return (
     <motion.div
       className="min-w-0 flex-1 rounded-t-sm opacity-95"
       style={{ background: color }}
       title={title}
-      initial={motionEnabled ? { height: "2%" } : false}
+      initial={animateBars ? { height: "2%" } : false}
       animate={{ height: `${heightPct}%` }}
       transition={
-        motionEnabled
+        animateBars
           ? { duration: LIVING_CHART_MS, delay, ease: [0.22, 1, 0.36, 1] }
           : { duration: 0 }
       }

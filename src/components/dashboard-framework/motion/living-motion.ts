@@ -1,12 +1,19 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 export const LIVING_ENTER_DURATION = 0.45;
 export const LIVING_STAGGER = 0.07;
 export const LIVING_COUNT_UP_MS = 900;
 export const LIVING_CHART_MS = 0.85;
 export const LIVING_EASE = [0.22, 1, 0.36, 1] as const;
+
+import {
+  markHomeLivingIntroPlayed,
+  readHomeLivingIntroPlayed,
+} from "./living-motion-session";
+
+export { HOME_LIVING_INTRO_SESSION_KEY, markHomeLivingIntroPlayed, readHomeLivingIntroPlayed } from "./living-motion-session";
 
 export function useLivingMotionEnabled(): boolean {
   const [enabled, setEnabled] = useState(true);
@@ -23,8 +30,27 @@ export function useLivingMotionEnabled(): boolean {
   return enabled;
 }
 
-export function livingEntranceProps(index: number, motionEnabled: boolean) {
-  if (!motionEnabled) {
+export function useHomeLivingIntroPending(): {
+  introPending: boolean;
+  completeIntro: () => void;
+} {
+  const motionEnabled = useLivingMotionEnabled();
+  const [pending, setPending] = useState(false);
+
+  useEffect(() => {
+    setPending(motionEnabled && !readHomeLivingIntroPlayed());
+  }, [motionEnabled]);
+
+  const completeIntro = useCallback(() => {
+    markHomeLivingIntroPlayed();
+    setPending(false);
+  }, []);
+
+  return { introPending: pending, completeIntro };
+}
+
+export function livingEntranceProps(index: number, motionEnabled: boolean, introPending: boolean) {
+  if (!motionEnabled || !introPending) {
     return { initial: false as const, animate: { opacity: 1, y: 0, scale: 1 } };
   }
   return {
