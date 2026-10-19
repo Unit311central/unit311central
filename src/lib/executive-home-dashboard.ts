@@ -444,6 +444,7 @@ function buildRevenuePeriodOptions(input: {
       id: "ytd",
       label: "YTD",
       value: formatCompactMoney(revenueYtd, currency),
+      countUpTarget: revenueYtd,
       delta: ytdDelta.label,
       tone: ytdDelta.tone,
       hint: "Year to date · general ledger",
@@ -452,6 +453,7 @@ function buildRevenuePeriodOptions(input: {
       id: "this-month",
       label: "This month",
       value: formatCompactMoney(thisMonthAmount, currency),
+      countUpTarget: thisMonthAmount,
       delta: monthDeltaValue.label,
       tone: monthDeltaValue.tone,
       hint: "Current calendar month",
@@ -460,6 +462,7 @@ function buildRevenuePeriodOptions(input: {
       id: "last-month",
       label: "Last month",
       value: formatCompactMoney(lastMonthAmount, currency),
+      countUpTarget: lastMonthAmount,
       delta: lastMonthDelta.label,
       tone: lastMonthDelta.tone,
       hint: "Prior calendar month",
@@ -468,6 +471,7 @@ function buildRevenuePeriodOptions(input: {
       id: "last-3-months",
       label: "Last 3 months",
       value: formatCompactMoney(last3Amount, currency),
+      countUpTarget: last3Amount,
       delta: quarterDelta.label,
       tone: quarterDelta.tone,
       hint: "Trailing 3 months · ledger",
@@ -476,6 +480,7 @@ function buildRevenuePeriodOptions(input: {
       id: "full-year",
       label: "Full year",
       value: formatCompactMoney(annualAmount, currency),
+      countUpTarget: annualAmount,
       delta: "Calendar year · ledger",
       tone: "neutral",
       hint: "Calendar year to date / annual",
@@ -598,6 +603,9 @@ export function buildExecutiveHomeLiveKpis(input: {
       id: "revenue",
       label: "Revenue",
       value: defaultRevenuePeriod?.value ?? formatCompactMoney(revenueYtd, currency),
+      countUpTarget: defaultRevenuePeriod?.countUpTarget ?? revenueYtd,
+      countUpCurrency: currency,
+      countUpKind: "compactCurrency",
       delta: defaultRevenuePeriod?.delta ?? "YTD from ledger",
       tone: defaultRevenuePeriod?.tone ?? "neutral",
       hint: defaultRevenuePeriod?.hint ?? "YTD · general ledger",
@@ -608,6 +616,9 @@ export function buildExecutiveHomeLiveKpis(input: {
       id: "cash",
       label: "Cash Available",
       value: formatCompactMoney(cash, currency),
+      countUpTarget: cash,
+      countUpCurrency: currency,
+      countUpKind: "compactCurrency",
       delta:
         cashDelta?.label ??
         (oaHome
@@ -633,6 +644,10 @@ export function buildExecutiveHomeLiveKpis(input: {
         financialsLoaded || oaHome || abhiHome
           ? `${formatCompactMoney(burnPrevious, currency)} / mo`
           : "—",
+      countUpTarget: financialsLoaded || oaHome || abhiHome ? burnPrevious : undefined,
+      countUpCurrency: currency,
+      countUpKind: "compactCurrency",
+      countUpSuffix: " / mo",
       delta: financialsLoaded || oaHome || abhiHome ? burnDelta.label : "Loading ledger…",
       tone: financialsLoaded || oaHome || abhiHome ? burnDelta.tone : "neutral",
       hint:
@@ -644,6 +659,8 @@ export function buildExecutiveHomeLiveKpis(input: {
       id: "clients",
       label: abhiHome ? "Active Members" : "Active Clients",
       value: String(activeClients),
+      countUpTarget: activeClients,
+      countUpKind: "integer",
       delta: clientsDelta,
       tone: "positive",
       hint: abhiHome
@@ -854,6 +871,8 @@ export function buildExecutiveHomeLiveAnalytics(input: {
             id: "latest-revenue",
             label: "Latest month revenue",
             value: formatCompactMoney(latestRevenue, currency),
+            countUpTarget: latestRevenue,
+            countUpCurrency: currency,
             tone: "positive",
             hint: latest ? latest.label : "Current month",
           },
@@ -861,6 +880,8 @@ export function buildExecutiveHomeLiveAnalytics(input: {
             id: "latest-spend",
             label: "Latest month spend",
             value: formatCompactMoney(latestSpend, currency),
+            countUpTarget: latestSpend,
+            countUpCurrency: currency,
             tone: "neutral",
             hint: latest ? latest.label : "Current month",
           },
@@ -868,6 +889,8 @@ export function buildExecutiveHomeLiveAnalytics(input: {
             id: "net",
             label: "Month contribution",
             value: formatCompactMoney(net, currency),
+            countUpTarget: net,
+            countUpCurrency: currency,
             tone: net >= 0 ? "positive" : "warning",
             hint: "Revenue − spend",
           },
@@ -1193,6 +1216,7 @@ export function buildExecutiveHomeLiveNarrative(input: {
     meta: string;
     timeLabel: string;
     category: string;
+    highlight?: boolean;
   }> = [];
   for (const project of liveProjects) {
     activity.push({
@@ -1330,6 +1354,11 @@ export function buildExecutiveHomeLiveNarrative(input: {
       ? `Review ${companyName} operating dashboard before leadership sync.`
       : alerts.map((a) => a.title).join(" · ");
 
+  const activitySlice = activity.slice(0, 5);
+  if (activitySlice[0]) {
+    activitySlice[0] = { ...activitySlice[0], highlight: true };
+  }
+
   return {
     ai: {
       headline: greetingForNow(),
@@ -1348,7 +1377,7 @@ export function buildExecutiveHomeLiveNarrative(input: {
       ],
     },
     alerts: alerts.slice(0, 4),
-    activity: activity.slice(0, 5),
+    activity: activitySlice,
     queue: queue.slice(0, 5),
   };
 }

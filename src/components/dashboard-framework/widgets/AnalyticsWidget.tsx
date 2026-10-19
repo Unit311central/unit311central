@@ -1,5 +1,11 @@
 "use client";
 
+import { motion } from "framer-motion";
+
+import { AnimatedCountUp } from "@/components/dashboard-framework/motion/AnimatedCountUp";
+import { DashboardReveal } from "@/components/dashboard-framework/motion/DashboardReveal";
+import { formatCountUpValue } from "@/components/dashboard-framework/motion/format-count-up";
+import { LIVING_CHART_MS, useLivingMotionEnabled } from "@/components/dashboard-framework/motion/living-motion";
 import type {
   DashboardAnalyticsAnnotation,
   DashboardAnalyticsSeries,
@@ -53,6 +59,34 @@ function periodLabels(seriesList: readonly DashboardAnalyticsSeries[]): string[]
   return Array.from({ length: len }, (_, i) => `P${i + 1}`);
 }
 
+function AnimatedBar({
+  heightPct,
+  color,
+  title,
+  delay,
+}: {
+  heightPct: number;
+  color: string;
+  title: string;
+  delay: number;
+}) {
+  const motionEnabled = useLivingMotionEnabled();
+  return (
+    <motion.div
+      className="min-w-0 flex-1 rounded-t-sm opacity-95"
+      style={{ background: color }}
+      title={title}
+      initial={motionEnabled ? { height: "2%" } : false}
+      animate={{ height: `${heightPct}%` }}
+      transition={
+        motionEnabled
+          ? { duration: LIVING_CHART_MS, delay, ease: [0.22, 1, 0.36, 1] }
+          : { duration: 0 }
+      }
+    />
+  );
+}
+
 export default function AnalyticsWidget({ widget }: { widget: DashboardAnalyticsWidget }) {
   const seriesList = widget.series;
   const pointCount = Math.max(0, ...seriesList.map((s) => s.values.length));
@@ -62,110 +96,114 @@ export default function AnalyticsWidget({ widget }: { widget: DashboardAnalytics
   const useGrouped = seriesList.length >= 2 && pointCount > 0;
 
   return (
-    <section className={widgetShellClass()}>
-      <WidgetTitle title={widget.title ?? "Analytics"} meta={widget.caption} />
+    <DashboardReveal index={1}>
+      <section className={widgetShellClass()}>
+        <WidgetTitle title={widget.title ?? "Analytics"} meta={widget.caption} />
 
-      {widget.annotations && widget.annotations.length > 0 ? (
-        <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
-          {widget.annotations.map((item) => (
-            <div
-              key={item.id}
-              className="rounded-lg border border-white/10 bg-white/[0.03] px-2.5 py-2"
-            >
-              <p className="text-[10px] uppercase tracking-wide text-white/45">{item.label}</p>
-              <p
-                className={cn(
-                  "mt-0.5 text-[13px] font-semibold tabular-nums",
-                  TONE_CLASS[item.tone ?? "neutral"],
-                )}
-              >
-                {item.value}
-              </p>
-              {item.hint ? <p className="mt-0.5 text-[10px] text-white/35">{item.hint}</p> : null}
+        {widget.annotations && widget.annotations.length > 0 ? (
+          <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+            {widget.annotations.map((item, index) => (
+              <DashboardReveal key={item.id} index={index + 2}>
+                <div className="rounded-lg border border-white/10 bg-white/[0.03] px-2.5 py-2">
+                  <p className="text-[10px] uppercase tracking-wide text-white/45">{item.label}</p>
+                  <p
+                    className={cn(
+                      "mt-0.5 text-[13px] font-semibold tabular-nums",
+                      TONE_CLASS[item.tone ?? "neutral"],
+                    )}
+                  >
+                    {typeof item.countUpTarget === "number" ? (
+                      <AnimatedCountUp
+                        target={item.countUpTarget}
+                        format={(n) => formatCountUpValue("compactCurrency", item.countUpCurrency, n)}
+                      />
+                    ) : (
+                      item.value
+                    )}
+                  </p>
+                  {item.hint ? <p className="mt-0.5 text-[10px] text-white/35">{item.hint}</p> : null}
+                </div>
+              </DashboardReveal>
+            ))}
+          </div>
+        ) : null}
+
+        {!hasData ? (
+          <p className="py-6 text-center text-[12px] text-white/40">
+            {widget.emptyMessage ?? "No performance data for this period yet."}
+          </p>
+        ) : useGrouped ? (
+          <div>
+            <div className="mb-2 flex flex-wrap items-center gap-3">
+              {seriesList.map((series, seriesIndex) => (
+                <div key={series.id} className="flex items-center gap-1.5 text-[11px] text-white/60">
+                  <span
+                    className="inline-block h-2 w-2 rounded-sm"
+                    style={{ background: SERIES_COLORS[seriesIndex % SERIES_COLORS.length] }}
+                  />
+                  <span>{series.label}</span>
+                  <span className="tabular-nums text-white/40">{latestDisplay(series)}</span>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
-      ) : null}
 
-      {!hasData ? (
-        <p className="py-6 text-center text-[12px] text-white/40">
-          {widget.emptyMessage ?? "No performance data for this period yet."}
-        </p>
-      ) : useGrouped ? (
-        <div>
-          <div className="mb-2 flex flex-wrap items-center gap-3">
+            <div className="flex h-28 items-end gap-1.5 sm:gap-2">
+              {Array.from({ length: pointCount }, (_, index) => {
+                const period = labels[index] ?? `P${index + 1}`;
+                return (
+                  <div key={period + index} className="flex min-w-0 flex-1 flex-col items-center gap-1">
+                    <div className="flex h-24 w-full items-end justify-center gap-0.5">
+                      {seriesList.map((series, seriesIndex) => {
+                        const value = series.values[index] ?? 0;
+                        const height = Math.max(value > 0 ? 6 : 2, (value / max) * 100);
+                        return (
+                          <AnimatedBar
+                            key={`${series.id}-${index}`}
+                            heightPct={height}
+                            color={SERIES_COLORS[seriesIndex % SERIES_COLORS.length]}
+                            title={`${period} · ${series.label}: ${formatSeriesValue(series, value)}`}
+                            delay={index * 0.06 + seriesIndex * 0.03}
+                          />
+                        );
+                      })}
+                    </div>
+                    <span className="truncate text-[9px] text-white/40">{period}</span>
+                  </div>
+                );
+              })}
+            </div>
+            <p className="mt-2 text-[10px] text-white/30">
+              Scale to {formatSeriesValue(seriesList[0], max)} · hover bars for exact amounts
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-4">
             {seriesList.map((series, seriesIndex) => (
-              <div key={series.id} className="flex items-center gap-1.5 text-[11px] text-white/60">
-                <span
-                  className="inline-block h-2 w-2 rounded-sm"
-                  style={{ background: SERIES_COLORS[seriesIndex % SERIES_COLORS.length] }}
-                />
-                <span>{series.label}</span>
-                <span className="tabular-nums text-white/40">{latestDisplay(series)}</span>
+              <div key={series.id}>
+                <div className="mb-1.5 flex items-center justify-between gap-2">
+                  <p className="text-[12px] text-white/70">{series.label}</p>
+                  <p className="text-[11px] tabular-nums text-white/50">{latestDisplay(series)}</p>
+                </div>
+                <div className="flex h-16 items-end gap-1">
+                  {series.values.map((value, index) => (
+                    <div key={`${series.id}-${index}`} className="flex min-w-0 flex-1 flex-col justify-end gap-1">
+                      <AnimatedBar
+                        heightPct={Math.max(8, (value / max) * 100)}
+                        color={SERIES_COLORS[seriesIndex % SERIES_COLORS.length]}
+                        title={`${labels[index] ?? index + 1} · ${series.label}: ${formatSeriesValue(series, value)}`}
+                        delay={index * 0.05}
+                      />
+                      {labels[index] ? (
+                        <span className="truncate text-center text-[9px] text-white/35">{labels[index]}</span>
+                      ) : null}
+                    </div>
+                  ))}
+                </div>
               </div>
             ))}
           </div>
-
-          <div className="flex h-28 items-end gap-1.5 sm:gap-2">
-            {Array.from({ length: pointCount }, (_, index) => {
-              const period = labels[index] ?? `P${index + 1}`;
-              return (
-                <div key={period + index} className="flex min-w-0 flex-1 flex-col items-center gap-1">
-                  <div className="flex h-24 w-full items-end justify-center gap-0.5">
-                    {seriesList.map((series, seriesIndex) => {
-                      const value = series.values[index] ?? 0;
-                      const height = Math.max(value > 0 ? 6 : 2, (value / max) * 100);
-                      return (
-                        <div
-                          key={`${series.id}-${index}`}
-                          className="min-w-0 flex-1 rounded-t-sm opacity-95"
-                          style={{
-                            height: `${height}%`,
-                            background: SERIES_COLORS[seriesIndex % SERIES_COLORS.length],
-                          }}
-                          title={`${period} · ${series.label}: ${formatSeriesValue(series, value)}`}
-                        />
-                      );
-                    })}
-                  </div>
-                  <span className="truncate text-[9px] text-white/40">{period}</span>
-                </div>
-              );
-            })}
-          </div>
-          <p className="mt-2 text-[10px] text-white/30">
-            Scale to {formatSeriesValue(seriesList[0], max)} · hover bars for exact amounts
-          </p>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {seriesList.map((series, seriesIndex) => (
-            <div key={series.id}>
-              <div className="mb-1.5 flex items-center justify-between gap-2">
-                <p className="text-[12px] text-white/70">{series.label}</p>
-                <p className="text-[11px] tabular-nums text-white/50">{latestDisplay(series)}</p>
-              </div>
-              <div className="flex h-16 items-end gap-1">
-                {series.values.map((value, index) => (
-                  <div key={`${series.id}-${index}`} className="flex min-w-0 flex-1 flex-col justify-end gap-1">
-                    <div
-                      className="w-full rounded-t-sm opacity-90"
-                      style={{
-                        height: `${Math.max(8, (value / max) * 100)}%`,
-                        background: SERIES_COLORS[seriesIndex % SERIES_COLORS.length],
-                      }}
-                      title={`${labels[index] ?? index + 1} · ${series.label}: ${formatSeriesValue(series, value)}`}
-                    />
-                    {labels[index] ? (
-                      <span className="truncate text-center text-[9px] text-white/35">{labels[index]}</span>
-                    ) : null}
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </section>
+        )}
+      </section>
+    </DashboardReveal>
   );
 }
