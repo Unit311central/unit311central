@@ -5,6 +5,7 @@ import type { NextConfig } from "next";
  * Production host routing (apex → internal.*, clean internal URLs) lives in middleware.
  */
 const nextConfig: NextConfig = {
+  allowedDevOrigins: ["127.0.0.1", "localhost"],
   productionBrowserSourceMaps: false,
   // Do not externalize sharp — Vercel must copy libvips-cpp.so into the PDF lambda trace.
   serverExternalPackages: ["@resvg/resvg-js", "jspdf", "pdf-lib", "pptxgenjs", "unpdf"],

@@ -20,7 +20,8 @@ import {
 } from "@/lib/ai-operating-assistant/proactive-client";
 import type { AiExplanation } from "@/lib/ai-operating-assistant/explainability";
 import AbhiBoardPackProgress from "@/components/executive-assistant/AbhiBoardPackProgress";
-import { MotionStudioPreview } from "@/components/motion-studio/MotionStudioPreview";
+import { MotionStudioModalHost } from "@/components/motion-studio/MotionStudioModal";
+import type { MotionStudioPreviewPayload } from "@/lib/motion-studio/types";
 import { PlanViewer } from "@/components/executive-assistant/PlanViewer";
 import { ExecutionCardsList } from "@/components/executive-assistant/execution-cards";
 import EaResponseBlocks from "@/components/executive-assistant/EaResponseBlocks";
@@ -247,6 +248,14 @@ export default function ExecutiveAssistantPanel({
     active: boolean;
     complete: boolean;
   }>({ active: false, complete: false });
+  const [motionStudioModalOpen, setMotionStudioModalOpen] = useState(false);
+  const [motionStudioModalPayload, setMotionStudioModalPayload] =
+    useState<MotionStudioPreviewPayload | null>(null);
+
+  const openMotionStudioModal = useCallback((payload: MotionStudioPreviewPayload) => {
+    setMotionStudioModalPayload(payload);
+    setMotionStudioModalOpen(true);
+  }, []);
   const supportsBoardPackWorkspace =
     typeof window !== "undefined" ? workspacePackSupportsBoardPack() : false;
   const [assistantTitle, setAssistantTitle] = useState("Executive Assistant");
@@ -1013,6 +1022,10 @@ export default function ExecutiveAssistantPanel({
                   : entry,
               ),
             );
+            const motionPayload = event.message.motionStudio;
+            if (motionPayload) {
+              openMotionStudioModal(motionPayload);
+            }
           }
           if (event.type === "error") {
             if (boardPackSucceeded) {
@@ -1309,6 +1322,14 @@ export default function ExecutiveAssistantPanel({
     </aside>
   );
 
+  const motionStudioModal = (
+    <MotionStudioModalHost
+      open={motionStudioModalOpen}
+      payload={motionStudioModalPayload}
+      onClose={() => setMotionStudioModalOpen(false)}
+    />
+  );
+
   const panelBody = (
     <div
       data-ai-target="ai-assistant"
@@ -1406,10 +1427,15 @@ export default function ExecutiveAssistantPanel({
               )}
               {entry.role === "assistant" && entry.motionStudio ? (
                 <div className="space-y-2">
-                  {entry.content?.trim() ? (
-                    <p className="text-[12px] text-white/70">{entry.content}</p>
-                  ) : null}
-                  <MotionStudioPreview payload={entry.motionStudio} />
+                  <p className="text-[12px] text-white/70">
+                    {entry.content?.trim() ||
+                      "Your Motion Studio animation is ready. Open the player to watch the full walkthrough."}
+                  </p>
+                  <ActionButton
+                    label="Open animation"
+                    icon={<Sparkles className="h-3 w-3" />}
+                    onClick={() => openMotionStudioModal(entry.motionStudio!)}
+                  />
                 </div>
               ) : null}
               {entry.role === "assistant" && entry.responseBlocks?.length ? (
@@ -1827,15 +1853,21 @@ export default function ExecutiveAssistantPanel({
 
   if (variant === "page") {
     return (
-      <div className="flex h-full min-h-0 flex-col overflow-hidden">{panelBody}</div>
+      <>
+        <div className="flex h-full min-h-0 flex-col overflow-hidden">{panelBody}</div>
+        {motionStudioModal}
+      </>
     );
   }
 
   if (variant === "home") {
     return (
-      <aside className="flex h-full min-h-[36rem] flex-col xl:sticky xl:top-4 xl:max-h-[calc(100vh-6rem)]">
-        {panelBody}
-      </aside>
+      <>
+        <aside className="flex h-full min-h-[36rem] flex-col xl:sticky xl:top-4 xl:max-h-[calc(100vh-6rem)]">
+          {panelBody}
+        </aside>
+        {motionStudioModal}
+      </>
     );
   }
 
@@ -1882,6 +1914,7 @@ export default function ExecutiveAssistantPanel({
         ) : null}
         {panelBody}
       </aside>
+      {motionStudioModal}
     </div>
   );
 }
