@@ -2,7 +2,12 @@
 
 import { motion } from "framer-motion";
 
-import { livingEntranceProps, useHomeLivingIntroPending, useLivingMotionEnabled } from "./living-motion";
+import {
+  livingEntranceProps,
+  useHomeLivingIntroPending,
+  useIntroAnimationLock,
+  useLivingMotionEnabled,
+} from "./living-motion";
 
 type DashboardRevealProps = {
   index?: number;
@@ -13,7 +18,8 @@ type DashboardRevealProps = {
 export function DashboardReveal({ index = 0, className, children }: DashboardRevealProps) {
   const motionEnabled = useLivingMotionEnabled();
   const { introPending } = useHomeLivingIntroPending();
-  const props = livingEntranceProps(index, motionEnabled, introPending);
+  const playIntro = useIntroAnimationLock(introPending, motionEnabled);
+  const props = livingEntranceProps(index, motionEnabled, playIntro);
 
   return (
     <motion.div {...props} className={className}>

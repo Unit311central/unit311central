@@ -2,7 +2,12 @@
 
 import { motion } from "framer-motion";
 
-import { LIVING_CHART_MS, useHomeLivingIntroPending, useLivingMotionEnabled } from "./living-motion";
+import {
+  LIVING_CHART_MS,
+  useHomeLivingIntroPending,
+  useIntroAnimationLock,
+  useLivingMotionEnabled,
+} from "./living-motion";
 
 type AnimatedMetricRingProps = {
   value: number;
@@ -19,7 +24,8 @@ export function AnimatedMetricRing({
 }: AnimatedMetricRingProps) {
   const motionEnabled = useLivingMotionEnabled();
   const { introPending } = useHomeLivingIntroPending();
-  const animateRing = motionEnabled && introPending;
+  const playIntro = useIntroAnimationLock(introPending, motionEnabled);
+  const animateRing = playIntro;
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
   const ratio = max > 0 ? Math.min(1, value / max) : 0;

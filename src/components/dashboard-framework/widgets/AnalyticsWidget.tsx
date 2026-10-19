@@ -8,6 +8,7 @@ import { formatCountUpValue } from "@/components/dashboard-framework/motion/form
 import {
   LIVING_CHART_MS,
   useHomeLivingIntroPending,
+  useIntroAnimationLock,
   useLivingMotionEnabled,
 } from "@/components/dashboard-framework/motion/living-motion";
 import type {
@@ -76,7 +77,8 @@ function AnimatedBar({
 }) {
   const motionEnabled = useLivingMotionEnabled();
   const { introPending } = useHomeLivingIntroPending();
-  const animateBars = motionEnabled && introPending;
+  const playIntro = useIntroAnimationLock(introPending, motionEnabled);
+  const animateBars = playIntro;
   return (
     <motion.div
       className="min-w-0 flex-1 rounded-t-sm opacity-95"

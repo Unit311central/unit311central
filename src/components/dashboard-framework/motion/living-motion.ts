@@ -1,11 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+
+import { useLivingHomeMotionArmed } from "./living-motion-context";
 
 export const LIVING_ENTER_DURATION = 0.45;
 export const LIVING_STAGGER = 0.07;
-export const LIVING_COUNT_UP_MS = 900;
+export const LIVING_COUNT_UP_MS = 1000;
 export const LIVING_CHART_MS = 0.85;
+export const LIVING_BAR_STAGGER_MAX_S = 0.72;
 export const LIVING_EASE = [0.22, 1, 0.36, 1] as const;
 
 import {
@@ -61,13 +64,43 @@ export function useHomeLivingIntroPending(): {
   }, [motionEnabled]);
 
   void sessionRevision;
-  const introPending = motionEnabled && !readHomeLivingIntroPlayed();
+  const armed = useLivingHomeMotionArmed();
+  const introPending = motionEnabled && armed && !readHomeLivingIntroPlayed();
 
   const completeIntro = useCallback(() => {
     markHomeLivingIntroPlayed();
   }, []);
 
   return { introPending, completeIntro };
+}
+
+/** One intro playback window — long enough for KPI count-up, card stagger, and chart bars. */
+export function estimateHomeLivingIntroPlaybackMs(): number {
+  const chartMs = LIVING_CHART_MS * 1000;
+  return Math.ceil(
+    LIVING_COUNT_UP_MS + LIVING_STAGGER * 6 + chartMs + LIVING_BAR_STAGGER_MAX_S * 1000 + 120,
+  );
+}
+
+/** Lock whether this instance should run intro motion on first mount (avoids mid-draw snaps). */
+export function useIntroAnimationLock(introPending: boolean, motionEnabled: boolean): boolean {
+  const locked = useRef<boolean | null>(null);
+  if (locked.current === null) {
+    locked.current = motionEnabled && introPending;
+  }
+  return locked.current;
+}
+
+export function HomeLivingIntroScheduler() {
+  const { introPending, completeIntro } = useHomeLivingIntroPending();
+
+  useEffect(() => {
+    if (!introPending) return;
+    const timeout = window.setTimeout(() => completeIntro(), estimateHomeLivingIntroPlaybackMs());
+    return () => window.clearTimeout(timeout);
+  }, [introPending, completeIntro]);
+
+  return null;
 }
 
 export function livingEntranceProps(index: number, motionEnabled: boolean, introPending: boolean) {

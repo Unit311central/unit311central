@@ -14,7 +14,7 @@ type AnimatedCountUpProps = {
 
 export function AnimatedCountUp({ target, format, suffix = "", className }: AnimatedCountUpProps) {
   const motionEnabled = useLivingMotionEnabled();
-  const { introPending, completeIntro } = useHomeLivingIntroPending();
+  const { introPending } = useHomeLivingIntroPending();
   const introPlayedRef = useRef(readHomeLivingIntroPlayed());
   const shouldAnimateFromZero = motionEnabled && introPending && !introPlayedRef.current;
 
@@ -60,16 +60,13 @@ export function AnimatedCountUp({ target, format, suffix = "", className }: Anim
         frame = requestAnimationFrame(tick);
       } else {
         setDisplay(format(target) + suffix);
-        if (introPending) {
-          introPlayedRef.current = true;
-          completeIntro();
-        }
+        if (introPending) introPlayedRef.current = true;
       }
     };
 
     frame = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frame);
-  }, [target, format, suffix, motionEnabled, introPending, completeIntro]);
+  }, [target, format, suffix, motionEnabled, introPending]);
 
   return <span className={className}>{display}</span>;
 }

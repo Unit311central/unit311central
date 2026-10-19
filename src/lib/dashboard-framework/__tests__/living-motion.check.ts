@@ -6,9 +6,13 @@ import {
   markHomeLivingIntroPlayed,
   readHomeLivingIntroPlayed,
 } from "@/components/dashboard-framework/motion/living-motion-session";
-import { livingEntranceProps } from "@/components/dashboard-framework/motion/living-motion";
+import {
+  estimateHomeLivingIntroPlaybackMs,
+  livingEntranceProps,
+} from "@/components/dashboard-framework/motion/living-motion";
 
 assert.equal(typeof HOME_LIVING_INTRO_SESSION_KEY, "string");
+assert.ok(estimateHomeLivingIntroPlaybackMs() >= 2000);
 
 const noIntro = livingEntranceProps(2, true, false);
 assert.equal(noIntro.initial, false);
