@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 
-import { markHomeLivingIntroPlayed, readHomeLivingIntroPlayed } from "./living-motion-session";
+import { readHomeLivingIntroPlayed } from "./living-motion-session";
 import { LIVING_COUNT_UP_MS, useHomeLivingIntroPending, useLivingMotionEnabled } from "./living-motion";
 
 type AnimatedCountUpProps = {
@@ -62,7 +62,6 @@ export function AnimatedCountUp({ target, format, suffix = "", className }: Anim
         setDisplay(format(target) + suffix);
         if (introPending) {
           introPlayedRef.current = true;
-          markHomeLivingIntroPlayed();
           completeIntro();
         }
       }
