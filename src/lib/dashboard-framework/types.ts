@@ -59,6 +59,8 @@ export type DashboardKpiPeriodOption = {
   delta?: string;
   tone?: DashboardKpiTone;
   hint?: string;
+  /** Raw amount for count-up animation (display still uses `value`). */
+  countUpTarget?: number;
 };
 
 export type DashboardKpiItem = {
@@ -71,6 +73,13 @@ export type DashboardKpiItem = {
   /** When set, the tile shows a period dropdown (defaults to the first option). */
   periods?: readonly DashboardKpiPeriodOption[];
   defaultPeriodId?: string;
+  /** Raw amount for count-up animation (display still uses `value`). */
+  countUpTarget?: number;
+  /** Appended after formatted count-up (e.g. " / mo"). */
+  countUpSuffix?: string;
+  /** ISO currency for compact money count-up formatting. */
+  countUpCurrency?: string;
+  countUpKind?: "compactCurrency" | "integer";
 };
 
 export type DashboardAlertItem = {
@@ -87,6 +96,8 @@ export type DashboardActivityItem = {
   meta: string;
   timeLabel: string;
   category?: string;
+  /** One-shot subtle highlight when the feed loads. */
+  highlight?: boolean;
 };
 
 export type DashboardAnalyticsSeries = {
@@ -108,6 +119,8 @@ export type DashboardAnalyticsAnnotation = {
   value: string;
   tone?: DashboardKpiTone;
   hint?: string;
+  countUpTarget?: number;
+  countUpCurrency?: string;
 };
 
 export type DashboardWorkQueueItem = {
