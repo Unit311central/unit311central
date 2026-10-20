@@ -22,7 +22,7 @@ export const SITE_HERO_LINE = "Connect your business into a single operational p
 export const CONTACT = {
   email: "info@unit311central.com",
   infoEmail: "info@unit311central.com",
-  linkedin: "https://www.linkedin.com/company/unit311",
+  linkedin: "https://www.linkedin.com/company/unit311central",
   phone: "+34 938 000 000",
   whatsapp: "34938000000",
   location: "Europe · Remote-first operations platform",
