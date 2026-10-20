@@ -922,6 +922,7 @@ export default function InternalOperationsDashboard({
               <WorkspaceErrorBoundary title="Home">
                 <ExecutiveHomeDashboard
                   reportingCurrency={executiveHomeReportingCurrency}
+                  paneActive={activeView === "home"}
                 />
               </WorkspaceErrorBoundary>
             </WorkspacePane>

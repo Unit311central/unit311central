@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from "react";
 
-import { readHomeLivingIntroPlayed } from "./living-motion-session";
 import { LIVING_COUNT_UP_MS, useHomeLivingIntroPending, useLivingMotionEnabled } from "./living-motion";
 
 type AnimatedCountUpProps = {
@@ -15,8 +14,7 @@ type AnimatedCountUpProps = {
 export function AnimatedCountUp({ target, format, suffix = "", className }: AnimatedCountUpProps) {
   const motionEnabled = useLivingMotionEnabled();
   const { introPending } = useHomeLivingIntroPending();
-  const introPlayedRef = useRef(readHomeLivingIntroPlayed());
-  const shouldAnimateFromZero = motionEnabled && introPending && !introPlayedRef.current;
+  const shouldAnimateFromZero = motionEnabled && introPending;
 
   const [display, setDisplay] = useState(() =>
     shouldAnimateFromZero ? format(0) + suffix : format(target) + suffix,
@@ -35,7 +33,7 @@ export function AnimatedCountUp({ target, format, suffix = "", className }: Anim
     }
 
     const from =
-      introPending && !introPlayedRef.current
+      introPending
         ? 0
         : prevTarget.current === target
           ? target
@@ -60,7 +58,6 @@ export function AnimatedCountUp({ target, format, suffix = "", className }: Anim
         frame = requestAnimationFrame(tick);
       } else {
         setDisplay(format(target) + suffix);
-        if (introPending) introPlayedRef.current = true;
       }
     };
 

@@ -8,7 +8,11 @@ import ExecutiveMyWorkspace from "@/components/central-capabilities/ExecutiveMyW
 import NorthstarCompanyOverview from "@/components/demo/NorthstarCompanyOverview";
 
 import { WorkspaceDashboard } from "@/components/dashboard-framework";
-import { LivingHomeMotionProvider } from "@/components/dashboard-framework/motion/living-motion-context";
+import type { WorkspaceDashboardConfig } from "@/lib/dashboard-framework";
+import {
+  LivingHomeMotionProvider,
+  useLivingHomeVisitKey,
+} from "@/components/dashboard-framework/motion/living-motion-context";
 import { HomeLivingIntroScheduler } from "@/components/dashboard-framework/motion/living-motion";
 import WorkspaceErrorBoundary from "@/components/testflighthub/WorkspaceErrorBoundary";
 
@@ -215,11 +219,33 @@ function pinHomeFinancials(
   return pinDemoHomeFinancials(pinAbhiHomeFinancials(pinOnwardAirHomeFinancials(financials)));
 }
 
+function HomeDashboardWithLivingMotion({
+  config,
+  loading,
+}: {
+  config: WorkspaceDashboardConfig;
+  loading: boolean;
+}) {
+  const homeVisitKey = useLivingHomeVisitKey();
+  return (
+    <WorkspaceDashboard
+      key={homeVisitKey}
+      config={config}
+      audience={{ workspaceId: "home", role: "ceo" }}
+      loading={loading}
+      preserveSectionOrder
+    />
+  );
+}
+
 /** Flagship Home experience — Executive Operating Centre with live KPI SSOT. */
 export default function ExecutiveHomeDashboard({
   reportingCurrency,
+  paneActive = true,
 }: {
   reportingCurrency?: ReportingCurrency;
+  /** When false, Home is warm-mounted but hidden — defer intro until visible. */
+  paneActive?: boolean;
 }) {
   const [bundle, setBundle] = useState<HomeKpiBundle | null>(null);
   const [loading, setLoading] = useState(true);
@@ -503,13 +529,11 @@ export default function ExecutiveHomeDashboard({
         </div>
       ) : null}
 
-      <LivingHomeMotionProvider armed={introReady}>
+      <LivingHomeMotionProvider armed={introReady} paneActive={paneActive}>
         <HomeLivingIntroScheduler />
-        <WorkspaceDashboard
+        <HomeDashboardWithLivingMotion
           config={config}
-          audience={{ workspaceId: "home", role: "ceo" }}
-          loading={(loading && !bundle) || (Boolean(bundle) && !introReady)}
-          preserveSectionOrder
+          loading={(loading && !bundle) || (Boolean(bundle) && (!introReady || !paneActive))}
         />
       </LivingHomeMotionProvider>
 

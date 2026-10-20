@@ -2,21 +2,20 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { useLivingHomeMotionArmed } from "./living-motion-context";
+import {
+  useLivingHomeIntroComplete,
+  useLivingHomeMotionArmed,
+  useLivingHomeMotionPaneActive,
+} from "./living-motion-context";
 
 export const LIVING_ENTER_DURATION = 0.45;
 export const LIVING_STAGGER = 0.07;
-export const LIVING_COUNT_UP_MS = 1000;
+export const LIVING_COUNT_UP_MS = 1200;
 export const LIVING_CHART_MS = 0.85;
 export const LIVING_BAR_STAGGER_MAX_S = 0.72;
 export const LIVING_EASE = [0.22, 1, 0.36, 1] as const;
 
-import {
-  HOME_LIVING_INTRO_CHANGED_EVENT,
-  markHomeLivingIntroPlayed,
-  readHomeLivingIntroPlayed,
-} from "./living-motion-session";
-
+/** @deprecated Session storage is no longer used to gate intro playback. */
 export {
   HOME_LIVING_INTRO_CHANGED_EVENT,
   HOME_LIVING_INTRO_SESSION_KEY,
@@ -49,27 +48,20 @@ export function useHomeLivingIntroPending(): {
   completeIntro: () => void;
 } {
   const motionEnabled = useLivingMotionEnabled();
-  const [sessionRevision, setSessionRevision] = useState(0);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const sync = () => setSessionRevision((n) => n + 1);
-    window.addEventListener(HOME_LIVING_INTRO_CHANGED_EVENT, sync);
-    return () => window.removeEventListener(HOME_LIVING_INTRO_CHANGED_EVENT, sync);
-  }, []);
+  const armed = useLivingHomeMotionArmed();
+  const paneActive = useLivingHomeMotionPaneActive();
+  const { introComplete, markIntroComplete } = useLivingHomeIntroComplete();
 
   useEffect(() => {
     if (motionEnabled) return;
-    if (!readHomeLivingIntroPlayed()) markHomeLivingIntroPlayed();
-  }, [motionEnabled]);
+    if (!introComplete) markIntroComplete();
+  }, [motionEnabled, introComplete, markIntroComplete]);
 
-  void sessionRevision;
-  const armed = useLivingHomeMotionArmed();
-  const introPending = motionEnabled && armed && !readHomeLivingIntroPlayed();
+  const introPending = motionEnabled && armed && paneActive && !introComplete;
 
   const completeIntro = useCallback(() => {
-    markHomeLivingIntroPlayed();
-  }, []);
+    markIntroComplete();
+  }, [markIntroComplete]);
 
   return { introPending, completeIntro };
 }

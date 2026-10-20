@@ -83,32 +83,44 @@ async function main() {
   await page.waitForTimeout(2000);
   await page.screenshot({ path: `${ARTIFACT_DIR}/demo-home-living-mid.png`, fullPage: false });
 
+  await page.screenshot({ path: `${ARTIFACT_DIR}/demo-home-living-before-reload.png`, fullPage: false });
+
   await page.reload({ waitUntil: "domcontentloaded" });
   await page.waitForSelector('[data-qa-target="dashboard-widget"]', { timeout: 90_000 });
-  const replayed = await page.evaluate(async () => {
-    const key = "unit311-executive-home-living-intro-v1";
-    if (sessionStorage.getItem(key) !== "1") return "session-flag-missing";
+  await page.screenshot({ path: `${ARTIFACT_DIR}/demo-home-living-after-reload-early.png`, fullPage: false });
+  const replayedOnReload = await page.evaluate(async () => {
     const read = () =>
       Array.from(document.querySelectorAll('[data-qa-target="dashboard-widget"]'))
         .map((n) => n.textContent ?? "")
         .join("|");
     const start = read();
-    for (let i = 0; i < 15; i++) {
+    for (let i = 0; i < 30; i++) {
       await new Promise((r) => setTimeout(r, 50));
       if (read() !== start) return "replayed";
     }
     return "stable";
   });
-  if (replayed === "session-flag-missing") {
-    const msg =
-      "session-once intro flag not set (origin is running a build without living-motion-session)";
-    if (process.env.PROVE_HOME_LIVING_STRICT === "1") {
-      throw new Error(msg);
+  assert.equal(replayedOnReload, "replayed", "full page reload should replay KPI count-up");
+  console.log("ok  reload replays living intro");
+
+  await page.goto(`${ORIGIN}/dashboard?view=clients`, { waitUntil: "domcontentloaded" });
+  await page.waitForTimeout(800);
+  await page.goto(`${ORIGIN}/dashboard?view=home`, { waitUntil: "domcontentloaded" });
+  await page.waitForSelector('[data-qa-target="dashboard-widget"]', { timeout: 90_000 });
+  const replayedOnReturn = await page.evaluate(async () => {
+    const read = () =>
+      Array.from(document.querySelectorAll('[data-qa-target="dashboard-widget"]'))
+        .map((n) => n.textContent ?? "")
+        .join("|");
+    const start = read();
+    for (let i = 0; i < 30; i++) {
+      await new Promise((r) => setTimeout(r, 50));
+      if (read() !== start) return "replayed";
     }
-    console.warn(`warn  ${msg}`);
-  } else {
-    assert.equal(replayed, "stable", "same-session reload should not replay count-up");
-  }
+    return "stable";
+  });
+  assert.equal(replayedOnReturn, "replayed", "returning to Home should replay KPI count-up");
+  console.log("ok  navigate away and back replays living intro");
 
   const videoPath = await page.video().path();
   await context.close();
@@ -127,36 +139,12 @@ async function main() {
     const samples = window.__homeKpiSamples ?? [];
     const kpiChanged =
       samples.length >= 2 && samples[0] !== samples[samples.length - 1];
-    return {
-      kpiChanged,
-      introFlag: sessionStorage.getItem("unit311-executive-home-living-intro-v1"),
-    };
+    return { kpiChanged };
   });
-  const deployHasSessionOnce = replayed !== "session-flag-missing";
   if (reduced.kpiChanged) {
-    const msg = "prefers-reduced-motion should skip KPI count-up";
-    if (!deployHasSessionOnce && !IS_LOCAL) {
-      console.warn(`warn  ${msg} (origin lacks session-once branch — re-run after deploy)`);
-    } else {
-      assert.equal(reduced.kpiChanged, false, msg);
-    }
+    assert.equal(reduced.kpiChanged, false, "prefers-reduced-motion should skip KPI count-up");
   } else {
     console.log("ok  prefers-reduced-motion skips KPI count-up");
-  }
-  if (reduced.introFlag !== "1") {
-    const msg = "reduced-motion visit should mark intro played in sessionStorage";
-    if (process.env.PROVE_HOME_LIVING_STRICT === "1") {
-      await reducedContext.close();
-      await browser.close();
-      throw new Error(msg);
-    }
-    if (!deployHasSessionOnce && !IS_LOCAL) {
-      console.warn(`warn  ${msg} (needs session-once branch deploy)`);
-    } else {
-      console.warn(`warn  ${msg}`);
-    }
-  } else {
-    console.log("ok  prefers-reduced-motion marks intro played");
   }
   await reducedContext.close();
   await browser.close();
