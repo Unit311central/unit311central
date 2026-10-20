@@ -6,7 +6,7 @@
  * Exit 0 when sales-management is present; exit 1 when missing or query fails.
  */
 const token = process.env.SUPABASE_ACCESS_TOKEN;
-const projectRef = process.env.SUPABASE_PROJECT_REF ?? "luvqotlljbfmnfwhoypz";
+const projectRef = process.env.SUPABASE_PROJECT_REF ?? "kkxtvzxqmbacjatkiupq";
 
 if (!token) {
   console.error("SKIP: SUPABASE_ACCESS_TOKEN not set — cannot verify migration 220 in production.");
