@@ -19,6 +19,7 @@ type LivingHomeMotionContextValue = {
   homeVisitKey: number;
   introComplete: boolean;
   markIntroComplete: () => void;
+  replayIntro: () => void;
 };
 
 const LivingHomeMotionContext = createContext<LivingHomeMotionContextValue>({
@@ -27,6 +28,7 @@ const LivingHomeMotionContext = createContext<LivingHomeMotionContextValue>({
   homeVisitKey: 0,
   introComplete: false,
   markIntroComplete: () => {},
+  replayIntro: () => {},
 });
 
 export function LivingHomeMotionProvider({
@@ -54,9 +56,14 @@ export function LivingHomeMotionProvider({
     setIntroComplete(true);
   }, []);
 
+  const replayIntro = useCallback(() => {
+    setIntroComplete(false);
+    setHomeVisitKey((key) => key + 1);
+  }, []);
+
   return (
     <LivingHomeMotionContext.Provider
-      value={{ armed, paneActive, homeVisitKey, introComplete, markIntroComplete }}
+      value={{ armed, paneActive, homeVisitKey, introComplete, markIntroComplete, replayIntro }}
     >
       {children}
     </LivingHomeMotionContext.Provider>
@@ -81,4 +88,8 @@ export function useLivingHomeIntroComplete(): {
 } {
   const { introComplete, markIntroComplete } = useContext(LivingHomeMotionContext);
   return { introComplete, markIntroComplete };
+}
+
+export function useLivingHomeReplayIntro(): () => void {
+  return useContext(LivingHomeMotionContext).replayIntro;
 }

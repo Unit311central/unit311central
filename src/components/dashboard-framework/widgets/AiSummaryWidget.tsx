@@ -58,11 +58,19 @@ export default function AiSummaryWidget({ widget }: { widget: DashboardAiSummary
                     <div className="flex flex-col items-center rounded-[10px] border border-white/10 bg-black/20 px-3 py-2.5 text-center">
                       {target !== null ? (
                         <div className="flex items-center gap-2">
-                          <AnimatedMetricRing value={target} max={Math.max(10, target * 1.2)} />
+                          <AnimatedMetricRing
+                            value={target}
+                            max={Math.max(10, target * 1.2)}
+                            size={52}
+                            strokeWidth={4}
+                            laneIndex={index}
+                          />
                           <p className="text-xl font-semibold tabular-nums text-white">
                             <AnimatedCountUp
                               target={target}
                               format={(n) => String(Math.round(n))}
+                              lane="ai-metric"
+                              laneIndex={index}
                             />
                           </p>
                         </div>

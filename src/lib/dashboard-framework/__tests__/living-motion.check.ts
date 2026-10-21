@@ -12,7 +12,7 @@ import {
 } from "@/components/dashboard-framework/motion/living-motion";
 
 assert.equal(typeof HOME_LIVING_INTRO_SESSION_KEY, "string");
-assert.ok(estimateHomeLivingIntroPlaybackMs() >= 2000);
+assert.ok(estimateHomeLivingIntroPlaybackMs() >= 4800);
 
 const noIntro = livingEntranceProps(2, true, false);
 assert.equal(noIntro.initial, false);

@@ -124,6 +124,9 @@ export function KpiWidget({ kpi, index = 0 }: { kpi: DashboardKpiItem; index?: n
               target={active.countUpTarget!}
               format={formatValue}
               suffix={kpi.countUpSuffix ?? ""}
+              lane="kpi"
+              laneIndex={index}
+              data-living-count-up={kpi.id}
             />
           ) : (
             active.value

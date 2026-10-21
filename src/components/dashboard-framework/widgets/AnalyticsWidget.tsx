@@ -3,8 +3,10 @@
 import { motion } from "framer-motion";
 
 import { AnimatedCountUp } from "@/components/dashboard-framework/motion/AnimatedCountUp";
+import { AnimatedPerformanceTrend } from "@/components/dashboard-framework/motion/AnimatedPerformanceTrend";
 import { DashboardReveal } from "@/components/dashboard-framework/motion/DashboardReveal";
 import { formatCountUpValue } from "@/components/dashboard-framework/motion/format-count-up";
+import { homeIntroDelaySec } from "@/components/dashboard-framework/motion/home-intro-schedule";
 import {
   LIVING_CHART_MS,
   useHomeLivingIntroPending,
@@ -68,12 +70,12 @@ function AnimatedBar({
   heightPct,
   color,
   title,
-  delay,
+  barIndex,
 }: {
   heightPct: number;
   color: string;
   title: string;
-  delay: number;
+  barIndex: number;
 }) {
   const motionEnabled = useLivingMotionEnabled();
   const { introPending } = useHomeLivingIntroPending();
@@ -84,11 +86,16 @@ function AnimatedBar({
       className="min-w-0 flex-1 rounded-t-sm opacity-95"
       style={{ background: color }}
       title={title}
-      initial={animateBars ? { height: "2%" } : false}
+      data-living-chart-bar={barIndex}
+      initial={animateBars ? { height: "0%" } : false}
       animate={{ height: `${heightPct}%` }}
       transition={
         animateBars
-          ? { duration: LIVING_CHART_MS, delay, ease: [0.22, 1, 0.36, 1] }
+          ? {
+              duration: LIVING_CHART_MS,
+              delay: homeIntroDelaySec("chart-bar", barIndex),
+              ease: [0.22, 1, 0.36, 1],
+            }
           : { duration: 0 }
       }
     />
@@ -102,10 +109,11 @@ export default function AnalyticsWidget({ widget }: { widget: DashboardAnalytics
   const max = Math.max(1, ...seriesList.flatMap((s) => s.values));
   const hasData = seriesList.some((s) => s.values.some((v) => v !== 0));
   const useGrouped = seriesList.length >= 2 && pointCount > 0;
+  const revenueSeries = seriesList.find((s) => s.id === "revenue") ?? seriesList[0];
 
   return (
     <DashboardReveal index={1}>
-      <section className={widgetShellClass()}>
+      <section className={widgetShellClass()} data-qa-target="home-business-performance">
         <WidgetTitle title={widget.title ?? "Analytics"} meta={widget.caption} />
 
         {widget.annotations && widget.annotations.length > 0 ? (
@@ -124,6 +132,8 @@ export default function AnalyticsWidget({ widget }: { widget: DashboardAnalytics
                       <AnimatedCountUp
                         target={item.countUpTarget}
                         format={(n) => formatCountUpValue("compactCurrency", item.countUpCurrency, n)}
+                        lane="chart-annotation"
+                        laneIndex={index}
                       />
                     ) : (
                       item.value
@@ -155,22 +165,36 @@ export default function AnalyticsWidget({ widget }: { widget: DashboardAnalytics
               ))}
             </div>
 
-            <div className="flex h-28 items-end gap-1.5 sm:gap-2">
+            {revenueSeries && revenueSeries.values.length >= 2 ? (
+              <div className="mb-3 h-[4.5rem] w-full overflow-hidden rounded-lg border border-white/[0.06] bg-black/20 px-2 py-1.5">
+                <p className="mb-0.5 text-[9px] font-semibold uppercase tracking-wide text-white/40">
+                  Revenue trend
+                </p>
+                <AnimatedPerformanceTrend
+                  values={revenueSeries.values}
+                  stroke={SERIES_COLORS[0]}
+                  className="h-[3rem] w-full"
+                />
+              </div>
+            ) : null}
+
+            <div className="flex h-32 items-end gap-1.5 sm:gap-2" data-living-chart-bars>
               {Array.from({ length: pointCount }, (_, index) => {
                 const period = labels[index] ?? `P${index + 1}`;
                 return (
                   <div key={period + index} className="flex min-w-0 flex-1 flex-col items-center gap-1">
-                    <div className="flex h-24 w-full items-end justify-center gap-0.5">
+                    <div className="flex h-28 w-full items-end justify-center gap-0.5">
                       {seriesList.map((series, seriesIndex) => {
                         const value = series.values[index] ?? 0;
                         const height = Math.max(value > 0 ? 6 : 2, (value / max) * 100);
+                        const barIndex = index * seriesList.length + seriesIndex;
                         return (
                           <AnimatedBar
                             key={`${series.id}-${index}`}
                             heightPct={height}
                             color={SERIES_COLORS[seriesIndex % SERIES_COLORS.length]}
                             title={`${period} · ${series.label}: ${formatSeriesValue(series, value)}`}
-                            delay={index * 0.06 + seriesIndex * 0.03}
+                            barIndex={barIndex}
                           />
                         );
                       })}
@@ -199,7 +223,7 @@ export default function AnalyticsWidget({ widget }: { widget: DashboardAnalytics
                         heightPct={Math.max(8, (value / max) * 100)}
                         color={SERIES_COLORS[seriesIndex % SERIES_COLORS.length]}
                         title={`${labels[index] ?? index + 1} · ${series.label}: ${formatSeriesValue(series, value)}`}
-                        delay={index * 0.05}
+                        barIndex={index}
                       />
                       {labels[index] ? (
                         <span className="truncate text-center text-[9px] text-white/35">{labels[index]}</span>

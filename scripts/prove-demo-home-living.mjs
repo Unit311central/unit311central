@@ -57,6 +57,63 @@ async function loginDemo(page, context) {
   }
 }
 
+async function readStoryMetrics(page) {
+  return page.evaluate(() => {
+    const bar = document.querySelector("[data-living-chart-bar=\"0\"]");
+    const barHeight = bar ? bar.getBoundingClientRect().height : 0;
+    const trendPath = document.querySelector(
+      '[data-qa-target="home-business-performance"] motion-path, [data-qa-target="home-business-performance"] path[stroke]',
+    );
+    return {
+      revenue: document.querySelector('[data-living-count-up="revenue"]')?.textContent?.trim() ?? "",
+      cash: document.querySelector('[data-living-count-up="cash"]')?.textContent?.trim() ?? "",
+      chartBarHeight: barHeight,
+      hasTrendStroke: Boolean(trendPath),
+    };
+  });
+}
+
+async function captureDashboardStory(page) {
+  await page.waitForSelector('[data-living-count-up="revenue"]', { timeout: 90_000 });
+  await page.locator('[data-qa-target="home-business-performance"]').scrollIntoViewIfNeeded().catch(() => {});
+
+  const snap = async (label) => {
+    await page.screenshot({ path: `${ARTIFACT_DIR}/demo-home-story-${label}.png`, fullPage: false });
+    return readStoryMetrics(page);
+  };
+
+  const t0 = await snap("t0ms");
+  await page.waitForTimeout(500);
+  const t500 = await snap("t500ms");
+  await page.waitForTimeout(1500);
+  const t2000 = await snap("t2000ms");
+  await page.waitForTimeout(2000);
+  const t4000 = await snap("t4000ms");
+  await page.waitForTimeout(2000);
+  const final = await snap("final");
+
+  assert.notEqual(t0.revenue, final.revenue, "revenue KPI should count up to final value");
+  assert.ok(t500.revenue !== final.revenue || t2000.revenue !== final.revenue, "revenue should change mid-story");
+  assert.ok(
+    t4000.chartBarHeight > t500.chartBarHeight + 2 || t2000.chartBarHeight > t500.chartBarHeight + 2,
+    "chart bars should grow during the story",
+  );
+  assert.ok(final.hasTrendStroke, "revenue trend visualization should be present");
+
+  const replayBtn = page.locator('[data-qa-target="home-living-replay"]');
+  await replayBtn.waitFor({ timeout: 15_000 });
+  const beforeReplay = final.revenue;
+  await replayBtn.click();
+  await page.waitForTimeout(400);
+  const midReplay = await readStoryMetrics(page);
+  assert.notEqual(midReplay.revenue, beforeReplay, "replay should restart revenue count-up");
+  await page.waitForTimeout(5200);
+  const afterReplay = await readStoryMetrics(page);
+  assert.equal(afterReplay.revenue, beforeReplay, "replay should end on the same revenue value");
+  console.log("ok  dashboard story timeline + replay");
+  return final;
+}
+
 async function main() {
   fs.mkdirSync(ARTIFACT_DIR, { recursive: true });
   console.log(`prove-demo-home-living: origin=${ORIGIN} (single attempt)`);
@@ -71,6 +128,7 @@ async function main() {
   await attachKpiSampler(page);
 
   await loginDemo(page, context);
+  await captureDashboardStory(page);
 
   await page.waitForFunction(
     () => {

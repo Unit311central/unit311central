@@ -13,6 +13,7 @@ import {
   LivingHomeMotionProvider,
   useLivingHomeVisitKey,
 } from "@/components/dashboard-framework/motion/living-motion-context";
+import { HomeLivingReplayControl } from "@/components/dashboard-framework/motion/HomeLivingReplayControl";
 import { HomeLivingIntroScheduler } from "@/components/dashboard-framework/motion/living-motion";
 import WorkspaceErrorBoundary from "@/components/testflighthub/WorkspaceErrorBoundary";
 
@@ -442,10 +443,15 @@ export default function ExecutiveHomeDashboard({
         </>
       ) : null}
 
+      <LivingHomeMotionProvider armed={introReady} paneActive={paneActive}>
+        <HomeLivingIntroScheduler />
+
       <div className="flex flex-wrap items-center justify-between gap-2 px-0.5">
         <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/40">
           Executive dashboard
         </p>
+        <div className="flex flex-wrap items-center gap-2">
+          <HomeLivingReplayControl />
         <button
           type="button"
           data-ai-target="home-customize"
@@ -460,6 +466,7 @@ export default function ExecutiveHomeDashboard({
           <LayoutGrid className="h-3.5 w-3.5" />
           Customise tiles
         </button>
+        </div>
       </div>
 
       {customizeOpen ? (
@@ -529,8 +536,6 @@ export default function ExecutiveHomeDashboard({
         </div>
       ) : null}
 
-      <LivingHomeMotionProvider armed={introReady} paneActive={paneActive}>
-        <HomeLivingIntroScheduler />
         <HomeDashboardWithLivingMotion
           config={config}
           loading={(loading && !bundle) || (Boolean(bundle) && (!introReady || !paneActive))}

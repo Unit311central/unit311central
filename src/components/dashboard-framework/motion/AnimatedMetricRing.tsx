@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 
+import { homeIntroDelaySec } from "./home-intro-schedule";
 import {
   LIVING_CHART_MS,
   useHomeLivingIntroPending,
@@ -14,6 +15,7 @@ type AnimatedMetricRingProps = {
   max?: number;
   size?: number;
   strokeWidth?: number;
+  laneIndex?: number;
 };
 
 export function AnimatedMetricRing({
@@ -21,6 +23,7 @@ export function AnimatedMetricRing({
   max = 10,
   size = 44,
   strokeWidth = 3,
+  laneIndex = 0,
 }: AnimatedMetricRingProps) {
   const motionEnabled = useLivingMotionEnabled();
   const { introPending } = useHomeLivingIntroPending();
@@ -52,7 +55,15 @@ export function AnimatedMetricRing({
         strokeDasharray={circumference}
         initial={animateRing ? { strokeDashoffset: circumference } : false}
         animate={{ strokeDashoffset: targetOffset }}
-        transition={animateRing ? { duration: LIVING_CHART_MS, ease: "easeOut" } : { duration: 0 }}
+        transition={
+          animateRing
+            ? {
+                duration: LIVING_CHART_MS * 1.4,
+                delay: homeIntroDelaySec("ai-metric", laneIndex),
+                ease: [0.22, 1, 0.36, 1],
+              }
+            : { duration: 0 }
+        }
       />
     </svg>
   );

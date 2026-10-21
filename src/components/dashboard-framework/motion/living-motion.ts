@@ -8,12 +8,21 @@ import {
   useLivingHomeMotionPaneActive,
 } from "./living-motion-context";
 
-export const LIVING_ENTER_DURATION = 0.45;
-export const LIVING_STAGGER = 0.07;
-export const LIVING_COUNT_UP_MS = 1200;
-export const LIVING_CHART_MS = 0.85;
-export const LIVING_BAR_STAGGER_MAX_S = 0.72;
+import {
+  HOME_INTRO_CHART_BAR_MS,
+  HOME_INTRO_COUNT_UP_MS,
+  HOME_INTRO_TOTAL_MS,
+} from "./home-intro-schedule";
+
+export const LIVING_ENTER_DURATION = 0.5;
+export const LIVING_STAGGER = 0.09;
+export const LIVING_COUNT_UP_MS = HOME_INTRO_COUNT_UP_MS;
+export const LIVING_CHART_MS = HOME_INTRO_CHART_BAR_MS;
+export const LIVING_BAR_STAGGER_MAX_S = 0.85;
 export const LIVING_EASE = [0.22, 1, 0.36, 1] as const;
+
+export { HOME_INTRO_TOTAL_MS, homeIntroDelayMs, homeIntroDelaySec } from "./home-intro-schedule";
+export type { HomeIntroLane } from "./home-intro-schedule";
 
 /** @deprecated Session storage is no longer used to gate intro playback. */
 export {
@@ -66,12 +75,9 @@ export function useHomeLivingIntroPending(): {
   return { introPending, completeIntro };
 }
 
-/** One intro playback window — long enough for KPI count-up, card stagger, and chart bars. */
+/** One intro playback window — KPI count-up, trend line, bars, queue (≈3–5s story). */
 export function estimateHomeLivingIntroPlaybackMs(): number {
-  const chartMs = LIVING_CHART_MS * 1000;
-  return Math.ceil(
-    LIVING_COUNT_UP_MS + LIVING_STAGGER * 6 + chartMs + LIVING_BAR_STAGGER_MAX_S * 1000 + 120,
-  );
+  return HOME_INTRO_TOTAL_MS;
 }
 
 /** Lock whether this instance should run intro motion on first mount (avoids mid-draw snaps). */

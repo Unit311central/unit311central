@@ -4,10 +4,58 @@ import { useCallback, useState } from "react";
 import { motion } from "framer-motion";
 
 import { DashboardReveal } from "@/components/dashboard-framework/motion/DashboardReveal";
-import { useLivingMotionEnabled } from "@/components/dashboard-framework/motion/living-motion";
+import {
+  homeIntroDelaySec,
+  queueAttentionFraction,
+} from "@/components/dashboard-framework/motion/home-intro-schedule";
+import {
+  useHomeLivingIntroPending,
+  useIntroAnimationLock,
+  useLivingMotionEnabled,
+} from "@/components/dashboard-framework/motion/living-motion";
 import type { DashboardWorkQueueWidget } from "@/lib/dashboard-framework";
 import { cn } from "@/lib/utils";
 import { WidgetTitle, widgetShellClass } from "./widget-shell";
+
+function QueueAttentionBar({
+  fraction,
+  index,
+  priority,
+}: {
+  fraction: number;
+  index: number;
+  priority: "high" | "medium" | "low" | undefined;
+}) {
+  const motionEnabled = useLivingMotionEnabled();
+  const { introPending } = useHomeLivingIntroPending();
+  const playIntro = useIntroAnimationLock(introPending, motionEnabled);
+  const tone =
+    priority === "high"
+      ? "bg-rose-400"
+      : priority === "medium"
+        ? "bg-amber-300"
+        : "bg-sky-400";
+
+  return (
+    <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/10">
+      <motion.div
+        className={cn("h-full rounded-full", tone)}
+        data-living-queue-bar={index}
+        initial={playIntro ? { width: "0%" } : false}
+        animate={{ width: `${Math.round(fraction * 100)}%` }}
+        transition={
+          playIntro
+            ? {
+                duration: 0.85,
+                delay: homeIntroDelaySec("queue", index),
+                ease: [0.22, 1, 0.36, 1],
+              }
+            : { duration: 0 }
+        }
+      />
+    </div>
+  );
+}
 
 export default function WorkQueueWidget({ widget }: { widget: DashboardWorkQueueWidget }) {
   const motionEnabled = useLivingMotionEnabled();
@@ -32,13 +80,14 @@ export default function WorkQueueWidget({ widget }: { widget: DashboardWorkQueue
           <ul className="space-y-2">
             {widget.items.map((item, index) => {
               const done = completedIds.has(item.id);
+              const attention = queueAttentionFraction(item.priority);
               return (
                 <motion.li
                   key={item.id}
                   layout={motionEnabled}
-                  initial={motionEnabled ? { opacity: 0, y: 8 } : false}
+                  initial={false}
                   animate={{ opacity: done ? 0.72 : 1, y: 0, scale: done ? 0.98 : 1 }}
-                  transition={{ delay: index * 0.06, duration: 0.35 }}
+                  transition={{ duration: 0.35 }}
                   className={cn(
                     "cursor-pointer rounded-lg border border-white/[0.06] bg-white/[0.02] px-3 py-2 transition-shadow",
                     motionEnabled && "hover:border-white/12 hover:bg-white/[0.04] hover:shadow-md",
@@ -86,6 +135,9 @@ export default function WorkQueueWidget({ widget }: { widget: DashboardWorkQueue
                       <span className="shrink-0 text-[11px] text-white/35">{item.dueLabel}</span>
                     ) : null}
                   </div>
+                  {!done ? (
+                    <QueueAttentionBar fraction={attention} index={index} priority={item.priority} />
+                  ) : null}
                 </motion.li>
               );
             })}
