@@ -190,6 +190,50 @@ export function ensureFiveTeachingModules(
   };
 }
 
+/** Each knowledge_check lesson gets its own recap procedure_animation immediately before it. */
+export function ensureKnowledgeCheckCompanionAnimations(
+  draft: FinalizableCourseDraft,
+  documentText: string,
+): FinalizableCourseDraft {
+  const steps = inferProcedureStepsFromDocument(documentText);
+  const modules = draft.modules.map((mod) => {
+    if (isAssessmentModule(mod)) return mod;
+    const lessons: typeof mod.lessons = [];
+    for (const lesson of mod.lessons) {
+      if (lesson.content.type === "knowledge_check") {
+        const kc = lesson.content;
+        const focus =
+          kc.choices.find((c) => c.id === kc.correctId)?.label ??
+          steps[lessons.length % Math.max(1, steps.length)] ??
+          kc.prompt;
+        const spec = buildLinearProcedureSpecFromSteps(
+          `Prepare for knowledge check`,
+          [focus, kc.explanation ?? focus],
+          "Animated recap before the in-lesson knowledge check.",
+        );
+        lessons.push({
+          title: `${lesson.title} — instructional animation`,
+          lessonType: "procedure_animation",
+          estimatedMinutes: 2,
+          content: {
+            type: "procedure_animation",
+            title: spec.title,
+            spec,
+          },
+        });
+      }
+      lessons.push(lesson);
+    }
+    return { ...mod, lessons };
+  });
+
+  return {
+    ...draft,
+    modules,
+    animationCount: countProcedureAnimationLessons({ modules }),
+  };
+}
+
 export function finalizeGeneratedCourseDraft(
   draft: FinalizableCourseDraft,
   documentText: string,
@@ -201,6 +245,7 @@ export function finalizeGeneratedCourseDraft(
     next = ensureFiveTeachingModules(next, documentText);
   }
   next = ensurePerModuleProcedureAnimations(next, documentText);
+  next = ensureKnowledgeCheckCompanionAnimations(next, documentText);
   next = ensureAssessmentAndQuestionBank(next, documentText, topic);
   return next;
 }

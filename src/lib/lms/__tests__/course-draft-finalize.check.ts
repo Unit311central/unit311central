@@ -23,7 +23,7 @@ const draft = finalizeGeneratedCourseDraft(template, doc, { forceFiveModules: tr
 const stats = summarizeFinalizeStats(draft);
 
 assert.ok(stats.moduleCount >= 6);
-assert.ok(stats.animationLessonCount >= 5);
+assert.ok(stats.animationLessonCount >= 10, `expected companion KC animations, got ${stats.animationLessonCount}`);
 assert.ok(stats.questionBankCount >= 17);
 assert.equal(stats.finalAssessmentDrawCount, 10);
 assert.equal(stats.passMark, 80);

@@ -62,6 +62,7 @@ const repairRes = await api.post(
   `/api/lms/courses/${encodeURIComponent(beforeSlug)}/repair-from-document`,
   {
     multipart: form,
+    timeout: 180_000,
   },
 );
 const repairBody = await repairRes.json();

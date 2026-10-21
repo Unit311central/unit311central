@@ -2,6 +2,7 @@ import { assertDemoMutationAllowedForRequest } from "@/lib/demo/mutation-guard";
 import { NextRequest, NextResponse } from "next/server";
 
 import { requireLmsWorkspaceSession, resolveLmsClientId } from "@/lib/lms/auth";
+import { learnerCanAccessCourse } from "@/lib/lms/course-learner-access";
 import { sceneForQuestion } from "@/lib/lms/question-scenes";
 import {
   drawAssessmentQuestions,
@@ -28,7 +29,7 @@ export async function POST(request: NextRequest) {
     }
 
     const course = await getCourseBySlug(auth.workspace.id, courseSlug);
-    if (!course || course.status !== "published") {
+    if (!course || !learnerCanAccessCourse(course, auth.session)) {
       return NextResponse.json({ error: "Course not found." }, { status: 404 });
     }
 
