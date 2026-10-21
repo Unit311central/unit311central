@@ -194,9 +194,10 @@ async function captureFinanceStory(page) {
   const replayBtn = page.locator('[data-qa-target="finance-living-replay"]');
   await replayBtn.waitFor({ timeout: 15_000 });
   await page.evaluate(() => window.scrollTo(0, 0));
-  await replayBtn.click();
-  await page.waitForTimeout(250);
   await page.evaluate(() => window.scrollTo(0, 0));
+  await replayBtn.click();
+  await page.waitForTimeout(400);
+  await page.waitForTimeout(3200);
   const widthAfterReplay = await readLiquidityWidth(page);
   assert.ok(widthAfterReplay < 4, "replay should reset liquidity bars before viewport entry");
   await page.locator('[data-qa-target="finance-liquidity-section"]').scrollIntoViewIfNeeded();
