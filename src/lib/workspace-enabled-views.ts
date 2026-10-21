@@ -13,6 +13,11 @@ import {
   getWorkspaceModuleEntry,
   type WorkspaceModuleCatalogueEntry,
 } from "@/lib/platform-workspaces/module-catalogue";
+import { isTalantonImpactSlug } from "@/lib/talanton-surface";
+import {
+  isTalantonTrainingNavView,
+  TALANTON_TRAINING_NAV_VIEWS,
+} from "@/lib/talanton/training-nav-views";
 
 /** Collect navigable view ids enabled for a workspace from module catalogue metadata. */
 export function viewsForWorkspaceEnablement(
@@ -115,6 +120,13 @@ export function isViewAllowedForWorkspaceGrants(
     if (enabledViews.includes(view)) return true;
   }
 
+  if (isTalantonImpactSlug(slug)) {
+    const modules = options?.enabledModules ?? [];
+    if (modules.includes("training") && isTalantonTrainingNavView(view)) {
+      return true;
+    }
+  }
+
   if (slug !== DEMO_WORKSPACE_SLUG && slug !== "demo") return false;
 
   const enabledViews = viewsForWorkspaceEnablement(
@@ -177,6 +189,21 @@ export function applyGreenDesertWorkspaceAllowedViews(
   );
 }
 
+/** Talanton: union portfolio Training nav views when the Training module is enabled. */
+export function applyTalantonWorkspaceAllowedViews(
+  allowedViews: InternalOperationsView[] | null | undefined,
+  workspaceSlug: string | null | undefined,
+  enabledModules: readonly string[] | null | undefined,
+): InternalOperationsView[] | null {
+  if (!isTalantonImpactSlug(workspaceSlug)) return allowedViews ?? null;
+  const modules = enabledModules ?? [];
+  if (!modules.includes("training")) return allowedViews ?? null;
+
+  const merged = new Set<InternalOperationsView>(allowedViews ?? []);
+  for (const view of TALANTON_TRAINING_NAV_VIEWS) merged.add(view);
+  return [...merged];
+}
+
 /** Apply workspace-specific catalogue view merges (Demo, then Green Desert). */
 export function applyWorkspaceCatalogueAllowedViews(
   allowedViews: InternalOperationsView[] | null | undefined,
@@ -184,8 +211,13 @@ export function applyWorkspaceCatalogueAllowedViews(
   enabledModules: readonly string[] | null | undefined,
   enabledSubModules: readonly string[] | null | undefined,
 ): InternalOperationsView[] | null {
-  const demoMerged = applyDemoWorkspaceAllowedViews(
+  const talantonMerged = applyTalantonWorkspaceAllowedViews(
     allowedViews,
+    workspaceSlug,
+    enabledModules,
+  );
+  const demoMerged = applyDemoWorkspaceAllowedViews(
+    talantonMerged,
     workspaceSlug,
     enabledModules,
     enabledSubModules,

@@ -24,6 +24,8 @@ import {
   resolveTalantonSlugFromHost,
   TALANTON_HOST_ALIAS_SLUG,
   TALANTON_IMPACT_SLUG,
+  TALANTON_LMS_PREVIEW_HOST,
+  canonicalizeTalantonImpactSlug,
 } from "@/lib/talanton-surface";
 
 function withMockWindow<T>(hostname: string, run: () => T): T {
@@ -49,6 +51,8 @@ assert.equal(
   TALANTON_IMPACT_SLUG,
 );
 assert.equal(resolveTalantonSlugFromHost("demo.unit311central.com"), null);
+assert.equal(resolveTalantonSlugFromHost(TALANTON_LMS_PREVIEW_HOST), TALANTON_IMPACT_SLUG);
+assert.equal(canonicalizeTalantonImpactSlug("lms-preview"), TALANTON_IMPACT_SLUG);
 
 withMockWindow("talantonimpact.unit311central.com", () => {
   setCachedJson(scopedPlatformCacheKey(PLATFORM_CACHE_KEYS.whoami, "talantonimpact"), {
