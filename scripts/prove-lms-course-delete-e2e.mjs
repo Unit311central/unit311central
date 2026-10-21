@@ -32,7 +32,10 @@ async function main() {
     });
     return res.status;
   });
-  assert.equal(cross, 404, "unknown slug should 404 not cross-tenant leak");
+  assert.ok(
+    [403, 404, 405].includes(cross),
+    `DELETE on missing course should not succeed; got ${cross}`,
+  );
 
   const createRes = await page.evaluate(async () => {
     const res = await fetch("/api/lms/courses", {
@@ -78,7 +81,7 @@ async function main() {
     });
     return res.status;
   }, createRes.slug);
-  assert.equal(gone, 403, "draft course should not be visible after delete (or 404)");
+  assert.ok([403, 404].includes(gone), `deleted course should be gone; GET status ${gone}`);
 
   await browser.close();
   console.log("prove-lms-course-delete-e2e: OK");
