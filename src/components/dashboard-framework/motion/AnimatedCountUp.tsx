@@ -5,7 +5,8 @@ import { useEffect, useRef, useState } from "react";
 import type { HomeIntroLane } from "./home-intro-schedule";
 import {
   LIVING_COUNT_UP_MS,
-  homeIntroDelayMs,
+  homeHeroDelayMs,
+  homeSectionDelayMs,
   useHomeLivingIntroPending,
   useLivingMotionEnabled,
 } from "./living-motion";
@@ -20,6 +21,8 @@ type AnimatedCountUpProps = {
   lane?: HomeIntroLane;
   laneIndex?: number;
   durationMs?: number;
+  /** When set, overrides hero intro for viewport-section count-ups. */
+  sectionIntroActive?: boolean;
   /** Exposed for acceptance tests */
   "data-living-count-up"?: string;
 };
@@ -32,11 +35,19 @@ export function AnimatedCountUp({
   lane = "kpi",
   laneIndex = 0,
   durationMs = LIVING_COUNT_UP_MS,
+  sectionIntroActive,
   "data-living-count-up": dataLivingCountUp,
 }: AnimatedCountUpProps) {
   const motionEnabled = useLivingMotionEnabled();
-  const { introPending } = useHomeLivingIntroPending();
+  const { introPending: heroIntroPending } = useHomeLivingIntroPending();
   const visitKey = useLivingHomeVisitKey();
+  const isHeroLane = lane === "ai-metric" || lane === "kpi";
+  const introPending =
+    sectionIntroActive !== undefined
+      ? sectionIntroActive
+      : isHeroLane
+        ? heroIntroPending
+        : false;
   const shouldAnimateFromZero = motionEnabled && introPending;
 
   const [display, setDisplay] = useState(() =>
@@ -69,8 +80,16 @@ export function AnimatedCountUp({
       return;
     }
 
-    const delayMs = introPending ? homeIntroDelayMs(lane, laneIndex) : 0;
-    const duration = introPending ? durationMs : Math.min(600, durationMs);
+    const delayMs = introPending
+      ? isHeroLane
+        ? homeHeroDelayMs(lane as "ai-metric" | "kpi", laneIndex)
+        : homeSectionDelayMs(lane, laneIndex)
+      : 0;
+    const duration = introPending
+      ? isHeroLane
+        ? durationMs
+        : Math.max(1500, durationMs - 400)
+      : Math.min(600, durationMs);
     let frame = 0;
     let delayTimer = 0;
 

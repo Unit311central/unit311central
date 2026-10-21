@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 
-import { homeIntroDelaySec } from "./home-intro-schedule";
+import { homeHeroDelaySec } from "./home-intro-schedule";
 import {
   LIVING_CHART_MS,
   useHomeLivingIntroPending,
@@ -59,7 +59,7 @@ export function AnimatedMetricRing({
           animateRing
             ? {
                 duration: LIVING_CHART_MS * 1.4,
-                delay: homeIntroDelaySec("ai-metric", laneIndex),
+                delay: homeHeroDelaySec("ai-metric", laneIndex),
                 ease: [0.22, 1, 0.36, 1],
               }
             : { duration: 0 }

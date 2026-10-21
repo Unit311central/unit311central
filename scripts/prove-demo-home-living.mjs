@@ -59,15 +59,17 @@ async function loginDemo(page, context) {
 
 async function readStoryMetrics(page) {
   return page.evaluate(() => {
-    const bar = document.querySelector("[data-living-chart-bar=\"0\"]");
+    const bar = document.querySelector('[data-living-chart-bar="0"]');
     const barHeight = bar ? bar.getBoundingClientRect().height : 0;
+    const queueBar = document.querySelector('[data-living-queue-bar="0"]');
     const trendPath = document.querySelector(
-      '[data-qa-target="home-business-performance"] motion-path, [data-qa-target="home-business-performance"] path[stroke]',
+      '[data-qa-target="home-business-performance"] path[stroke]',
     );
     return {
       revenue: document.querySelector('[data-living-count-up="revenue"]')?.textContent?.trim() ?? "",
       cash: document.querySelector('[data-living-count-up="cash"]')?.textContent?.trim() ?? "",
       chartBarHeight: barHeight,
+      queueBarWidth: queueBar ? queueBar.getBoundingClientRect().width : 0,
       hasTrendStroke: Boolean(trendPath),
     };
   });
@@ -78,62 +80,88 @@ async function captureDashboardStory(page) {
   let t0 = await readStoryMetrics(page);
   if (!/^£0(?:\.00)?$/.test(t0.revenue)) {
     const replayBtn = page.locator('[data-qa-target="home-living-replay"]');
-    if (await replayBtn.count()) {
-      await replayBtn.click();
-    }
+    if (await replayBtn.count()) await replayBtn.click();
   }
   for (let i = 0; i < 40; i++) {
     t0 = await readStoryMetrics(page);
     if (/^£0(?:\.00)?$/.test(t0.revenue)) break;
     await page.waitForTimeout(40);
   }
-  const storyStart = Date.now();
 
-  const snap = async (label) => {
-    await page.locator('[data-qa-target="home-business-performance"]').scrollIntoViewIfNeeded().catch(() => {});
-    await page.screenshot({ path: `${ARTIFACT_DIR}/demo-home-story-${label}.png`, fullPage: false });
-    return readStoryMetrics(page);
-  };
-
-  await page.screenshot({ path: `${ARTIFACT_DIR}/demo-home-story-t0ms.png`, fullPage: false });
-
-  const waitUntil = async (targetMs) => {
-    const elapsed = Date.now() - storyStart;
-    if (targetMs > elapsed) await page.waitForTimeout(targetMs - elapsed);
-  };
-
-  await waitUntil(500);
-  const t500 = await snap("t500ms");
-  await waitUntil(2000);
-  const t2000 = await snap("t2000ms");
-  await waitUntil(4000);
-  const t4000 = await snap("t4000ms");
-  await waitUntil(6000);
-  const final = await snap("final");
-
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.screenshot({ path: `${ARTIFACT_DIR}/demo-home-story-hero-t0ms.png`, fullPage: false });
+  await page.waitForTimeout(500);
+  const heroMid = await readStoryMetrics(page);
+  await page.screenshot({ path: `${ARTIFACT_DIR}/demo-home-story-hero-t500ms.png`, fullPage: false });
   assert.ok(
-    /^£0(?:\.00)?$/.test(t0.revenue) || t500.revenue !== final.revenue,
-    "revenue KPI should count up from zero or show mid-animation at 0.5s",
+    /^£0(?:\.00)?$/.test(t0.revenue) || heroMid.revenue !== t0.revenue,
+    "top KPIs should animate on initial load",
   );
-  assert.notEqual(t500.revenue, final.revenue, "revenue should still be animating at ~0.5s");
+
+  await page.waitForTimeout(8000);
+  const beforeScroll = await readStoryMetrics(page);
   assert.ok(
-    t4000.chartBarHeight > t500.chartBarHeight + 2 || t2000.chartBarHeight > t500.chartBarHeight + 2,
-    "chart bars should grow during the story",
+    beforeScroll.chartBarHeight < 4,
+    "chart bars should not animate before Business Performance enters the viewport",
   );
-  assert.ok(final.hasTrendStroke, "revenue trend visualization should be present");
+
+  await page.locator('[data-qa-target="home-business-performance"]').scrollIntoViewIfNeeded();
+  await page.screenshot({ path: `${ARTIFACT_DIR}/demo-home-story-performance-enter.png`, fullPage: false });
+  await page.waitForTimeout(400);
+  const perfEarly = await readStoryMetrics(page);
+  await page.waitForTimeout(2200);
+  const perfLate = await readStoryMetrics(page);
+  await page.screenshot({ path: `${ARTIFACT_DIR}/demo-home-story-performance-mid.png`, fullPage: false });
+  assert.ok(
+    perfLate.chartBarHeight > perfEarly.chartBarHeight + 2,
+    "Business Performance bars should grow after scroll into view",
+  );
+  assert.ok(perfLate.hasTrendStroke, "revenue trend should render in Business Performance");
+
+  await page.locator('[data-qa-target="home-recent-activity"]').scrollIntoViewIfNeeded();
+  await page.waitForTimeout(2200);
+  await page.screenshot({ path: `${ARTIFACT_DIR}/demo-home-story-activity.png`, fullPage: false });
+
+  await page.locator('[data-qa-target="home-work-queue"]').scrollIntoViewIfNeeded();
+  await page.waitForTimeout(400);
+  const queueEarly = await readStoryMetrics(page);
+  await page.waitForTimeout(2000);
+  const queueLate = await readStoryMetrics(page);
+  await page.screenshot({ path: `${ARTIFACT_DIR}/demo-home-story-queue.png`, fullPage: false });
+  assert.ok(
+    queueLate.queueBarWidth > queueEarly.queueBarWidth + 2,
+    "Tasks queue attention bars should grow when scrolled into view",
+  );
+
+  const settledBarHeight = queueLate.chartBarHeight;
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.waitForTimeout(600);
+  await page.locator('[data-qa-target="home-business-performance"]').scrollIntoViewIfNeeded();
+  await page.waitForTimeout(400);
+  const rescroll = await readStoryMetrics(page);
+  assert.ok(
+    rescroll.chartBarHeight >= settledBarHeight - 2,
+    "scrolling away and back should not reset completed chart animation",
+  );
 
   const replayBtn = page.locator('[data-qa-target="home-living-replay"]');
   await replayBtn.waitFor({ timeout: 15_000 });
-  const beforeReplay = final.revenue;
+  const beforeReplay = await readStoryMetrics(page);
+  await page.evaluate(() => window.scrollTo(0, 0));
   await replayBtn.click();
-  await page.waitForTimeout(350);
-  const midReplay = await readStoryMetrics(page);
-  assert.match(midReplay.revenue, /^£0(?:\.00)?$/, "replay should reset revenue count-up to zero");
-  await page.waitForTimeout(5500);
-  const afterReplay = await readStoryMetrics(page);
-  assert.equal(afterReplay.revenue, beforeReplay, "replay should end on the same revenue value");
-  console.log("ok  dashboard story timeline + replay");
-  return final;
+  await page.waitForTimeout(400);
+  const replayHero = await readStoryMetrics(page);
+  assert.match(replayHero.revenue, /^£0(?:\.00)?$/, "replay should reset hero KPI count-up");
+  await page.locator('[data-qa-target="home-business-performance"]').scrollIntoViewIfNeeded();
+  await page.waitForTimeout(2500);
+  const replayPerf = await readStoryMetrics(page);
+  assert.ok(
+    replayPerf.chartBarHeight > 4,
+    "replay should re-animate Business Performance when scrolled into view",
+  );
+  assert.equal(replayPerf.revenue, beforeReplay.revenue, "replay should preserve final revenue KPI value");
+  console.log("ok  viewport-gated dashboard story + replay");
+  return replayPerf;
 }
 
 async function main() {

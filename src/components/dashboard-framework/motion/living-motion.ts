@@ -9,20 +9,31 @@ import {
 } from "./living-motion-context";
 
 import {
-  HOME_INTRO_CHART_BAR_MS,
-  HOME_INTRO_COUNT_UP_MS,
-  HOME_INTRO_TOTAL_MS,
+  HOME_HERO_COUNT_UP_MS,
+  HOME_HERO_TOTAL_MS,
+  HOME_SECTION_CHART_BAR_S,
 } from "./home-intro-schedule";
 
 export const LIVING_ENTER_DURATION = 0.5;
 export const LIVING_STAGGER = 0.09;
-export const LIVING_COUNT_UP_MS = HOME_INTRO_COUNT_UP_MS;
-export const LIVING_CHART_MS = HOME_INTRO_CHART_BAR_MS;
+export const LIVING_COUNT_UP_MS = HOME_HERO_COUNT_UP_MS;
+export const LIVING_CHART_MS = HOME_SECTION_CHART_BAR_S;
 export const LIVING_BAR_STAGGER_MAX_S = 0.85;
 export const LIVING_EASE = [0.22, 1, 0.36, 1] as const;
 
-export { HOME_INTRO_TOTAL_MS, homeIntroDelayMs, homeIntroDelaySec } from "./home-intro-schedule";
+export {
+  HOME_HERO_TOTAL_MS,
+  HOME_INTRO_TOTAL_MS,
+  homeHeroDelayMs,
+  homeHeroDelaySec,
+  homeIntroDelayMs,
+  homeIntroDelaySec,
+  homeSectionDelayMs,
+  homeSectionDelaySec,
+} from "./home-intro-schedule";
 export type { HomeIntroLane } from "./home-intro-schedule";
+export { useHomeSectionIntro } from "./home-section-intro";
+export type { HomeMotionSectionId } from "./home-section-intro";
 
 /** @deprecated Session storage is no longer used to gate intro playback. */
 export {
@@ -75,9 +86,9 @@ export function useHomeLivingIntroPending(): {
   return { introPending, completeIntro };
 }
 
-/** One intro playback window — KPI count-up, trend line, bars, queue (≈3–5s story). */
+/** Hero intro window — executive summary + KPI row only. */
 export function estimateHomeLivingIntroPlaybackMs(): number {
-  return HOME_INTRO_TOTAL_MS;
+  return HOME_HERO_TOTAL_MS;
 }
 
 /** Lock whether this instance should run intro motion on first mount (avoids mid-draw snaps). */
