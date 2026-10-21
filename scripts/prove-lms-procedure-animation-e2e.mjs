@@ -138,23 +138,51 @@ async function main() {
     await next.click();
     await page.waitForTimeout(700);
   }
+  const stepIndicator = page.getByTestId("procedure-animation-step-indicator");
+  await stepIndicator.waitFor({ timeout: 90_000 });
+  const stepBefore = (await stepIndicator.textContent()) ?? "";
+  assert.match(stepBefore, /Step 1 of \d+/, `expected animation on step 1, got: ${stepBefore}`);
+
   const playerPlay = page.getByRole("button", { name: /^(play|replay)$/i }).first();
-  await playerPlay.waitFor({ timeout: 90_000 });
-  await playerPlay.click();
-  await page.waitForTimeout(4000);
-  const pauseBtn = page.getByRole("button", { name: /pause/i }).first();
-  if (await pauseBtn.isVisible().catch(() => false)) {
-    await pauseBtn.click();
-    await page.waitForTimeout(800);
-  }
-  const replayBtn = page.getByRole("button", { name: /replay/i }).first();
-  if (await replayBtn.isVisible().catch(() => false)) {
-    await replayBtn.click();
-  } else {
+  if (await playerPlay.isVisible().catch(() => false)) {
     await playerPlay.click();
   }
-  await page.waitForTimeout(3500);
+  await page.waitForFunction(
+    (prev) => {
+      const el = document.querySelector('[data-testid="procedure-animation-step-indicator"]');
+      const text = el?.textContent ?? "";
+      return text.length > 0 && text !== prev && !/^Step 1 of /.test(text);
+    },
+    stepBefore,
+    { timeout: 20_000 },
+  );
+  const stepAfter = (await stepIndicator.textContent()) ?? "";
+  assert.ok(
+    !/^Step 1 of /.test(stepAfter),
+    `procedure animation must advance past step 1 (still: ${stepAfter})`,
+  );
   await page.screenshot({ path: `${ARTIFACT_DIR}/lms-e2e-04-lms-player-animation.png` });
+
+  let foundKnowledgeCheck = false;
+  for (let i = 0; i < 20; i++) {
+    const kc = page.getByTestId("knowledge-check-prompt");
+    if (await kc.isVisible().catch(() => false)) {
+      foundKnowledgeCheck = true;
+      const prompt = await kc.textContent();
+      assert.ok(prompt && prompt.length > 10, "knowledge check prompt must be visible to learners");
+      await page.getByTestId("knowledge-check-choice").first().click();
+      await page.getByText(/correct|not quite|review the explanation/i).waitFor({ timeout: 15_000 });
+      break;
+    }
+    const next = page.getByRole("button", { name: /^next$/i });
+    if (!(await next.isEnabled().catch(() => false))) break;
+    await next.click();
+    await page.waitForTimeout(600);
+  }
+  assert.ok(
+    foundKnowledgeCheck,
+    "learner journey must include at least one interactive knowledge_check lesson (not only API assessment)",
+  );
 
   const assessment = await page.evaluate(async (slug) => {
     const drawRes = await fetch("/api/lms/assessment/draw", {

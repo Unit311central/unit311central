@@ -29,7 +29,12 @@ export default function KnowledgeCheckLesson({ lesson, content, onComplete }: Pr
       onPrimary={onComplete}
       footer={answered ? (correct ? "Correct" : "Review the explanation") : "Pick an answer"}
     >
-      <p className="text-base leading-relaxed text-white/85">{content.prompt}</p>
+      <p
+        className="text-base leading-relaxed text-white/85"
+        data-testid="knowledge-check-prompt"
+      >
+        {content.prompt}
+      </p>
 
       <div className="mt-6 space-y-3">
         {content.choices.map((choice, i) => {
@@ -40,6 +45,7 @@ export default function KnowledgeCheckLesson({ lesson, content, onComplete }: Pr
             <motion.button
               key={choice.id}
               type="button"
+              data-testid="knowledge-check-choice"
               disabled={answered}
               initial={{ opacity: 0, x: 24 }}
               animate={{ opacity: 1, x: 0 }}

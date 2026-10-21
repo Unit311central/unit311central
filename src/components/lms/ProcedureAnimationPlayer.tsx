@@ -80,6 +80,10 @@ export default function ProcedureAnimationPlayer({
   const [playing, setPlaying] = useState(!reduceMotion);
   const [finished, setFinished] = useState(Boolean(reduceMotion));
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const onFinishedRef = useRef(onFinished);
+  useEffect(() => {
+    onFinishedRef.current = onFinished;
+  }, [onFinished]);
 
   const layout = useMemo(() => computeLayout(spec), [spec]);
   const pointMap = useMemo(() => new Map(layout.points.map((p) => [p.id, p])), [layout.points]);
@@ -110,11 +114,11 @@ export default function ProcedureAnimationPlayer({
       if (next >= stepCount - 1) {
         setPlaying(false);
         setFinished(true);
-        onFinished?.();
+        onFinishedRef.current?.();
       }
       return next;
     });
-  }, [onFinished, stepCount]);
+  }, [stepCount]);
 
   useEffect(() => {
     clearTimer();
@@ -252,7 +256,7 @@ export default function ProcedureAnimationPlayer({
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-2 border-t border-white/10 px-4 py-3">
-        <p className="text-xs text-white/45">
+        <p className="text-xs text-white/45" data-testid="procedure-animation-step-indicator">
           Step {Math.min(activeIndex + 1, stepCount)} of {stepCount}
           {finished ? " · Final state" : ""}
         </p>

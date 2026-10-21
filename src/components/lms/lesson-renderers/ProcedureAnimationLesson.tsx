@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
 
 import ImmersiveLessonShell from "@/components/lms/ImmersiveLessonShell";
 import ProcedureAnimationPlayer from "@/components/lms/ProcedureAnimationPlayer";
@@ -16,6 +16,7 @@ type Props = {
 
 export default function ProcedureAnimationLesson({ lesson, content, onComplete }: Props) {
   const [watched, setWatched] = useState(false);
+  const handleFinished = useCallback(() => setWatched(true), []);
 
   return (
     <ImmersiveLessonShell
@@ -26,10 +27,7 @@ export default function ProcedureAnimationLesson({ lesson, content, onComplete }
       primaryLabel={watched ? "Continue" : "Watch the animation, then continue"}
       primaryDisabled={!watched}
     >
-      <ProcedureAnimationPlayer
-        spec={content.spec}
-        onFinished={() => setWatched(true)}
-      />
+      <ProcedureAnimationPlayer spec={content.spec} onFinished={handleFinished} />
       {!watched ? (
         <p className="mt-2 text-xs text-white/45">
           Use Play to step through the procedure. The final state stays visible for review.

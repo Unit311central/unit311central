@@ -7,6 +7,7 @@ import {
   getAssistantModel,
 } from "@/lib/ai-operating-assistant/openai-client";
 import { clipDocumentText } from "@/lib/document-extract";
+import { ensureKnowledgeCheckLessons } from "@/lib/lms/ensure-document-knowledge-checks";
 import { ensureProcedureAnimationLessons, countProcedureAnimationLessons } from "@/lib/lms/ensure-procedure-animations";
 import { inferProcedureStepsFromDocument } from "@/lib/lms/procedure-animation-spec";
 import {
@@ -222,7 +223,10 @@ Rules:
           inferProcedureStepsFromDocument(text),
         );
       }
-      const withAnimations = ensureProcedureAnimationLessons(normalized, text);
+      const withAnimations = ensureKnowledgeCheckLessons(
+        ensureProcedureAnimationLessons(normalized, text),
+        text,
+      );
       return {
         ...withAnimations,
         generationSource: "ai",
@@ -240,7 +244,10 @@ Rules:
   }
 
   const template = templateFallback();
-  const withAnimations = ensureProcedureAnimationLessons(template, text);
+  const withAnimations = ensureKnowledgeCheckLessons(
+    ensureProcedureAnimationLessons(template, text),
+    text,
+  );
   return {
     ...withAnimations,
     learningObjectives: template.learningObjectives,

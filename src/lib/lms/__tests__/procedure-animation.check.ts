@@ -3,6 +3,10 @@
  */
 import assert from "node:assert/strict";
 
+import {
+  countKnowledgeCheckLessons,
+  ensureKnowledgeCheckLessons,
+} from "@/lib/lms/ensure-document-knowledge-checks";
 import { ensureProcedureAnimationLessons, countProcedureAnimationLessons } from "@/lib/lms/ensure-procedure-animations";
 import {
   buildLinearProcedureSpecFromSteps,
@@ -90,5 +94,12 @@ assert.ok(
   "question bank should reference document steps",
 );
 assert.ok(countProcedureAnimationLessons(template) >= 1);
+assert.ok(countKnowledgeCheckLessons(template) >= 2, "template must include in-flow knowledge checks");
+
+const aiLike = ensureKnowledgeCheckLessons(draft, genericDoc);
+assert.ok(
+  countKnowledgeCheckLessons(aiLike) >= 2,
+  "ensureKnowledgeCheckLessons injects checks when AI omits them",
+);
 
 console.log("ok  procedure-animation checks passed\n");
