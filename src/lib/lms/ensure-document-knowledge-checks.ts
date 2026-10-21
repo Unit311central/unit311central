@@ -1,5 +1,6 @@
 import { inferProcedureStepsFromDocument } from "@/lib/lms/procedure-animation-spec";
-import type { LmsCourseCreateInput, LessonContent } from "@/lib/lms/types";
+import type { CourseDraftWithAnimations } from "@/lib/lms/ensure-procedure-animations";
+import type { LessonContent } from "@/lib/lms/types";
 
 function choice(id: string, label: string) {
   return { id, label };
@@ -25,7 +26,7 @@ function knowledgeCheckContent(
 }
 
 export function countKnowledgeCheckLessons(
-  draft: Pick<LmsCourseCreateInput, "modules">,
+  draft: Pick<CourseDraftWithAnimations, "modules">,
 ): number {
   return draft.modules.reduce(
     (n, mod) =>
@@ -44,9 +45,9 @@ const MIN_KNOWLEDGE_CHECKS = 2;
  * Learners need in-flow knowledge_check lessons tied to procedure steps.
  */
 export function ensureKnowledgeCheckLessons(
-  draft: LmsCourseCreateInput,
+  draft: CourseDraftWithAnimations,
   documentText: string,
-): LmsCourseCreateInput {
+): CourseDraftWithAnimations {
   if (countKnowledgeCheckLessons(draft) >= MIN_KNOWLEDGE_CHECKS) {
     return draft;
   }
