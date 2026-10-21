@@ -62,7 +62,6 @@ export async function POST(
         ...draft,
         title: existing.title,
         passMark: existing.passMark ?? 80,
-        status: existing.status,
       },
       extracted.text,
       { forceFiveModules: forceFive },
@@ -75,7 +74,6 @@ export async function POST(
       durationMinutes: finalized.durationMinutes,
       passMark: 80,
       certificatePrefix: finalized.certificatePrefix,
-      status: existing.status,
       modules: finalized.modules,
       questions: finalized.questions,
     });

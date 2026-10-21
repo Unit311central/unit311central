@@ -14,10 +14,7 @@ export type CoursePublishValidation = {
 };
 
 function lessonHasAnimation(lesson: LmsLesson): boolean {
-  return (
-    lesson.content.type === "procedure_animation" ||
-    lesson.content.type === "instructional_animation"
-  );
+  return lesson.content.type === "procedure_animation";
 }
 
 export function validateCourseForPublish(
