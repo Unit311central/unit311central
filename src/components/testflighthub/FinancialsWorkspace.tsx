@@ -991,7 +991,7 @@ export default function FinancialsWorkspace() {
   return (
     <FinanceLivingMotionProvider armed={introReady}>
       <FinanceLivingIntroScheduler />
-      <FinancialsLivingDashboard
+      <FinancialsLivingDashboardKeyed
         overview={overview}
         loading={loading}
         error={error}
@@ -1000,6 +1000,19 @@ export default function FinancialsWorkspace() {
       />
     </FinanceLivingMotionProvider>
   );
+}
+
+function FinancialsLivingDashboardKeyed(
+  props: {
+    overview: FinancialOverviewSnapshot | null;
+    loading: boolean;
+    error: string | null;
+    load: () => Promise<void>;
+    lastRefreshedAt: Date | null;
+  },
+) {
+  const visitKey = useFinanceVisitKey();
+  return <FinancialsLivingDashboard key={visitKey} {...props} />;
 }
 
 declare global {
