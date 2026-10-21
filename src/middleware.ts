@@ -47,7 +47,12 @@ import {
 import { getOnwardAirClientPortalByPath } from "@/lib/onwardair/client-portal-routes";
 import { isOverviewPortalAccessAllowed, isFreshOverviewDocumentNavigation, isOverviewAuthBypassEnabled } from "@/lib/onwardair/overview-gate";
 import { isOnwardAirSlug } from "@/lib/onwardair-surface";
-import { isTalantonImpactSlug, TALANTON_HOST_ALIAS_SLUG, TALANTON_IMPACT_SLUG } from "@/lib/talanton-surface";
+import {
+  isTalantonImpactSlug,
+  TALANTON_HOST_ALIAS_SLUG,
+  TALANTON_IMPACT_SLUG,
+  TALANTON_LMS_PREVIEW_HOST,
+} from "@/lib/talanton-surface";
 import {
   matchDemoClientPortalPathname,
   PRIMARY_DEMO_CLIENT_PORTAL_SLUG,
@@ -291,7 +296,10 @@ export async function middleware(request: NextRequest) {
   }
 
   // --- Customer workspace hosts: route into the app (existence checked in /ws/[slug]) ---
-  const workspaceSlug = parseClientPlatformSubdomainSafe(host);
+  let workspaceSlug = parseClientPlatformSubdomainSafe(host);
+  if (workspaceSlug === "lms-preview" && normalizedHost === TALANTON_LMS_PREVIEW_HOST) {
+    workspaceSlug = TALANTON_IMPACT_SLUG;
+  }
   if (workspaceSlug) {
     // Canonical CorpCentre host is corpcentre.*; keep old corporatecentre.* working.
     if (workspaceSlug === "corporatecentre") {
@@ -315,7 +323,10 @@ export async function middleware(request: NextRequest) {
     }
 
     const headers = withHostHeaders(request, { workspaceSlug });
-    const workspaceOrigin = `https://${workspaceSlug}.${UNIT311_SITE_HOST}`;
+    const workspaceOrigin =
+      normalizedHost === TALANTON_LMS_PREVIEW_HOST
+        ? `https://${normalizedHost}`
+        : `https://${workspaceSlug}.${UNIT311_SITE_HOST}`;
     const workspaceResponseHeaders = {
       "x-unit311-workspace": "1",
       "x-unit311-workspace-slug": workspaceSlug,

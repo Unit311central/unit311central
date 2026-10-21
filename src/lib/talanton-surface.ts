@@ -4,12 +4,19 @@
  * Alias: talanton.unit311central.com (portals briefing + same workspace)
  */
 
+import { normalizeHost, UNIT311_SITE_HOST } from "@/lib/app-domains";
+
 export const TALANTON_IMPACT_SLUG = "talantonimpact";
+/** Vercel preview alias for Talanton LMS QA (branch deployments only). */
+export const TALANTON_LMS_PREVIEW_HOST = `lms-preview.${UNIT311_SITE_HOST}`;
 /** Short host alias used for /portals briefing (maps to Talanton Impact workspace). */
 export const TALANTON_HOST_ALIAS_SLUG = "talanton";
 
 export function resolveTalantonSlugFromHost(hostname: string): typeof TALANTON_IMPACT_SLUG | null {
   const host = hostname.toLowerCase();
+  if (normalizeHost(host) === TALANTON_LMS_PREVIEW_HOST) {
+    return TALANTON_IMPACT_SLUG;
+  }
   const match = host.match(/^([a-z0-9-]+)\.unit311central\.com$/i);
   if (match?.[1] && isTalantonImpactSlug(match[1])) {
     return TALANTON_IMPACT_SLUG;
