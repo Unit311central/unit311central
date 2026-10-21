@@ -24,7 +24,9 @@ async function loginDemo(page, context) {
   const password = page.locator("input[name=password][type=password]");
   await username.waitFor({ state: "visible", timeout: 60_000 });
   await password.waitFor({ state: "visible", timeout: 60_000 });
+  await username.click();
   await username.fill(USERNAME);
+  await password.click();
   await password.fill(PASSWORD);
   await page.getByRole("button", { name: /sign in/i }).click();
   try {
@@ -203,11 +205,20 @@ async function main() {
   await context.close();
 
   const reducedContext = await browser.newContext({
-    viewport: { width: 1280, height: 720 },
+    viewport: { width: 1280, height: 420 },
     reducedMotion: "reduce",
   });
   const reducedPage = await reducedContext.newPage();
-  await loginDemo(reducedPage, reducedContext);
+  let reducedLoginOk = false;
+  for (let attempt = 0; attempt < 2 && !reducedLoginOk; attempt++) {
+    try {
+      await loginDemo(reducedPage, reducedContext);
+      reducedLoginOk = true;
+    } catch (error) {
+      if (attempt === 1) throw error;
+      await reducedPage.waitForTimeout(1500);
+    }
+  }
   await reducedPage.goto(FINANCE_URL, { waitUntil: "domcontentloaded", timeout: 120_000 });
   await reducedPage.waitForSelector('[data-tutorial-target="fin-dashboard-hero"]', { timeout: 90_000 });
   await reducedPage.locator('[data-qa-target="finance-liquidity-section"]').scrollIntoViewIfNeeded();
