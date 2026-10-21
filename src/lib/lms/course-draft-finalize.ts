@@ -190,6 +190,47 @@ export function ensureFiveTeachingModules(
   };
 }
 
+function convertStrayTeachingLessonsToAnimations(
+  draft: FinalizableCourseDraft,
+  documentText: string,
+): FinalizableCourseDraft {
+  const steps = inferProcedureStepsFromDocument(documentText);
+  const fallbackSteps = steps.length >= 2 ? steps.slice(-2) : steps;
+  const modules = draft.modules.map((mod) => {
+    const lessons = mod.lessons.map((lesson) => {
+      const type = lesson.content.type;
+      if (
+        type === "assessment" ||
+        type === "knowledge_check" ||
+        type === "procedure_animation"
+      ) {
+        return lesson;
+      }
+      const spec = buildLinearProcedureSpecFromSteps(
+        lesson.title,
+        fallbackSteps,
+        "Animated walkthrough generated from the source document.",
+      );
+      return {
+        title: `${lesson.title} — procedure animation`,
+        lessonType: "procedure_animation" as const,
+        estimatedMinutes: lesson.estimatedMinutes ?? 3,
+        content: {
+          type: "procedure_animation" as const,
+          title: lesson.title,
+          spec,
+        },
+      };
+    });
+    return { ...mod, lessons };
+  });
+  return {
+    ...draft,
+    modules,
+    animationCount: countProcedureAnimationLessons({ modules }),
+  };
+}
+
 /** Each knowledge_check lesson gets its own recap procedure_animation immediately before it. */
 export function ensureKnowledgeCheckCompanionAnimations(
   draft: FinalizableCourseDraft,
@@ -246,6 +287,7 @@ export function finalizeGeneratedCourseDraft(
   }
   next = ensurePerModuleProcedureAnimations(next, documentText);
   next = ensureKnowledgeCheckCompanionAnimations(next, documentText);
+  next = convertStrayTeachingLessonsToAnimations(next, documentText);
   next = ensureAssessmentAndQuestionBank(next, documentText, topic);
   return next;
 }
