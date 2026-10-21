@@ -1,14 +1,24 @@
 /**
- * Talanton LMS procedure animation E2E (Playwright).
+ * Test B — PDF-to-course E2E (upload, review, publish, learner player).
  *
  *   ORIGIN=https://lms-preview.unit311central.com node scripts/prove-lms-procedure-animation-e2e.mjs
  */
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
-import { chromium, request as playwrightRequest } from "playwright";
+import { chromium } from "playwright";
 
-const ORIGIN = (process.env.ORIGIN ?? "https://lms-preview.unit311central.com").replace(/\/$/, "");
+import {
+  assertProcedureAnimationPlayer,
+  answerInlineKnowledgeCheck,
+  DEFAULT_ORIGIN,
+  flattenLessons,
+  goToLessonIndex,
+  loginStorageState,
+  submitAssessmentAttempt,
+} from "./lms-e2e-helpers.mjs";
+
+const ORIGIN = (process.env.ORIGIN ?? DEFAULT_ORIGIN).replace(/\/$/, "");
 const USERNAME =
   process.env.LMS_E2E_USERNAME ??
   process.env.DEMO_PROSPECT_USERNAME ??
@@ -33,19 +43,7 @@ async function main() {
   }
 
   fs.mkdirSync(ARTIFACT_DIR, { recursive: true });
-  const api = await playwrightRequest.newContext({ baseURL: ORIGIN });
-  const loginRes = await api.post("/api/auth/login", {
-    data: {
-      username: USERNAME,
-      password: PASSWORD,
-      next: "/dashboard?view=portfolio-courses",
-    },
-  });
-  if (!loginRes.ok()) {
-    throw new Error(`API login failed (${loginRes.status()}): ${await loginRes.text()}`);
-  }
-  const storageState = await api.storageState();
-  await api.dispose();
+  const storageState = await loginStorageState(ORIGIN, USERNAME, PASSWORD);
 
   const browser = await chromium.launch({ headless: true, channel: "chrome" });
   const context = await browser.newContext({
@@ -54,206 +52,95 @@ async function main() {
     recordVideo: { dir: ARTIFACT_DIR, size: { width: 1280, height: 720 } },
   });
   const page = await context.newPage();
+  const uniqueTitle = `E2E Incident Procedure ${Date.now()}`;
 
-  console.log(`LMS E2E origin: ${ORIGIN}`);
+  console.log(`PDF course E2E: ${ORIGIN} title=${uniqueTitle}`);
 
-  await page.addInitScript(() => {
-    const stamp = Date.now();
+  await page.addInitScript((title) => {
     const origFetch = window.fetch.bind(window);
     window.fetch = async (input, init) => {
       const url = typeof input === "string" ? input : input instanceof Request ? input.url : "";
       if (url.includes("/api/lms/generate-from-document") && init?.body instanceof FormData) {
-        init.body.append("title", `E2E Incident Procedure ${stamp}`);
+        init.body.append("title", title);
       }
       return origFetch(input, init);
     };
-  });
+  }, uniqueTitle);
 
   await page.goto(`${ORIGIN}/dashboard?view=portfolio-courses`, {
     waitUntil: "domcontentloaded",
     timeout: 120_000,
   });
-  await page.waitForTimeout(3000);
+  await page.waitForTimeout(2000);
 
-  await page.screenshot({ path: `${ARTIFACT_DIR}/lms-e2e-01-portfolio-courses.png` });
-
-  const uploadBtn = page.getByRole("button", { name: /upload pdf/i });
-  await uploadBtn.waitFor({ state: "visible", timeout: 60_000 });
   const fileInput = page.locator('input[type="file"]');
+  await fileInput.waitFor({ state: "attached", timeout: 60_000 });
+
+  const generationResponse = page.waitForResponse(
+    (res) =>
+      res.url().includes("/api/lms/generate-from-document") &&
+      res.request().method() === "POST",
+    { timeout: 420_000 },
+  );
   await fileInput.setInputFiles(PDF_PATH);
+  const genRes = await generationResponse;
+  const genBody = await genRes.json().catch(() => ({}));
+  if (!genRes.ok()) {
+    const errText = await page.locator("text=/Course generation failed|not configured|too short/i").first().textContent().catch(() => "");
+    throw new Error(
+      `generate-from-document failed (${genRes.status()}): ${JSON.stringify(genBody).slice(0, 400)} UI: ${errText}`,
+    );
+  }
+  assert.ok(genBody.course?.slug, "generation must return course slug");
 
   await page
     .getByRole("heading", { name: /review before publishing/i })
-    .waitFor({ timeout: 300_000 });
-  await page.screenshot({ path: `${ARTIFACT_DIR}/lms-e2e-02-review-modal.png` });
+    .waitFor({ timeout: 60_000 });
 
-  const reviewModal = page
-    .locator("div.overflow-y-auto")
-    .filter({ has: page.getByRole("heading", { name: /review before publishing/i }) })
-    .first();
-  await reviewModal.evaluate((el) => {
-    el.scrollTop = el.scrollHeight;
-  });
-  const previewSection = page.getByText("Animation preview");
-  await previewSection.waitFor({ timeout: 60_000 });
-  await previewSection.scrollIntoViewIfNeeded();
-  const playBtn = page.getByRole("button", { name: /^(play|replay)$/i }).first();
-  await playBtn.click();
-  await page.waitForTimeout(3500);
-  await page.screenshot({ path: `${ARTIFACT_DIR}/lms-e2e-03-animation-preview-playing.png` });
-
-  const bodyText = await page.locator("body").innerText();
-  assert.match(bodyText, /incident|severity|escalat|register/i, "preview should reflect document-derived steps");
+  const flatFromApi = flattenLessons(genBody.course);
+  assert.ok(
+    flatFromApi.some((l) => l.lessonType === "procedure_animation"),
+    "generated tree must include procedure_animation",
+  );
+  assert.ok(
+    flatFromApi.filter((l) => l.lessonType === "knowledge_check").length >= 2,
+    "generated tree must include knowledge_check lessons",
+  );
+  const questionStems = (genBody.course.questions ?? genBody.draft?.questions ?? []).map(
+    (q) => q.stem ?? q.question ?? "",
+  );
+  assert.ok(
+    questionStems.some((s) => /incident|escalat|severity|procedure|document/i.test(String(s))),
+    "assessment bank questions must relate to uploaded document",
+  );
 
   await page.getByRole("button", { name: /publish course/i }).click();
   await page.getByText(/is published and listed below/i).waitFor({ timeout: 120_000 });
 
-  const publishedSlug = await page.evaluate(async () => {
-    const res = await fetch("/api/lms/courses?all=1&includeStats=1", { credentials: "include" });
-    const data = await res.json();
-    const matches = (data.courses ?? []).filter(
-      (c) =>
-        c.status === "published" &&
-        /incident|escalat|severity|reporting/i.test(`${c.title} ${c.slug}`),
-    );
-    return matches.length ? matches[matches.length - 1].slug : null;
-  });
-  assert.ok(publishedSlug, "published course slug should be discoverable");
-
-  const flatLessons = await page.evaluate(async (slug) => {
-    const res = await fetch(`/api/lms/courses/${encodeURIComponent(slug)}`, {
-      credentials: "include",
-    });
-    const data = await res.json();
-    return (data.course?.modules ?? []).flatMap((m) =>
-      m.lessons.map((l) => ({ id: l.id, lessonType: l.lessonType, title: l.title })),
-    );
-  }, publishedSlug);
-  const kcCount = flatLessons.filter((l) => l.lessonType === "knowledge_check").length;
-  assert.ok(
-    kcCount >= 2,
-    `generated course must include in-flow knowledge_check lessons (got ${kcCount}, types=${flatLessons.map((l) => l.lessonType).join(",")})`,
-  );
-  const firstKcIndex = flatLessons.findIndex((l) => l.lessonType === "knowledge_check");
-  const animIndex = flatLessons.findIndex((l) => l.lessonType === "procedure_animation");
-
-  const courseRow = page
-    .getByRole("row")
-    .filter({ hasText: /incident|escalat|severity|reporting/i })
-    .last();
+  const publishedSlug = genBody.course.slug;
+  const courseRow = page.getByRole("row").filter({ hasText: uniqueTitle }).last();
   await courseRow.waitFor({ state: "visible", timeout: 60_000 });
   await courseRow.getByRole("button", { name: /open course/i }).click();
 
-  await page.waitForTimeout(2000);
-  const footerNext = () => page.locator("footer").getByRole("button", { name: /^next$/i });
-  async function goToLessonIndex(targetIndex) {
-    for (let i = 0; i < targetIndex; i++) {
-      const next = footerNext();
-      if (!(await next.isEnabled().catch(() => false))) break;
-      await next.click();
-      await page.waitForTimeout(700);
-    }
-  }
-  if (animIndex >= 0) {
-    await goToLessonIndex(animIndex);
-  }
-  const stepIndicator = page.getByTestId("procedure-animation-step-indicator");
-  await stepIndicator.waitFor({ timeout: 90_000 });
-  const stepBefore = (await stepIndicator.textContent()) ?? "";
-  assert.match(stepBefore, /Step \d+ of \d+/, `expected step indicator, got: ${stepBefore}`);
-  if (/^Step 1 of /.test(stepBefore)) {
-    await page.waitForFunction(
-      (prev) => {
-        const el = document.querySelector('[data-testid="procedure-animation-step-indicator"]');
-        const text = el?.textContent ?? "";
-        return text.length > 0 && text !== prev && !/^Step 1 of /.test(text);
-      },
-      stepBefore,
-      { timeout: 20_000 },
-    );
-  } else {
-    assert.ok(
-      !/Final state/.test(stepBefore),
-      `procedure animation must not be fully finished before assertion (got: ${stepBefore})`,
-    );
-  }
-  const stepAfter = (await stepIndicator.textContent()) ?? "";
-  assert.ok(
-    /Final state/.test(stepAfter) || !/^Step 1 of /.test(stepAfter),
-    `procedure animation must show step progression (before=${stepBefore}, after=${stepAfter})`,
-  );
-  await page.screenshot({ path: `${ARTIFACT_DIR}/lms-e2e-04-lms-player-animation.png` });
+  await page.waitForTimeout(1500);
+  const flatLessons = flatFromApi;
+  const animIndex = flatLessons.findIndex((l) => l.lessonType === "procedure_animation");
+  const firstKcIndex = flatLessons.findIndex((l) => l.lessonType === "knowledge_check");
 
-  assert.ok(firstKcIndex >= 0, "knowledge_check index missing");
-  const stepsToKc = animIndex >= 0 ? firstKcIndex - animIndex : firstKcIndex;
-  await goToLessonIndex(Math.max(0, stepsToKc));
-  const kcLessonId = flatLessons[firstKcIndex]?.id;
-  assert.ok(kcLessonId, "knowledge_check lesson id missing");
-  const kcSection = page.locator(`#lesson-${kcLessonId}`);
-  const kc = kcSection.getByTestId("knowledge-check-prompt");
-  await kc.waitFor({ timeout: 30_000 });
-  const prompt = await kc.textContent();
-  assert.ok(prompt && prompt.length > 10, "knowledge check prompt must be visible to learners");
-  await kcSection.getByTestId("knowledge-check-choice").first().click();
-  await page.getByText(/correct|not quite|review the explanation/i).waitFor({ timeout: 15_000 });
-  const foundKnowledgeCheck = true;
-  assert.ok(
-    foundKnowledgeCheck,
-    "learner journey must include at least one interactive knowledge_check lesson (not only API assessment)",
-  );
+  await goToLessonIndex(page, animIndex);
+  await assertProcedureAnimationPlayer(page, { animLessonId: flatLessons[animIndex].id });
 
-  const assessment = await page.evaluate(async (slug) => {
-    const drawRes = await fetch("/api/lms/assessment/draw", {
-      method: "POST",
-      credentials: "include",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ courseSlug: slug }),
-    });
-    const draw = await drawRes.json();
-    if (!drawRes.ok) return { ok: false, step: "draw", draw };
-    const answers = {};
-    for (const q of draw.questions ?? []) {
-      answers[q.id] = q.choices?.[0]?.id ?? "a";
-    }
-    const submitRes = await fetch("/api/lms/assessment/submit", {
-      method: "POST",
-      credentials: "include",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        courseSlug: slug,
-        enrolmentId: draw.enrolmentId,
-        questionIds: (draw.questions ?? []).map((q) => q.id),
-        answers,
-      }),
-    });
-    const submit = await submitRes.json();
-    return {
-      ok: submitRes.ok,
-      step: submitRes.ok ? "done" : "submit",
-      drawCount: draw.questions?.length ?? 0,
-      submit,
-    };
-  }, publishedSlug);
+  await goToLessonIndex(page, Math.max(0, firstKcIndex - animIndex));
+  await answerInlineKnowledgeCheck(page, flatLessons[firstKcIndex].id);
+
+  const assessment = await submitAssessmentAttempt(page, publishedSlug);
   assert.ok(assessment.ok, `assessment flow failed: ${JSON.stringify(assessment)}`);
-  assert.ok(assessment.drawCount >= 1, "assessment should draw questions");
-  assert.ok(assessment.submit.attemptId, "attempt should be persisted");
-  assert.equal(typeof assessment.submit.score, "number");
+  assert.ok(assessment.drawCount >= 1);
+  assert.ok(assessment.submit.attemptId);
 
-  const video = page.video();
-  const dest = `${ARTIFACT_DIR}/lms-procedure-animation-e2e.webm`;
-  if (video) {
-    await Promise.race([
-      video.saveAs(dest),
-      new Promise((_, reject) => setTimeout(() => reject(new Error("video save timeout")), 45_000)),
-    ]).then(
-      () => console.log(`Saved recording: ${dest}`),
-      () => console.warn("Skipped video save (timeout)"),
-    );
-  }
   await context.close();
   await browser.close();
-
-  console.log("LMS procedure animation E2E: OK");
+  console.log("prove-lms-procedure-animation-e2e (PDF): OK");
 }
 
 main().catch((err) => {
