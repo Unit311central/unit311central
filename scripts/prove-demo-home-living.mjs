@@ -154,8 +154,12 @@ async function captureDashboardStory(page) {
   const beforeReplay = await readStoryMetrics(page);
   await page.evaluate(() => window.scrollTo(0, 0));
   await replayBtn.click();
-  await page.waitForTimeout(400);
-  const replayHero = await readStoryMetrics(page);
+  let replayHero = await readStoryMetrics(page);
+  for (let i = 0; i < 30; i++) {
+    if (/^£0(?:\.00)?$/.test(replayHero.revenue)) break;
+    await page.waitForTimeout(40);
+    replayHero = await readStoryMetrics(page);
+  }
   assert.match(replayHero.revenue, /^£0(?:\.00)?$/, "replay should reset hero KPI count-up");
   await page.locator('[data-qa-target="home-business-performance"]').scrollIntoViewIfNeeded();
   await page.waitForTimeout(2500);
