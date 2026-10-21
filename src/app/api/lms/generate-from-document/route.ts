@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import {
   generateAbhiCourseFromDocument,
+  LmsCourseGenerationError,
   summarizeGeneratedCourse,
 } from "@/lib/abhi/lms-course-generator";
 import { extractTextFromBuffer } from "@/lib/document-extract";
@@ -57,12 +58,19 @@ export async function POST(request: NextRequest) {
       status: "draft",
     });
 
+    const summary = summarizeGeneratedCourse(draft);
     return NextResponse.json({
       course,
-      summary: summarizeGeneratedCourse(draft),
+      summary,
       draft,
+      generationSource: draft.generationSource,
+      templateFallback: summary.templateFallback === true,
     });
   } catch (error) {
+    if (error instanceof LmsCourseGenerationError) {
+      const status = error.code === "missing_ai" ? 503 : 422;
+      return NextResponse.json({ error: error.message, code: error.code }, { status });
+    }
     const message = error instanceof Error ? error.message : "Course generation failed.";
     return NextResponse.json({ error: message }, { status: 500 });
   }

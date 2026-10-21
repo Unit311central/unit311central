@@ -1207,3 +1207,23 @@ export async function updateCourseMeta(
   if (error || !data) throw new Error(error?.message || "Failed to update course.");
   return mapCourse(data as Record<string, unknown>);
 }
+
+export async function updateLessonContent(
+  workspaceId: string,
+  lessonId: string,
+  patch: { lessonType: LmsLesson["lessonType"]; content: LmsLesson["content"] },
+): Promise<LmsLesson> {
+  const sanitized = sanitizeLessonContent(patch.lessonType, patch.content, "Lesson");
+  const { data, error } = await db()
+    .from("lms_lessons")
+    .update({
+      lesson_type: sanitized.lessonType,
+      content: sanitized.content,
+    })
+    .eq("id", lessonId)
+    .eq("workspace_id", workspaceId)
+    .select("*")
+    .single();
+  if (error || !data) throw new Error(error?.message || "Failed to update lesson.");
+  return mapLesson(data as Record<string, unknown>);
+}

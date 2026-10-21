@@ -16,6 +16,7 @@ export const LMS_LESSON_TYPES = [
   "infographic",
   "branching",
   "hotspot",
+  "procedure_animation",
 ] as const;
 
 export type LmsLessonType = (typeof LMS_LESSON_TYPES)[number];
@@ -134,6 +135,11 @@ export type LessonContent =
         correct?: boolean;
         feedback: string;
       }[];
+    }
+  | {
+      type: "procedure_animation";
+      title?: string;
+      spec: import("@/lib/lms/procedure-animation-spec").ProcedureAnimationSpec;
     };
 
 export type LmsCourse = {

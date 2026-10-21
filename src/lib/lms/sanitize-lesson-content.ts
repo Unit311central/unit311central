@@ -3,6 +3,7 @@
  * Never throw — fall back to a short rich_text lesson when structure is unusable.
  */
 
+import { normalizeProcedureAnimationContent } from "@/lib/lms/procedure-animation-spec";
 import type { LessonContent, LmsLessonType, RichTextBlock } from "@/lib/lms/types";
 import { LMS_LESSON_TYPES } from "@/lib/lms/types";
 
@@ -203,6 +204,19 @@ function coerceAiContentShape(
           "Review the course material and try again.",
         );
       }
+    }
+  }
+
+  if (lessonType === "procedure_animation" || out.type === "procedure_animation") {
+    if (!out.spec && out.nodes && out.edges) {
+      out.spec = {
+        version: 1,
+        title: asString(out.title, lessonTitle),
+        layout: asString(out.layout, "linear"),
+        nodes: out.nodes,
+        edges: out.edges,
+        playbackOrder: out.playbackOrder,
+      };
     }
   }
 
@@ -539,6 +553,14 @@ export function sanitizeLessonContent(
             startId,
             nodes: nodes as Extract<LessonContent, { type: "branching" }>["nodes"],
           },
+        };
+      }
+      case "procedure_animation": {
+        const normalized = normalizeProcedureAnimationContent(raw, lessonTitle);
+        if (!normalized) break;
+        return {
+          lessonType: "procedure_animation",
+          content: normalized,
         };
       }
       default:
