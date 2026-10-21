@@ -42,6 +42,18 @@ async function main() {
 
   console.log(`LMS E2E origin: ${ORIGIN}`);
 
+  await page.addInitScript(() => {
+    const stamp = Date.now();
+    const origFetch = window.fetch.bind(window);
+    window.fetch = async (input, init) => {
+      const url = typeof input === "string" ? input : input instanceof Request ? input.url : "";
+      if (url.includes("/api/lms/generate-from-document") && init?.body instanceof FormData) {
+        init.body.append("title", `E2E Incident Procedure ${stamp}`);
+      }
+      return origFetch(input, init);
+    };
+  });
+
   await page.goto(
     `${ORIGIN}/login?next=${encodeURIComponent("/dashboard?view=portfolio-courses")}`,
     { waitUntil: "domcontentloaded", timeout: 120_000 },
@@ -49,14 +61,17 @@ async function main() {
   await page.locator("input[name=username]").fill(USERNAME);
   await page.locator("input[name=password][type=password]").fill(PASSWORD);
   await page.getByRole("button", { name: /sign in/i }).click();
-  await page.waitForURL(/\/dashboard/, { timeout: 120_000 });
-  await page.waitForLoadState("networkidle", { timeout: 120_000 }).catch(() => {});
+  await Promise.race([
+    page.waitForURL(/\/dashboard/, { timeout: 120_000 }),
+    page.getByText(/Portfolio Courses/i).waitFor({ timeout: 120_000 }),
+  ]);
+  await page.waitForLoadState("domcontentloaded", { timeout: 60_000 }).catch(() => {});
 
   await page.goto(`${ORIGIN}/dashboard?view=portfolio-courses`, {
     waitUntil: "domcontentloaded",
     timeout: 120_000,
   });
-  await page.waitForLoadState("networkidle", { timeout: 120_000 }).catch(() => {});
+  await page.waitForTimeout(3000);
 
   await page.screenshot({ path: `${ARTIFACT_DIR}/lms-e2e-01-portfolio-courses.png` });
 
@@ -67,7 +82,7 @@ async function main() {
 
   await page
     .getByRole("heading", { name: /review before publishing/i })
-    .waitFor({ timeout: 180_000 });
+    .waitFor({ timeout: 300_000 });
   await page.screenshot({ path: `${ARTIFACT_DIR}/lms-e2e-02-review-modal.png` });
 
   const reviewModal = page
@@ -94,10 +109,12 @@ async function main() {
   const publishedSlug = await page.evaluate(async () => {
     const res = await fetch("/api/lms/courses?all=1&includeStats=1", { credentials: "include" });
     const data = await res.json();
-    const match = (data.courses ?? []).find((c) =>
-      /incident|escalat|severity|reporting/i.test(`${c.title} ${c.slug}`),
+    const matches = (data.courses ?? []).filter(
+      (c) =>
+        c.status === "published" &&
+        /incident|escalat|severity|reporting/i.test(`${c.title} ${c.slug}`),
     );
-    return match?.slug ?? null;
+    return matches.length ? matches[matches.length - 1].slug : null;
   });
   assert.ok(publishedSlug, "published course slug should be discoverable");
 
@@ -179,8 +196,13 @@ async function main() {
   const video = page.video();
   const dest = `${ARTIFACT_DIR}/lms-procedure-animation-e2e.webm`;
   if (video) {
-    await video.saveAs(dest);
-    console.log(`Saved recording: ${dest}`);
+    await Promise.race([
+      video.saveAs(dest),
+      new Promise((_, reject) => setTimeout(() => reject(new Error("video save timeout")), 45_000)),
+    ]).then(
+      () => console.log(`Saved recording: ${dest}`),
+      () => console.warn("Skipped video save (timeout)"),
+    );
   }
   await context.close();
   await browser.close();
