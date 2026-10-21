@@ -50,6 +50,7 @@
     "prove:motion-studio-browser": "node scripts/motion-studio-playback-browser.mjs",
     "prove:home-living-motion": "node --import tsx src/lib/dashboard-framework/__tests__/living-motion.check.ts",
     "prove:demo-home-living": "node scripts/prove-demo-home-living.mjs",
+    "prove:finance-dashboard-motion": "node scripts/prove-finance-dashboard-motion.mjs",
     "prove:track-c": "node --import tsx src/lib/accounting/__tests__/track-c-money-workflow.check.ts && node scripts/prove-track-c.mjs",
     "prove:sales-quotes-core-no-sharp": "node --require ./scripts/test-server-only-hook.cjs --import tsx src/lib/__tests__/sales-quotes-core-no-sharp.check.ts",
     "prove:sales-quotes-list-compose-no-sharp": "node --require ./scripts/test-server-only-hook.cjs --import tsx src/lib/__tests__/sales-quotes-list-compose-no-sharp.check.ts",

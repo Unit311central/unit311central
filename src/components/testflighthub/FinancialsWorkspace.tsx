@@ -8,11 +8,8 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
-  Cell,
   Line,
   LineChart,
-  Pie,
-  PieChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -42,6 +39,25 @@ import {
   buildFinancialsDashboardCatalog,
 } from "@/lib/view-dashboard-tile-catalogs";
 import { cn } from "@/lib/utils";
+import { motion } from "framer-motion";
+import { FinanceLivingReplayControl } from "@/components/dashboard-framework/motion/FinanceLivingReplayControl";
+import {
+  FinanceLivingMotionProvider,
+  useFinanceVisitKey,
+} from "@/components/dashboard-framework/motion/finance-living-motion-context";
+import {
+  FinanceLivingIntroScheduler,
+  financeHeroEntranceProps,
+  useFinanceHeroIntroPending,
+} from "@/components/dashboard-framework/motion/finance-living-motion";
+import { financeRechartsMotion } from "@/components/dashboard-framework/motion/finance-recharts-motion";
+import { useLivingMotionEnabled } from "@/components/dashboard-framework/motion/living-motion";
+import {
+  FinanceAgeingBucketBars,
+  FinanceLiquidityMix,
+} from "@/components/financials/motion/FinanceLiquidityMix";
+import { FinanceMotionSection } from "@/components/financials/motion/FinanceMotionSection";
+import { buildFinanceDashboardMotionAudit } from "@/lib/finance-dashboard-motion-audit";
 
 const TOOLTIP_STYLE = {
   background: "#0b1524",
@@ -50,8 +66,6 @@ const TOOLTIP_STYLE = {
   fontSize: 12,
   color: "#fff",
 } as const;
-
-const PIE_COLORS = ["#34d399", "#38bdf8", "#fbbf24", "#fb7185", "#a78bfa", "#2dd4bf"];
 
 function EmptyChart({ label }: { label: string }) {
   return (
@@ -223,17 +237,684 @@ function ChartCard({
   );
 }
 
-export default function FinancialsWorkspace() {
-  const [overview, setOverview] = useState<FinancialOverviewSnapshot | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+function FinancialsLivingDashboard({
+  overview,
+  loading,
+  error,
+  load,
+  lastRefreshedAt,
+}: {
+  overview: FinancialOverviewSnapshot | null;
+  loading: boolean;
+  error: string | null;
+  load: () => Promise<void>;
+  lastRefreshedAt: Date | null;
+}) {
   const [burnDrillOpen, setBurnDrillOpen] = useState(false);
   const [tilesCustomizeOpen, setTilesCustomizeOpen] = useState(false);
-  const [lastRefreshedAt, setLastRefreshedAt] = useState<Date | null>(null);
+
+  const motionEnabled = useLivingMotionEnabled();
+  const { heroIntroPending } = useFinanceHeroIntroPending();
+  const visitKey = useFinanceVisitKey();
 
   const reportingCurrency = useWorkspaceReportingCurrency();
   const money = (amount: number, currency?: string) =>
     formatReportingMoney(amount, currency ?? reportingCurrency);
+
+  const tiles = useMemo(() => buildFinancialsDashboardCatalog(overview), [overview]);
+
+  const cashDelta = useMemo(
+    () => seriesDelta(overview?.charts.cashPosition),
+    [overview?.charts.cashPosition],
+  );
+  const revenueDelta = useMemo(
+    () => seriesDelta(overview?.charts.monthlyRevenue),
+    [overview?.charts.monthlyRevenue],
+  );
+  const balanceMix = useMemo(() => {
+    if (!overview) return [];
+    return [
+      { name: "Cash", value: Math.max(0, overview.cashPosition) },
+      { name: "Receivable", value: Math.max(0, overview.accountsReceivable) },
+      { name: "Payable", value: Math.max(0, overview.accountsPayable) },
+    ].filter((row) => row.value > 0);
+  }, [overview]);
+
+  const revenueVsSpend = useMemo(() => {
+    if (!overview) return [];
+    const months = new Map<string, { month: string; revenue: number; spend: number }>();
+    for (const row of overview.charts.monthlyRevenue) {
+      months.set(row.month, { month: row.month.slice(5), revenue: row.amount, spend: 0 });
+    }
+    for (const row of overview.charts.monthlyOutgoings) {
+      const existing = months.get(row.month) ?? {
+        month: row.month.slice(5),
+        revenue: 0,
+        spend: 0,
+      };
+      existing.spend = row.amount;
+      months.set(row.month, existing);
+    }
+    return Array.from(months.values());
+  }, [overview]);
+
+  const cashInOut = useMemo(() => {
+    if (!overview) return [];
+    const revenue = overview.charts.monthlyRevenue.slice(-6);
+    const spend = overview.charts.monthlyOutgoings.slice(-6);
+    return revenue.map((row, index) => ({
+      month: row.month.slice(5),
+      cashIn: row.amount,
+      cashOut: spend[index]?.amount ?? 0,
+    }));
+  }, [overview]);
+
+  const marginPct = useMemo(() => {
+    if (!overview || overview.monthlyRevenue <= 0) return 0;
+    return Math.round(
+      ((overview.monthlyRevenue - Math.round(overview.monthlyRevenue * 0.46)) /
+        overview.monthlyRevenue) *
+        100,
+    );
+  }, [overview]);
+
+  const ytdLabel = overview?.reportingPeriodLabel ?? "YTD from general ledger";
+  const compact = (amount: number) => formatCompact(amount, reportingCurrency);
+
+  return (
+    <div className="space-y-4">
+      <motion.section
+        data-tutorial-target="fin-dashboard-hero"
+        className="overflow-hidden rounded-2xl border border-white/12 bg-gradient-to-br from-[#0c1a2e] via-[#0a1422] to-[#08101c] p-5 shadow-[0_24px_64px_rgba(0,0,0,0.45)]"
+        {...financeHeroEntranceProps(0, motionEnabled, heroIntroPending)}
+      >
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-sky-300/90">
+              Financial pulse
+            </p>
+            <h2 className="mt-1 text-xl font-semibold text-white">Live performance snapshot</h2>
+            <p className="mt-1 max-w-xl text-sm text-white/50">
+              CFO entry point for Finances — cash, revenue, receivables and payables with
+              month-on-month movement from the shared GL / AR / AP feed.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <FinanceLivingReplayControl />
+            <button
+              type="button"
+              data-tutorial-target="fin-dashboard-customize"
+              onClick={() => setTilesCustomizeOpen((open) => !open)}
+              className={cn(
+                "inline-flex h-9 items-center gap-1.5 rounded-xl border px-3 text-xs font-semibold transition",
+                tilesCustomizeOpen
+                  ? "border-sky-400/40 bg-sky-500/15 text-sky-200"
+                  : "border-white/15 bg-white/[0.04] text-white/80 hover:border-white/25 hover:bg-white/[0.07]",
+              )}
+            >
+              <LayoutGrid className="h-3.5 w-3.5" />
+              Customize tiles
+            </button>
+            <button
+              type="button"
+              onClick={() => void load()}
+              disabled={loading}
+              className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-white/15 bg-white/[0.04] px-3 text-xs font-semibold text-white/80 transition hover:border-white/25 hover:bg-white/[0.07] disabled:opacity-60"
+            >
+              <RefreshCw className={cn("h-3.5 w-3.5", loading && "animate-spin")} />
+              Refresh
+            </button>
+          </div>
+        </div>
+        {lastRefreshedAt ? (
+          <p className="mt-2 text-[11px] text-white/35">
+            Last updated {lastRefreshedAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+          </p>
+        ) : null}
+
+        {error ? (
+          <p className="mt-4 rounded-xl border border-rose-400/25 bg-rose-500/10 px-4 py-3 text-sm text-rose-100">
+            {error}
+          </p>
+        ) : null}
+        {loading && !overview ? (
+          <div className="mt-6 flex items-center gap-2 text-sm text-white/55">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Loading financial overview…
+          </div>
+        ) : null}
+      </motion.section>
+
+      {overview ? (
+        <motion.div
+          key={`fin-kpi-row-${visitKey}`}
+          {...financeHeroEntranceProps(1, motionEnabled, heroIntroPending)}
+        >
+        <DashboardTopTilesBar
+          storageKey={
+            isBrowserOnwardAirSurface()
+              ? "oa-financials-dashboard-tiles-v4"
+              : "unit311-financials-dashboard-tiles-v6"
+          }
+          catalog={tiles}
+          defaultLayout={DEFAULT_FINANCIALS_TILE_LAYOUT}
+          title="Key metrics"
+          showCustomizeHint={false}
+          showCustomizeButton={false}
+          customizeOpen={tilesCustomizeOpen}
+          onCustomizeOpenChange={setTilesCustomizeOpen}
+          tileTutorialTargetId={(tileId) => `fin-tile-${tileId}`}
+          onTileClick={(tileId) => {
+            if (tileId === "burn-rate") setBurnDrillOpen(true);
+          }}
+        />
+        </motion.div>
+      ) : null}
+
+      {overview?.compliance ? (
+        <div className="grid gap-3 sm:grid-cols-2">
+          <article className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/45">
+              VAT return
+            </p>
+            <p className="mt-2 text-xl font-semibold text-white">
+              {money(overview.compliance.vat.estimatedUpcoming)}
+            </p>
+            <p className="mt-1 text-xs text-white/45">
+              Last paid {money(overview.compliance.vat.lastPaidAmount)} on{" "}
+              {overview.compliance.vat.lastPaidDate} · Due {overview.compliance.vat.dueDate}
+            </p>
+          </article>
+          <article className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/45">
+              HMRC annual accounts
+            </p>
+            <p className="mt-2 text-xl font-semibold text-white">
+              {overview.compliance.hmrc.annualAccountsDue}
+            </p>
+            <p className="mt-1 text-xs text-white/45">{overview.compliance.hmrc.label}</p>
+          </article>
+        </div>
+      ) : null}
+
+      {overview ? (
+        <div data-tutorial-target="fin-dashboard-charts" className="grid gap-4 xl:grid-cols-3">
+          <FinanceMotionSection sectionId="liquidity" className="xl:col-span-1" qaTarget="finance-liquidity-section">
+            {(playLiquidity) => (
+              <ChartCard title="Liquidity mix" subtitle="Cash vs receivables vs payables">
+                {balanceMix.length === 0 ? (
+                  <EmptyChart label="liquidity" />
+                ) : (
+                  <FinanceLiquidityMix
+                    segments={balanceMix}
+                    playIntro={playLiquidity}
+                    visitKey={visitKey}
+                    formatCompact={compact}
+                  />
+                )}
+              </ChartCard>
+            )}
+          </FinanceMotionSection>
+
+          <FinanceMotionSection sectionId="ar-ageing" className="xl:col-span-1" qaTarget="finance-ar-ageing-section">
+            {(playAgeing) => (
+              <ChartCard title="AR ageing" subtitle="Outstanding invoices by age bucket">
+                {overview.ar.ageing.every((bucket) => bucket.amount === 0) ? (
+                  <EmptyChart label="ageing" />
+                ) : (
+                  <FinanceAgeingBucketBars
+                    buckets={overview.ar.ageing}
+                    playIntro={playAgeing}
+                    visitKey={visitKey}
+                    formatMoney={(amount) => money(amount)}
+                  />
+                )}
+                <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
+                  <div className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2">
+                    <p className="text-white/40">Outstanding</p>
+                    <p
+                      className="mt-0.5 font-semibold tabular-nums text-white"
+                      data-finance-final-value={compact(overview.ar.outstanding)}
+                    >
+                      {compact(overview.ar.outstanding)}
+                    </p>
+                  </div>
+                  <div className="rounded-xl border border-rose-400/20 bg-rose-500/10 px-3 py-2">
+                    <p className="text-rose-100/60">Overdue</p>
+                    <p
+                      className="mt-0.5 font-semibold tabular-nums text-rose-100"
+                      data-finance-final-value={compact(overview.ar.overdue)}
+                    >
+                      {compact(overview.ar.overdue)}
+                    </p>
+                  </div>
+                </div>
+              </ChartCard>
+            )}
+          </FinanceMotionSection>
+
+          <FinanceMotionSection sectionId="margin" className="xl:col-span-1" qaTarget="finance-margin-section">
+            {(playMargin) => {
+              const marginAnim = financeRechartsMotion(playMargin, motionEnabled);
+              return (
+                <ChartCard
+                  title="Margin & profit"
+                  subtitle={`${ytdLabel} · SaaS gross margin vs monthly P&L`}
+                >
+                  <div className="flex items-end justify-between gap-3">
+                    <div>
+                      <p className="text-[10px] uppercase tracking-[0.12em] text-white/40">Gross margin</p>
+                      <p
+                        className="mt-1 text-4xl font-semibold text-emerald-300"
+                        data-finance-final-value={`${marginPct}%`}
+                      >
+                        {marginPct}%
+                      </p>
+                      <p className="mt-2 text-xs text-white/45">
+                        Net profit {money(overview.netProfit)} · {ytdLabel}
+                      </p>
+                    </div>
+                    <DeltaBadge delta={revenueDelta} suffix="rev MoM" />
+                  </div>
+                  <div className="mt-5 h-36">
+                    {overview.charts.monthlyProfitLoss.length === 0 ? (
+                      <EmptyChart label="profit" />
+                    ) : (
+                      <ResponsiveContainer width="100%" height="100%" key={`margin-chart-${visitKey}`}>
+                        <BarChart data={overview.charts.monthlyProfitLoss}>
+                          <CartesianGrid stroke="rgba(255,255,255,0.06)" vertical={false} />
+                          <XAxis
+                            dataKey="month"
+                            tick={{ fill: "rgba(255,255,255,0.4)", fontSize: 10 }}
+                            tickFormatter={(v) => String(v).slice(5)}
+                          />
+                          <YAxis hide />
+                          <Tooltip contentStyle={TOOLTIP_STYLE} />
+                          <Bar
+                            dataKey="profit"
+                            fill="#34d399"
+                            radius={[4, 4, 0, 0]}
+                            {...marginAnim}
+                          />
+                          <Bar
+                            dataKey="loss"
+                            fill="#fb7185"
+                            radius={[4, 4, 0, 0]}
+                            {...marginAnim}
+                          />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    )}
+                  </div>
+                </ChartCard>
+              );
+            }}
+          </FinanceMotionSection>
+        </div>
+      ) : null}
+
+      {overview ? (
+        <FinanceMotionSection sectionId="revenue" qaTarget="finance-revenue-section">
+          {(playRevenue) => {
+            const revenueAnim = financeRechartsMotion(playRevenue, motionEnabled);
+            return (
+              <div data-tutorial-target="fin-dashboard-revenue-chart">
+                <ChartCard
+                  title="Revenue vs outgoings"
+                  subtitle="Monthly income against operating spend"
+                >
+                  <div className="h-72">
+                    {revenueVsSpend.length === 0 ? (
+                      <EmptyChart label="revenue vs spend" />
+                    ) : (
+                      <ResponsiveContainer width="100%" height="100%" key={`revenue-chart-${visitKey}`}>
+                        <AreaChart data={revenueVsSpend}>
+                          <defs>
+                            <linearGradient id="fin-rev" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="0%" stopColor="#38bdf8" stopOpacity={0.45} />
+                              <stop offset="100%" stopColor="#38bdf8" stopOpacity={0} />
+                            </linearGradient>
+                            <linearGradient id="fin-spend" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="0%" stopColor="#fb7185" stopOpacity={0.35} />
+                              <stop offset="100%" stopColor="#fb7185" stopOpacity={0} />
+                            </linearGradient>
+                          </defs>
+                          <CartesianGrid stroke="rgba(255,255,255,0.06)" vertical={false} />
+                          <XAxis dataKey="month" tick={{ fill: "rgba(255,255,255,0.45)", fontSize: 11 }} />
+                          <YAxis
+                            tick={{ fill: "rgba(255,255,255,0.35)", fontSize: 10 }}
+                            tickFormatter={(v) => formatCompact(Number(v), reportingCurrency)}
+                            width={56}
+                          />
+                          <Tooltip
+                            contentStyle={TOOLTIP_STYLE}
+                            formatter={(value) =>
+                              money(typeof value === "number" ? value : Number(value) || 0)
+                            }
+                          />
+                          <Area
+                            type="monotone"
+                            dataKey="revenue"
+                            name="Revenue"
+                            stroke="#38bdf8"
+                            strokeWidth={2.5}
+                            fill="url(#fin-rev)"
+                            {...revenueAnim}
+                          />
+                          <Area
+                            type="monotone"
+                            dataKey="spend"
+                            name="Outgoings"
+                            stroke="#fb7185"
+                            strokeWidth={2}
+                            fill="url(#fin-spend)"
+                            {...revenueAnim}
+                          />
+                        </AreaChart>
+                      </ResponsiveContainer>
+                    )}
+                  </div>
+                </ChartCard>
+              </div>
+            );
+          }}
+        </FinanceMotionSection>
+      ) : null}
+
+      {overview?.burnRate ? (
+        <BurnRateOverviewSection
+          burnRate={overview.burnRate}
+          drillOpen={burnDrillOpen}
+          onDrillOpenChange={setBurnDrillOpen}
+        />
+      ) : null}
+
+      {overview ? (
+        <>
+          <div className="grid gap-4 xl:grid-cols-4">
+            <FinanceMotionSection sectionId="ar-detail" qaTarget="finance-ar-detail-section">
+              {(playArDetail) => {
+                const arAnim = financeRechartsMotion(playArDetail, motionEnabled);
+                return (
+            <ChartCard title="Accounts Receivable" subtitle="Collections and open invoices">
+              <dl className="space-y-2 text-sm">
+                <div className="flex justify-between gap-3">
+                  <dt className="text-white/50">Outstanding</dt>
+                  <dd className="tabular-nums text-white">{money(overview.ar.outstanding)}</dd>
+                </div>
+                <div className="flex justify-between gap-3">
+                  <dt className="text-white/50">Overdue</dt>
+                  <dd className="tabular-nums text-rose-200">{money(overview.ar.overdue)}</dd>
+                </div>
+                <div className="flex justify-between gap-3">
+                  <dt className="text-white/50">Due soon</dt>
+                  <dd className="tabular-nums text-white">{money(overview.ar.dueSoon)}</dd>
+                </div>
+                <div className="flex justify-between gap-3">
+                  <dt className="text-white/50">Collection rate</dt>
+                  <dd className="tabular-nums text-emerald-200">
+                    {Math.round(overview.ar.collectionRate)}%
+                  </dd>
+                </div>
+              </dl>
+              <div className="mt-4 h-40">
+                {overview.ar.ageing.every((bucket) => bucket.amount === 0) ? (
+                  <EmptyChart label="ageing" />
+                ) : (
+                  <ResponsiveContainer width="100%" height="100%" key={`ar-detail-${visitKey}`}>
+                    <BarChart data={overview.ar.ageing}>
+                      <CartesianGrid stroke="rgba(255,255,255,0.06)" vertical={false} />
+                      <XAxis dataKey="bucket" tick={{ fill: "rgba(255,255,255,0.45)", fontSize: 10 }} />
+                      <YAxis tick={{ fill: "rgba(255,255,255,0.35)", fontSize: 10 }} width={40} />
+                      <Tooltip contentStyle={TOOLTIP_STYLE} />
+                      <Bar dataKey="amount" fill="#38bdf8" radius={[4, 4, 0, 0]} {...arAnim} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                )}
+              </div>
+            </ChartCard>
+                );
+              }}
+            </FinanceMotionSection>
+
+            <ChartCard title="Accounts Payable" subtitle="Supplier obligations">
+              <dl className="space-y-2 text-sm">
+                <div className="flex justify-between gap-3">
+                  <dt className="text-white/50">Outstanding</dt>
+                  <dd className="tabular-nums text-white">{money(overview.ap.outstanding)}</dd>
+                </div>
+                <div className="flex justify-between gap-3">
+                  <dt className="text-white/50">Due this month</dt>
+                  <dd className="tabular-nums text-amber-200">{money(overview.ap.dueThisMonth)}</dd>
+                </div>
+                <div className="flex justify-between gap-3">
+                  <dt className="text-white/50">Overdue</dt>
+                  <dd className="tabular-nums text-rose-200">{money(overview.ap.overdue)}</dd>
+                </div>
+                <div className="flex justify-between gap-3">
+                  <dt className="text-white/50">Upcoming</dt>
+                  <dd className="tabular-nums text-white">{money(overview.ap.upcoming)}</dd>
+                </div>
+              </dl>
+              <div className="mt-4 space-y-2">
+                {overview.ap.recent.slice(0, 5).map((row) => (
+                  <div
+                    key={row.id}
+                    className="flex items-center justify-between gap-2 rounded-lg border border-white/8 bg-white/[0.02] px-2.5 py-2 text-xs text-white/70"
+                  >
+                    <span className="truncate">{row.supplier}</span>
+                    <span className="shrink-0 tabular-nums text-white">
+                      {money(row.amount, row.currency)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </ChartCard>
+
+            <FinanceMotionSection sectionId="payroll" qaTarget="finance-payroll-section">
+              {(playPayroll) => {
+                const payrollAnim = financeRechartsMotion(playPayroll, motionEnabled);
+                return (
+            <ChartCard title="Payroll" subtitle="Headcount cost run-rate">
+              <dl className="space-y-2 text-sm">
+                <div className="flex justify-between gap-3">
+                  <dt className="text-white/50">Monthly payroll</dt>
+                  <dd className="tabular-nums text-white">{money(overview.payroll.monthly)}</dd>
+                </div>
+                <div className="flex justify-between gap-3">
+                  <dt className="text-white/50">Employees</dt>
+                  <dd className="tabular-nums text-white">{overview.payroll.employees}</dd>
+                </div>
+                <div className="flex justify-between gap-3">
+                  <dt className="text-white/50">Annual payroll</dt>
+                  <dd className="tabular-nums text-white">{money(overview.payroll.annual)}</dd>
+                </div>
+              </dl>
+              <div className="mt-4 h-40">
+                {(overview.payroll.trend?.length ?? 0) === 0 &&
+                overview.charts.monthlyOutgoings.length === 0 ? (
+                  <EmptyChart label="payroll trend" />
+                ) : (
+                  <ResponsiveContainer width="100%" height="100%" key={`payroll-${visitKey}`}>
+                    <LineChart
+                      data={
+                        overview.payroll.trend?.length
+                          ? overview.payroll.trend
+                          : overview.charts.monthlyOutgoings
+                      }
+                    >
+                      <CartesianGrid stroke="rgba(255,255,255,0.06)" vertical={false} />
+                      <XAxis
+                        dataKey="month"
+                        tick={{ fill: "rgba(255,255,255,0.45)", fontSize: 10 }}
+                        tickFormatter={(v) => String(v).slice(5)}
+                      />
+                      <YAxis hide />
+                      <Tooltip contentStyle={TOOLTIP_STYLE} />
+                      <Line
+                        type="monotone"
+                        dataKey="amount"
+                        stroke="#a78bfa"
+                        strokeWidth={2.5}
+                        dot={false}
+                        {...payrollAnim}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                )}
+              </div>
+            </ChartCard>
+                );
+              }}
+            </FinanceMotionSection>
+
+            <FinanceMotionSection sectionId="cash-flow" qaTarget="finance-cash-flow-section">
+              {(playCashFlow) => {
+                const cashFlowAnim = financeRechartsMotion(playCashFlow, motionEnabled);
+                return (
+            <ChartCard title="Cash in vs cash out" subtitle="Last 6 months — revenue vs operating spend">
+              <div className="h-40">
+                {cashInOut.length === 0 ? (
+                  <EmptyChart label="cash flow" />
+                ) : (
+                  <ResponsiveContainer width="100%" height="100%" key={`cash-flow-${visitKey}`}>
+                    <BarChart data={cashInOut}>
+                      <CartesianGrid stroke="rgba(255,255,255,0.06)" vertical={false} />
+                      <XAxis dataKey="month" tick={{ fill: "rgba(255,255,255,0.45)", fontSize: 10 }} />
+                      <YAxis hide />
+                      <Tooltip contentStyle={TOOLTIP_STYLE} />
+                      <Bar
+                        dataKey="cashIn"
+                        name="Cash in"
+                        fill="#34d399"
+                        radius={[4, 4, 0, 0]}
+                        {...cashFlowAnim}
+                      />
+                      <Bar
+                        dataKey="cashOut"
+                        name="Cash out"
+                        fill="#fb7185"
+                        radius={[4, 4, 0, 0]}
+                        {...cashFlowAnim}
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                )}
+              </div>
+            </ChartCard>
+                );
+              }}
+            </FinanceMotionSection>
+          </div>
+
+          <div className="grid gap-4 lg:grid-cols-2">
+            {(
+              [
+                ["cash", "cash-trajectory", "Cash trajectory", overview.charts.cashPosition, "#34d399"],
+                ["revenue", "monthly-revenue", "Monthly revenue", overview.charts.monthlyRevenue, "#38bdf8"],
+              ] as const
+            ).map(([id, sectionId, title, data, color]) => (
+              <FinanceMotionSection
+                key={id}
+                sectionId={sectionId}
+                qaTarget={`finance-${id}-trajectory-section`}
+              >
+                {(playArea) => {
+                  const areaAnim = financeRechartsMotion(playArea, motionEnabled);
+                  return (
+                    <ChartCard title={title}>
+                      <div className="h-52">
+                        {data.length === 0 ? (
+                          <EmptyChart label={title.toLowerCase()} />
+                        ) : (
+                          <ResponsiveContainer width="100%" height="100%" key={`${id}-area-${visitKey}`}>
+                            <AreaChart data={data}>
+                              <defs>
+                                <linearGradient id={`area-${id}`} x1="0" y1="0" x2="0" y2="1">
+                                  <stop offset="0%" stopColor={color} stopOpacity={0.4} />
+                                  <stop offset="100%" stopColor={color} stopOpacity={0} />
+                                </linearGradient>
+                              </defs>
+                              <CartesianGrid stroke="rgba(255,255,255,0.06)" vertical={false} />
+                              <XAxis
+                                dataKey="month"
+                                tick={{ fill: "rgba(255,255,255,0.45)", fontSize: 10 }}
+                                tickFormatter={(v) => String(v).slice(5)}
+                              />
+                              <YAxis
+                                tick={{ fill: "rgba(255,255,255,0.35)", fontSize: 10 }}
+                                tickFormatter={(v) => formatCompact(Number(v), reportingCurrency)}
+                                width={52}
+                              />
+                              <Tooltip
+                                contentStyle={TOOLTIP_STYLE}
+                                formatter={(value) =>
+                                  money(typeof value === "number" ? value : Number(value) || 0)
+                                }
+                              />
+                              <Area
+                                type="monotone"
+                                dataKey="amount"
+                                stroke={color}
+                                strokeWidth={2.5}
+                                fill={`url(#area-${id})`}
+                                {...areaAnim}
+                              />
+                            </AreaChart>
+                          </ResponsiveContainer>
+                        )}
+                      </div>
+                    </ChartCard>
+                  );
+                }}
+              </FinanceMotionSection>
+            ))}
+          </div>
+        </>
+      ) : null}
+
+      <section
+        data-tutorial-target="fin-dashboard-areas"
+        className="rounded-2xl border border-white/10 bg-white/[0.03] p-5"
+      >
+        <h3 className="text-base font-semibold text-white">Functional areas</h3>
+        <p className="mt-1 text-sm text-white/50">
+          Role-aware drill-down into the Finances module — open the area you need without leaving
+          the integrated workspace.
+        </p>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          {FINANCES_DASHBOARD_AREAS.map((area) => {
+            const params = new URLSearchParams({ view: area.view });
+            if (area.query) {
+              for (const [key, value] of Object.entries(area.query)) {
+                params.set(key, value);
+              }
+            }
+            return (
+              <Link
+                key={area.label}
+                href={`?${params.toString()}`}
+                className="group rounded-xl border border-white/10 bg-[#0b1524]/60 p-4 transition hover:border-emerald-400/30 hover:bg-emerald-500/[0.06]"
+              >
+                <p className="text-sm font-semibold text-white group-hover:text-emerald-100">
+                  {area.label}
+                </p>
+                <p className="mt-1 text-xs leading-relaxed text-white/45">{area.description}</p>
+              </Link>
+            );
+          })}
+        </div>
+      </section>
+    </div>
+  );
+}
+
+export default function FinancialsWorkspace() {
+  const [overview, setOverview] = useState<FinancialOverviewSnapshot | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [lastRefreshedAt, setLastRefreshedAt] = useState<Date | null>(null);
+  const [introReady, setIntroReady] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -285,628 +966,44 @@ export default function FinancialsWorkspace() {
     });
   }, [load]);
 
-  const tiles = useMemo(() => buildFinancialsDashboardCatalog(overview), [overview]);
-
-  const cashDelta = useMemo(
-    () => seriesDelta(overview?.charts.cashPosition),
-    [overview?.charts.cashPosition],
-  );
-  const revenueDelta = useMemo(
-    () => seriesDelta(overview?.charts.monthlyRevenue),
-    [overview?.charts.monthlyRevenue],
-  );
-  const expenseDelta = useMemo(
-    () => seriesDelta(overview?.charts.monthlyOutgoings),
-    [overview?.charts.monthlyOutgoings],
-  );
-
-  const balanceMix = useMemo(() => {
-    if (!overview) return [];
-    return [
-      { name: "Cash", value: Math.max(0, overview.cashPosition) },
-      { name: "Receivable", value: Math.max(0, overview.accountsReceivable) },
-      { name: "Payable", value: Math.max(0, overview.accountsPayable) },
-    ].filter((row) => row.value > 0);
-  }, [overview]);
-
-  const arAgeingPie = useMemo(() => {
-    if (!overview) return [];
-    return overview.ar.ageing
-      .filter((bucket) => bucket.amount > 0)
-      .map((bucket) => ({ name: bucket.bucket, value: bucket.amount }));
-  }, [overview]);
-
-  const revenueVsSpend = useMemo(() => {
-    if (!overview) return [];
-    const months = new Map<string, { month: string; revenue: number; spend: number }>();
-    for (const row of overview.charts.monthlyRevenue) {
-      months.set(row.month, { month: row.month.slice(5), revenue: row.amount, spend: 0 });
+  useEffect(() => {
+    if (loading || !overview) {
+      setIntroReady(false);
+      return;
     }
-    for (const row of overview.charts.monthlyOutgoings) {
-      const existing = months.get(row.month) ?? {
-        month: row.month.slice(5),
-        revenue: 0,
-        spend: 0,
-      };
-      existing.spend = row.amount;
-      months.set(row.month, existing);
-    }
-    return Array.from(months.values());
-  }, [overview]);
+    let cancelled = false;
+    const frame = requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        if (!cancelled) setIntroReady(true);
+      });
+    });
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(frame);
+    };
+  }, [loading, overview]);
 
-  const cashInOut = useMemo(() => {
-    if (!overview) return [];
-    const revenue = overview.charts.monthlyRevenue.slice(-6);
-    const spend = overview.charts.monthlyOutgoings.slice(-6);
-    return revenue.map((row, index) => ({
-      month: row.month.slice(5),
-      cashIn: row.amount,
-      cashOut: spend[index]?.amount ?? 0,
-    }));
+  useEffect(() => {
+    if (!overview || typeof window === "undefined") return;
+    window.__financeDashboardMotionAudit = buildFinanceDashboardMotionAudit(overview);
   }, [overview]);
-
-  const marginPct = useMemo(() => {
-    if (!overview || overview.monthlyRevenue <= 0) return 0;
-    return Math.round(
-      ((overview.monthlyRevenue - Math.round(overview.monthlyRevenue * 0.46)) /
-        overview.monthlyRevenue) *
-        100,
-    );
-  }, [overview]);
-
-  const ytdLabel = overview?.reportingPeriodLabel ?? "YTD from general ledger";
 
   return (
-    <div className="space-y-4">
-      <section
-        data-tutorial-target="fin-dashboard-hero"
-        className="overflow-hidden rounded-2xl border border-white/12 bg-gradient-to-br from-[#0c1a2e] via-[#0a1422] to-[#08101c] p-5 shadow-[0_24px_64px_rgba(0,0,0,0.45)]"
-      >
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-sky-300/90">
-              Financial pulse
-            </p>
-            <h2 className="mt-1 text-xl font-semibold text-white">Live performance snapshot</h2>
-            <p className="mt-1 max-w-xl text-sm text-white/50">
-              CFO entry point for Finances — cash, revenue, receivables and payables with
-              month-on-month movement from the shared GL / AR / AP feed.
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              data-tutorial-target="fin-dashboard-customize"
-              onClick={() => setTilesCustomizeOpen((open) => !open)}
-              className={cn(
-                "inline-flex h-9 items-center gap-1.5 rounded-xl border px-3 text-xs font-semibold transition",
-                tilesCustomizeOpen
-                  ? "border-sky-400/40 bg-sky-500/15 text-sky-200"
-                  : "border-white/15 bg-white/[0.04] text-white/80 hover:border-white/25 hover:bg-white/[0.07]",
-              )}
-            >
-              <LayoutGrid className="h-3.5 w-3.5" />
-              Customize tiles
-            </button>
-            <button
-              type="button"
-              onClick={() => void load()}
-              disabled={loading}
-              className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-white/15 bg-white/[0.04] px-3 text-xs font-semibold text-white/80 transition hover:border-white/25 hover:bg-white/[0.07] disabled:opacity-60"
-            >
-              <RefreshCw className={cn("h-3.5 w-3.5", loading && "animate-spin")} />
-              Refresh
-            </button>
-          </div>
-        </div>
-        {lastRefreshedAt ? (
-          <p className="mt-2 text-[11px] text-white/35">
-            Last updated {lastRefreshedAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-          </p>
-        ) : null}
-
-        {error ? (
-          <p className="mt-4 rounded-xl border border-rose-400/25 bg-rose-500/10 px-4 py-3 text-sm text-rose-100">
-            {error}
-          </p>
-        ) : null}
-        {loading && !overview ? (
-          <div className="mt-6 flex items-center gap-2 text-sm text-white/55">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            Loading financial overview…
-          </div>
-        ) : null}
-      </section>
-
-      {overview ? (
-        <DashboardTopTilesBar
-          storageKey={
-            isBrowserOnwardAirSurface()
-              ? "oa-financials-dashboard-tiles-v4"
-              : "unit311-financials-dashboard-tiles-v6"
-          }
-          catalog={tiles}
-          defaultLayout={DEFAULT_FINANCIALS_TILE_LAYOUT}
-          title="Key metrics"
-          showCustomizeHint={false}
-          showCustomizeButton={false}
-          customizeOpen={tilesCustomizeOpen}
-          onCustomizeOpenChange={setTilesCustomizeOpen}
-          tileTutorialTargetId={(tileId) => `fin-tile-${tileId}`}
-          onTileClick={(tileId) => {
-            if (tileId === "burn-rate") setBurnDrillOpen(true);
-          }}
-        />
-      ) : null}
-
-      {overview?.compliance ? (
-        <div className="grid gap-3 sm:grid-cols-2">
-          <article className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/45">
-              VAT return
-            </p>
-            <p className="mt-2 text-xl font-semibold text-white">
-              {money(overview.compliance.vat.estimatedUpcoming)}
-            </p>
-            <p className="mt-1 text-xs text-white/45">
-              Last paid {money(overview.compliance.vat.lastPaidAmount)} on{" "}
-              {overview.compliance.vat.lastPaidDate} · Due {overview.compliance.vat.dueDate}
-            </p>
-          </article>
-          <article className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/45">
-              HMRC annual accounts
-            </p>
-            <p className="mt-2 text-xl font-semibold text-white">
-              {overview.compliance.hmrc.annualAccountsDue}
-            </p>
-            <p className="mt-1 text-xs text-white/45">{overview.compliance.hmrc.label}</p>
-          </article>
-        </div>
-      ) : null}
-
-      {overview ? (
-        <div data-tutorial-target="fin-dashboard-charts" className="grid gap-4 xl:grid-cols-3">
-          <ChartCard
-            title="Liquidity mix"
-            subtitle="Cash vs receivables vs payables"
-            className="xl:col-span-1"
-          >
-            <div className="h-56">
-              {balanceMix.length === 0 ? (
-                <EmptyChart label="liquidity" />
-              ) : (
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={balanceMix}
-                      dataKey="value"
-                      nameKey="name"
-                      innerRadius={52}
-                      outerRadius={78}
-                      paddingAngle={3}
-                      stroke="rgba(8,16,28,0.9)"
-                      strokeWidth={2}
-                    >
-                      {balanceMix.map((entry, index) => (
-                        <Cell key={entry.name} fill={PIE_COLORS[index % PIE_COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip
-                      contentStyle={TOOLTIP_STYLE}
-                      formatter={(value) => [
-                        money(typeof value === "number" ? value : Number(value) || 0),
-                        "Amount",
-                      ]}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
-              )}
-            </div>
-            <ul className="mt-1 space-y-1.5">
-              {balanceMix.map((row, index) => (
-                <li key={row.name} className="flex items-center justify-between text-xs text-white/70">
-                  <span className="inline-flex items-center gap-2">
-                    <span
-                      className="h-2 w-2 rounded-full"
-                      style={{ background: PIE_COLORS[index % PIE_COLORS.length] }}
-                    />
-                    {row.name}
-                  </span>
-                  <span className="tabular-nums text-white">{formatCompact(row.value, reportingCurrency)}</span>
-                </li>
-              ))}
-            </ul>
-          </ChartCard>
-
-          <ChartCard
-            title="AR ageing"
-            subtitle="Outstanding invoices by age bucket"
-            className="xl:col-span-1"
-          >
-            <div className="h-56">
-              {arAgeingPie.length === 0 ? (
-                <EmptyChart label="ageing" />
-              ) : (
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={arAgeingPie}
-                      dataKey="value"
-                      nameKey="name"
-                      innerRadius={48}
-                      outerRadius={76}
-                      paddingAngle={2}
-                      stroke="rgba(8,16,28,0.9)"
-                      strokeWidth={2}
-                    >
-                      {arAgeingPie.map((entry, index) => (
-                        <Cell key={entry.name} fill={PIE_COLORS[(index + 1) % PIE_COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip
-                      contentStyle={TOOLTIP_STYLE}
-                      formatter={(value) => [
-                        money(typeof value === "number" ? value : Number(value) || 0),
-                        "Outstanding",
-                      ]}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
-              )}
-            </div>
-            <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
-              <div className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2">
-                <p className="text-white/40">Outstanding</p>
-                <p className="mt-0.5 font-semibold tabular-nums text-white">
-                  {formatCompact(overview.ar.outstanding, reportingCurrency)}
-                </p>
-              </div>
-              <div className="rounded-xl border border-rose-400/20 bg-rose-500/10 px-3 py-2">
-                <p className="text-rose-100/60">Overdue</p>
-                <p className="mt-0.5 font-semibold tabular-nums text-rose-100">
-                  {formatCompact(overview.ar.overdue, reportingCurrency)}
-                </p>
-              </div>
-            </div>
-          </ChartCard>
-
-          <ChartCard
-            title="Margin & profit"
-            subtitle={`${ytdLabel} · SaaS gross margin vs monthly P&L`}
-            className="xl:col-span-1"
-          >
-            <div className="flex items-end justify-between gap-3">
-              <div>
-                <p className="text-[10px] uppercase tracking-[0.12em] text-white/40">Gross margin</p>
-                <p className="mt-1 text-4xl font-semibold text-emerald-300">{marginPct}%</p>
-                <p className="mt-2 text-xs text-white/45">
-                  Net profit {money(overview.netProfit)} · {ytdLabel}
-                </p>
-              </div>
-              <DeltaBadge delta={revenueDelta} suffix="rev MoM" />
-            </div>
-            <div className="mt-5 h-36">
-              {overview.charts.monthlyProfitLoss.length === 0 ? (
-                <EmptyChart label="profit" />
-              ) : (
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={overview.charts.monthlyProfitLoss}>
-                    <CartesianGrid stroke="rgba(255,255,255,0.06)" vertical={false} />
-                    <XAxis
-                      dataKey="month"
-                      tick={{ fill: "rgba(255,255,255,0.4)", fontSize: 10 }}
-                      tickFormatter={(v) => String(v).slice(5)}
-                    />
-                    <YAxis hide />
-                    <Tooltip contentStyle={TOOLTIP_STYLE} />
-                    <Bar dataKey="profit" fill="#34d399" radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="loss" fill="#fb7185" radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              )}
-            </div>
-          </ChartCard>
-        </div>
-      ) : null}
-
-      {overview ? (
-        <div data-tutorial-target="fin-dashboard-revenue-chart">
-        <ChartCard
-          title="Revenue vs outgoings"
-          subtitle="Monthly income against operating spend"
-        >
-          <div className="h-72">
-            {revenueVsSpend.length === 0 ? (
-              <EmptyChart label="revenue vs spend" />
-            ) : (
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={revenueVsSpend}>
-                  <defs>
-                    <linearGradient id="fin-rev" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#38bdf8" stopOpacity={0.45} />
-                      <stop offset="100%" stopColor="#38bdf8" stopOpacity={0} />
-                    </linearGradient>
-                    <linearGradient id="fin-spend" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#fb7185" stopOpacity={0.35} />
-                      <stop offset="100%" stopColor="#fb7185" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid stroke="rgba(255,255,255,0.06)" vertical={false} />
-                  <XAxis dataKey="month" tick={{ fill: "rgba(255,255,255,0.45)", fontSize: 11 }} />
-                  <YAxis
-                    tick={{ fill: "rgba(255,255,255,0.35)", fontSize: 10 }}
-                    tickFormatter={(v) => formatCompact(Number(v), reportingCurrency)}
-                    width={56}
-                  />
-                  <Tooltip
-                    contentStyle={TOOLTIP_STYLE}
-                    formatter={(value) =>
-                      money(typeof value === "number" ? value : Number(value) || 0)
-                    }
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="revenue"
-                    name="Revenue"
-                    stroke="#38bdf8"
-                    strokeWidth={2.5}
-                    fill="url(#fin-rev)"
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="spend"
-                    name="Outgoings"
-                    stroke="#fb7185"
-                    strokeWidth={2}
-                    fill="url(#fin-spend)"
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            )}
-          </div>
-        </ChartCard>
-        </div>
-      ) : null}
-
-      {overview?.burnRate ? (
-        <BurnRateOverviewSection
-          burnRate={overview.burnRate}
-          drillOpen={burnDrillOpen}
-          onDrillOpenChange={setBurnDrillOpen}
-        />
-      ) : null}
-
-      {overview ? (
-        <>
-          <div className="grid gap-4 xl:grid-cols-4">
-            <ChartCard title="Accounts Receivable" subtitle="Collections and open invoices">
-              <dl className="space-y-2 text-sm">
-                <div className="flex justify-between gap-3">
-                  <dt className="text-white/50">Outstanding</dt>
-                  <dd className="tabular-nums text-white">{money(overview.ar.outstanding)}</dd>
-                </div>
-                <div className="flex justify-between gap-3">
-                  <dt className="text-white/50">Overdue</dt>
-                  <dd className="tabular-nums text-rose-200">{money(overview.ar.overdue)}</dd>
-                </div>
-                <div className="flex justify-between gap-3">
-                  <dt className="text-white/50">Due soon</dt>
-                  <dd className="tabular-nums text-white">{money(overview.ar.dueSoon)}</dd>
-                </div>
-                <div className="flex justify-between gap-3">
-                  <dt className="text-white/50">Collection rate</dt>
-                  <dd className="tabular-nums text-emerald-200">
-                    {Math.round(overview.ar.collectionRate)}%
-                  </dd>
-                </div>
-              </dl>
-              <div className="mt-4 h-40">
-                {overview.ar.ageing.every((bucket) => bucket.amount === 0) ? (
-                  <EmptyChart label="ageing" />
-                ) : (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={overview.ar.ageing}>
-                      <CartesianGrid stroke="rgba(255,255,255,0.06)" vertical={false} />
-                      <XAxis dataKey="bucket" tick={{ fill: "rgba(255,255,255,0.45)", fontSize: 10 }} />
-                      <YAxis tick={{ fill: "rgba(255,255,255,0.35)", fontSize: 10 }} width={40} />
-                      <Tooltip contentStyle={TOOLTIP_STYLE} />
-                      <Bar dataKey="amount" fill="#38bdf8" radius={[4, 4, 0, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                )}
-              </div>
-            </ChartCard>
-
-            <ChartCard title="Accounts Payable" subtitle="Supplier obligations">
-              <dl className="space-y-2 text-sm">
-                <div className="flex justify-between gap-3">
-                  <dt className="text-white/50">Outstanding</dt>
-                  <dd className="tabular-nums text-white">{money(overview.ap.outstanding)}</dd>
-                </div>
-                <div className="flex justify-between gap-3">
-                  <dt className="text-white/50">Due this month</dt>
-                  <dd className="tabular-nums text-amber-200">{money(overview.ap.dueThisMonth)}</dd>
-                </div>
-                <div className="flex justify-between gap-3">
-                  <dt className="text-white/50">Overdue</dt>
-                  <dd className="tabular-nums text-rose-200">{money(overview.ap.overdue)}</dd>
-                </div>
-                <div className="flex justify-between gap-3">
-                  <dt className="text-white/50">Upcoming</dt>
-                  <dd className="tabular-nums text-white">{money(overview.ap.upcoming)}</dd>
-                </div>
-              </dl>
-              <div className="mt-4 space-y-2">
-                {overview.ap.recent.slice(0, 5).map((row) => (
-                  <div
-                    key={row.id}
-                    className="flex items-center justify-between gap-2 rounded-lg border border-white/8 bg-white/[0.02] px-2.5 py-2 text-xs text-white/70"
-                  >
-                    <span className="truncate">{row.supplier}</span>
-                    <span className="shrink-0 tabular-nums text-white">
-                      {money(row.amount, row.currency)}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </ChartCard>
-
-            <ChartCard title="Payroll" subtitle="Headcount cost run-rate">
-              <dl className="space-y-2 text-sm">
-                <div className="flex justify-between gap-3">
-                  <dt className="text-white/50">Monthly payroll</dt>
-                  <dd className="tabular-nums text-white">{money(overview.payroll.monthly)}</dd>
-                </div>
-                <div className="flex justify-between gap-3">
-                  <dt className="text-white/50">Employees</dt>
-                  <dd className="tabular-nums text-white">{overview.payroll.employees}</dd>
-                </div>
-                <div className="flex justify-between gap-3">
-                  <dt className="text-white/50">Annual payroll</dt>
-                  <dd className="tabular-nums text-white">{money(overview.payroll.annual)}</dd>
-                </div>
-              </dl>
-              <div className="mt-4 h-40">
-                {(overview.payroll.trend?.length ?? 0) === 0 &&
-                overview.charts.monthlyOutgoings.length === 0 ? (
-                  <EmptyChart label="payroll trend" />
-                ) : (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart
-                      data={
-                        overview.payroll.trend?.length
-                          ? overview.payroll.trend
-                          : overview.charts.monthlyOutgoings
-                      }
-                    >
-                      <CartesianGrid stroke="rgba(255,255,255,0.06)" vertical={false} />
-                      <XAxis
-                        dataKey="month"
-                        tick={{ fill: "rgba(255,255,255,0.45)", fontSize: 10 }}
-                        tickFormatter={(v) => String(v).slice(5)}
-                      />
-                      <YAxis hide />
-                      <Tooltip contentStyle={TOOLTIP_STYLE} />
-                      <Line
-                        type="monotone"
-                        dataKey="amount"
-                        stroke="#a78bfa"
-                        strokeWidth={2.5}
-                        dot={false}
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
-                )}
-              </div>
-            </ChartCard>
-
-            <ChartCard title="Cash in vs cash out" subtitle="Last 6 months — revenue vs operating spend">
-              <div className="h-40">
-                {cashInOut.length === 0 ? (
-                  <EmptyChart label="cash flow" />
-                ) : (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={cashInOut}>
-                      <CartesianGrid stroke="rgba(255,255,255,0.06)" vertical={false} />
-                      <XAxis dataKey="month" tick={{ fill: "rgba(255,255,255,0.45)", fontSize: 10 }} />
-                      <YAxis hide />
-                      <Tooltip contentStyle={TOOLTIP_STYLE} />
-                      <Bar dataKey="cashIn" name="Cash in" fill="#34d399" radius={[4, 4, 0, 0]} />
-                      <Bar dataKey="cashOut" name="Cash out" fill="#fb7185" radius={[4, 4, 0, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                )}
-              </div>
-            </ChartCard>
-          </div>
-
-          <div className="grid gap-4 lg:grid-cols-2">
-            {(
-              [
-                ["cash", "Cash trajectory", overview.charts.cashPosition, "#34d399"],
-                ["revenue", "Monthly revenue", overview.charts.monthlyRevenue, "#38bdf8"],
-              ] as const
-            ).map(([id, title, data, color]) => (
-              <ChartCard key={id} title={title}>
-                <div className="h-52">
-                  {data.length === 0 ? (
-                    <EmptyChart label={title.toLowerCase()} />
-                  ) : (
-                    <ResponsiveContainer width="100%" height="100%">
-                      <AreaChart data={data}>
-                        <defs>
-                          <linearGradient id={`area-${id}`} x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stopColor={color} stopOpacity={0.4} />
-                            <stop offset="100%" stopColor={color} stopOpacity={0} />
-                          </linearGradient>
-                        </defs>
-                        <CartesianGrid stroke="rgba(255,255,255,0.06)" vertical={false} />
-                        <XAxis
-                          dataKey="month"
-                          tick={{ fill: "rgba(255,255,255,0.45)", fontSize: 10 }}
-                          tickFormatter={(v) => String(v).slice(5)}
-                        />
-                        <YAxis
-                          tick={{ fill: "rgba(255,255,255,0.35)", fontSize: 10 }}
-                          tickFormatter={(v) => formatCompact(Number(v), reportingCurrency)}
-                          width={52}
-                        />
-                        <Tooltip
-                          contentStyle={TOOLTIP_STYLE}
-                          formatter={(value) =>
-                            money(typeof value === "number" ? value : Number(value) || 0)
-                          }
-                        />
-                        <Area
-                          type="monotone"
-                          dataKey="amount"
-                          stroke={color}
-                          strokeWidth={2.5}
-                          fill={`url(#area-${id})`}
-                        />
-                      </AreaChart>
-                    </ResponsiveContainer>
-                  )}
-                </div>
-              </ChartCard>
-            ))}
-          </div>
-        </>
-      ) : null}
-
-      <section
-        data-tutorial-target="fin-dashboard-areas"
-        className="rounded-2xl border border-white/10 bg-white/[0.03] p-5"
-      >
-        <h3 className="text-base font-semibold text-white">Functional areas</h3>
-        <p className="mt-1 text-sm text-white/50">
-          Role-aware drill-down into the Finances module — open the area you need without leaving
-          the integrated workspace.
-        </p>
-        <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-          {FINANCES_DASHBOARD_AREAS.map((area) => {
-            const params = new URLSearchParams({ view: area.view });
-            if (area.query) {
-              for (const [key, value] of Object.entries(area.query)) {
-                params.set(key, value);
-              }
-            }
-            return (
-              <Link
-                key={area.label}
-                href={`?${params.toString()}`}
-                className="group rounded-xl border border-white/10 bg-[#0b1524]/60 p-4 transition hover:border-emerald-400/30 hover:bg-emerald-500/[0.06]"
-              >
-                <p className="text-sm font-semibold text-white group-hover:text-emerald-100">
-                  {area.label}
-                </p>
-                <p className="mt-1 text-xs leading-relaxed text-white/45">{area.description}</p>
-              </Link>
-            );
-          })}
-        </div>
-      </section>
-    </div>
+    <FinanceLivingMotionProvider armed={introReady}>
+      <FinanceLivingIntroScheduler />
+      <FinancialsLivingDashboard
+        overview={overview}
+        loading={loading}
+        error={error}
+        load={load}
+        lastRefreshedAt={lastRefreshedAt}
+      />
+    </FinanceLivingMotionProvider>
   );
+}
+
+declare global {
+  interface Window {
+    __financeDashboardMotionAudit?: ReturnType<typeof buildFinanceDashboardMotionAudit>;
+  }
 }
