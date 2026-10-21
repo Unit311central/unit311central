@@ -4,12 +4,18 @@ import { useCallback, useEffect, useMemo, useRef, useState, startTransition } fr
 import { Loader2, Search, Sparkles, Upload } from "lucide-react";
 
 import CourseReviewScreen from "@/components/lms/CourseReviewScreen";
+import DeleteLmsCourseDialog from "@/components/lms/DeleteLmsCourseDialog";
 import LmsCoursePlayerOverlay from "@/components/lms/LmsCoursePlayerOverlay";
 import {
-  fetchPublishedLmsCoursesWithStats,
+  deleteLmsCourseBySlug,
+  fetchStaffLmsCoursesWithStats,
   formatLmsDurationHours,
 } from "@/lib/lms/fetch-published-courses";
-import type { LmsCourseListItem, LmsCourseTree } from "@/lib/lms/types";
+import type {
+  LmsCourseDeletionImpact,
+  LmsCourseListItem,
+  LmsCourseTree,
+} from "@/lib/lms/types";
 import {
   buildCompanyLearningRows,
   buildTrainingExecutiveSummary,
@@ -60,6 +66,10 @@ export default function TalantonPortfolioCoursesWorkspace() {
   const [catalogLoading, setCatalogLoading] = useState(true);
   const [catalogError, setCatalogError] = useState<string | null>(null);
   const [launchSlug, setLaunchSlug] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<LmsCourseListItem | null>(null);
+  const [deleteImpact, setDeleteImpact] = useState<LmsCourseDeletionImpact | null>(null);
+  const [deleteImpactLoading, setDeleteImpactLoading] = useState(false);
+  const [deleteBusy, setDeleteBusy] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [generating, setGenerating] = useState(false);
@@ -73,7 +83,7 @@ export default function TalantonPortfolioCoursesWorkspace() {
     setCatalogLoading(true);
     setCatalogError(null);
     try {
-      const courses = await fetchPublishedLmsCoursesWithStats();
+      const courses = await fetchStaffLmsCoursesWithStats();
       setPublishedCourses(courses);
     } catch (err) {
       setCatalogError(err instanceof Error ? err.message : "Failed to load courses.");
@@ -88,6 +98,49 @@ export default function TalantonPortfolioCoursesWorkspace() {
       void reloadPublishedCourses();
     });
   }, [reloadPublishedCourses]);
+
+  async function openDeleteDialog(course: LmsCourseListItem) {
+    setDeleteTarget(course);
+    setDeleteImpact(null);
+    if (course.status !== "published") return;
+    setDeleteImpactLoading(true);
+    try {
+      const res = await fetch(
+        `/api/lms/courses/${encodeURIComponent(course.slug)}?deletionPreview=1`,
+        { credentials: "include", cache: "no-store" },
+      );
+      const data = (await res.json()) as {
+        impact?: LmsCourseDeletionImpact;
+        error?: string;
+      };
+      if (res.ok && data.impact) {
+        setDeleteImpact(data.impact);
+      }
+    } catch {
+      /* dialog still shows static published warning */
+    } finally {
+      setDeleteImpactLoading(false);
+    }
+  }
+
+  async function confirmDeleteCourse() {
+    if (!deleteTarget) return;
+    const slugToDelete = deleteTarget.slug;
+    setDeleteBusy(true);
+    setGenError(null);
+    try {
+      const { title } = await deleteLmsCourseBySlug(slugToDelete);
+      setNotice(`“${title}” was permanently deleted.`);
+      setDeleteTarget(null);
+      setDeleteImpact(null);
+      if (launchSlug === slugToDelete) setLaunchSlug(null);
+      await reloadPublishedCourses();
+    } catch (err) {
+      setGenError(err instanceof Error ? err.message : "Failed to delete course.");
+    } finally {
+      setDeleteBusy(false);
+    }
+  }
 
   async function generateFromFile(file: File) {
     setGenerating(true);
@@ -216,7 +269,7 @@ export default function TalantonPortfolioCoursesWorkspace() {
       <section className="rounded-2xl border border-white/10 bg-black/20 p-4">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
           <h3 className="text-sm font-semibold text-white">
-            Published LMS courses{" "}
+            Published &amp; draft courses{" "}
             <span className="text-white/40">({publishedCourses.length})</span>
           </h3>
           {catalogLoading ? (
@@ -231,6 +284,7 @@ export default function TalantonPortfolioCoursesWorkspace() {
             <thead>
               <tr className="border-b border-white/10 text-left text-[11px] uppercase tracking-wide text-white/40">
                 <th className="py-2 pr-4 font-medium">Title</th>
+                <th className="py-2 pr-4 font-medium">Status</th>
                 <th className="py-2 pr-4 font-medium">Category</th>
                 <th className="py-2 pr-4 font-medium">Duration</th>
                 <th className="py-2 pr-4 font-medium">Modules</th>
@@ -244,15 +298,29 @@ export default function TalantonPortfolioCoursesWorkspace() {
             <tbody>
               {!catalogLoading && publishedCourses.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="py-8 text-center text-sm text-white/45">
-                    No published courses yet. Upload a document above, review, and publish to add the
-                    first course.
+                  <td colSpan={10} className="py-8 text-center text-sm text-white/45">
+                    No courses yet. Upload a document above, review, and publish to add the first
+                    course.
                   </td>
                 </tr>
               ) : null}
               {publishedCourses.map((course) => (
                 <tr key={course.id} className="border-b border-white/5 last:border-0">
                   <td className="py-2.5 pr-4 text-white/85">{course.title}</td>
+                  <td className="py-2.5 pr-4">
+                    <span
+                      className={cn(
+                        "inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
+                        course.status === "published"
+                          ? "border-emerald-400/30 bg-emerald-500/10 text-emerald-100"
+                          : course.status === "draft"
+                            ? "border-white/15 bg-white/5 text-white/55"
+                            : "border-amber-400/30 bg-amber-500/10 text-amber-100",
+                      )}
+                    >
+                      {course.status}
+                    </span>
+                  </td>
                   <td className="py-2.5 pr-4 text-white/60">{course.category}</td>
                   <td className="py-2.5 pr-4 tabular-nums text-white/70">
                     {formatLmsDurationHours(course.durationMinutes)}h
@@ -263,13 +331,22 @@ export default function TalantonPortfolioCoursesWorkspace() {
                   <td className="py-2.5 pr-4 text-white/35">—</td>
                   <td className="py-2.5 pr-4 text-white/35">—</td>
                   <td className="py-2.5 pr-4">
-                    <button
-                      type="button"
-                      onClick={() => setLaunchSlug(course.slug)}
-                      className="inline-flex rounded-lg bg-emerald-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-400"
-                    >
-                      Open course
-                    </button>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setLaunchSlug(course.slug)}
+                        className="inline-flex rounded-lg bg-emerald-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-400"
+                      >
+                        Open course
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void openDeleteDialog(course)}
+                        className="inline-flex rounded-lg border border-red-400/35 bg-red-500/10 px-3 py-1.5 text-xs font-semibold text-red-100 hover:bg-red-500/20"
+                      >
+                        Delete
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -398,6 +475,20 @@ export default function TalantonPortfolioCoursesWorkspace() {
       {launchSlug ? (
         <LmsCoursePlayerOverlay courseSlug={launchSlug} onClose={() => setLaunchSlug(null)} />
       ) : null}
+
+      <DeleteLmsCourseDialog
+        open={Boolean(deleteTarget)}
+        course={deleteTarget}
+        impact={deleteImpact}
+        impactLoading={deleteImpactLoading}
+        busy={deleteBusy}
+        onCancel={() => {
+          if (deleteBusy) return;
+          setDeleteTarget(null);
+          setDeleteImpact(null);
+        }}
+        onConfirm={() => void confirmDeleteCourse()}
+      />
     </div>
   );
 }

@@ -153,6 +153,13 @@ export type LmsCourse = {
 };
 
 /** Published course row for admin/library lists (optional stats from list API). */
+export type LmsCourseDeletionImpact = {
+  assignmentCount: number;
+  enrolmentCount: number;
+  attemptCount: number;
+  certificateCount: number;
+};
+
 export type LmsCourseListItem = LmsCourse & {
   moduleCount?: number;
 };

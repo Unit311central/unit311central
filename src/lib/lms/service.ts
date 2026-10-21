@@ -14,6 +14,7 @@ import type {
   LmsLesson,
   LmsModule,
   LmsQuestion,
+  LmsCourseDeletionImpact,
 } from "@/lib/lms/types";
 import {
   buildInitialCourseCode,
@@ -130,10 +131,10 @@ export async function listPublishedCourses(workspaceId: string): Promise<LmsCour
   return (data ?? []).map((r) => mapCourse(r as Record<string, unknown>));
 }
 
-export async function listPublishedCoursesWithStats(
+async function attachModuleCountsToCourses(
   workspaceId: string,
+  courses: LmsCourse[],
 ): Promise<LmsCourseListItem[]> {
-  const courses = await listPublishedCourses(workspaceId);
   if (courses.length === 0) return [];
 
   const courseIds = courses.map((course) => course.id);
@@ -154,6 +155,18 @@ export async function listPublishedCoursesWithStats(
     ...course,
     moduleCount: moduleCountByCourse.get(course.id) ?? 0,
   }));
+}
+
+export async function listPublishedCoursesWithStats(
+  workspaceId: string,
+): Promise<LmsCourseListItem[]> {
+  const courses = await listPublishedCourses(workspaceId);
+  return attachModuleCountsToCourses(workspaceId, courses);
+}
+
+export async function listAllCoursesWithStats(workspaceId: string): Promise<LmsCourseListItem[]> {
+  const courses = await listAllCoursesForWorkspace(workspaceId);
+  return attachModuleCountsToCourses(workspaceId, courses);
 }
 
 export async function listAllCoursesForWorkspace(workspaceId: string): Promise<LmsCourse[]> {
@@ -890,11 +903,87 @@ function slugifyCourse(input: string): string {
     .slice(0, 48) || `course-${Date.now().toString(36)}`;
 }
 
+export async function summarizeCourseDeletionImpact(
+  workspaceId: string,
+  courseId: string,
+): Promise<LmsCourseDeletionImpact> {
+  const [assignments, enrolments, attempts, certificates] = await Promise.all([
+    db()
+      .from("lms_assignments")
+      .select("id", { count: "exact", head: true })
+      .eq("workspace_id", workspaceId)
+      .eq("course_id", courseId),
+    db()
+      .from("lms_enrolments")
+      .select("id", { count: "exact", head: true })
+      .eq("workspace_id", workspaceId)
+      .eq("course_id", courseId),
+    db()
+      .from("lms_attempts")
+      .select("id", { count: "exact", head: true })
+      .eq("workspace_id", workspaceId)
+      .eq("course_id", courseId),
+    db()
+      .from("lms_certificates")
+      .select("id", { count: "exact", head: true })
+      .eq("workspace_id", workspaceId)
+      .eq("course_id", courseId),
+  ]);
+
+  if (assignments.error) throw new Error(assignments.error.message);
+  if (enrolments.error) throw new Error(enrolments.error.message);
+  if (attempts.error) throw new Error(attempts.error.message);
+  if (certificates.error) throw new Error(certificates.error.message);
+
+  return {
+    assignmentCount: assignments.count ?? 0,
+    enrolmentCount: enrolments.count ?? 0,
+    attemptCount: attempts.count ?? 0,
+    certificateCount: certificates.count ?? 0,
+  };
+}
+
 async function deleteCourseTree(workspaceId: string, courseId: string) {
   await db().from("lms_questions").delete().eq("course_id", courseId).eq("workspace_id", workspaceId);
   await db().from("lms_lessons").delete().eq("course_id", courseId).eq("workspace_id", workspaceId);
   await db().from("lms_modules").delete().eq("course_id", courseId).eq("workspace_id", workspaceId);
   await db().from("lms_courses").delete().eq("id", courseId).eq("workspace_id", workspaceId);
+}
+
+/**
+ * Permanently remove a course and dependent LMS rows for one workspace.
+ * Child tables use ON DELETE CASCADE; learner progress and certificates are removed with the course.
+ */
+export async function deleteCourseForWorkspace(
+  workspaceId: string,
+  slug: string,
+): Promise<{ course: LmsCourse; impact: LmsCourseDeletionImpact }> {
+  const course = await getCourseBySlug(workspaceId, slug);
+  if (!course) {
+    throw new Error("Course not found.");
+  }
+  if (course.workspaceId !== workspaceId) {
+    throw new Error("Course not found.");
+  }
+
+  const impact = await summarizeCourseDeletionImpact(workspaceId, course.id);
+
+  await db().from("lms_attempts").delete().eq("workspace_id", workspaceId).eq("course_id", course.id);
+  await db()
+    .from("lms_certificates")
+    .delete()
+    .eq("workspace_id", workspaceId)
+    .eq("course_id", course.id);
+  await db().from("lms_enrolments").delete().eq("workspace_id", workspaceId).eq("course_id", course.id);
+  await db().from("lms_assignments").delete().eq("workspace_id", workspaceId).eq("course_id", course.id);
+  await deleteCourseTree(workspaceId, course.id);
+
+  const stillThere = await getCourseBySlug(workspaceId, slug);
+  if (stillThere) {
+    throw new Error("Failed to delete course.");
+  }
+
+  return { course, impact };
 }
 
 export async function createCourseTree(
