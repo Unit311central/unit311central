@@ -12,6 +12,41 @@ export async function fetchPublishedLmsCoursesWithStats(): Promise<LmsCourseList
   return data.courses ?? [];
 }
 
+/** Staff catalogue: published and draft courses for the active workspace. */
+export async function fetchStaffLmsCoursesWithStats(): Promise<LmsCourseListItem[]> {
+  const response = await fetch("/api/lms/courses?all=1&includeStats=1", {
+    cache: "no-store",
+    credentials: "include",
+  });
+  const data = (await response.json()) as { courses?: LmsCourseListItem[]; error?: string };
+  if (!response.ok) {
+    throw new Error(data.error || "Failed to load courses.");
+  }
+  return data.courses ?? [];
+}
+
+export async function deleteLmsCourseBySlug(slug: string): Promise<{
+  title: string;
+  status: string;
+  mode: "deleted" | "archived";
+}> {
+  const response = await fetch(`/api/lms/courses/${encodeURIComponent(slug)}`, {
+    method: "DELETE",
+    credentials: "include",
+  });
+  const data = (await response.json()) as {
+    title?: string;
+    status?: string;
+    mode?: "deleted" | "archived";
+    error?: string;
+  };
+  if (!response.ok) {
+    throw new Error(data.error || "Failed to delete course.");
+  }
+  const mode = data.mode ?? (data.status === "archived" ? "archived" : "deleted");
+  return { title: data.title ?? slug, status: data.status ?? "draft", mode };
+}
+
 export function summarizeLmsDescription(description: string, maxLength = 160): string {
   const plain = description.replace(/\s+/g, " ").trim();
   if (plain.length <= maxLength) return plain;

@@ -2,7 +2,11 @@
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
-import { useFinanceMotionArmed, useFinanceVisitKey } from "./finance-living-motion-context";
+import {
+  useFinanceIntroComplete,
+  useFinanceMotionArmed,
+  useFinanceVisitKey,
+} from "./finance-living-motion-context";
 import { useIntroAnimationLock, useLivingMotionEnabled } from "./living-motion";
 
 export type FinanceMotionSectionId =
@@ -28,9 +32,17 @@ const SECTION_SELECTOR: Record<FinanceMotionSectionId, string> = {
   "monthly-revenue": "monthly-revenue",
 };
 
+const VIEW_RATIO = 0.18;
+
+/**
+ * Viewport-gated intro for Finance chart sections.
+ * Does not mark entered until hero intro has finished and the section intersects the viewport
+ * (IntersectionObserver only — no synchronous "already on screen" shortcut on arm).
+ */
 export function useFinanceSectionIntro(sectionId: FinanceMotionSectionId) {
   const motionEnabled = useLivingMotionEnabled();
   const armed = useFinanceMotionArmed();
+  const { introComplete } = useFinanceIntroComplete();
   const visitKey = useFinanceVisitKey();
   const sectionRef = useRef<HTMLElement | null>(null);
   const [enteredView, setEnteredView] = useState(() => !motionEnabled);
@@ -41,7 +53,7 @@ export function useFinanceSectionIntro(sectionId: FinanceMotionSectionId) {
 
   useEffect(() => {
     if (!motionEnabled) return;
-    if (!armed) return;
+    if (!armed || !introComplete) return;
     const el = sectionRef.current;
     if (!el) return;
 
@@ -50,27 +62,20 @@ export function useFinanceSectionIntro(sectionId: FinanceMotionSectionId) {
     const io = new IntersectionObserver(
       (entries) => {
         const entry = entries[0];
-        if (entry?.isIntersecting && entry.intersectionRatio >= 0.14) {
+        if (entry?.isIntersecting && entry.intersectionRatio >= VIEW_RATIO) {
           markEntered();
           io.disconnect();
         }
       },
-      { threshold: [0.14, 0.28], rootMargin: "0px 0px -48px 0px" },
+      { threshold: [VIEW_RATIO, VIEW_RATIO + 0.08], rootMargin: "0px 0px -12% 0px" },
     );
 
     io.observe(el);
 
-    const rect = el.getBoundingClientRect();
-    const vh = window.innerHeight || document.documentElement.clientHeight;
-    if (rect.top < vh * 0.92 && rect.bottom > vh * 0.06) {
-      markEntered();
-      io.disconnect();
-    }
-
     return () => io.disconnect();
-  }, [motionEnabled, armed, visitKey, sectionId]);
+  }, [motionEnabled, armed, introComplete, visitKey, sectionId]);
 
-  const introPending = motionEnabled && armed && enteredView;
+  const introPending = motionEnabled && armed && introComplete && enteredView;
   const playSectionIntro = useIntroAnimationLock(introPending, motionEnabled, visitKey);
 
   return {

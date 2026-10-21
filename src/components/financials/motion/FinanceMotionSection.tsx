@@ -17,18 +17,20 @@ export function FinanceMotionSection({
   sectionId: FinanceMotionSectionId;
   className?: string;
   qaTarget?: string;
-  children: (playSectionIntro: boolean) => ReactNode;
+  children: (playSectionIntro: boolean, enteredView: boolean) => ReactNode;
 }) {
-  const { sectionRef, playSectionIntro, sectionDataAttr } = useFinanceSectionIntro(sectionId);
+  const { sectionRef, playSectionIntro, enteredView, sectionDataAttr } =
+    useFinanceSectionIntro(sectionId);
 
   return (
     <section
       ref={sectionRef}
       data-finance-motion-section={sectionDataAttr}
+      data-finance-motion-entered={enteredView ? "1" : "0"}
       data-qa-target={qaTarget}
       className={cn(className)}
     >
-      {children(playSectionIntro)}
+      {children(playSectionIntro, enteredView)}
     </section>
   );
 }

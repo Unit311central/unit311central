@@ -5,6 +5,7 @@ import { requireLmsWorkspaceSession } from "@/lib/lms/auth";
 import {
   createCourseTree,
   listAllCoursesForWorkspace,
+  listAllCoursesWithStats,
   listPublishedCourses,
   listPublishedCoursesWithStats,
 } from "@/lib/lms/service";
@@ -23,7 +24,9 @@ export async function GET(request: NextRequest) {
     const includeStats = request.nextUrl.searchParams.get("includeStats") === "1";
     const courses =
       all && auth.session.userType === "internal"
-        ? await listAllCoursesForWorkspace(auth.workspace.id)
+        ? includeStats
+          ? await listAllCoursesWithStats(auth.workspace.id)
+          : await listAllCoursesForWorkspace(auth.workspace.id)
         : includeStats
           ? await listPublishedCoursesWithStats(auth.workspace.id)
           : await listPublishedCourses(auth.workspace.id);

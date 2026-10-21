@@ -123,6 +123,25 @@ async function captureFinanceStory(page) {
 
   const audit = await readAudit(page);
   assert.ok(audit?.liquidity?.length, "audit liquidity segments should exist");
+  const buildId = await page.evaluate(() => window.__financeMotionBuild ?? "missing");
+  console.log(`finance motion build marker: ${buildId}`);
+
+  const liquidityEnteredBeforeScroll = await page
+    .locator('[data-qa-target="finance-liquidity-section"]')
+    .getAttribute("data-finance-motion-entered");
+  assert.equal(
+    liquidityEnteredBeforeScroll,
+    "0",
+    "liquidity section should not be marked entered before scroll",
+  );
+  const widthBeforeScroll = await readLiquidityWidth(page);
+  assert.ok(widthBeforeScroll < 4, "liquidity stack should be visibly empty before scroll");
+  await page.screenshot({
+    path: `${ARTIFACT_DIR}/demo-finance-before-scroll-empty-liquidity.png`,
+    fullPage: false,
+  });
+
+  await page.waitForTimeout(3200);
 
   await page.locator('[data-qa-target="finance-liquidity-section"]').scrollIntoViewIfNeeded();
   const rowDelta = await sampleChartsRowDelta(page);
@@ -175,9 +194,10 @@ async function captureFinanceStory(page) {
   const replayBtn = page.locator('[data-qa-target="finance-living-replay"]');
   await replayBtn.waitFor({ timeout: 15_000 });
   await page.evaluate(() => window.scrollTo(0, 0));
-  await replayBtn.click();
-  await page.waitForTimeout(250);
   await page.evaluate(() => window.scrollTo(0, 0));
+  await replayBtn.click();
+  await page.waitForTimeout(400);
+  await page.waitForTimeout(3200);
   const widthAfterReplay = await readLiquidityWidth(page);
   assert.ok(widthAfterReplay < 4, "replay should reset liquidity bars before viewport entry");
   await page.locator('[data-qa-target="finance-liquidity-section"]').scrollIntoViewIfNeeded();
@@ -192,8 +212,8 @@ async function main() {
 
   const browser = await chromium.launch({ headless: true });
   const context = await browser.newContext({
-    viewport: { width: 1280, height: 420 },
-    recordVideo: { dir: ARTIFACT_DIR, size: { width: 1280, height: 720 } },
+    viewport: { width: 1280, height: 800 },
+    recordVideo: { dir: ARTIFACT_DIR, size: { width: 1280, height: 800 } },
   });
   const page = await context.newPage();
 

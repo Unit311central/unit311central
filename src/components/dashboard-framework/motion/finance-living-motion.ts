@@ -10,6 +10,7 @@ import {
 import { useLivingMotionEnabled } from "./living-motion";
 
 export { useFinanceSectionIntro } from "./finance-section-intro";
+export { financeGateSeriesRows } from "./finance-chart-data-gate";
 export type { FinanceMotionSectionId } from "./finance-section-intro";
 
 export function useFinanceHeroIntroPending(): {
