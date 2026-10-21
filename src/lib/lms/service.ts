@@ -1067,7 +1067,7 @@ export async function createCourseTree(
       code,
       slug,
       title: input.title.trim(),
-      description: `${input.description.trim()}${objectivesNote}`,
+      description: `${(input.description ?? "").trim()}${objectivesNote}`,
       category: input.category?.trim() || "Compliance",
       duration_minutes: input.durationMinutes ?? 40,
       status,

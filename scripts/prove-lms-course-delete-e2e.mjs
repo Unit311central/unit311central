@@ -44,6 +44,7 @@ async function main() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         title: `E2E delete draft ${Date.now()}`,
+        description: "E2E draft delete smoke test",
         status: "draft",
         modules: [
           {
@@ -91,6 +92,7 @@ async function main() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         title: `E2E archive published ${stamp}`,
+        description: "E2E published archive smoke test",
         status: "draft",
         modules: [
           {
