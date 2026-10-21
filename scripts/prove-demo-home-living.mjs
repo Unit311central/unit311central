@@ -182,8 +182,8 @@ async function main() {
 
   const browser = await chromium.launch({ headless: true });
   const context = await browser.newContext({
-    viewport: { width: 1280, height: 720 },
-    recordVideo: { dir: ARTIFACT_DIR, size: { width: 1280, height: 720 } },
+    viewport: { width: 960, height: 720 },
+    recordVideo: { dir: ARTIFACT_DIR, size: { width: 960, height: 720 } },
   });
   const page = await context.newPage();
 
