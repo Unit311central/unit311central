@@ -83,6 +83,75 @@ async function main() {
   }, createRes.slug);
   assert.ok([403, 404].includes(gone), `deleted course should be gone; GET status ${gone}`);
 
+  const publishFlow = await page.evaluate(async () => {
+    const stamp = Date.now();
+    const create = await fetch("/api/lms/courses", {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        title: `E2E archive published ${stamp}`,
+        status: "draft",
+        modules: [
+          {
+            title: "Module 1",
+            lessons: [
+              {
+                title: "Intro",
+                lessonType: "rich_text",
+                content: { type: "rich_text", blocks: [{ kind: "paragraph", text: "Test" }] },
+              },
+            ],
+          },
+        ],
+      }),
+    });
+    const created = await create.json();
+    const slug = created.course?.slug;
+    if (!create.ok || !slug) {
+      return { ok: false, step: "create", detail: created };
+    }
+    const pub = await fetch(`/api/lms/courses/${encodeURIComponent(slug)}/publish`, {
+      method: "POST",
+      credentials: "include",
+    });
+    const pubBody = await pub.json();
+    if (!pub.ok) {
+      return { ok: false, step: "publish", detail: pubBody };
+    }
+    const del = await fetch(`/api/lms/courses/${encodeURIComponent(slug)}`, {
+      method: "DELETE",
+      credentials: "include",
+    });
+    const delBody = await del.json();
+    if (!del.ok) {
+      return { ok: false, step: "delete", detail: delBody };
+    }
+    const list = await fetch("/api/lms/courses?all=1&includeStats=1", { credentials: "include" });
+    const listBody = await list.json();
+    const inList = (listBody.courses ?? []).some((c) => c.slug === slug);
+    const get = await fetch(`/api/lms/courses/${encodeURIComponent(slug)}`, {
+      credentials: "include",
+    });
+    const getBody = await get.json();
+    return {
+      ok: true,
+      slug,
+      mode: delBody.mode,
+      archived: delBody.archived,
+      inStaffList: inList,
+      getStatus: getBody.course?.status,
+      getOk: get.ok,
+    };
+  });
+
+  assert.ok(publishFlow.ok, `published archive flow failed: ${JSON.stringify(publishFlow)}`);
+  assert.equal(publishFlow.mode, "archived");
+  assert.equal(publishFlow.archived, true);
+  assert.equal(publishFlow.inStaffList, false);
+  assert.equal(publishFlow.getStatus, "archived");
+  assert.ok(publishFlow.getOk, "archived course should remain retrievable for staff audit");
+
   await browser.close();
   console.log("prove-lms-course-delete-e2e: OK");
 }

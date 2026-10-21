@@ -129,8 +129,12 @@ export default function TalantonPortfolioCoursesWorkspace() {
     setDeleteBusy(true);
     setGenError(null);
     try {
-      const { title } = await deleteLmsCourseBySlug(slugToDelete);
-      setNotice(`“${title}” was permanently deleted.`);
+      const { title, mode } = await deleteLmsCourseBySlug(slugToDelete);
+      setNotice(
+        mode === "archived"
+          ? `“${title}” was removed from the catalogue. Learner compliance records were kept for audit.`
+          : `“${title}” was permanently deleted.`,
+      );
       setDeleteTarget(null);
       setDeleteImpact(null);
       if (launchSlug === slugToDelete) setLaunchSlug(null);

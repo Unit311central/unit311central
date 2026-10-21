@@ -15,6 +15,7 @@ import type {
   LmsModule,
   LmsQuestion,
   LmsCourseDeletionImpact,
+  LmsCourseRemovalMode,
 } from "@/lib/lms/types";
 import {
   buildInitialCourseCode,
@@ -174,6 +175,7 @@ export async function listAllCoursesForWorkspace(workspaceId: string): Promise<L
     .from("lms_courses")
     .select("*")
     .eq("workspace_id", workspaceId)
+    .in("status", ["draft", "published"])
     .order("sort_order", { ascending: true });
   if (error) throw new Error(error.message);
   return (data ?? []).map((r) => mapCourse(r as Record<string, unknown>));
@@ -950,14 +952,50 @@ async function deleteCourseTree(workspaceId: string, courseId: string) {
   await db().from("lms_courses").delete().eq("id", courseId).eq("workspace_id", workspaceId);
 }
 
+async function archivePublishedCourseForWorkspace(
+  workspaceId: string,
+  course: LmsCourse,
+  impact: LmsCourseDeletionImpact,
+): Promise<LmsCourse> {
+  const { data, error } = await db()
+    .from("lms_courses")
+    .update({ status: "archived", updated_at: new Date().toISOString() })
+    .eq("id", course.id)
+    .eq("workspace_id", workspaceId)
+    .eq("status", "published")
+    .select("*")
+    .single();
+  if (error || !data) {
+    throw new Error(error?.message || "Failed to archive course.");
+  }
+  void impact;
+  return mapCourse(data as Record<string, unknown>);
+}
+
+async function permanentlyDeleteDraftCourseForWorkspace(
+  workspaceId: string,
+  course: LmsCourse,
+): Promise<void> {
+  await db().from("lms_attempts").delete().eq("workspace_id", workspaceId).eq("course_id", course.id);
+  await db()
+    .from("lms_certificates")
+    .delete()
+    .eq("workspace_id", workspaceId)
+    .eq("course_id", course.id);
+  await db().from("lms_enrolments").delete().eq("workspace_id", workspaceId).eq("course_id", course.id);
+  await db().from("lms_assignments").delete().eq("workspace_id", workspaceId).eq("course_id", course.id);
+  await deleteCourseTree(workspaceId, course.id);
+}
+
 /**
- * Permanently remove a course and dependent LMS rows for one workspace.
- * Child tables use ON DELETE CASCADE; learner progress and certificates are removed with the course.
+ * Remove a course from the active catalogue.
+ * - Published → archived (learner enrolments, attempts, certificates retained for audit).
+ * - Draft → permanent delete including content tree.
  */
 export async function deleteCourseForWorkspace(
   workspaceId: string,
   slug: string,
-): Promise<{ course: LmsCourse; impact: LmsCourseDeletionImpact }> {
+): Promise<{ course: LmsCourse; impact: LmsCourseDeletionImpact; mode: LmsCourseRemovalMode }> {
   const course = await getCourseBySlug(workspaceId, slug);
   if (!course) {
     throw new Error("Course not found.");
@@ -968,22 +1006,25 @@ export async function deleteCourseForWorkspace(
 
   const impact = await summarizeCourseDeletionImpact(workspaceId, course.id);
 
-  await db().from("lms_attempts").delete().eq("workspace_id", workspaceId).eq("course_id", course.id);
-  await db()
-    .from("lms_certificates")
-    .delete()
-    .eq("workspace_id", workspaceId)
-    .eq("course_id", course.id);
-  await db().from("lms_enrolments").delete().eq("workspace_id", workspaceId).eq("course_id", course.id);
-  await db().from("lms_assignments").delete().eq("workspace_id", workspaceId).eq("course_id", course.id);
-  await deleteCourseTree(workspaceId, course.id);
-
-  const stillThere = await getCourseBySlug(workspaceId, slug);
-  if (stillThere) {
-    throw new Error("Failed to delete course.");
+  if (course.status === "archived") {
+    throw new Error("Course is already archived.");
   }
 
-  return { course, impact };
+  if (course.status === "published") {
+    const archived = await archivePublishedCourseForWorkspace(workspaceId, course, impact);
+    return { course: archived, impact, mode: "archived" };
+  }
+
+  if (course.status === "draft") {
+    await permanentlyDeleteDraftCourseForWorkspace(workspaceId, course);
+    const stillThere = await getCourseBySlug(workspaceId, slug);
+    if (stillThere) {
+      throw new Error("Failed to delete course.");
+    }
+    return { course, impact, mode: "deleted" };
+  }
+
+  throw new Error("Course cannot be removed.");
 }
 
 export async function createCourseTree(

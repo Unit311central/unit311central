@@ -160,6 +160,9 @@ export type LmsCourseDeletionImpact = {
   certificateCount: number;
 };
 
+/** Draft courses are purged; published courses are archived (learner records kept). */
+export type LmsCourseRemovalMode = "deleted" | "archived";
+
 export type LmsCourseListItem = LmsCourse & {
   moduleCount?: number;
 };

@@ -28,16 +28,23 @@ export async function fetchStaffLmsCoursesWithStats(): Promise<LmsCourseListItem
 export async function deleteLmsCourseBySlug(slug: string): Promise<{
   title: string;
   status: string;
+  mode: "deleted" | "archived";
 }> {
   const response = await fetch(`/api/lms/courses/${encodeURIComponent(slug)}`, {
     method: "DELETE",
     credentials: "include",
   });
-  const data = (await response.json()) as { title?: string; status?: string; error?: string };
+  const data = (await response.json()) as {
+    title?: string;
+    status?: string;
+    mode?: "deleted" | "archived";
+    error?: string;
+  };
   if (!response.ok) {
     throw new Error(data.error || "Failed to delete course.");
   }
-  return { title: data.title ?? slug, status: data.status ?? "draft" };
+  const mode = data.mode ?? (data.status === "archived" ? "archived" : "deleted");
+  return { title: data.title ?? slug, status: data.status ?? "draft", mode };
 }
 
 export function summarizeLmsDescription(description: string, maxLength = 160): string {

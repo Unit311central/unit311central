@@ -100,7 +100,9 @@ export async function DELETE(request: Request, { params }: Params) {
     const { slug } = await params;
     const result = await deleteCourseForWorkspace(auth.workspace.id, slug);
     return NextResponse.json({
-      deleted: true,
+      deleted: result.mode === "deleted",
+      archived: result.mode === "archived",
+      mode: result.mode,
       title: result.course.title,
       status: result.course.status,
       impact: result.impact,
