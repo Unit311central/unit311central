@@ -7,6 +7,11 @@ import {
   getAssistantModel,
 } from "@/lib/ai-operating-assistant/openai-client";
 import { clipDocumentText } from "@/lib/document-extract";
+import { ensureProcedureAnimationLessons, countProcedureAnimationLessons } from "@/lib/lms/ensure-procedure-animations";
+import {
+  buildLinearProcedureSpecFromSteps,
+  inferProcedureStepsFromDocument,
+} from "@/lib/lms/procedure-animation-spec";
 import { sanitizeCourseLessonInput } from "@/lib/lms/sanitize-lesson-content";
 import type { LmsCourseCreateInput, LessonContent } from "@/lib/lms/types";
 
@@ -14,6 +19,7 @@ export type GeneratedCourseDraft = LmsCourseCreateInput & {
   learningObjectives: string[];
   scenarioCount: number;
   assessmentCount: number;
+  animationCount?: number;
   certificateEnabled: true;
   sourceFileName?: string;
 };
@@ -47,6 +53,12 @@ function buildFallbackCourse(docText: string, sourceFileName?: string): Generate
     "ABHI Policy Essentials";
   const snippet = docText.replace(/\s+/g, " ").slice(0, 280);
   const topic = titleGuess;
+  const procedureSteps = inferProcedureStepsFromDocument(docText);
+  const procedureSpec = buildLinearProcedureSpecFromSteps(
+    `${topic} — procedure flow`,
+    procedureSteps,
+    "Step-by-step view derived from the uploaded document.",
+  );
 
   return {
     title: `${topic} — Interactive Training`,
@@ -99,19 +111,13 @@ function buildFallbackCourse(docText: string, sourceFileName?: string): Generate
             },
           },
           {
-            title: "Policy journey",
-            lessonType: "infographic",
-            estimatedMinutes: 3,
+            title: "Procedure walkthrough (animated)",
+            lessonType: "procedure_animation",
+            estimatedMinutes: 4,
             content: {
-              type: "infographic",
-              title: "Compliance journey",
-              layout: "flow",
-              items: [
-                { id: "1", label: "Spot the risk", body: "Identify the situation before it escalates.", icon: "01" },
-                { id: "2", label: "Check the rule", body: "Apply the policy principles from the document.", icon: "02" },
-                { id: "3", label: "Decide / escalate", body: "Act, record, or ask Legal / Leadership.", icon: "03" },
-                { id: "4", label: "Close the loop", body: "Document the outcome for audit readiness.", icon: "04" },
-              ],
+              type: "procedure_animation",
+              title: procedureSpec.title,
+              spec: procedureSpec,
             },
           },
           {
@@ -351,6 +357,7 @@ function buildFallbackCourse(docText: string, sourceFileName?: string): Generate
     ],
     scenarioCount: 2,
     assessmentCount: 1,
+    animationCount: 1,
     certificateEnabled: true,
     sourceFileName,
   };
@@ -401,6 +408,7 @@ function normalizeAiDraft(raw: unknown, sourceFileName?: string): GeneratedCours
       questions: mapped.questions?.length ? mapped.questions : fallback.questions,
       scenarioCount: scenarioCount || fallback.scenarioCount,
       assessmentCount: assessmentCount || 1,
+      animationCount: countProcedureAnimationLessons(mapped),
       certificateEnabled: true,
       sourceFileName,
     };
@@ -431,7 +439,7 @@ export async function generateAbhiCourseFromDocument(options: {
       messages: [
         {
           role: "system",
-          content: `You are an instructional designer for ABHI (Association of British HealthTech Industries).
+          content: `You are an instructional designer for compliance and operations training (health, impact investing, portfolio governance).
 Create a modern interactive training course JSON from a policy/guidance document.
 Return ONLY JSON matching:
 {
@@ -446,7 +454,7 @@ Return ONLY JSON matching:
     "summary": string,
     "lessons": [{
       "title": string,
-      "lessonType": "rich_text"|"infographic"|"knowledge_check"|"scenario"|"drag_drop"|"narration"|"interactive_cards"|"assessment",
+      "lessonType": "rich_text"|"infographic"|"procedure_animation"|"knowledge_check"|"scenario"|"drag_drop"|"narration"|"interactive_cards"|"assessment",
       "estimatedMinutes": number,
       "content": object // must include "type" matching lessonType; use existing LMS shapes
     }]
@@ -465,6 +473,17 @@ Rules:
 - 3–5 modules. Mix explain → visual → interaction → scenario every module.
 - Include at least 2 realistic policy scenarios (not summaries).
 - Include infographic with layout "flow" or "steps".
+- Include at least ONE procedure_animation lesson when the document describes multi-step procedures, escalation, decision paths, or workflows. Use faithful labels from the document (no invented steps).
+- procedure_animation content shape:
+  { "type":"procedure_animation", "title": string, "spec": {
+      "version": 1,
+      "title": string,
+      "subtitle"?: string,
+      "layout": "linear"|"decision_tree"|"pipeline",
+      "nodes": [{ "id", "label", "description"?, "kind": "start"|"step"|"decision"|"end"|"actor" }],
+      "edges": [{ "id", "from", "to", "label"? }],
+      "playbackOrder"?: string[]
+  }}
 - Final module must include assessment lesson (drawCount 8, passMark 80, questionBankScope "course").
 - Provide at least 8 question bank items.
 - Keep rich_text short (no walls of text).
@@ -496,13 +515,32 @@ Rules:
         normalized.modules.push(fallback.modules[fallback.modules.length - 1]!);
       }
       if (!normalized.questions?.length) normalized.questions = fallback.questions;
-      return normalized;
+      const withAnimations = ensureProcedureAnimationLessons(normalized, text);
+      return {
+        ...withAnimations,
+        learningObjectives: normalized.learningObjectives,
+        scenarioCount: normalized.scenarioCount,
+        assessmentCount: normalized.assessmentCount,
+        animationCount:
+          withAnimations.animationCount ?? countProcedureAnimationLessons(withAnimations),
+        certificateEnabled: true,
+        sourceFileName: normalized.sourceFileName,
+      };
     }
   } catch {
     /* use fallback */
   }
 
-  return fallback;
+  const withAnimations = ensureProcedureAnimationLessons(fallback, text);
+  return {
+    ...withAnimations,
+    learningObjectives: fallback.learningObjectives,
+    scenarioCount: fallback.scenarioCount,
+    assessmentCount: fallback.assessmentCount,
+    animationCount: withAnimations.animationCount ?? countProcedureAnimationLessons(withAnimations),
+    certificateEnabled: true,
+    sourceFileName: fallback.sourceFileName,
+  };
 }
 
 export function summarizeGeneratedCourse(draft: GeneratedCourseDraft) {
@@ -514,6 +552,7 @@ export function summarizeGeneratedCourse(draft: GeneratedCourseDraft) {
     lessonCount,
     scenarioCount: draft.scenarioCount,
     assessmentCount: draft.assessmentCount,
+    animationCount: draft.animationCount ?? countProcedureAnimationLessons(draft),
     questionCount: draft.questions?.length ?? 0,
     certificateEnabled: true as const,
     learningObjectives: draft.learningObjectives,

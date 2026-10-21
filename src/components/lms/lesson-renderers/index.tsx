@@ -14,6 +14,7 @@ import InfographicLesson from "./InfographicLesson";
 import InteractiveCardsLesson from "./InteractiveCardsLesson";
 import KnowledgeCheckLesson from "./KnowledgeCheckLesson";
 import NarrationLesson from "./NarrationLesson";
+import ProcedureAnimationLesson from "./ProcedureAnimationLesson";
 import QuizLesson from "./QuizLesson";
 import RichTextLesson from "./RichTextLesson";
 import ScenarioLesson from "./ScenarioLesson";
@@ -73,6 +74,10 @@ export function LessonRenderer({
         return <NarrationLesson lesson={safeLesson} content={content} onComplete={complete} />;
       case "infographic":
         return <InfographicLesson lesson={safeLesson} content={content} onComplete={complete} />;
+      case "procedure_animation":
+        return (
+          <ProcedureAnimationLesson lesson={safeLesson} content={content} onComplete={complete} />
+        );
       case "branching":
         return <BranchingLesson lesson={safeLesson} content={content} onComplete={complete} />;
       case "hotspot":
