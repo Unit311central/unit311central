@@ -139,11 +139,6 @@ export function ensureFiveTeachingModules(
     const chunk = steps.filter((_, idx) => idx % 5 === i);
     const fallback = [steps[i % steps.length]!, steps[(i + 1) % steps.length]!].filter(Boolean);
     const moduleSteps = chunk.length >= 1 ? chunk : fallback;
-    const spec = buildLinearProcedureSpecFromSteps(
-      `Module ${i + 1} — procedure animation`,
-      moduleSteps.length >= 2 ? moduleSteps : steps.slice(0, Math.min(4, steps.length)),
-      "From the uploaded source document.",
-    );
     const title = moduleSteps[0]!.slice(0, 72);
     const stepLessons = moduleSteps.map((step, stepIndex) => {
       const stepSpec = buildLinearProcedureSpecFromSteps(
