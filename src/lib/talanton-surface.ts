@@ -65,6 +65,10 @@ export function isTalantonImpactSlug(slug: string | null | undefined): boolean {
 export function canonicalizeTalantonImpactSlug(
   slug: string | null | undefined,
 ): typeof TALANTON_IMPACT_SLUG | null {
+  const normalized = String(slug ?? "")
+    .trim()
+    .toLowerCase();
+  if (normalized === "lms-preview") return TALANTON_IMPACT_SLUG;
   return isTalantonImpactSlug(slug) ? TALANTON_IMPACT_SLUG : null;
 }
 

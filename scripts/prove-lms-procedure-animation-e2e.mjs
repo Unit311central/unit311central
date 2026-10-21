@@ -9,8 +9,15 @@ import path from "node:path";
 import { chromium } from "playwright";
 
 const ORIGIN = (process.env.ORIGIN ?? "https://lms-preview.unit311central.com").replace(/\/$/, "");
-const USERNAME = process.env.DEMO_PROSPECT_USERNAME ?? "demo@unit311central.com";
-const PASSWORD = process.env.DEMO_PROSPECT_PASSWORD ?? "Letmein2026$";
+const USERNAME =
+  process.env.LMS_E2E_USERNAME ??
+  process.env.DEMO_PROSPECT_USERNAME ??
+  "paul@unit311central.com";
+const PASSWORD =
+  process.env.LMS_E2E_PASSWORD ??
+  process.env.DEMO_PROSPECT_PASSWORD ??
+  process.env.TEST_WORKSPACE_ADMIN_PASSWORD ??
+  "";
 const ARTIFACT_DIR = "/opt/cursor/artifacts";
 const PDF_PATH = path.join(
   ARTIFACT_DIR,
@@ -18,6 +25,9 @@ const PDF_PATH = path.join(
 );
 
 async function main() {
+  if (!PASSWORD) {
+    throw new Error("Set LMS_E2E_PASSWORD or TEST_WORKSPACE_ADMIN_PASSWORD for preview login.");
+  }
   if (!fs.existsSync(PDF_PATH)) {
     throw new Error(`Missing PDF fixture at ${PDF_PATH} — run scripts/generate-lms-test-pdf.mjs`);
   }
@@ -40,6 +50,12 @@ async function main() {
   await page.locator("input[name=password][type=password]").fill(PASSWORD);
   await page.getByRole("button", { name: /sign in/i }).click();
   await page.waitForURL(/\/dashboard/, { timeout: 120_000 });
+  await page.waitForLoadState("networkidle", { timeout: 120_000 }).catch(() => {});
+
+  await page.goto(`${ORIGIN}/dashboard?view=portfolio-courses`, {
+    waitUntil: "domcontentloaded",
+    timeout: 120_000,
+  });
   await page.waitForLoadState("networkidle", { timeout: 120_000 }).catch(() => {});
 
   await page.screenshot({ path: `${ARTIFACT_DIR}/lms-e2e-01-portfolio-courses.png` });
