@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 
 import ProcedureAnimationPlayer from "@/components/lms/ProcedureAnimationPlayer";
+import { validateCourseForPublish } from "@/lib/lms/course-publish-validation";
 import type { LmsCourseTree } from "@/lib/lms/types";
 
 type Summary = {
@@ -23,6 +24,8 @@ type Summary = {
   scenarioCount: number;
   assessmentCount: number;
   questionCount: number;
+  questionBankCount?: number;
+  finalAssessmentDrawCount?: number;
   animationCount?: number;
   certificateEnabled: boolean;
   learningObjectives?: string[];
@@ -53,6 +56,14 @@ export default function CourseReviewScreen({
   const [error, setError] = useState<string | null>(null);
   const [regenLessonId, setRegenLessonId] = useState<string | null>(null);
 
+  const bankCount = summary.questionBankCount ?? summary.questionCount;
+  const drawCount = summary.finalAssessmentDrawCount ?? 0;
+
+  const publishValidation = useMemo(
+    () => validateCourseForPublish(tree, bankCount),
+    [tree, bankCount],
+  );
+
   const animationLessons = useMemo(
     () =>
       tree.modules.flatMap((mod) =>
@@ -68,6 +79,10 @@ export default function CourseReviewScreen({
   );
 
   async function publish() {
+    if (!publishValidation.ok) {
+      setError(publishValidation.errors.join(" "));
+      return;
+    }
     setBusy(true);
     setError(null);
     try {
@@ -254,10 +269,21 @@ export default function CourseReviewScreen({
           </div>
         ) : null}
 
-        <p className="mt-4 text-xs text-white/40">
-          Final assessment: {summary.assessmentCount} · Question bank: {summary.questionCount} ·
-          Pass mark {tree.passMark}%
+        <p className="mt-4 text-sm text-white/65">
+          Question bank: <strong>{bankCount}</strong> · Final assessment draws:{" "}
+          <strong>{drawCount || "—"}</strong> · Pass mark <strong>{tree.passMark}%</strong>
         </p>
+
+        {!publishValidation.ok ? (
+          <div className="mt-3 rounded-xl border border-amber-400/35 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
+            <p className="font-semibold">Publishing blocked until these are fixed:</p>
+            <ul className="mt-2 list-disc space-y-1 pl-5">
+              {publishValidation.errors.map((msg) => (
+                <li key={msg}>{msg}</li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
 
         {error ? (
           <p className="mt-3 rounded-lg border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-100">
@@ -283,7 +309,7 @@ export default function CourseReviewScreen({
           ) : null}
           <button
             type="button"
-            disabled={busy}
+            disabled={busy || !publishValidation.ok}
             onClick={() => void publish()}
             className="inline-flex items-center gap-2 rounded-full bg-[#C2185B] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#a3134c] disabled:opacity-50"
           >

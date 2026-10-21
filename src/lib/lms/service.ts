@@ -21,6 +21,7 @@ import {
   buildInitialCourseCode,
   courseCodeAfterCollision,
 } from "@/lib/lms/course-code";
+import { validateCourseForPublish } from "@/lib/lms/course-publish-validation";
 import { sanitizeCourseLessonInput, sanitizeLessonContent } from "@/lib/lms/sanitize-lesson-content";
 
 function db() {
@@ -1177,6 +1178,13 @@ export async function publishCourse(
 ): Promise<LmsCourse> {
   const course = await getCourseBySlug(workspaceId, slug);
   if (!course) throw new Error("Course not found.");
+  const tree = await getCourseTree(workspaceId, slug);
+  if (!tree) throw new Error("Course tree not found.");
+  const bank = await listCourseQuestions(workspaceId, course.id);
+  const validation = validateCourseForPublish(tree, bank.length);
+  if (!validation.ok) {
+    throw new Error(validation.errors.join(" "));
+  }
   const { data, error } = await db()
     .from("lms_courses")
     .update({ status: "published", updated_at: new Date().toISOString() })
@@ -1230,4 +1238,127 @@ export async function updateLessonContent(
     .single();
   if (error || !data) throw new Error(error?.message || "Failed to update lesson.");
   return mapLesson(data as Record<string, unknown>);
+}
+
+async function deleteCourseModulesLessonsQuestions(workspaceId: string, courseId: string) {
+  await db().from("lms_questions").delete().eq("course_id", courseId).eq("workspace_id", workspaceId);
+  await db().from("lms_lessons").delete().eq("course_id", courseId).eq("workspace_id", workspaceId);
+  await db().from("lms_modules").delete().eq("course_id", courseId).eq("workspace_id", workspaceId);
+}
+
+async function insertModulesLessonsQuestions(
+  workspaceId: string,
+  courseId: string,
+  input: LmsCourseCreateInput,
+): Promise<void> {
+  for (let mi = 0; mi < input.modules.length; mi += 1) {
+    const mod = input.modules[mi]!;
+    const { data: moduleRow, error: modErr } = await db()
+      .from("lms_modules")
+      .insert({
+        workspace_id: workspaceId,
+        course_id: courseId,
+        title: mod.title.trim(),
+        summary: mod.summary?.trim() || "",
+        sort_order: mi + 1,
+      })
+      .select("*")
+      .single();
+    if (modErr || !moduleRow) throw new Error(modErr?.message || "Failed to create module.");
+
+    for (let li = 0; li < mod.lessons.length; li += 1) {
+      const lesson = sanitizeCourseLessonInput(mod.lessons[li]!);
+      const { error: lessonErr } = await db().from("lms_lessons").insert({
+        workspace_id: workspaceId,
+        course_id: courseId,
+        module_id: moduleRow.id,
+        title: lesson.title.trim(),
+        lesson_type: lesson.lessonType,
+        content: lesson.content,
+        sort_order: li + 1,
+        estimated_minutes: lesson.estimatedMinutes ?? 5,
+      });
+      if (lessonErr) throw new Error(lessonErr.message);
+    }
+  }
+
+  const questions = (input.questions ?? []).map((q) => {
+    const choices =
+      Array.isArray(q.choices) && q.choices.length
+        ? q.choices.map((choice, index) => ({
+            id: String(choice.id ?? String.fromCharCode(97 + index)).trim() || "a",
+            label: String(choice.label ?? "").trim() || `Option ${index + 1}`,
+          }))
+        : [
+            { id: "a", label: "Yes" },
+            { id: "b", label: "No" },
+          ];
+    const preferred = String(
+      q.correctChoiceId ??
+        (q as { correctId?: string }).correctId ??
+        (q as { correct_answer?: string }).correct_answer ??
+        "",
+    ).trim();
+    const correctChoiceId = choices.some((choice) => choice.id === preferred)
+      ? preferred
+      : choices[0]!.id;
+    return {
+      ...q,
+      choices,
+      correctChoiceId,
+      stem: String(q.stem ?? "").trim() || "Review question",
+    };
+  });
+  for (let i = 0; i < questions.length; i += 25) {
+    const chunk = questions.slice(i, i + 25).map((q, offset) => ({
+      workspace_id: workspaceId,
+      course_id: courseId,
+      module_id: null,
+      question_type: q.questionType,
+      stem: q.stem,
+      choices: q.choices,
+      correct_choice_id: q.correctChoiceId,
+      explanation: q.explanation ?? "",
+      difficulty: q.difficulty ?? "medium",
+      sort_order: i + offset + 1,
+    }));
+    if (chunk.length) {
+      const { error: qErr } = await db().from("lms_questions").insert(chunk);
+      if (qErr) throw new Error(qErr.message);
+    }
+  }
+}
+
+export async function replaceCourseTreeContent(
+  workspaceId: string,
+  slug: string,
+  input: LmsCourseCreateInput,
+): Promise<LmsCourseTree> {
+  const course = await getCourseBySlug(workspaceId, slug);
+  if (!course) throw new Error("Course not found.");
+
+  await deleteCourseModulesLessonsQuestions(workspaceId, course.id);
+
+  const payload: Record<string, unknown> = {
+    title: input.title.trim(),
+    description: input.description.trim(),
+    updated_at: new Date().toISOString(),
+    status: course.status,
+  };
+  if (input.durationMinutes !== undefined) payload.duration_minutes = input.durationMinutes;
+  if (input.passMark !== undefined) payload.pass_mark = input.passMark;
+  if (input.category !== undefined) payload.category = input.category.trim();
+
+  const { error: metaErr } = await db()
+    .from("lms_courses")
+    .update(payload)
+    .eq("id", course.id)
+    .eq("workspace_id", workspaceId);
+  if (metaErr) throw new Error(metaErr.message);
+
+  await insertModulesLessonsQuestions(workspaceId, course.id, input);
+
+  const tree = await getCourseTree(workspaceId, slug);
+  if (!tree) throw new Error("Course content replaced but could not be reloaded.");
+  return tree;
 }

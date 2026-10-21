@@ -27,6 +27,8 @@ type Props = {
 type DrawResponse = {
   questions?: DrawnQuestion[];
   passMark?: number;
+  drawCount?: number;
+  questionBankCount?: number;
   enrolmentId?: string;
   error?: string;
 };
@@ -54,6 +56,7 @@ export default function AssessmentLesson({
   const [questions, setQuestions] = useState<DrawnQuestion[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [apiPassMark, setApiPassMark] = useState(contentPass);
+  const [drawMeta, setDrawMeta] = useState({ drawCount: 0, bankCount: 0 });
   const [result, setResult] = useState<{ score: number; passed: boolean } | null>(
     null,
   );
@@ -87,6 +90,10 @@ export default function AssessmentLesson({
       });
       setQuestions(drawn);
       if (typeof data.passMark === "number") setApiPassMark(data.passMark);
+      setDrawMeta({
+        drawCount: data.drawCount ?? drawn.length,
+        bankCount: data.questionBankCount ?? drawn.length,
+      });
       setCarouselKey((k) => k + 1);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load assessment.");
@@ -164,7 +171,7 @@ export default function AssessmentLesson({
         key={carouselKey}
         eyebrow="Final assessment"
         title={lesson.title}
-        subtitle={`One question at a time · Pass mark ${apiPassMark}%`}
+        subtitle={`${drawMeta.drawCount || questions.length} of ${drawMeta.bankCount || "?"} bank questions · Pass mark ${apiPassMark}%`}
         questions={questions}
         locked={Boolean(result?.passed)}
         submitting={submitting}

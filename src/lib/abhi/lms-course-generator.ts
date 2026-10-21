@@ -7,8 +7,12 @@ import {
   getAssistantModel,
 } from "@/lib/ai-operating-assistant/openai-client";
 import { clipDocumentText } from "@/lib/document-extract";
+import {
+  finalizeGeneratedCourseDraft,
+  summarizeFinalizeStats,
+} from "@/lib/lms/course-draft-finalize";
 import { ensureKnowledgeCheckLessons } from "@/lib/lms/ensure-document-knowledge-checks";
-import { ensureProcedureAnimationLessons, countProcedureAnimationLessons } from "@/lib/lms/ensure-procedure-animations";
+import { countProcedureAnimationLessons } from "@/lib/lms/ensure-procedure-animations";
 import { inferProcedureStepsFromDocument } from "@/lib/lms/procedure-animation-spec";
 import {
   buildDocumentTemplateCourse,
@@ -223,8 +227,8 @@ Rules:
           inferProcedureStepsFromDocument(text),
         );
       }
-      const withAnimations = ensureKnowledgeCheckLessons(
-        ensureProcedureAnimationLessons(normalized, text),
+      const withAnimations = finalizeGeneratedCourseDraft(
+        ensureKnowledgeCheckLessons(normalized, text),
         text,
       );
       return {
@@ -244,8 +248,8 @@ Rules:
   }
 
   const template = templateFallback();
-  const withAnimations = ensureKnowledgeCheckLessons(
-    ensureProcedureAnimationLessons(template, text),
+  const withAnimations = finalizeGeneratedCourseDraft(
+    ensureKnowledgeCheckLessons(template, text),
     text,
   );
   return {
@@ -261,16 +265,19 @@ Rules:
 }
 
 export function summarizeGeneratedCourse(draft: GeneratedCourseDraft) {
-  const lessonCount = draft.modules.reduce((n, m) => n + m.lessons.length, 0);
+  const stats = summarizeFinalizeStats(draft);
   return {
     title: draft.title,
     durationMinutes: draft.durationMinutes ?? 35,
-    moduleCount: draft.modules.length,
-    lessonCount,
+    moduleCount: stats.moduleCount,
+    lessonCount: stats.lessonCount,
     scenarioCount: draft.scenarioCount,
     assessmentCount: draft.assessmentCount,
-    animationCount: draft.animationCount ?? countProcedureAnimationLessons(draft),
-    questionCount: draft.questions?.length ?? 0,
+    animationCount: stats.animationLessonCount,
+    questionCount: stats.questionBankCount,
+    questionBankCount: stats.questionBankCount,
+    finalAssessmentDrawCount: stats.finalAssessmentDrawCount,
+    passMark: stats.passMark,
     certificateEnabled: true as const,
     learningObjectives: draft.learningObjectives,
     generationSource: draft.generationSource,

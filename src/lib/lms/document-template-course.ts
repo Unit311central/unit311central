@@ -79,7 +79,7 @@ export function buildQuestionsFromDocument(
     });
   }
 
-  while (questions.length < 8) {
+  while (questions.length < 17) {
     const n = questions.length + 1;
     questions.push({
       questionType: "true_false",
@@ -240,7 +240,7 @@ export function buildDocumentTemplateCourse(
             estimatedMinutes: 12,
             content: {
               type: "assessment",
-              drawCount: Math.min(8, steps.length + 2),
+              drawCount: Math.min(10, Math.max(steps.length + 2, 10)),
               passMark: 80,
               questionBankScope: "course",
             },
