@@ -68,7 +68,7 @@ export function useHomeSectionIntro(sectionId: HomeMotionSectionId) {
   }, [motionEnabled, armed, paneActive, visitKey, sectionId]);
 
   const introPending = motionEnabled && armed && paneActive && enteredView;
-  const playSectionIntro = useIntroAnimationLock(introPending, motionEnabled);
+  const playSectionIntro = useIntroAnimationLock(introPending, motionEnabled, visitKey);
 
   return {
     sectionRef,

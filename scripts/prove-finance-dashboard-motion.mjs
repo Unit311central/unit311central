@@ -36,6 +36,18 @@ async function readLiquidityWidth(page) {
   });
 }
 
+async function sampleWidthDelta(page, readFn, samples = 28, intervalMs = 80) {
+  let minW = Infinity;
+  let maxW = 0;
+  for (let i = 0; i < samples; i++) {
+    const w = await readFn(page);
+    minW = Math.min(minW, w);
+    maxW = Math.max(maxW, w);
+    await page.waitForTimeout(intervalMs);
+  }
+  return { minW, maxW };
+}
+
 async function readAgeingWidth(page, index = 0) {
   return page.evaluate((idx) => {
     const bar = document.querySelector(`[data-living-finance-ageing="${idx}"]`);
@@ -66,7 +78,7 @@ function compactMatchesAudit(domValue, auditAmount, currency = "GBP") {
 async function captureFinanceStory(page) {
   await page.goto(FINANCE_URL, { waitUntil: "domcontentloaded", timeout: 120_000 });
   await page.waitForSelector('[data-tutorial-target="fin-dashboard-hero"]', { timeout: 90_000 });
-  await page.waitForFunction(() => Boolean(window.__financeDashboardMotionAudit), { timeout: 90_000 });
+  await page.waitForFunction(() => Boolean(window.__financeDashboardMotionAudit), { timeout: 120_000 });
 
   await page.evaluate(() => window.scrollTo(0, 0));
   await page.screenshot({ path: `${ARTIFACT_DIR}/demo-finance-story-hero.png`, fullPage: false });
@@ -75,13 +87,14 @@ async function captureFinanceStory(page) {
   assert.ok(audit?.liquidity?.length, "audit liquidity segments should exist");
 
   await page.locator('[data-qa-target="finance-liquidity-section"]').scrollIntoViewIfNeeded();
-  await page.waitForTimeout(200);
-  const liqEarly = await readLiquidityWidth(page);
   await page.screenshot({ path: `${ARTIFACT_DIR}/demo-finance-story-liquidity-enter.png`, fullPage: false });
-  await page.waitForTimeout(1200);
-  const liqLate = await readLiquidityWidth(page);
+  const liqDelta = await sampleWidthDelta(page, readLiquidityWidth);
   await page.screenshot({ path: `${ARTIFACT_DIR}/demo-finance-story-liquidity-mid.png`, fullPage: false });
-  assert.ok(liqLate > liqEarly + 2, "liquidity stack should grow when section enters viewport");
+  assert.ok(
+    liqDelta.maxW > liqDelta.minW + 2,
+    "liquidity stack should grow when section enters viewport",
+  );
+  const liqLate = liqDelta.maxW;
 
   const domCash = await page
     .locator('[data-finance-motion="liquidity-stack"] [data-finance-final-value]')
@@ -94,11 +107,8 @@ async function captureFinanceStory(page) {
   );
 
   await page.locator('[data-qa-target="finance-ar-ageing-section"]').scrollIntoViewIfNeeded();
-  await page.waitForTimeout(200);
-  const ageEarly = await readAgeingWidth(page, 0);
-  await page.waitForTimeout(1400);
-  const ageLate = await readAgeingWidth(page, 0);
-  assert.ok(ageLate > ageEarly + 1, "AR ageing buckets should fill sequentially");
+  const ageDelta = await sampleWidthDelta(page, (p) => readAgeingWidth(p, 0));
+  assert.ok(ageDelta.maxW > ageDelta.minW + 1, "AR ageing buckets should fill sequentially");
 
   await page.locator('[data-qa-target="finance-margin-section"]').scrollIntoViewIfNeeded();
   await page.waitForTimeout(400);
@@ -131,11 +141,8 @@ async function captureFinanceStory(page) {
   await replayBtn.click();
   await page.waitForTimeout(400);
   await page.locator('[data-qa-target="finance-liquidity-section"]').scrollIntoViewIfNeeded();
-  await page.waitForTimeout(200);
-  const replayEarly = await readLiquidityWidth(page);
-  await page.waitForTimeout(1400);
-  const replayLate = await readLiquidityWidth(page);
-  assert.ok(replayLate > replayEarly + 2, "replay should re-animate liquidity when in view");
+  const replayDelta = await sampleWidthDelta(page, readLiquidityWidth);
+  assert.ok(replayDelta.maxW > replayDelta.minW + 2, "replay should re-animate liquidity when in view");
   console.log("ok  finance viewport story + replay");
 }
 

@@ -71,7 +71,7 @@ export function useFinanceSectionIntro(sectionId: FinanceMotionSectionId) {
   }, [motionEnabled, armed, visitKey, sectionId]);
 
   const introPending = motionEnabled && armed && enteredView;
-  const playSectionIntro = useIntroAnimationLock(introPending, motionEnabled);
+  const playSectionIntro = useIntroAnimationLock(introPending, motionEnabled, visitKey);
 
   return {
     sectionRef,

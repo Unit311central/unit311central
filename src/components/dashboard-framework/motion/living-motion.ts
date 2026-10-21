@@ -91,12 +91,22 @@ export function estimateHomeLivingIntroPlaybackMs(): number {
   return HOME_HERO_TOTAL_MS;
 }
 
-/** Lock whether this instance should run intro motion on first mount (avoids mid-draw snaps). */
-export function useIntroAnimationLock(introPending: boolean, motionEnabled: boolean): boolean {
-  const locked = useRef<boolean | null>(null);
-  if (locked.current === null) {
-    locked.current = motionEnabled && introPending;
+/**
+ * Latch section intro playback when viewport entry starts; reset when resetKey changes (replay).
+ */
+export function useIntroAnimationLock(
+  introPending: boolean,
+  motionEnabled: boolean,
+  resetKey: number = 0,
+): boolean {
+  const locked = useRef(false);
+  const seenReset = useRef(resetKey);
+  if (seenReset.current !== resetKey) {
+    seenReset.current = resetKey;
+    locked.current = false;
   }
+  if (!motionEnabled) return false;
+  if (introPending) locked.current = true;
   return locked.current;
 }
 

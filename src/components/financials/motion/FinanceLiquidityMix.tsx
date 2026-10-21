@@ -29,7 +29,7 @@ export function FinanceLiquidityMix({
   const total = segments.reduce((sum, row) => sum + row.value, 0);
   if (total <= 0) return null;
 
-  const animate = motionEnabled && playIntro;
+  const reveal = !motionEnabled || playIntro;
 
   return (
     <div key={visitKey} className="space-y-4" data-finance-motion="liquidity-stack">
@@ -43,10 +43,10 @@ export function FinanceLiquidityMix({
               data-finance-final-value={formatCompact(row.value)}
               className="h-full min-w-0"
               title={`${row.name}: ${formatCompact(row.value)}`}
-              initial={animate ? { width: "0%" } : false}
-              animate={{ width: `${widthPct}%` }}
+              initial={false}
+              animate={{ width: reveal ? `${widthPct}%` : "0%" }}
               transition={
-                animate
+                playIntro && motionEnabled
                   ? {
                       duration: FINANCE_SECTION_STACK_S,
                       delay: financeSectionDelaySec("liquidity-segment", index),
@@ -95,7 +95,7 @@ export function FinanceAgeingBucketBars({
 }) {
   const motionEnabled = useLivingMotionEnabled();
   const max = Math.max(1, ...buckets.map((b) => b.amount));
-  const animate = motionEnabled && playIntro;
+  const reveal = !motionEnabled || playIntro;
 
   return (
     <div key={visitKey} className="space-y-2.5" data-finance-motion="ageing-buckets">
@@ -120,10 +120,10 @@ export function FinanceAgeingBucketBars({
                   "h-full rounded-full",
                   overdue ? "bg-rose-400/85" : "bg-sky-400/80",
                 )}
-                initial={animate ? { width: "0%" } : false}
-                animate={{ width: `${widthPct}%` }}
+                initial={false}
+                animate={{ width: reveal ? `${widthPct}%` : "0%" }}
                 transition={
-                  animate
+                  playIntro && motionEnabled
                     ? {
                         duration: FINANCE_SECTION_STACK_S,
                         delay: financeSectionDelaySec("ageing-bucket", index),
