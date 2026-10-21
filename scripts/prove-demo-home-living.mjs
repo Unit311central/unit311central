@@ -49,7 +49,7 @@ async function loginDemo(page, context) {
         `Original: ${error instanceof Error ? error.message : String(error)}`,
     );
   }
-  await page.waitForLoadState("networkidle", { timeout: 90_000 }).catch(() => {});
+  await page.waitForLoadState("domcontentloaded", { timeout: 90_000 }).catch(() => {});
   const cookies = await context.cookies();
   const session = cookies.filter((c) => c.name === "dc_platform_session");
   if (session.length !== 1) {
@@ -75,25 +75,47 @@ async function readStoryMetrics(page) {
 
 async function captureDashboardStory(page) {
   await page.waitForSelector('[data-living-count-up="revenue"]', { timeout: 90_000 });
-  await page.locator('[data-qa-target="home-business-performance"]').scrollIntoViewIfNeeded().catch(() => {});
+  let t0 = await readStoryMetrics(page);
+  if (!/^£0(?:\.00)?$/.test(t0.revenue)) {
+    const replayBtn = page.locator('[data-qa-target="home-living-replay"]');
+    if (await replayBtn.count()) {
+      await replayBtn.click();
+    }
+  }
+  for (let i = 0; i < 40; i++) {
+    t0 = await readStoryMetrics(page);
+    if (/^£0(?:\.00)?$/.test(t0.revenue)) break;
+    await page.waitForTimeout(40);
+  }
+  const storyStart = Date.now();
 
   const snap = async (label) => {
+    await page.locator('[data-qa-target="home-business-performance"]').scrollIntoViewIfNeeded().catch(() => {});
     await page.screenshot({ path: `${ARTIFACT_DIR}/demo-home-story-${label}.png`, fullPage: false });
     return readStoryMetrics(page);
   };
 
-  const t0 = await snap("t0ms");
-  await page.waitForTimeout(500);
+  await page.screenshot({ path: `${ARTIFACT_DIR}/demo-home-story-t0ms.png`, fullPage: false });
+
+  const waitUntil = async (targetMs) => {
+    const elapsed = Date.now() - storyStart;
+    if (targetMs > elapsed) await page.waitForTimeout(targetMs - elapsed);
+  };
+
+  await waitUntil(500);
   const t500 = await snap("t500ms");
-  await page.waitForTimeout(1500);
+  await waitUntil(2000);
   const t2000 = await snap("t2000ms");
-  await page.waitForTimeout(2000);
+  await waitUntil(4000);
   const t4000 = await snap("t4000ms");
-  await page.waitForTimeout(2000);
+  await waitUntil(6000);
   const final = await snap("final");
 
-  assert.notEqual(t0.revenue, final.revenue, "revenue KPI should count up to final value");
-  assert.ok(t500.revenue !== final.revenue || t2000.revenue !== final.revenue, "revenue should change mid-story");
+  assert.ok(
+    /^£0(?:\.00)?$/.test(t0.revenue) || t500.revenue !== final.revenue,
+    "revenue KPI should count up from zero or show mid-animation at 0.5s",
+  );
+  assert.notEqual(t500.revenue, final.revenue, "revenue should still be animating at ~0.5s");
   assert.ok(
     t4000.chartBarHeight > t500.chartBarHeight + 2 || t2000.chartBarHeight > t500.chartBarHeight + 2,
     "chart bars should grow during the story",
@@ -104,10 +126,10 @@ async function captureDashboardStory(page) {
   await replayBtn.waitFor({ timeout: 15_000 });
   const beforeReplay = final.revenue;
   await replayBtn.click();
-  await page.waitForTimeout(400);
+  await page.waitForTimeout(350);
   const midReplay = await readStoryMetrics(page);
-  assert.notEqual(midReplay.revenue, beforeReplay, "replay should restart revenue count-up");
-  await page.waitForTimeout(5200);
+  assert.match(midReplay.revenue, /^£0(?:\.00)?$/, "replay should reset revenue count-up to zero");
+  await page.waitForTimeout(5500);
   const afterReplay = await readStoryMetrics(page);
   assert.equal(afterReplay.revenue, beforeReplay, "replay should end on the same revenue value");
   console.log("ok  dashboard story timeline + replay");
@@ -182,7 +204,7 @@ async function main() {
 
   const videoPath = await page.video().path();
   await context.close();
-  fs.renameSync(videoPath, `${ARTIFACT_DIR}/demo-home-living-dashboard.webm`);
+  fs.renameSync(videoPath, `${ARTIFACT_DIR}/demo-home-story-recording.webm`);
 
   const reducedContext = await browser.newContext({
     viewport: { width: 1440, height: 900 },
@@ -190,7 +212,14 @@ async function main() {
   });
   const reducedPage = await reducedContext.newPage();
   await attachKpiSampler(reducedPage);
-  await loginDemo(reducedPage, reducedContext);
+  await reducedPage.goto(`${ORIGIN}/login?next=${encodeURIComponent("/dashboard?view=home")}`, {
+    waitUntil: "domcontentloaded",
+    timeout: 120_000,
+  });
+  await reducedPage.locator("input[name=username]").fill(USERNAME);
+  await reducedPage.locator("input[name=password][type=password]").fill(PASSWORD);
+  await reducedPage.getByRole("button", { name: /sign in/i }).click();
+  await reducedPage.waitForURL(/\/dashboard/, { timeout: 90_000 });
   await reducedPage.waitForSelector('[data-qa-target="dashboard-widget"]', { timeout: 90_000 });
   await reducedPage.waitForTimeout(1500);
   const reduced = await reducedPage.evaluate(() => {
