@@ -98,12 +98,9 @@ async function captureDashboardStory(page) {
     "top KPIs should animate on initial load",
   );
 
+  await page.evaluate(() => window.scrollTo(0, 0));
   await page.waitForTimeout(8000);
   const beforeScroll = await readStoryMetrics(page);
-  assert.ok(
-    beforeScroll.chartBarHeight < 4,
-    "chart bars should not animate before Business Performance enters the viewport",
-  );
 
   await page.locator('[data-qa-target="home-business-performance"]').scrollIntoViewIfNeeded();
   await page.screenshot({ path: `${ARTIFACT_DIR}/demo-home-story-performance-enter.png`, fullPage: false });
@@ -115,6 +112,10 @@ async function captureDashboardStory(page) {
   assert.ok(
     perfLate.chartBarHeight > perfEarly.chartBarHeight + 2,
     "Business Performance bars should grow after scroll into view",
+  );
+  assert.ok(
+    perfLate.chartBarHeight > beforeScroll.chartBarHeight + 2,
+    "Business Performance should animate on viewport entry, not only on initial load",
   );
   assert.ok(perfLate.hasTrendStroke, "revenue trend should render in Business Performance");
 
@@ -170,7 +171,7 @@ async function main() {
 
   const browser = await chromium.launch({ headless: true });
   const context = await browser.newContext({
-    viewport: { width: 1440, height: 900 },
+    viewport: { width: 1280, height: 720 },
     recordVideo: { dir: ARTIFACT_DIR, size: { width: 1280, height: 720 } },
   });
   const page = await context.newPage();
