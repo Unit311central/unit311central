@@ -55,7 +55,11 @@ export default function CourseReviewScreen({
     () =>
       tree.modules.flatMap((mod) =>
         mod.lessons
-          .filter((l) => l.content.type === "procedure_animation")
+          .filter(
+            (l) =>
+              l.lessonType === "procedure_animation" &&
+              l.content.type === "procedure_animation",
+          )
           .map((l) => ({ moduleTitle: mod.title, lesson: l })),
       ),
     [tree],

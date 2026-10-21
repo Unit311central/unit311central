@@ -65,14 +65,22 @@ async function main() {
   const fileInput = page.locator('input[type="file"]');
   await fileInput.setInputFiles(PDF_PATH);
 
-  await page.getByText(/review before publishing|ai built a complete course/i).waitFor({
-    timeout: 180_000,
-  });
+  await page
+    .getByRole("heading", { name: /review before publishing/i })
+    .waitFor({ timeout: 180_000 });
   await page.screenshot({ path: `${ARTIFACT_DIR}/lms-e2e-02-review-modal.png` });
 
+  const reviewModal = page
+    .locator("div.overflow-y-auto")
+    .filter({ has: page.getByRole("heading", { name: /review before publishing/i }) })
+    .first();
+  await reviewModal.evaluate((el) => {
+    el.scrollTop = el.scrollHeight;
+  });
   const previewSection = page.getByText("Animation preview");
-  await previewSection.waitFor({ timeout: 30_000 });
-  const playBtn = page.getByRole("button", { name: /^play$/i }).first();
+  await previewSection.waitFor({ timeout: 60_000 });
+  await previewSection.scrollIntoViewIfNeeded();
+  const playBtn = page.getByRole("button", { name: /^(play|replay)$/i }).first();
   await playBtn.click();
   await page.waitForTimeout(3500);
   await page.screenshot({ path: `${ARTIFACT_DIR}/lms-e2e-03-animation-preview-playing.png` });
@@ -81,35 +89,54 @@ async function main() {
   assert.match(bodyText, /incident|severity|escalat|register/i, "preview should reflect document-derived steps");
 
   await page.getByRole("button", { name: /publish course/i }).click();
-  await page.waitForTimeout(4000);
+  await page.getByText(/is published and listed below/i).waitFor({ timeout: 120_000 });
 
-  const launchBtn = page.getByRole("button", { name: /launch|resume/i }).first();
-  if (await launchBtn.isVisible().catch(() => false)) {
-    await launchBtn.click();
-  } else {
-    await page.goto(`${ORIGIN}/dashboard?view=training`, { waitUntil: "domcontentloaded" });
-    await page.getByRole("button", { name: /launch|resume/i }).first().click();
+  const courseRow = page
+    .getByRole("row")
+    .filter({ hasText: /incident|escalat|severity|reporting/i })
+    .last();
+  await courseRow.waitFor({ state: "visible", timeout: 60_000 });
+  await courseRow.getByRole("button", { name: /open course/i }).click();
+
+  await page.waitForTimeout(2000);
+  for (let i = 0; i < 14; i++) {
+    const playVisible = await page
+      .getByRole("button", { name: /^(play|replay)$/i })
+      .first()
+      .isVisible()
+      .catch(() => false);
+    if (playVisible) break;
+    const next = page.getByRole("button", { name: /^next$/i });
+    if (!(await next.isVisible().catch(() => false))) break;
+    await next.click();
+    await page.waitForTimeout(700);
   }
-
-  await page.waitForTimeout(3000);
-  const playerPlay = page.getByRole("button", { name: /^play$/i }).first();
+  const playerPlay = page.getByRole("button", { name: /^(play|replay)$/i }).first();
   await playerPlay.waitFor({ timeout: 90_000 });
   await playerPlay.click();
   await page.waitForTimeout(4000);
-  await page.getByRole("button", { name: /pause/i }).first().click();
-  await page.waitForTimeout(800);
-  await page.getByRole("button", { name: /replay/i }).first().click();
-  await page.waitForTimeout(3000);
+  const pauseBtn = page.getByRole("button", { name: /pause/i }).first();
+  if (await pauseBtn.isVisible().catch(() => false)) {
+    await pauseBtn.click();
+    await page.waitForTimeout(800);
+  }
+  const replayBtn = page.getByRole("button", { name: /replay/i }).first();
+  if (await replayBtn.isVisible().catch(() => false)) {
+    await replayBtn.click();
+  } else {
+    await playerPlay.click();
+  }
+  await page.waitForTimeout(3500);
   await page.screenshot({ path: `${ARTIFACT_DIR}/lms-e2e-04-lms-player-animation.png` });
 
-  const video = await page.video();
-  await context.close();
-  await browser.close();
+  const video = page.video();
+  const dest = `${ARTIFACT_DIR}/lms-procedure-animation-e2e.webm`;
   if (video) {
-    const dest = `${ARTIFACT_DIR}/lms-procedure-animation-e2e.mp4`;
     await video.saveAs(dest);
     console.log(`Saved recording: ${dest}`);
   }
+  await context.close();
+  await browser.close();
 
   console.log("LMS procedure animation E2E: OK");
 }
