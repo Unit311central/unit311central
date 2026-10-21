@@ -46,23 +46,15 @@ export function useHomeSectionIntro(sectionId: HomeMotionSectionId) {
     const io = new IntersectionObserver(
       (entries) => {
         const entry = entries[0];
-        if (entry?.isIntersecting && entry.intersectionRatio >= 0.12) {
+        if (entry?.isIntersecting && entry.intersectionRatio >= 0.22) {
           markEntered();
           io.disconnect();
         }
       },
-      { threshold: [0.12, 0.22], rootMargin: "0px 0px -32px 0px" },
+      { threshold: [0.22, 0.35], rootMargin: "0px 0px -48px 0px" },
     );
 
     io.observe(el);
-
-    // If already on screen when observer attaches (e.g. tall viewport), check once.
-    const rect = el.getBoundingClientRect();
-    const vh = window.innerHeight || document.documentElement.clientHeight;
-    if (rect.top < vh * 0.88 && rect.bottom > vh * 0.08) {
-      markEntered();
-      io.disconnect();
-    }
 
     return () => io.disconnect();
   }, [motionEnabled, armed, paneActive, visitKey, sectionId]);
