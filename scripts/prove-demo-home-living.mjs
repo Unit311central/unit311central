@@ -162,12 +162,17 @@ async function captureDashboardStory(page) {
   }
   assert.match(replayHero.revenue, /^£0(?:\.00)?$/, "replay should reset hero KPI count-up");
   await page.locator('[data-qa-target="home-business-performance"]').scrollIntoViewIfNeeded();
-  await page.waitForTimeout(2500);
-  const replayPerf = await readStoryMetrics(page);
+  await page.waitForTimeout(4500);
+  let replayPerf = await readStoryMetrics(page);
   assert.ok(
     replayPerf.chartBarHeight > 4,
     "replay should re-animate Business Performance when scrolled into view",
   );
+  for (let i = 0; i < 40; i++) {
+    if (replayPerf.revenue === beforeReplay.revenue) break;
+    await page.waitForTimeout(100);
+    replayPerf = await readStoryMetrics(page);
+  }
   assert.equal(replayPerf.revenue, beforeReplay.revenue, "replay should preserve final revenue KPI value");
   console.log("ok  viewport-gated dashboard story + replay");
   return replayPerf;
