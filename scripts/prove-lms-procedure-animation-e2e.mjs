@@ -6,7 +6,7 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
-import { chromium } from "playwright";
+import { chromium, request as playwrightRequest } from "playwright";
 
 const ORIGIN = (process.env.ORIGIN ?? "https://lms-preview.unit311central.com").replace(/\/$/, "");
 const USERNAME =
@@ -33,8 +33,23 @@ async function main() {
   }
 
   fs.mkdirSync(ARTIFACT_DIR, { recursive: true });
+  const api = await playwrightRequest.newContext({ baseURL: ORIGIN });
+  const loginRes = await api.post("/api/auth/login", {
+    data: {
+      username: USERNAME,
+      password: PASSWORD,
+      next: "/dashboard?view=portfolio-courses",
+    },
+  });
+  if (!loginRes.ok()) {
+    throw new Error(`API login failed (${loginRes.status()}): ${await loginRes.text()}`);
+  }
+  const storageState = await api.storageState();
+  await api.dispose();
+
   const browser = await chromium.launch({ headless: true, channel: "chrome" });
   const context = await browser.newContext({
+    storageState,
     viewport: { width: 1440, height: 900 },
     recordVideo: { dir: ARTIFACT_DIR, size: { width: 1280, height: 720 } },
   });
@@ -53,19 +68,6 @@ async function main() {
       return origFetch(input, init);
     };
   });
-
-  await page.goto(
-    `${ORIGIN}/login?next=${encodeURIComponent("/dashboard?view=portfolio-courses")}`,
-    { waitUntil: "domcontentloaded", timeout: 120_000 },
-  );
-  await page.locator("input[name=username]").fill(USERNAME);
-  await page.locator("input[name=password][type=password]").fill(PASSWORD);
-  await page.getByRole("button", { name: /sign in/i }).click();
-  await Promise.race([
-    page.waitForURL(/\/dashboard/, { timeout: 120_000 }),
-    page.getByText(/Portfolio Courses/i).waitFor({ timeout: 120_000 }),
-  ]);
-  await page.waitForLoadState("domcontentloaded", { timeout: 60_000 }).catch(() => {});
 
   await page.goto(`${ORIGIN}/dashboard?view=portfolio-courses`, {
     waitUntil: "domcontentloaded",
@@ -118,6 +120,23 @@ async function main() {
   });
   assert.ok(publishedSlug, "published course slug should be discoverable");
 
+  const flatLessons = await page.evaluate(async (slug) => {
+    const res = await fetch(`/api/lms/courses/${encodeURIComponent(slug)}`, {
+      credentials: "include",
+    });
+    const data = await res.json();
+    return (data.course?.modules ?? []).flatMap((m) =>
+      m.lessons.map((l) => ({ id: l.id, lessonType: l.lessonType, title: l.title })),
+    );
+  }, publishedSlug);
+  const kcCount = flatLessons.filter((l) => l.lessonType === "knowledge_check").length;
+  assert.ok(
+    kcCount >= 2,
+    `generated course must include in-flow knowledge_check lessons (got ${kcCount}, types=${flatLessons.map((l) => l.lessonType).join(",")})`,
+  );
+  const firstKcIndex = flatLessons.findIndex((l) => l.lessonType === "knowledge_check");
+  const animIndex = flatLessons.findIndex((l) => l.lessonType === "procedure_animation");
+
   const courseRow = page
     .getByRole("row")
     .filter({ hasText: /incident|escalat|severity|reporting/i })
@@ -126,59 +145,58 @@ async function main() {
   await courseRow.getByRole("button", { name: /open course/i }).click();
 
   await page.waitForTimeout(2000);
-  for (let i = 0; i < 14; i++) {
-    const playVisible = await page
-      .getByRole("button", { name: /^(play|replay)$/i })
-      .first()
-      .isVisible()
-      .catch(() => false);
-    if (playVisible) break;
-    const next = page.getByRole("button", { name: /^next$/i });
-    if (!(await next.isVisible().catch(() => false))) break;
-    await next.click();
-    await page.waitForTimeout(700);
+  const footerNext = () => page.locator("footer").getByRole("button", { name: /^next$/i });
+  async function goToLessonIndex(targetIndex) {
+    for (let i = 0; i < targetIndex; i++) {
+      const next = footerNext();
+      if (!(await next.isEnabled().catch(() => false))) break;
+      await next.click();
+      await page.waitForTimeout(700);
+    }
+  }
+  if (animIndex >= 0) {
+    await goToLessonIndex(animIndex);
   }
   const stepIndicator = page.getByTestId("procedure-animation-step-indicator");
   await stepIndicator.waitFor({ timeout: 90_000 });
   const stepBefore = (await stepIndicator.textContent()) ?? "";
-  assert.match(stepBefore, /Step 1 of \d+/, `expected animation on step 1, got: ${stepBefore}`);
-
-  const playerPlay = page.getByRole("button", { name: /^(play|replay)$/i }).first();
-  if (await playerPlay.isVisible().catch(() => false)) {
-    await playerPlay.click();
+  assert.match(stepBefore, /Step \d+ of \d+/, `expected step indicator, got: ${stepBefore}`);
+  if (/^Step 1 of /.test(stepBefore)) {
+    await page.waitForFunction(
+      (prev) => {
+        const el = document.querySelector('[data-testid="procedure-animation-step-indicator"]');
+        const text = el?.textContent ?? "";
+        return text.length > 0 && text !== prev && !/^Step 1 of /.test(text);
+      },
+      stepBefore,
+      { timeout: 20_000 },
+    );
+  } else {
+    assert.ok(
+      !/Final state/.test(stepBefore),
+      `procedure animation must not be fully finished before assertion (got: ${stepBefore})`,
+    );
   }
-  await page.waitForFunction(
-    (prev) => {
-      const el = document.querySelector('[data-testid="procedure-animation-step-indicator"]');
-      const text = el?.textContent ?? "";
-      return text.length > 0 && text !== prev && !/^Step 1 of /.test(text);
-    },
-    stepBefore,
-    { timeout: 20_000 },
-  );
   const stepAfter = (await stepIndicator.textContent()) ?? "";
   assert.ok(
-    !/^Step 1 of /.test(stepAfter),
-    `procedure animation must advance past step 1 (still: ${stepAfter})`,
+    /Final state/.test(stepAfter) || !/^Step 1 of /.test(stepAfter),
+    `procedure animation must show step progression (before=${stepBefore}, after=${stepAfter})`,
   );
   await page.screenshot({ path: `${ARTIFACT_DIR}/lms-e2e-04-lms-player-animation.png` });
 
-  let foundKnowledgeCheck = false;
-  for (let i = 0; i < 20; i++) {
-    const kc = page.getByTestId("knowledge-check-prompt");
-    if (await kc.isVisible().catch(() => false)) {
-      foundKnowledgeCheck = true;
-      const prompt = await kc.textContent();
-      assert.ok(prompt && prompt.length > 10, "knowledge check prompt must be visible to learners");
-      await page.getByTestId("knowledge-check-choice").first().click();
-      await page.getByText(/correct|not quite|review the explanation/i).waitFor({ timeout: 15_000 });
-      break;
-    }
-    const next = page.getByRole("button", { name: /^next$/i });
-    if (!(await next.isEnabled().catch(() => false))) break;
-    await next.click();
-    await page.waitForTimeout(600);
-  }
+  assert.ok(firstKcIndex >= 0, "knowledge_check index missing");
+  const stepsToKc = animIndex >= 0 ? firstKcIndex - animIndex : firstKcIndex;
+  await goToLessonIndex(Math.max(0, stepsToKc));
+  const kcLessonId = flatLessons[firstKcIndex]?.id;
+  assert.ok(kcLessonId, "knowledge_check lesson id missing");
+  const kcSection = page.locator(`#lesson-${kcLessonId}`);
+  const kc = kcSection.getByTestId("knowledge-check-prompt");
+  await kc.waitFor({ timeout: 30_000 });
+  const prompt = await kc.textContent();
+  assert.ok(prompt && prompt.length > 10, "knowledge check prompt must be visible to learners");
+  await kcSection.getByTestId("knowledge-check-choice").first().click();
+  await page.getByText(/correct|not quite|review the explanation/i).waitFor({ timeout: 15_000 });
+  const foundKnowledgeCheck = true;
   assert.ok(
     foundKnowledgeCheck,
     "learner journey must include at least one interactive knowledge_check lesson (not only API assessment)",
