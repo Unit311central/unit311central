@@ -3,6 +3,7 @@
  * Never throw — fall back to a short rich_text lesson when structure is unusable.
  */
 
+import { buildInstructionalAnimationContent } from "@/lib/lms/instructional-animation";
 import type { LessonContent, LmsLessonType, RichTextBlock } from "@/lib/lms/types";
 import { LMS_LESSON_TYPES } from "@/lib/lms/types";
 
@@ -272,6 +273,28 @@ export function sanitizeLessonContent(
             ),
           },
         };
+      case "instructional_animation": {
+        const steps = asArray<Record<string, unknown>>(raw.steps)
+          .map((step, i) => ({
+            id: asString(step.id, `step-${i + 1}`),
+            heading: asString(step.heading || step.title, `Step ${i + 1}`),
+            body: asString(step.body || step.text),
+            narration: step.narration ? asString(step.narration) : undefined,
+          }))
+          .filter((s) => s.heading && s.body);
+        if (!steps.length) break;
+        const built = buildInstructionalAnimationContent({
+          title: asString(raw.title, lessonTitle),
+          synopsis: raw.synopsis ? asString(raw.synopsis) : undefined,
+          steps,
+          promptEcho: lessonTitle,
+        });
+        const spec = asRecord(raw.spec);
+        if (spec?.scenes && Array.isArray(spec.scenes) && spec.scenes.length) {
+          built.spec = spec as typeof built.spec;
+        }
+        return { lessonType: "instructional_animation", content: built };
+      }
       case "infographic": {
         const items = asArray<Record<string, unknown>>(raw.items)
           .map((item, i) => ({
@@ -412,7 +435,7 @@ export function sanitizeLessonContent(
           lessonType: "assessment",
           content: {
             type: "assessment",
-            drawCount: Math.max(1, Number(raw.drawCount) || 8),
+            drawCount: Math.max(3, Math.min(20, Number(raw.drawCount) || 10)),
             passMark: Math.min(100, Math.max(1, Number(raw.passMark) || 80)),
             questionBankScope:
               asString(raw.questionBankScope) === "module" ? "module" : "course",

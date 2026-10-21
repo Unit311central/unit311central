@@ -7,10 +7,16 @@ import {
   getAssistantModel,
 } from "@/lib/ai-operating-assistant/openai-client";
 import { clipDocumentText } from "@/lib/document-extract";
+import { buildCourseFromDocumentText } from "@/lib/lms/course-generation/document-course-builder";
+import {
+  finalizeCourseDraft,
+  summarizeDraftCounts,
+  type CourseDraft,
+} from "@/lib/lms/course-generation/finalize-course-draft";
 import { sanitizeCourseLessonInput } from "@/lib/lms/sanitize-lesson-content";
 import type { LmsCourseCreateInput, LessonContent } from "@/lib/lms/types";
 
-export type GeneratedCourseDraft = LmsCourseCreateInput & {
+export type GeneratedCourseDraft = CourseDraft & {
   learningObjectives: string[];
   scenarioCount: number;
   assessmentCount: number;
@@ -419,7 +425,22 @@ export async function generateAbhiCourseFromDocument(options: {
   if (options.preferredTitle) fallback.title = options.preferredTitle;
 
   if (!process.env.OPENAI_API_KEY?.trim()) {
-    return fallback;
+    const deterministic = buildCourseFromDocumentText({
+      documentText: text,
+      sourceFileName: options.sourceFileName,
+      preferredTitle: options.preferredTitle,
+      certificatePrefix: "TALANTON-AI",
+    });
+    return finalizeCourseDraft(
+      {
+        ...deterministic,
+        learningObjectives: deterministic.learningObjectives ?? fallback.learningObjectives,
+        scenarioCount: deterministic.scenarioCount ?? 0,
+        assessmentCount: deterministic.assessmentCount ?? 1,
+        certificateEnabled: true,
+      },
+      options.sourceFileName || "policy-document",
+    ) as GeneratedCourseDraft;
   }
 
   try {
@@ -431,7 +452,7 @@ export async function generateAbhiCourseFromDocument(options: {
       messages: [
         {
           role: "system",
-          content: `You are an instructional designer for ABHI (Association of British HealthTech Industries).
+          content: `You are an instructional designer for portfolio compliance training (Talanton Impact, ABHI, and similar).
 Create a modern interactive training course JSON from a policy/guidance document.
 Return ONLY JSON matching:
 {
@@ -446,7 +467,7 @@ Return ONLY JSON matching:
     "summary": string,
     "lessons": [{
       "title": string,
-      "lessonType": "rich_text"|"infographic"|"knowledge_check"|"scenario"|"drag_drop"|"narration"|"interactive_cards"|"assessment",
+      "lessonType": "rich_text"|"infographic"|"instructional_animation"|"knowledge_check"|"scenario"|"drag_drop"|"narration"|"interactive_cards"|"assessment",
       "estimatedMinutes": number,
       "content": object // must include "type" matching lessonType; use existing LMS shapes
     }]
@@ -457,21 +478,24 @@ Return ONLY JSON matching:
     "choices": [{"id":"a","label":string},...],
     "correctChoiceId": string,
     "explanation": string,
-    "difficulty": "easy"|"medium"|"hard"
+    "difficulty": "easy"|"medium"|"hard",
+    "moduleIndex": number
   }]
 }
 Rules:
-- ABHI HealthTech context (members, NHS, UK Pavilion, WHX/Medica, working groups).
-- 3–5 modules. Mix explain → visual → interaction → scenario every module.
-- Include at least 2 realistic policy scenarios (not summaries).
-- Include infographic with layout "flow" or "steps".
-- Final module must include assessment lesson (drawCount 8, passMark 80, questionBankScope "course").
-- Provide at least 8 question bank items.
+- Stay faithful to the source document — do not invent facts, thresholds, or procedures not supported by the text.
+- Exactly 5 teaching modules plus a final assessment module (6 modules total).
+- Each teaching module: at least 3 lessons (explain → instructional_animation or infographic → knowledge_check or scenario).
+- Every teaching module must include at least one instructional_animation lesson with steps[] (3–5 steps) derived from the document.
+- instructional_animation shape: { "type":"instructional_animation", "title", "synopsis", "steps":[{ "id","heading","body","narration" }] } — steps will be animated in the learner player.
+- Include at least 2 realistic scenarios grounded in the document.
+- Final module: assessment lesson with drawCount 10, passMark 80, questionBankScope "course".
+- Question bank: at least 3 questions per teaching module (15+) plus extras for the final draw; tag moduleIndex on each question.
 - Keep rich_text short (no walls of text).
-- Do not invent illegal instructions; stay faithful to the document principles.
 - CRITICAL content shapes (do not invent alternate keys):
   - rich_text: { "type":"rich_text", "title":string, "blocks":[{ "kind":"heading"|"paragraph"|"bullet_list"|"callout", ... }] }
   - infographic: { "type":"infographic", "layout":"flow"|"steps", "items":[{ "id", "label", "body" }] }
+  - instructional_animation: { "type":"instructional_animation", "steps":[{ "id","heading","body" }] }
   - knowledge_check: { "type":"knowledge_check", "prompt", "choices":[{ "id","label" }], "correctId", "explanation" }
   - scenario: { "type":"scenario", "story", "choices":[{ "id","label","correct","feedback" }] }
   - drag_drop: { "type":"drag_drop", "prompt", "mode":"match"|"sort", "zones":[{ "id","label" }], "items":[{ "id","label","correctZoneId" }] }
@@ -493,28 +517,61 @@ Rules:
         m.lessons.some((l) => l.lessonType === "assessment"),
       );
       if (!hasAssessment) {
-        normalized.modules.push(fallback.modules[fallback.modules.length - 1]!);
+        throw new Error("AI course draft is missing a final assessment lesson.");
       }
-      if (!normalized.questions?.length) normalized.questions = fallback.questions;
-      return normalized;
+      if (!normalized.questions?.length) {
+        throw new Error("AI course draft did not include a question bank.");
+      }
+      return finalizeCourseDraft(
+        {
+          ...normalized,
+          learningObjectives: normalized.learningObjectives ?? fallback.learningObjectives,
+          scenarioCount: normalized.scenarioCount ?? 0,
+          assessmentCount: normalized.assessmentCount ?? 1,
+          certificateEnabled: true,
+        },
+        options.sourceFileName || "policy-document",
+      ) as GeneratedCourseDraft;
     }
-  } catch {
-    /* use fallback */
+  } catch (error) {
+    if (error instanceof Error && error.message.includes("question bank")) {
+      throw error;
+    }
+    /* try deterministic builder below */
   }
 
-  return fallback;
+  const deterministic = buildCourseFromDocumentText({
+    documentText: text,
+    sourceFileName: options.sourceFileName,
+    preferredTitle: options.preferredTitle,
+    certificatePrefix: "TALANTON-AI",
+  });
+  return finalizeCourseDraft(
+    {
+      ...deterministic,
+      learningObjectives: deterministic.learningObjectives ?? [],
+      scenarioCount: deterministic.scenarioCount ?? 0,
+      assessmentCount: deterministic.assessmentCount ?? 1,
+      certificateEnabled: true,
+    },
+    options.sourceFileName || "policy-document",
+  ) as GeneratedCourseDraft;
 }
 
 export function summarizeGeneratedCourse(draft: GeneratedCourseDraft) {
-  const lessonCount = draft.modules.reduce((n, m) => n + m.lessons.length, 0);
+  const counts = summarizeDraftCounts(draft);
   return {
     title: draft.title,
     durationMinutes: draft.durationMinutes ?? 35,
-    moduleCount: draft.modules.length,
-    lessonCount,
+    moduleCount: counts.moduleCount,
+    lessonCount: counts.lessonCount,
     scenarioCount: draft.scenarioCount,
     assessmentCount: draft.assessmentCount,
-    questionCount: draft.questions?.length ?? 0,
+    questionCount: counts.questionBankCount,
+    questionBankCount: counts.questionBankCount,
+    finalAssessmentDrawCount: counts.finalAssessmentDrawCount,
+    animationLessonCount: counts.animationLessonCount,
+    passMark: counts.passMark,
     certificateEnabled: true as const,
     learningObjectives: draft.learningObjectives,
   };

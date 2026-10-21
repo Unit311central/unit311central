@@ -14,6 +14,7 @@ export const LMS_LESSON_TYPES = [
   "narration",
   "assessment",
   "infographic",
+  "instructional_animation",
   "branching",
   "hotspot",
 ] as const;
@@ -105,6 +106,13 @@ export type LessonContent =
       title?: string;
       layout?: "steps" | "flow" | "grid";
       items: { id: string; label: string; body: string; icon?: string }[];
+    }
+  | {
+      type: "instructional_animation";
+      title?: string;
+      synopsis?: string;
+      steps: { id: string; heading: string; body: string; narration?: string }[];
+      spec: import("@/lib/motion-studio/types").MotionStudioSpec;
     }
   | {
       type: "branching";
@@ -252,5 +260,7 @@ export type LmsCourseCreateInput = {
     correctChoiceId: string;
     explanation?: string;
     difficulty?: string;
+    moduleIndex?: number;
+    learningObjective?: string;
   }[];
 };

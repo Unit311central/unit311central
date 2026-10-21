@@ -11,6 +11,7 @@ import EmbeddedPdfLesson from "./EmbeddedPdfLesson";
 import HotspotLesson from "./HotspotLesson";
 import ImageLesson from "./ImageLesson";
 import InfographicLesson from "./InfographicLesson";
+import InstructionalAnimationLesson from "./InstructionalAnimationLesson";
 import InteractiveCardsLesson from "./InteractiveCardsLesson";
 import KnowledgeCheckLesson from "./KnowledgeCheckLesson";
 import NarrationLesson from "./NarrationLesson";
@@ -73,6 +74,14 @@ export function LessonRenderer({
         return <NarrationLesson lesson={safeLesson} content={content} onComplete={complete} />;
       case "infographic":
         return <InfographicLesson lesson={safeLesson} content={content} onComplete={complete} />;
+      case "instructional_animation":
+        return (
+          <InstructionalAnimationLesson
+            lesson={safeLesson}
+            content={content}
+            onComplete={complete}
+          />
+        );
       case "branching":
         return <BranchingLesson lesson={safeLesson} content={content} onComplete={complete} />;
       case "hotspot":

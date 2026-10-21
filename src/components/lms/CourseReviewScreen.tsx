@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   Award,
   BookOpen,
+  Clapperboard,
   Loader2,
   RefreshCw,
   Sparkles,
@@ -11,7 +12,10 @@ import {
   X,
 } from "lucide-react";
 
-import type { LmsCourseTree } from "@/lib/lms/types";
+import { MotionStudioPlayer } from "@/components/motion-studio/MotionStudioPlayer";
+import { validateCourseForPublish } from "@/lib/lms/course-publish-validation";
+import { isInstructionalAnimationComplete } from "@/lib/lms/instructional-animation";
+import type { LmsCourseTree, LmsLesson } from "@/lib/lms/types";
 
 type Summary = {
   title: string;
@@ -21,6 +25,10 @@ type Summary = {
   scenarioCount: number;
   assessmentCount: number;
   questionCount: number;
+  questionBankCount?: number;
+  finalAssessmentDrawCount?: number;
+  animationLessonCount?: number;
+  passMark?: number;
   certificateEnabled: boolean;
   learningObjectives?: string[];
 };
@@ -34,6 +42,11 @@ type Props = {
   regenerating?: boolean;
 };
 
+function animationPayload(lesson: LmsLesson) {
+  if (!isInstructionalAnimationComplete(lesson.content)) return null;
+  return { ...lesson.content.spec, id: lesson.id };
+}
+
 export default function CourseReviewScreen({
   course,
   summary,
@@ -45,8 +58,29 @@ export default function CourseReviewScreen({
   const [title, setTitle] = useState(course.title);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [expandedLessonId, setExpandedLessonId] = useState<string | null>(null);
+
+  const bankCount = summary.questionBankCount ?? summary.questionCount;
+  const drawCount = summary.finalAssessmentDrawCount ?? 0;
+  const passMark = summary.passMark ?? course.passMark;
+
+  const validation = useMemo(
+    () => validateCourseForPublish(course, bankCount),
+    [course, bankCount],
+  );
+
+  const animatedLessonCount = useMemo(() => {
+    return course.modules
+      .flatMap((m) => m.lessons)
+      .filter((l) => l.content.type !== "assessment")
+      .filter((l) => isInstructionalAnimationComplete(l.content)).length;
+  }, [course]);
 
   async function publish() {
+    if (!validation.ok) {
+      setError(validation.errors.join(" "));
+      return;
+    }
     setBusy(true);
     setError(null);
     try {
@@ -74,14 +108,14 @@ export default function CourseReviewScreen({
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 px-4 py-8 backdrop-blur-sm">
-      <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-3xl border border-white/10 bg-[#0b1524] p-6 shadow-2xl">
+      <div className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-3xl border border-white/10 bg-[#0b1524] p-6 shadow-2xl">
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#f9a8d4]">
               <Sparkles className="h-3.5 w-3.5" />
-              AI built a complete course
+              Review before publishing
             </p>
-            <h2 className="mt-2 text-2xl font-semibold text-white">Review before publishing</h2>
+            <h2 className="mt-2 text-2xl font-semibold text-white">Course quality gate</h2>
           </div>
           <button
             type="button"
@@ -103,12 +137,16 @@ export default function CourseReviewScreen({
 
         <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
           {[
-            { label: "Duration", value: `${summary.durationMinutes} min`, icon: BookOpen },
             { label: "Modules", value: String(summary.moduleCount), icon: Target },
-            { label: "Scenarios", value: String(summary.scenarioCount), icon: Sparkles },
+            { label: "Lessons", value: String(summary.lessonCount), icon: BookOpen },
             {
-              label: "Certificate",
-              value: summary.certificateEnabled ? "On" : "Off",
+              label: "Animations",
+              value: `${animatedLessonCount}/${summary.lessonCount - (summary.assessmentCount || 1)}`,
+              icon: Clapperboard,
+            },
+            {
+              label: "Pass mark",
+              value: `${passMark}%`,
               icon: Award,
             },
           ].map((card) => (
@@ -124,6 +162,28 @@ export default function CourseReviewScreen({
             </div>
           ))}
         </div>
+
+        <div className="mt-4 rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-white/75">
+          <p>
+            Question bank: <strong>{bankCount}</strong> · Final assessment draws:{" "}
+            <strong>{drawCount}</strong> · Scenarios: {summary.scenarioCount}
+          </p>
+        </div>
+
+        {!validation.ok ? (
+          <div className="mt-4 rounded-xl border border-amber-400/35 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
+            <p className="font-semibold">Publishing blocked</p>
+            <ul className="mt-2 list-disc space-y-1 pl-5">
+              {validation.errors.map((msg) => (
+                <li key={msg}>{msg}</li>
+              ))}
+            </ul>
+          </div>
+        ) : (
+          <p className="mt-4 text-sm text-emerald-200/90">
+            All required animations, lessons, and assessment items are present.
+          </p>
+        )}
 
         {summary.learningObjectives?.length ? (
           <div className="mt-5">
@@ -141,30 +201,57 @@ export default function CourseReviewScreen({
           </div>
         ) : null}
 
-        <div className="mt-5">
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-white/40">Modules</p>
-          <ol className="mt-2 space-y-2">
-            {course.modules.map((mod, i) => (
-              <li
-                key={mod.id}
-                className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2.5"
-              >
-                <p className="text-sm font-semibold text-white">
-                  {i + 1}. {mod.title}
-                </p>
-                <p className="mt-0.5 text-xs text-white/45">
-                  {mod.lessons.length} lessons ·{" "}
-                  {mod.lessons.map((l) => l.lessonType).join(", ")}
-                </p>
-              </li>
-            ))}
-          </ol>
+        <div className="mt-5 space-y-3">
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-white/40">
+            Lessons and animation previews
+          </p>
+          {course.modules.map((mod, mi) => (
+            <div key={mod.id} className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
+              <p className="text-sm font-semibold text-white">
+                {mi + 1}. {mod.title}
+              </p>
+              <ul className="mt-2 space-y-2">
+                {mod.lessons.map((lesson) => {
+                  const payload = animationPayload(lesson);
+                  const hasAnimation = Boolean(payload);
+                  return (
+                    <li key={lesson.id} className="rounded-lg border border-white/10 bg-black/20 p-2">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <p className="text-sm text-white/85">{lesson.title}</p>
+                        <span
+                          className={`text-[10px] uppercase tracking-wide ${
+                            hasAnimation ? "text-emerald-300" : "text-rose-300"
+                          }`}
+                        >
+                          {lesson.lessonType}
+                          {hasAnimation ? " · animated" : ""}
+                        </span>
+                      </div>
+                      {payload ? (
+                        <button
+                          type="button"
+                          className="mt-2 text-xs text-cyan-300 underline"
+                          onClick={() =>
+                            setExpandedLessonId((id) => (id === lesson.id ? null : lesson.id))
+                          }
+                        >
+                          {expandedLessonId === lesson.id ? "Hide preview" : "Preview animation"}
+                        </button>
+                      ) : lesson.lessonType !== "assessment" ? (
+                        <p className="mt-1 text-xs text-rose-200/80">Missing instructional animation</p>
+                      ) : null}
+                      {expandedLessonId === lesson.id && payload ? (
+                        <div className="mt-2 rounded-lg border border-white/10 p-2">
+                          <MotionStudioPlayer payload={payload} variant="compact" />
+                        </div>
+                      ) : null}
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          ))}
         </div>
-
-        <p className="mt-4 text-xs text-white/40">
-          Final assessment: {summary.assessmentCount} · Question bank: {summary.questionCount} ·
-          Pass mark {course.passMark}%
-        </p>
 
         {error ? (
           <p className="mt-3 rounded-lg border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-100">
@@ -185,12 +272,12 @@ export default function CourseReviewScreen({
               ) : (
                 <RefreshCw className="h-4 w-4" />
               )}
-              Regenerate
+              Regenerate from PDF
             </button>
           ) : null}
           <button
             type="button"
-            disabled={busy}
+            disabled={busy || !validation.ok}
             onClick={() => void publish()}
             className="inline-flex items-center gap-2 rounded-full bg-[#C2185B] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#a3134c] disabled:opacity-50"
           >

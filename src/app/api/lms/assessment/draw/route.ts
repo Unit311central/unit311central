@@ -8,6 +8,7 @@ import {
   ensureEnrolment,
   getCourseBySlug,
   getCourseTree,
+  listCourseQuestions,
 } from "@/lib/lms/service";
 
 export const dynamic = "force-dynamic";
@@ -51,15 +52,26 @@ export async function POST(request: NextRequest) {
       clientId,
     });
 
+    const bank = await listCourseQuestions(auth.workspace.id, course.id);
     const questions = await drawAssessmentQuestions({
       workspaceId: auth.workspace.id,
       courseId: course.id,
       drawCount,
     });
 
+    function shuffleChoices<T>(items: T[]): T[] {
+      const arr = [...items];
+      for (let i = arr.length - 1; i > 0; i -= 1) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j]!, arr[i]!];
+      }
+      return arr;
+    }
+
     return NextResponse.json({
       enrolmentId: enrolment.id,
       drawCount,
+      questionBankCount: bank.length,
       passMark,
       questions: questions.map((q) => {
         const scene = sceneForQuestion({ stem: q.stem, id: q.id });
@@ -67,7 +79,7 @@ export async function POST(request: NextRequest) {
           id: q.id,
           questionType: q.questionType,
           stem: q.stem,
-          choices: q.choices,
+          choices: shuffleChoices(q.choices),
           difficulty: q.difficulty,
           imageUrl: scene.imageUrl,
           sceneLabel: scene.label,

@@ -1,0 +1,29 @@
+# Incident Reporting and Escalation Training
+
+## 1. Purpose and scope
+
+All employees and contractors must report incidents, near misses, and ethical concerns promptly. This programme applies to portfolio operating companies, joint ventures, and third parties acting on behalf of the group. Reporting protects people, assets, reputation, and regulatory compliance.
+
+## 2. What to report
+
+Report any event that causes or could cause harm, data loss, regulatory breach, discrimination, retaliation, bribery, or environmental damage. Near misses and “grey area” situations must be reported early — waiting for certainty increases harm. Confidential reports are accepted when retaliation is a concern.
+
+## 3. How to report
+
+Step 1: Ensure immediate safety and contain ongoing harm. Step 2: Notify your line manager and the incident inbox within one business day. Step 3: Complete the incident form with facts, witnesses, and evidence. Step 4: Escalate to the compliance lead when severity is medium or high. Step 5: Participate in review and implement corrective actions.
+
+## 4. Severity and escalation
+
+Low severity: local manager resolution with documentation. Medium severity: compliance review within 48 hours. High severity: executive incident bridge, legal counsel, and regulator notification when required. Never downgrade severity to avoid paperwork. Retaliation against reporters is a critical incident.
+
+## 5. Roles and accountability
+
+Line managers must receive reports without judgement, preserve evidence, and escalate per the matrix. Compliance owns investigation quality, timelines, and regulator liaison. HR supports people impact and anti-retaliation measures. Employees must cooperate with investigations and complete remedial training.
+
+## 6. Documentation and learning
+
+Every incident receives a unique reference, timeline, root cause, and corrective actions. Lessons learned are shared with portfolio companies when patterns emerge. Repeat failures trigger governance review. Training refresh is required after high-severity events in your function.
+
+## 7. Assessment principles
+
+Decisions must follow documented procedures, preserve evidence, escalate early, and protect reporters. Fabricating or omitting facts in reports is misconduct. When unsure, escalate to compliance before acting.
