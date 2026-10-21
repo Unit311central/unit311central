@@ -47,6 +47,7 @@ import {
 } from "@/components/dashboard-framework/motion/finance-living-motion-context";
 import {
   FinanceLivingIntroScheduler,
+  financeGateSeriesRows,
   financeHeroEntranceProps,
   useFinanceHeroIntroPending,
 } from "@/components/dashboard-framework/motion/finance-living-motion";
@@ -320,6 +321,7 @@ function FinancialsLivingDashboard({
 
   const ytdLabel = overview?.reportingPeriodLabel ?? "YTD from general ledger";
   const compact = (amount: number) => formatCompact(amount, reportingCurrency);
+  const revealChartValues = (enteredView: boolean) => !motionEnabled || enteredView;
 
   return (
     <div className="space-y-4">
@@ -440,7 +442,7 @@ function FinancialsLivingDashboard({
       {overview ? (
         <div data-tutorial-target="fin-dashboard-charts" className="grid gap-4 xl:grid-cols-3">
           <FinanceMotionSection sectionId="liquidity" className="xl:col-span-1" qaTarget="finance-liquidity-section">
-            {(playLiquidity) => (
+            {(playLiquidity, liquidityInView) => (
               <ChartCard title="Liquidity mix" subtitle="Cash vs receivables vs payables">
                 {balanceMix.length === 0 ? (
                   <EmptyChart label="liquidity" />
@@ -448,6 +450,7 @@ function FinancialsLivingDashboard({
                   <FinanceLiquidityMix
                     segments={balanceMix}
                     playIntro={playLiquidity}
+                    enteredView={liquidityInView}
                     visitKey={visitKey}
                     formatCompact={compact}
                   />
@@ -457,7 +460,7 @@ function FinancialsLivingDashboard({
           </FinanceMotionSection>
 
           <FinanceMotionSection sectionId="ar-ageing" className="xl:col-span-1" qaTarget="finance-ar-ageing-section">
-            {(playAgeing) => (
+            {(playAgeing, ageingInView) => (
               <ChartCard title="AR ageing" subtitle="Outstanding invoices by age bucket">
                 {overview.ar.ageing.every((bucket) => bucket.amount === 0) ? (
                   <EmptyChart label="ageing" />
@@ -465,6 +468,7 @@ function FinancialsLivingDashboard({
                   <FinanceAgeingBucketBars
                     buckets={overview.ar.ageing}
                     playIntro={playAgeing}
+                    enteredView={ageingInView}
                     visitKey={visitKey}
                     formatMoney={(amount) => money(amount)}
                   />
@@ -494,8 +498,14 @@ function FinancialsLivingDashboard({
           </FinanceMotionSection>
 
           <FinanceMotionSection sectionId="margin" className="xl:col-span-1" qaTarget="finance-margin-section">
-            {(playMargin) => {
-              const marginAnim = financeRechartsMotion(playMargin, motionEnabled);
+            {(playMargin, marginInView) => {
+              const marginReveal = revealChartValues(marginInView);
+              const marginAnim = financeRechartsMotion(playMargin, motionEnabled, marginReveal);
+              const marginChartData = financeGateSeriesRows(
+                overview.charts.monthlyProfitLoss,
+                marginReveal,
+                ["profit", "loss"],
+              );
               return (
                 <ChartCard
                   title="Margin & profit"
@@ -520,8 +530,12 @@ function FinancialsLivingDashboard({
                     {overview.charts.monthlyProfitLoss.length === 0 ? (
                       <EmptyChart label="profit" />
                     ) : (
-                      <ResponsiveContainer width="100%" height="100%" key={`margin-chart-${visitKey}`}>
-                        <BarChart data={overview.charts.monthlyProfitLoss}>
+                      <ResponsiveContainer
+                        width="100%"
+                        height="100%"
+                        key={`margin-chart-${visitKey}-${marginReveal ? "on" : "off"}`}
+                      >
+                        <BarChart data={marginChartData}>
                           <CartesianGrid stroke="rgba(255,255,255,0.06)" vertical={false} />
                           <XAxis
                             dataKey="month"
@@ -555,8 +569,13 @@ function FinancialsLivingDashboard({
 
       {overview ? (
         <FinanceMotionSection sectionId="revenue" qaTarget="finance-revenue-section">
-          {(playRevenue) => {
-            const revenueAnim = financeRechartsMotion(playRevenue, motionEnabled);
+          {(playRevenue, revenueInView) => {
+            const revenueReveal = revealChartValues(revenueInView);
+            const revenueAnim = financeRechartsMotion(playRevenue, motionEnabled, revenueReveal);
+            const revenueChartData = financeGateSeriesRows(revenueVsSpend, revenueReveal, [
+              "revenue",
+              "spend",
+            ]);
             return (
               <div data-tutorial-target="fin-dashboard-revenue-chart">
                 <ChartCard
@@ -567,8 +586,12 @@ function FinancialsLivingDashboard({
                     {revenueVsSpend.length === 0 ? (
                       <EmptyChart label="revenue vs spend" />
                     ) : (
-                      <ResponsiveContainer width="100%" height="100%" key={`revenue-chart-${visitKey}`}>
-                        <AreaChart data={revenueVsSpend}>
+                      <ResponsiveContainer
+                        width="100%"
+                        height="100%"
+                        key={`revenue-chart-${visitKey}-${revenueReveal ? "on" : "off"}`}
+                      >
+                        <AreaChart data={revenueChartData}>
                           <defs>
                             <linearGradient id="fin-rev" x1="0" y1="0" x2="0" y2="1">
                               <stop offset="0%" stopColor="#38bdf8" stopOpacity={0.45} />
@@ -633,8 +656,10 @@ function FinancialsLivingDashboard({
         <>
           <div className="grid gap-4 xl:grid-cols-4">
             <FinanceMotionSection sectionId="ar-detail" qaTarget="finance-ar-detail-section">
-              {(playArDetail) => {
-                const arAnim = financeRechartsMotion(playArDetail, motionEnabled);
+              {(playArDetail, arDetailInView) => {
+                const arReveal = revealChartValues(arDetailInView);
+                const arAnim = financeRechartsMotion(playArDetail, motionEnabled, arReveal);
+                const arChartData = financeGateSeriesRows(overview.ar.ageing, arReveal, ["amount"]);
                 return (
             <ChartCard title="Accounts Receivable" subtitle="Collections and open invoices">
               <dl className="space-y-2 text-sm">
@@ -661,8 +686,12 @@ function FinancialsLivingDashboard({
                 {overview.ar.ageing.every((bucket) => bucket.amount === 0) ? (
                   <EmptyChart label="ageing" />
                 ) : (
-                  <ResponsiveContainer width="100%" height="100%" key={`ar-detail-${visitKey}`}>
-                    <BarChart data={overview.ar.ageing}>
+                  <ResponsiveContainer
+                    width="100%"
+                    height="100%"
+                    key={`ar-detail-${visitKey}-${arReveal ? "on" : "off"}`}
+                  >
+                    <BarChart data={arChartData}>
                       <CartesianGrid stroke="rgba(255,255,255,0.06)" vertical={false} />
                       <XAxis dataKey="bucket" tick={{ fill: "rgba(255,255,255,0.45)", fontSize: 10 }} />
                       <YAxis tick={{ fill: "rgba(255,255,255,0.35)", fontSize: 10 }} width={40} />
@@ -712,8 +741,14 @@ function FinancialsLivingDashboard({
             </ChartCard>
 
             <FinanceMotionSection sectionId="payroll" qaTarget="finance-payroll-section">
-              {(playPayroll) => {
-                const payrollAnim = financeRechartsMotion(playPayroll, motionEnabled);
+              {(playPayroll, payrollInView) => {
+                const payrollReveal = revealChartValues(payrollInView);
+                const payrollAnim = financeRechartsMotion(playPayroll, motionEnabled, payrollReveal);
+                const payrollSource =
+                  overview.payroll.trend?.length
+                    ? overview.payroll.trend
+                    : overview.charts.monthlyOutgoings;
+                const payrollChartData = financeGateSeriesRows(payrollSource, payrollReveal, ["amount"]);
                 return (
             <ChartCard title="Payroll" subtitle="Headcount cost run-rate">
               <dl className="space-y-2 text-sm">
@@ -735,14 +770,12 @@ function FinancialsLivingDashboard({
                 overview.charts.monthlyOutgoings.length === 0 ? (
                   <EmptyChart label="payroll trend" />
                 ) : (
-                  <ResponsiveContainer width="100%" height="100%" key={`payroll-${visitKey}`}>
-                    <LineChart
-                      data={
-                        overview.payroll.trend?.length
-                          ? overview.payroll.trend
-                          : overview.charts.monthlyOutgoings
-                      }
-                    >
+                  <ResponsiveContainer
+                    width="100%"
+                    height="100%"
+                    key={`payroll-${visitKey}-${payrollReveal ? "on" : "off"}`}
+                  >
+                    <LineChart data={payrollChartData}>
                       <CartesianGrid stroke="rgba(255,255,255,0.06)" vertical={false} />
                       <XAxis
                         dataKey="month"
@@ -769,16 +802,25 @@ function FinancialsLivingDashboard({
             </FinanceMotionSection>
 
             <FinanceMotionSection sectionId="cash-flow" qaTarget="finance-cash-flow-section">
-              {(playCashFlow) => {
-                const cashFlowAnim = financeRechartsMotion(playCashFlow, motionEnabled);
+              {(playCashFlow, cashFlowInView) => {
+                const cashFlowReveal = revealChartValues(cashFlowInView);
+                const cashFlowAnim = financeRechartsMotion(playCashFlow, motionEnabled, cashFlowReveal);
+                const cashFlowChartData = financeGateSeriesRows(cashInOut, cashFlowReveal, [
+                  "cashIn",
+                  "cashOut",
+                ]);
                 return (
             <ChartCard title="Cash in vs cash out" subtitle="Last 6 months — revenue vs operating spend">
               <div className="h-40">
                 {cashInOut.length === 0 ? (
                   <EmptyChart label="cash flow" />
                 ) : (
-                  <ResponsiveContainer width="100%" height="100%" key={`cash-flow-${visitKey}`}>
-                    <BarChart data={cashInOut}>
+                  <ResponsiveContainer
+                    width="100%"
+                    height="100%"
+                    key={`cash-flow-${visitKey}-${cashFlowReveal ? "on" : "off"}`}
+                  >
+                    <BarChart data={cashFlowChartData}>
                       <CartesianGrid stroke="rgba(255,255,255,0.06)" vertical={false} />
                       <XAxis dataKey="month" tick={{ fill: "rgba(255,255,255,0.45)", fontSize: 10 }} />
                       <YAxis hide />
@@ -819,16 +861,22 @@ function FinancialsLivingDashboard({
                 sectionId={sectionId}
                 qaTarget={`finance-${id}-trajectory-section`}
               >
-                {(playArea) => {
-                  const areaAnim = financeRechartsMotion(playArea, motionEnabled);
+                {(playArea, areaInView) => {
+                  const areaReveal = revealChartValues(areaInView);
+                  const areaAnim = financeRechartsMotion(playArea, motionEnabled, areaReveal);
+                  const areaChartData = financeGateSeriesRows([...data], areaReveal, ["amount"]);
                   return (
                     <ChartCard title={title}>
                       <div className="h-52">
                         {data.length === 0 ? (
                           <EmptyChart label={title.toLowerCase()} />
                         ) : (
-                          <ResponsiveContainer width="100%" height="100%" key={`${id}-area-${visitKey}`}>
-                            <AreaChart data={data}>
+                          <ResponsiveContainer
+                            width="100%"
+                            height="100%"
+                            key={`${id}-area-${visitKey}-${areaReveal ? "on" : "off"}`}
+                          >
+                            <AreaChart data={areaChartData}>
                               <defs>
                                 <linearGradient id={`area-${id}`} x1="0" y1="0" x2="0" y2="1">
                                   <stop offset="0%" stopColor={color} stopOpacity={0.4} />
@@ -986,6 +1034,8 @@ export default function FinancialsWorkspace() {
   useEffect(() => {
     if (!overview || typeof window === "undefined") return;
     window.__financeDashboardMotionAudit = buildFinanceDashboardMotionAudit(overview);
+    window.__financeMotionBuild =
+      process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA ?? process.env.VERCEL_GIT_COMMIT_SHA ?? "local";
   }, [overview]);
 
   return (
@@ -1018,5 +1068,6 @@ function FinancialsLivingDashboardKeyed(
 declare global {
   interface Window {
     __financeDashboardMotionAudit?: ReturnType<typeof buildFinanceDashboardMotionAudit>;
+    __financeMotionBuild?: string;
   }
 }

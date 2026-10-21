@@ -17,11 +17,13 @@ type Segment = { name: string; value: number };
 export function FinanceLiquidityMix({
   segments,
   playIntro,
+  enteredView,
   visitKey,
   formatCompact,
 }: {
   segments: Segment[];
   playIntro: boolean;
+  enteredView: boolean;
   visitKey: number;
   formatCompact: (amount: number) => string;
 }) {
@@ -29,22 +31,21 @@ export function FinanceLiquidityMix({
   const total = segments.reduce((sum, row) => sum + row.value, 0);
   if (total <= 0) return null;
 
-  const reveal = !motionEnabled || playIntro;
-
   return (
     <div key={visitKey} className="space-y-4" data-finance-motion="liquidity-stack">
       <div className="flex h-4 w-full overflow-hidden rounded-full border border-white/10 bg-white/[0.04]">
         {segments.map((row, index) => {
           const widthPct = (row.value / total) * 100;
+          const target = !motionEnabled || enteredView ? `${widthPct}%` : "0%";
           return (
             <motion.div
               key={row.name}
               data-living-finance-liquidity={index}
               data-finance-final-value={formatCompact(row.value)}
-              className="h-full min-w-0"
+              className="h-full min-w-0 shrink-0"
               title={`${row.name}: ${formatCompact(row.value)}`}
-              initial={false}
-              animate={{ width: reveal ? `${widthPct}%` : "0%" }}
+              initial={{ width: "0%" }}
+              animate={{ width: target }}
               transition={
                 playIntro && motionEnabled
                   ? {
@@ -85,17 +86,18 @@ export function FinanceLiquidityMix({
 export function FinanceAgeingBucketBars({
   buckets,
   playIntro,
+  enteredView,
   visitKey,
   formatMoney,
 }: {
   buckets: Array<{ bucket: string; amount: number }>;
   playIntro: boolean;
+  enteredView: boolean;
   visitKey: number;
   formatMoney: (amount: number) => string;
 }) {
   const motionEnabled = useLivingMotionEnabled();
   const max = Math.max(1, ...buckets.map((b) => b.amount));
-  const reveal = !motionEnabled || playIntro;
 
   return (
     <div key={visitKey} className="space-y-2.5" data-finance-motion="ageing-buckets">
@@ -120,8 +122,10 @@ export function FinanceAgeingBucketBars({
                   "h-full rounded-full",
                   overdue ? "bg-rose-400/85" : "bg-sky-400/80",
                 )}
-                initial={false}
-                animate={{ width: reveal ? `${widthPct}%` : "0%" }}
+                initial={{ width: "0%" }}
+                animate={{
+                  width: !motionEnabled || enteredView ? `${widthPct}%` : "0%",
+                }}
                 transition={
                   playIntro && motionEnabled
                     ? {
