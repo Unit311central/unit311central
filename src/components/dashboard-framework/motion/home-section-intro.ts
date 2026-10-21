@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import {
   useLivingHomeMotionArmed,
@@ -29,7 +29,7 @@ export function useHomeSectionIntro(sectionId: HomeMotionSectionId) {
   const sectionRef = useRef<HTMLElement | null>(null);
   const [enteredView, setEnteredView] = useState(() => !motionEnabled);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     setEnteredView(!motionEnabled);
   }, [visitKey, motionEnabled]);
 

@@ -20,10 +20,24 @@ async function loginDemo(page, context) {
     waitUntil: "domcontentloaded",
     timeout: 120_000,
   });
-  await page.locator("input[name=username]").fill(USERNAME);
-  await page.locator("input[name=password][type=password]").fill(PASSWORD);
+  const username = page.locator("input[name=username]");
+  const password = page.locator("input[name=password][type=password]");
+  await username.waitFor({ state: "visible", timeout: 60_000 });
+  await password.waitFor({ state: "visible", timeout: 60_000 });
+  await username.fill(USERNAME);
+  await password.fill(PASSWORD);
   await page.getByRole("button", { name: /sign in/i }).click();
-  await page.waitForURL(/\/dashboard/, { timeout: 90_000 });
+  try {
+    await page.waitForURL(/\/dashboard/, { timeout: 90_000 });
+  } catch (error) {
+    const url = page.url();
+    const bodySnippet = await page.locator("body").innerText().catch(() => "");
+    throw new Error(
+      `Login did not reach /dashboard (at ${url}). Snippet: ${bodySnippet.slice(0, 200)}. ` +
+        `${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
+  await page.waitForLoadState("domcontentloaded", { timeout: 90_000 }).catch(() => {});
   const cookies = await context.cookies();
   const session = cookies.filter((c) => c.name === "dc_platform_session");
   assert.equal(session.length, 1, "expected session cookie after login");
@@ -48,11 +62,32 @@ async function sampleWidthDelta(page, readFn, samples = 28, intervalMs = 80) {
   return { minW, maxW };
 }
 
-async function readAgeingWidth(page, index = 0) {
-  return page.evaluate((idx) => {
-    const bar = document.querySelector(`[data-living-finance-ageing="${idx}"]`);
-    return bar ? bar.getBoundingClientRect().width : 0;
-  }, index);
+async function sampleChartsRowDelta(page, samples = 28, intervalMs = 80) {
+  let minLiq = Infinity;
+  let maxLiq = 0;
+  let minAge = Infinity;
+  let maxAge = 0;
+  for (let i = 0; i < samples; i++) {
+    const liq = await readLiquidityWidth(page);
+    const age = await readMaxAgeingWidth(page);
+    minLiq = Math.min(minLiq, liq);
+    maxLiq = Math.max(maxLiq, liq);
+    minAge = Math.min(minAge, age);
+    maxAge = Math.max(maxAge, age);
+    await page.waitForTimeout(intervalMs);
+  }
+  return { liq: { minW: minLiq, maxW: maxLiq }, age: { minW: minAge, maxW: maxAge } };
+}
+
+async function readMaxAgeingWidth(page) {
+  return page.evaluate(() => {
+    const bars = document.querySelectorAll("[data-living-finance-ageing]");
+    let maxW = 0;
+    for (const bar of bars) {
+      maxW = Math.max(maxW, bar.getBoundingClientRect().width);
+    }
+    return maxW;
+  });
 }
 
 async function readAudit(page) {
@@ -78,6 +113,7 @@ function compactMatchesAudit(domValue, auditAmount, currency = "GBP") {
 async function captureFinanceStory(page) {
   await page.goto(FINANCE_URL, { waitUntil: "domcontentloaded", timeout: 120_000 });
   await page.waitForSelector('[data-tutorial-target="fin-dashboard-hero"]', { timeout: 90_000 });
+  await page.evaluate(() => window.scrollTo(0, 0));
   await page.waitForFunction(() => Boolean(window.__financeDashboardMotionAudit), { timeout: 120_000 });
 
   await page.evaluate(() => window.scrollTo(0, 0));
@@ -87,17 +123,20 @@ async function captureFinanceStory(page) {
   assert.ok(audit?.liquidity?.length, "audit liquidity segments should exist");
 
   await page.locator('[data-qa-target="finance-liquidity-section"]').scrollIntoViewIfNeeded();
-  await page.screenshot({ path: `${ARTIFACT_DIR}/demo-finance-story-liquidity-enter.png`, fullPage: false });
-  const liqDelta = await sampleWidthDelta(page, readLiquidityWidth);
+  const rowDelta = await sampleChartsRowDelta(page);
   await page.screenshot({ path: `${ARTIFACT_DIR}/demo-finance-story-liquidity-mid.png`, fullPage: false });
   assert.ok(
-    liqDelta.maxW > liqDelta.minW + 2,
+    rowDelta.liq.maxW > rowDelta.liq.minW + 2,
     "liquidity stack should grow when section enters viewport",
   );
-  const liqLate = liqDelta.maxW;
+  assert.ok(
+    rowDelta.age.maxW > rowDelta.age.minW + 1,
+    "AR ageing buckets should fill sequentially",
+  );
+  const liqLate = rowDelta.liq.maxW;
 
   const domCash = await page
-    .locator('[data-finance-motion="liquidity-stack"] [data-finance-final-value]')
+    .locator('[data-finance-motion="liquidity-stack"] ul [data-finance-final-value]')
     .first()
     .textContent();
   const cashSeg = audit.liquidity.find((r) => r.name === "Cash");
@@ -105,10 +144,6 @@ async function captureFinanceStory(page) {
     cashSeg && compactMatchesAudit(domCash ?? "", cashSeg.value),
     "liquidity cash label should match audit",
   );
-
-  await page.locator('[data-qa-target="finance-ar-ageing-section"]').scrollIntoViewIfNeeded();
-  const ageDelta = await sampleWidthDelta(page, (p) => readAgeingWidth(p, 0));
-  assert.ok(ageDelta.maxW > ageDelta.minW + 1, "AR ageing buckets should fill sequentially");
 
   await page.locator('[data-qa-target="finance-margin-section"]').scrollIntoViewIfNeeded();
   await page.waitForTimeout(400);
@@ -139,7 +174,10 @@ async function captureFinanceStory(page) {
   await replayBtn.waitFor({ timeout: 15_000 });
   await page.evaluate(() => window.scrollTo(0, 0));
   await replayBtn.click();
-  await page.waitForTimeout(400);
+  await page.waitForTimeout(250);
+  await page.evaluate(() => window.scrollTo(0, 0));
+  const widthAfterReplay = await readLiquidityWidth(page);
+  assert.ok(widthAfterReplay < 4, "replay should reset liquidity bars before viewport entry");
   await page.locator('[data-qa-target="finance-liquidity-section"]').scrollIntoViewIfNeeded();
   const replayDelta = await sampleWidthDelta(page, readLiquidityWidth);
   assert.ok(replayDelta.maxW > replayDelta.minW + 2, "replay should re-animate liquidity when in view");
@@ -152,13 +190,14 @@ async function main() {
 
   const browser = await chromium.launch({ headless: true });
   const context = await browser.newContext({
-    viewport: { width: 1280, height: 720 },
+    viewport: { width: 1280, height: 420 },
     recordVideo: { dir: ARTIFACT_DIR, size: { width: 1280, height: 720 } },
   });
   const page = await context.newPage();
 
   await loginDemo(page, context);
   await captureFinanceStory(page);
+  await page.setViewportSize({ width: 1280, height: 720 });
 
   const videoPath = await page.video().path();
   await context.close();

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import { useFinanceMotionArmed, useFinanceVisitKey } from "./finance-living-motion-context";
 import { useIntroAnimationLock, useLivingMotionEnabled } from "./living-motion";
@@ -35,7 +35,7 @@ export function useFinanceSectionIntro(sectionId: FinanceMotionSectionId) {
   const sectionRef = useRef<HTMLElement | null>(null);
   const [enteredView, setEnteredView] = useState(() => !motionEnabled);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     setEnteredView(!motionEnabled);
   }, [visitKey, motionEnabled]);
 
