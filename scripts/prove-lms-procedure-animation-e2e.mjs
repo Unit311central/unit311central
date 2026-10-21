@@ -106,9 +106,7 @@ async function main() {
     flatFromApi.filter((l) => l.lessonType === "knowledge_check").length >= 2,
     "generated tree must include knowledge_check lessons",
   );
-  const questionStems = (genBody.course.questions ?? genBody.draft?.questions ?? []).map(
-    (q) => q.stem ?? q.question ?? "",
-  );
+  const questionStems = (genBody.draft?.questions ?? []).map((q) => q.stem ?? q.question ?? "");
   assert.ok(
     questionStems.some((s) => /incident|escalat|severity|procedure|document/i.test(String(s))),
     "assessment bank questions must relate to uploaded document",
