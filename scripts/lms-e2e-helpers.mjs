@@ -157,7 +157,7 @@ export async function answerInlineKnowledgeCheck(page, kcLessonId) {
   const text = await prompt.textContent();
   assert.ok(text && text.length > 10, "knowledge check prompt must be visible");
   await section.getByTestId("knowledge-check-choice").first().click();
-  await section.getByText(/correct|not quite/i).waitFor({ timeout: 15_000 });
+  await section.getByText(/correct|not quite/i).first().waitFor({ timeout: 15_000 });
 }
 
 export async function submitAssessmentAttempt(page, courseSlug) {

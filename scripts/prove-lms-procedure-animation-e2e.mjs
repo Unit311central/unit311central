@@ -52,7 +52,7 @@ async function main() {
     recordVideo: { dir: ARTIFACT_DIR, size: { width: 1280, height: 720 } },
   });
   const page = await context.newPage();
-  const uniqueTitle = `E2E Incident Procedure ${Date.now()}`;
+  const uniqueTitle = `E2E ${Date.now()}`;
 
   console.log(`PDF course E2E: ${ORIGIN} title=${uniqueTitle}`);
 

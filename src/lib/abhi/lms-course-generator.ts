@@ -56,7 +56,7 @@ function normalizeAiDraft(
 ): GeneratedCourseDraft | null {
   if (!raw || typeof raw !== "object") return null;
   const obj = raw as Record<string, unknown>;
-  const title = String(obj.title ?? preferredTitle ?? "").trim();
+  const title = String(preferredTitle?.trim() || obj.title || "").trim();
   const modules = Array.isArray(obj.modules) ? obj.modules : null;
   if (!title || !modules?.length) return null;
 

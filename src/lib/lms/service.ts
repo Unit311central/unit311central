@@ -1046,7 +1046,11 @@ export async function createCourseTree(
     if (!existingCode) break;
     code = courseCodeAfterCollision(baseCode, i + 1);
   }
-  const stillTaken = await getCourseByCode(workspaceId, code);
+  let stillTaken = await getCourseByCode(workspaceId, code);
+  if (stillTaken) {
+    code = courseCodeAfterCollision(baseCode, Date.now() % 10_000);
+    stillTaken = await getCourseByCode(workspaceId, code);
+  }
   if (stillTaken) {
     throw new Error(
       "Could not allocate a unique course code for this workspace. Try a different title or course code.",
