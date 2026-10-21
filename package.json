@@ -66,7 +66,7 @@
     "prove:expenses-acceptance": "node scripts/prove-expenses-acceptance.mjs",
     "prove:telecom-migration-163": "node scripts/prove-telecom-migration-163.mjs",
     "prove:demo-fundraising-auth-ui": "node --import tsx src/lib/__tests__/demo-fundraising-auth-ui.check.ts && node --import tsx src/lib/__tests__/fundraising-workspace-surface.check.ts",
-    "prove:lms-procedure-animation": "node --import tsx src/lib/lms/__tests__/procedure-animation.check.ts",
+    "prove:lms-procedure-animation": "node --import tsx src/lib/lms/__tests__/procedure-animation.check.ts && node --import tsx src/lib/lms/__tests__/course-delete.check.ts",
     "prove:demo-module-structure": "node --import tsx src/lib/__tests__/demo-module-structure-frozen.check.ts",
     "prove:pm-nav": "node --import tsx src/lib/__tests__/project-management-nav.check.ts",
     "prove:sales-management-nav": "node --require ./scripts/test-server-only-hook.cjs --import tsx src/lib/__tests__/sales-management-nav.check.ts && node --require ./scripts/test-server-only-hook.cjs --import tsx src/lib/__tests__/sales-management-target-clients.check.ts && node --import tsx src/lib/__tests__/sales-management-rollout.check.ts",

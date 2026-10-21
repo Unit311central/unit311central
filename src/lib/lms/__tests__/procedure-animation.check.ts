@@ -10,6 +10,7 @@ import {
   validateProcedureAnimationSpec,
 } from "@/lib/lms/procedure-animation-spec";
 import { sanitizeLessonContent } from "@/lib/lms/sanitize-lesson-content";
+import { buildDocumentTemplateCourse } from "@/lib/lms/document-template-course";
 
 const genericDoc = `
 1. Identify the operational issue and record the time and location.
@@ -80,5 +81,14 @@ const draft = ensureProcedureAnimationLessons(
   genericDoc,
 );
 assert.ok(countProcedureAnimationLessons(draft) >= 1, "ensure adds animation when missing");
+
+const template = buildDocumentTemplateCourse(genericDoc, "incident-reporting.pdf");
+assert.equal(template.generationSource, "document_template");
+assert.ok(template.questions && template.questions.length >= 8);
+assert.ok(
+  template.questions.some((q) => /duty manager|escalat|register/i.test(q.stem)),
+  "question bank should reference document steps",
+);
+assert.ok(countProcedureAnimationLessons(template) >= 1);
 
 console.log("ok  procedure-animation checks passed\n");

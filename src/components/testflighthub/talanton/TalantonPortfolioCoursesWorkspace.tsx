@@ -50,8 +50,11 @@ type GenerationSummary = {
   scenarioCount: number;
   assessmentCount: number;
   questionCount: number;
+  animationCount?: number;
   certificateEnabled: boolean;
   learningObjectives?: string[];
+  templateFallback?: boolean;
+  generationSource?: "ai" | "document_template";
 };
 
 export default function TalantonPortfolioCoursesWorkspace() {

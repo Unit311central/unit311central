@@ -91,6 +91,16 @@ async function main() {
   await page.getByRole("button", { name: /publish course/i }).click();
   await page.getByText(/is published and listed below/i).waitFor({ timeout: 120_000 });
 
+  const publishedSlug = await page.evaluate(async () => {
+    const res = await fetch("/api/lms/courses?all=1&includeStats=1", { credentials: "include" });
+    const data = await res.json();
+    const match = (data.courses ?? []).find((c) =>
+      /incident|escalat|severity|reporting/i.test(`${c.title} ${c.slug}`),
+    );
+    return match?.slug ?? null;
+  });
+  assert.ok(publishedSlug, "published course slug should be discoverable");
+
   const courseRow = page
     .getByRole("row")
     .filter({ hasText: /incident|escalat|severity|reporting/i })
@@ -128,6 +138,43 @@ async function main() {
   }
   await page.waitForTimeout(3500);
   await page.screenshot({ path: `${ARTIFACT_DIR}/lms-e2e-04-lms-player-animation.png` });
+
+  const assessment = await page.evaluate(async (slug) => {
+    const drawRes = await fetch("/api/lms/assessment/draw", {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ courseSlug: slug }),
+    });
+    const draw = await drawRes.json();
+    if (!drawRes.ok) return { ok: false, step: "draw", draw };
+    const answers = {};
+    for (const q of draw.questions ?? []) {
+      answers[q.id] = q.choices?.[0]?.id ?? "a";
+    }
+    const submitRes = await fetch("/api/lms/assessment/submit", {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        courseSlug: slug,
+        enrolmentId: draw.enrolmentId,
+        questionIds: (draw.questions ?? []).map((q) => q.id),
+        answers,
+      }),
+    });
+    const submit = await submitRes.json();
+    return {
+      ok: submitRes.ok,
+      step: submitRes.ok ? "done" : "submit",
+      drawCount: draw.questions?.length ?? 0,
+      submit,
+    };
+  }, publishedSlug);
+  assert.ok(assessment.ok, `assessment flow failed: ${JSON.stringify(assessment)}`);
+  assert.ok(assessment.drawCount >= 1, "assessment should draw questions");
+  assert.ok(assessment.submit.attemptId, "attempt should be persisted");
+  assert.equal(typeof assessment.submit.score, "number");
 
   const video = page.video();
   const dest = `${ARTIFACT_DIR}/lms-procedure-animation-e2e.webm`;

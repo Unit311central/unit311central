@@ -26,10 +26,16 @@ async function main() {
     y -= line.startsWith("Incident") ? 28 : 18;
   }
   const bytes = await doc.save();
-  const out = "/opt/cursor/artifacts/Talanton_Sample_Compliance_Procedure_Incident_Reporting.pdf";
-  fs.mkdirSync("/opt/cursor/artifacts", { recursive: true });
-  fs.writeFileSync(out, bytes);
-  console.log(`Wrote ${out} (${bytes.length} bytes)`);
+  const dir = "/opt/cursor/artifacts";
+  fs.mkdirSync(dir, { recursive: true });
+  for (const name of [
+    "Talanton_Sample_Compliance_Procedure_Incident_Reporting.pdf",
+    "Talanton_Sample_Compliance_Procedure_Incident_Reporting(1).pdf",
+  ]) {
+    const out = `${dir}/${name}`;
+    fs.writeFileSync(out, bytes);
+    console.log(`Wrote ${out} (${bytes.length} bytes)`);
+  }
 }
 
 main().catch((err) => {

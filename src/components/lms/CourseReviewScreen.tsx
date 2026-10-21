@@ -26,6 +26,8 @@ type Summary = {
   animationCount?: number;
   certificateEnabled: boolean;
   learningObjectives?: string[];
+  templateFallback?: boolean;
+  generationSource?: "ai" | "document_template";
 };
 
 type Props = {
@@ -101,6 +103,12 @@ export default function CourseReviewScreen({
               AI built a complete course
             </p>
             <h2 className="mt-2 text-2xl font-semibold text-white">Review before publishing</h2>
+            {summary.templateFallback || summary.generationSource === "document_template" ? (
+              <p className="mt-3 rounded-xl border border-amber-400/35 bg-amber-500/10 px-3 py-2.5 text-sm text-amber-50">
+                Template fallback: AI generation did not complete. This draft was built only from
+                detected procedure steps in your document. Review carefully before publishing.
+              </p>
+            ) : null}
           </div>
           <button
             type="button"
