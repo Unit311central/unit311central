@@ -9,6 +9,7 @@ type AnimatedPerformanceTrendProps = {
   stroke?: string;
   className?: string;
   playIntro: boolean;
+  enteredView: boolean;
 };
 
 function buildTrendPath(values: readonly number[], width: number, height: number): string {
@@ -28,7 +29,9 @@ export function AnimatedPerformanceTrend({
   stroke = "var(--platform-accent, #2F80ED)",
   className,
   playIntro,
+  enteredView,
 }: AnimatedPerformanceTrendProps) {
+  const draw = playIntro && enteredView;
   const width = 320;
   const height = 72;
   const path = buildTrendPath(values, width, height);
@@ -51,7 +54,7 @@ export function AnimatedPerformanceTrend({
           <stop offset="100%" stopColor={stroke} stopOpacity="0" />
         </linearGradient>
       </defs>
-      {playIntro ? (
+      {draw ? (
         <motion.path
           d={`${path} L ${width} ${height} L 0 ${height} Z`}
           fill="url(#home-trend-fill)"
@@ -69,10 +72,10 @@ export function AnimatedPerformanceTrend({
         strokeWidth={2.5}
         strokeLinecap="round"
         strokeLinejoin="round"
-        initial={playIntro ? { pathLength: 0, opacity: 0.45 } : false}
-        animate={{ pathLength: 1, opacity: 1 }}
+        initial={draw ? { pathLength: 0, opacity: 0.45 } : enteredView ? false : { pathLength: 0, opacity: 0 }}
+        animate={{ pathLength: enteredView ? 1 : 0, opacity: enteredView ? 1 : 0 }}
         transition={
-          playIntro
+          draw
             ? {
                 pathLength: {
                   duration: HOME_SECTION_LINE_DRAW_S,

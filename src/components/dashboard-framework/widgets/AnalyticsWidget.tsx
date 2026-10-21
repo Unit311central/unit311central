@@ -70,21 +70,24 @@ function AnimatedBar({
   title,
   barIndex,
   playIntro,
+  enteredView,
 }: {
   heightPct: number;
   color: string;
   title: string;
   barIndex: number;
   playIntro: boolean;
+  enteredView: boolean;
 }) {
+  const target = enteredView ? `${heightPct}%` : "0%";
   return (
     <motion.div
       className="min-w-0 flex-1 rounded-t-sm opacity-95"
       style={{ background: color }}
       title={title}
       data-living-chart-bar={barIndex}
-      initial={playIntro ? { height: "0%" } : false}
-      animate={{ height: `${heightPct}%` }}
+      initial={{ height: "0%" }}
+      animate={{ height: target }}
       transition={
         playIntro
           ? {
@@ -92,14 +95,15 @@ function AnimatedBar({
               delay: homeSectionDelaySec("chart-bar", barIndex),
               ease: [0.22, 1, 0.36, 1],
             }
-          : { duration: 0 }
+          : { duration: enteredView ? 0 : 0 }
       }
     />
   );
 }
 
 export default function AnalyticsWidget({ widget }: { widget: DashboardAnalyticsWidget }) {
-  const { sectionRef, playSectionIntro, sectionDataAttr } = useHomeSectionIntro("performance");
+  const { sectionRef, playSectionIntro, enteredView, sectionDataAttr } =
+    useHomeSectionIntro("performance");
   const seriesList = widget.series;
   const pointCount = Math.max(0, ...seriesList.map((s) => s.values.length));
   const labels = periodLabels(seriesList);
@@ -134,7 +138,7 @@ export default function AnalyticsWidget({ widget }: { widget: DashboardAnalytics
                     format={(n) => formatCountUpValue("compactCurrency", item.countUpCurrency, n)}
                     lane="chart-annotation"
                     laneIndex={index}
-                    sectionIntroActive={playSectionIntro}
+                    sectionIntroActive={enteredView && playSectionIntro}
                     durationMs={HOME_SECTION_COUNT_UP_MS}
                   />
                 ) : (
@@ -176,6 +180,7 @@ export default function AnalyticsWidget({ widget }: { widget: DashboardAnalytics
                 stroke={SERIES_COLORS[0]}
                 className="h-[3rem] w-full"
                 playIntro={playSectionIntro}
+                enteredView={enteredView}
               />
             </div>
           ) : null}
@@ -198,6 +203,7 @@ export default function AnalyticsWidget({ widget }: { widget: DashboardAnalytics
                           title={`${period} · ${series.label}: ${formatSeriesValue(series, value)}`}
                           barIndex={barIndex}
                           playIntro={playSectionIntro}
+                          enteredView={enteredView}
                         />
                       );
                     })}
@@ -228,6 +234,7 @@ export default function AnalyticsWidget({ widget }: { widget: DashboardAnalytics
                       title={`${labels[index] ?? index + 1} · ${series.label}: ${formatSeriesValue(series, value)}`}
                       barIndex={index}
                       playIntro={playSectionIntro}
+                      enteredView={enteredView}
                     />
                     {labels[index] ? (
                       <span className="truncate text-center text-[9px] text-white/35">{labels[index]}</span>

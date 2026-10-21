@@ -17,12 +17,15 @@ function QueueAttentionBar({
   index,
   priority,
   playIntro,
+  enteredView,
 }: {
   fraction: number;
   index: number;
   priority: "high" | "medium" | "low" | undefined;
   playIntro: boolean;
+  enteredView: boolean;
 }) {
+  const targetWidth = enteredView ? `${Math.round(fraction * 100)}%` : "0%";
   const tone =
     priority === "high"
       ? "bg-rose-400"
@@ -35,8 +38,8 @@ function QueueAttentionBar({
       <motion.div
         className={cn("h-full rounded-full", tone)}
         data-living-queue-bar={index}
-        initial={playIntro ? { width: "0%" } : false}
-        animate={{ width: `${Math.round(fraction * 100)}%` }}
+        initial={{ width: "0%" }}
+        animate={{ width: targetWidth }}
         transition={
           playIntro
             ? {
@@ -53,7 +56,8 @@ function QueueAttentionBar({
 
 export default function WorkQueueWidget({ widget }: { widget: DashboardWorkQueueWidget }) {
   const motionEnabled = useLivingMotionEnabled();
-  const { sectionRef, playSectionIntro, sectionDataAttr } = useHomeSectionIntro("queue");
+  const { sectionRef, playSectionIntro, enteredView, sectionDataAttr } =
+    useHomeSectionIntro("queue");
   const [completedIds, setCompletedIds] = useState<Set<string>>(() => new Set());
 
   const toggleComplete = useCallback((id: string) => {
@@ -140,6 +144,7 @@ export default function WorkQueueWidget({ widget }: { widget: DashboardWorkQueue
                     index={index}
                     priority={item.priority}
                     playIntro={playSectionIntro}
+                    enteredView={enteredView}
                   />
                 ) : null}
               </motion.li>

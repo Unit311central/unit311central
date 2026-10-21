@@ -14,7 +14,8 @@ export default function RecentActivityWidget({
   widget: DashboardRecentActivityWidget;
 }) {
   const motionEnabled = useLivingMotionEnabled();
-  const { sectionRef, playSectionIntro, sectionDataAttr } = useHomeSectionIntro("activity");
+  const { sectionRef, playSectionIntro, enteredView, sectionDataAttr } =
+    useHomeSectionIntro("activity");
 
   return (
     <section
