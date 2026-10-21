@@ -99,23 +99,27 @@ async function captureDashboardStory(page) {
   );
 
   await page.evaluate(() => window.scrollTo(0, 0));
-  await page.waitForTimeout(8000);
+  await page.waitForTimeout(3000);
   const beforeScroll = await readStoryMetrics(page);
+  assert.ok(
+    beforeScroll.chartBarHeight < 3,
+    "Business Performance bars should stay collapsed until the section enters the viewport",
+  );
 
   await page.locator('[data-qa-target="home-business-performance"]').scrollIntoViewIfNeeded();
   await page.screenshot({ path: `${ARTIFACT_DIR}/demo-home-story-performance-enter.png`, fullPage: false });
-  await page.waitForTimeout(400);
+  await page.waitForTimeout(100);
   const perfEarly = await readStoryMetrics(page);
-  await page.waitForTimeout(2200);
+  await page.waitForTimeout(2400);
   const perfLate = await readStoryMetrics(page);
   await page.screenshot({ path: `${ARTIFACT_DIR}/demo-home-story-performance-mid.png`, fullPage: false });
   assert.ok(
-    perfLate.chartBarHeight > perfEarly.chartBarHeight + 2,
-    "Business Performance bars should grow after scroll into view",
+    perfLate.chartBarHeight > beforeScroll.chartBarHeight + 8,
+    "Business Performance should animate when scrolled into view",
   );
   assert.ok(
-    perfLate.chartBarHeight > beforeScroll.chartBarHeight + 2,
-    "Business Performance should animate on viewport entry, not only on initial load",
+    perfLate.chartBarHeight >= perfEarly.chartBarHeight,
+    "Business Performance bars should reach final height after viewport entry",
   );
   assert.ok(perfLate.hasTrendStroke, "revenue trend should render in Business Performance");
 
