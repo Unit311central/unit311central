@@ -4,6 +4,7 @@ import {
   parseClientPlatformSubdomainSafe,
 } from "@/lib/app-domains";
 import { canonicalizeSaecWorkspaceSlug } from "@/lib/saec-surface";
+import { canonicalizeTalantonImpactSlug } from "@/lib/talanton-surface";
 import {
   isBrowserDemoPreviewActive,
   isOnDemoHostBrowser,
@@ -22,7 +23,11 @@ export function resolveBrowserPlatformCacheHostSlug(): string | null {
   if (isDemoDomainHost(window.location.hostname)) return DEMO_WORKSPACE_SLUG;
   const hostSlug = parseClientPlatformSubdomainSafe(window.location.hostname);
   if (!hostSlug) return null;
-  return canonicalizeSaecWorkspaceSlug(hostSlug) ?? hostSlug;
+  return (
+    canonicalizeTalantonImpactSlug(hostSlug) ??
+    canonicalizeSaecWorkspaceSlug(hostSlug) ??
+    hostSlug
+  );
 }
 
 function readCachedWhoamiPayload(): { workspaceSlug?: string | null; roles?: string[] | null; role?: string | null } | null {

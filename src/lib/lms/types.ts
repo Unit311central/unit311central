@@ -153,6 +153,16 @@ export type LmsCourse = {
 };
 
 /** Published course row for admin/library lists (optional stats from list API). */
+export type LmsCourseDeletionImpact = {
+  assignmentCount: number;
+  enrolmentCount: number;
+  attemptCount: number;
+  certificateCount: number;
+};
+
+/** Draft courses are purged; published courses are archived (learner records kept). */
+export type LmsCourseRemovalMode = "deleted" | "archived";
+
 export type LmsCourseListItem = LmsCourse & {
   moduleCount?: number;
 };

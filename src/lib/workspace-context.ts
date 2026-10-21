@@ -17,6 +17,7 @@ import { allowsAbhiPlatformWorkspaceAccess } from "@/lib/abhi/platform-demo";
 import { allowsGreenDesertWorkspaceAccess } from "@/lib/greendesert/greendesert-workspace-access";
 import { allowsPortalsBriefingPlatformWorkspaceAccess } from "@/lib/portals/registry";
 import { ABHI_SLUG } from "@/lib/abhi-surface";
+import { resolveTalantonSlugFromHost } from "@/lib/talanton-surface";
 import {
   INTERNAL_WORKSPACE_SLUG,
   findWorkspaceById,
@@ -96,6 +97,10 @@ function resolveCustomerHostSlug(
   requestHeaders: Headers,
   host: string | null,
 ): string | null {
+  if (host) {
+    const talantonSlug = resolveTalantonSlugFromHost(host);
+    if (talantonSlug) return talantonSlug;
+  }
   const fromHost = parseClientPlatformSubdomainSafe(host);
   if (fromHost) return fromHost;
 

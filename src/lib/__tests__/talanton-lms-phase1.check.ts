@@ -19,7 +19,7 @@ const library = readFileSync(
 const coursesRoute = readFileSync(join(repoRoot, "src/app/api/lms/courses/route.ts"), "utf8");
 
 assert.doesNotMatch(portfolio, /TALANTON_COMPLIANCE_COURSES\.map/);
-assert.match(portfolio, /fetchPublishedLmsCoursesWithStats/);
+assert.match(portfolio, /fetchStaffLmsCoursesWithStats/);
 assert.match(portfolio, /reloadPublishedCourses/);
 assert.match(portfolio, /LmsCoursePlayerOverlay/);
 
