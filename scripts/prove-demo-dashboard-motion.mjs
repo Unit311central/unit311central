@@ -18,6 +18,7 @@ const VIEWS = [
   { view: "sales-management", label: "Sales" },
   { view: "fundraising-dashboard", label: "Fundraising" },
   { view: "operations-dashboard", label: "Operations" },
+  { view: "hr-dashboard", label: "Human Resources" },
   { view: "marketing-dashboard", label: "Marketing" },
   { view: "marketing-events", label: "Events external" },
   { view: "marketing-event-management", label: "Events managed" },

@@ -79,6 +79,7 @@ export function HrKpiTile({
         {demoMotion ? (
           <DemoDashboardKpiValue
             value={value}
+            target={typeof value === "number" ? value : undefined}
             staggerIndex={staggerIndex}
             className="text-xl font-semibold tabular-nums text-white sm:text-2xl"
           />

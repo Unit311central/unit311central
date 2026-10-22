@@ -1,21 +1,26 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
-
-import { isBrowserDemoSurface } from "@/lib/demo-enterprise";
+import { useEffect, useMemo, useState } from "react";
 
 import { useDemoDashboardMotionContext } from "./demo-dashboard-motion-context";
-import { LIVING_EASE, LIVING_ENTER_DURATION, LIVING_STAGGER, useLivingMotionEnabled } from "./living-motion";
+import {
+  LIVING_EASE,
+  LIVING_ENTER_DURATION,
+  LIVING_STAGGER,
+  useIntroAnimationLock,
+  useLivingMotionEnabled,
+} from "./living-motion";
+import { useDemoClientMotionArmed } from "./use-demo-client-armed";
 
-export const DEMO_DASHBOARD_INTRO_MS = 2200;
-export const DEMO_CHART_ANIMATION_MS = 520;
+export const DEMO_DASHBOARD_INTRO_MS = 2800;
+export const DEMO_CHART_ANIMATION_MS = 560;
 export const DEMO_CONTENT_CHART_MS = 320;
+export const DEMO_CHART_INTRO_GRACE_MS = 1600;
 
 export function useDemoDashboardMotionArmed(): boolean {
   const ctx = useDemoDashboardMotionContext();
-  const motionEnabled = useLivingMotionEnabled();
-  const demoSurface = typeof window !== "undefined" && isBrowserDemoSurface();
-  return Boolean(ctx?.armed && motionEnabled && demoSurface);
+  const clientArmed = useDemoClientMotionArmed();
+  return Boolean(ctx?.armed && clientArmed);
 }
 
 export function useDemoDashboardIntroPending(): boolean {
@@ -23,6 +28,38 @@ export function useDemoDashboardIntroPending(): boolean {
   const armed = useDemoDashboardMotionArmed();
   if (!ctx || !armed) return false;
   return !ctx.introComplete;
+}
+
+export function useDemoDashboardChartIntroActive(): boolean {
+  const ctx = useDemoDashboardMotionContext();
+  const armed = useDemoDashboardMotionArmed();
+  const motionEnabled = useLivingMotionEnabled();
+  const introPending = useDemoDashboardIntroPending();
+  const visitKey = ctx?.visitKey ?? 0;
+  const latched = useIntroAnimationLock(introPending, armed && motionEnabled, visitKey);
+  const [graceActive, setGraceActive] = useState(false);
+
+  useEffect(() => {
+    if (!armed || !motionEnabled) {
+      setGraceActive(false);
+      return;
+    }
+    if (introPending) {
+      setGraceActive(true);
+      return;
+    }
+    const endedAt = ctx?.introEndedAtMs;
+    if (!endedAt) {
+      setGraceActive(false);
+      return;
+    }
+    setGraceActive(true);
+    const remaining = DEMO_CHART_INTRO_GRACE_MS - (Date.now() - endedAt);
+    const timeout = window.setTimeout(() => setGraceActive(false), Math.max(0, remaining));
+    return () => window.clearTimeout(timeout);
+  }, [armed, motionEnabled, introPending, ctx?.introEndedAtMs, visitKey]);
+
+  return latched || graceActive;
 }
 
 export function DemoDashboardIntroScheduler() {
@@ -61,7 +98,7 @@ export function useDemoRechartsMotion(chartIndex = 0): {
   animationBegin: number;
 } {
   const motionEnabled = useLivingMotionEnabled();
-  const introPending = useDemoDashboardIntroPending();
+  const chartIntroActive = useDemoDashboardChartIntroActive();
   const ctx = useDemoDashboardMotionContext();
   const armed = useDemoDashboardMotionArmed();
 
@@ -69,7 +106,7 @@ export function useDemoRechartsMotion(chartIndex = 0): {
     if (!armed || !motionEnabled) {
       return { isAnimationActive: false, animationDuration: 0, animationBegin: 0 };
     }
-    if (introPending) {
+    if (chartIntroActive) {
       return {
         isAnimationActive: true,
         animationDuration: DEMO_CHART_ANIMATION_MS,
@@ -84,5 +121,5 @@ export function useDemoRechartsMotion(chartIndex = 0): {
       };
     }
     return { isAnimationActive: false, animationDuration: 0, animationBegin: 0 };
-  }, [armed, motionEnabled, introPending, chartIndex, ctx?.contentEpoch]);
+  }, [armed, motionEnabled, chartIntroActive, chartIndex, ctx?.contentEpoch]);
 }

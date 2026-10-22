@@ -2,14 +2,12 @@
 
 import type { ReactNode } from "react";
 
-import { isBrowserDemoSurface } from "@/lib/demo-enterprise";
-
 import {
   DemoDashboardMotionProvider,
   type DemoDashboardModuleId,
 } from "./demo-dashboard-motion-context";
 import { DemoDashboardIntroScheduler } from "./demo-dashboard-motion";
-import { useLivingMotionEnabled } from "./living-motion";
+import { useDemoClientMotionArmed } from "./use-demo-client-armed";
 
 export function DemoDashboardMotionShell({
   moduleId,
@@ -20,17 +18,11 @@ export function DemoDashboardMotionShell({
   filterKey?: string | number;
   children: ReactNode;
 }) {
-  const motionEnabled = useLivingMotionEnabled();
-  const demoSurface = typeof window !== "undefined" && isBrowserDemoSurface();
-  const armed = motionEnabled && demoSurface;
-
-  if (!armed) {
-    return <>{children}</>;
-  }
+  const armed = useDemoClientMotionArmed();
 
   return (
     <DemoDashboardMotionProvider moduleId={moduleId} armed={armed} filterKey={filterKey}>
-      <DemoDashboardIntroScheduler />
+      {armed ? <DemoDashboardIntroScheduler /> : null}
       {children}
     </DemoDashboardMotionProvider>
   );

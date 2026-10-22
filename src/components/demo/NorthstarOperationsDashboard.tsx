@@ -45,6 +45,8 @@ const MIX_COLORS = ["#38bdf8", "#34d399", "#fbbf24", "#a78bfa", "#f472b6"];
 type Tile = {
   label: string;
   value: string;
+  target: number;
+  formatTarget: (n: number) => string;
   hint: string;
   href: string;
   icon: typeof Wrench;
@@ -56,10 +58,15 @@ export default function NorthstarOperationsDashboard() {
   const summary = getNorthstarOperationsDashboardSummary(getLogisticsMockShipments());
   const inventoryCharts = getNorthstarInventoryCharts();
 
+  const outboundInTransit = summary.logisticsOutboundInTransit;
+  const inboundInTransit = summary.logisticsInboundInTransit;
+
   const tiles: Tile[] = [
     {
       label: "Assets",
       value: formatNorthstarGbp(summary.assetsTotalValueGbp),
+      target: summary.assetsTotalValueGbp,
+      formatTarget: (n) => formatNorthstarGbp(n),
       hint: `${summary.assetsTotalCount} registered · ${formatNorthstarGbp(summary.assetsDepreciationGbp)} depreciation YTD`,
       href: href("assets"),
       icon: Wrench,
@@ -67,6 +74,8 @@ export default function NorthstarOperationsDashboard() {
     {
       label: "Inventory",
       value: String(summary.inventorySkuCount),
+      target: summary.inventorySkuCount,
+      formatTarget: (n) => String(Math.round(n)),
       hint: `${formatNorthstarGbp(summary.inventoryOnHandValueGbp)} on hand`,
       href: href("inventory-management"),
       icon: Boxes,
@@ -74,13 +83,23 @@ export default function NorthstarOperationsDashboard() {
     {
       label: "Procurement",
       value: formatNorthstarGbp(summary.procurementSpendMtdGbp),
+      target: summary.procurementSpendMtdGbp,
+      formatTarget: (n) => formatNorthstarGbp(n),
       hint: `${summary.procurementOpenPos} open POs · MTD spend`,
       href: href("procurement"),
       icon: ShoppingCart,
     },
     {
       label: "Logistics",
-      value: `${summary.logisticsInboundInTransit} in · ${summary.logisticsOutboundInTransit} out`,
+      value: `${inboundInTransit} in · ${outboundInTransit} out`,
+      target: inboundInTransit + outboundInTransit,
+      formatTarget: (n) => {
+        const total = inboundInTransit + outboundInTransit;
+        if (total <= 0) return "0 in · 0 out";
+        const inCount = Math.min(inboundInTransit, Math.round((n / total) * inboundInTransit) || (n > 0 ? 1 : 0));
+        const outCount = Math.max(0, Math.round(n) - inCount);
+        return `${inCount} in · ${outCount} out`;
+      },
       hint: `${summary.logisticsLatePct3Mo}% late (3 mo) · ${formatNorthstarGbp(summary.logisticsAvgCourierSpendGbp, 2)}/pkg avg`,
       href: href("logistics"),
       icon: Truck,
@@ -136,6 +155,8 @@ export default function NorthstarOperationsDashboard() {
               <p className="mt-3 text-2xl font-semibold tabular-nums text-white">
                 <DemoDashboardKpiValue
                   value={tile.value}
+                  target={tile.target}
+                  formatTarget={tile.formatTarget}
                   staggerIndex={tileIndex}
                   className="text-2xl font-semibold tabular-nums text-white"
                 />

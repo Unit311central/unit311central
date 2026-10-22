@@ -151,6 +151,7 @@ export function NorthstarEngineeringDashboardWorkspace() {
     {
       label: "Active programmes",
       value: String(summary.programsActive),
+      target: summary.programsActive,
       hint: `${summary.programsAtRisk} at risk / delayed`,
       view: "engineering-programs" as const,
       icon: Target,
@@ -158,6 +159,7 @@ export function NorthstarEngineeringDashboardWorkspace() {
     {
       label: "Milestones (90d)",
       value: String(summary.milestonesDue30d),
+      target: summary.milestonesDue30d,
       hint: `${summary.milestonesAtRisk} blocked / at risk`,
       view: "engineering-programs" as const,
       icon: Milestone,
@@ -165,6 +167,8 @@ export function NorthstarEngineeringDashboardWorkspace() {
     {
       label: "Team utilisation",
       value: `${summary.avgUtilizationPct}%`,
+      target: summary.avgUtilizationPct,
+      formatTarget: (n: number) => `${Math.round(n)}%`,
       hint: `${summary.teamHeadcount} engineers · UK & US`,
       view: "engineering-capacity" as const,
       icon: Users,
@@ -172,6 +176,7 @@ export function NorthstarEngineeringDashboardWorkspace() {
     {
       label: "Open risks",
       value: String(summary.risksOpen),
+      target: summary.risksOpen,
       hint: `${summary.risksCriticalOrHigh} critical / high`,
       view: "engineering-risks" as const,
       icon: AlertTriangle,
@@ -257,6 +262,8 @@ export function NorthstarEngineeringDashboardWorkspace() {
               <p className="mt-3 text-2xl font-semibold tabular-nums text-white">
                 <DemoDashboardKpiValue
                   value={tile.value}
+                  target={tile.target}
+                  formatTarget={tile.formatTarget}
                   staggerIndex={tileIndex}
                   className="text-2xl font-semibold tabular-nums text-white"
                 />
