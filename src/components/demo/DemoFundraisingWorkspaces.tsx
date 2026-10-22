@@ -52,6 +52,8 @@ import {
   type ShareClassLabel,
   type ShareTypeLabel,
 } from "@/lib/demo/fundraising-data";
+import { DemoDashboardMotionShell } from "@/components/dashboard-framework/motion/DemoDashboardMotionShell";
+import { DemoDashboardReveal } from "@/components/dashboard-framework/motion/DemoDashboardReveal";
 import { cn } from "@/lib/utils";
 
 const FUNDRAISING_TILE_STORAGE_KEY = "northstar-fundraising-dashboard-tiles-v1";
@@ -241,7 +243,9 @@ export function DemoFundraisingDashboardWorkspace() {
   }, []);
 
   return (
+    <DemoDashboardMotionShell moduleId="fundraising" filterKey={currentRoundId}>
     <div className="space-y-6">
+      <DemoDashboardReveal index={0}>
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold text-white">Fundraising Dashboard</h1>
@@ -263,7 +267,9 @@ export function DemoFundraisingDashboardWorkspace() {
           {editing ? "Done editing" : "Edit tiles"}
         </button>
       </header>
+      </DemoDashboardReveal>
 
+      <DemoDashboardReveal index={1}>
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {tiles.map((tile, index) =>
           editing ? (
@@ -297,11 +303,19 @@ export function DemoFundraisingDashboardWorkspace() {
               />
             </div>
           ) : (
-            <CorporateKpiTile key={tile.id} label={tile.label} value={tile.value} hint={tile.hint} />
+            <CorporateKpiTile
+              key={tile.id}
+              label={tile.label}
+              value={tile.value}
+              hint={tile.hint}
+              staggerIndex={index}
+            />
           ),
         )}
       </div>
+      </DemoDashboardReveal>
 
+      <DemoDashboardReveal index={2}>
       <CorporateSection
         title="Current fundraising round"
         subtitle="Associate pipeline activity and investor outreach with the active raise."
@@ -330,13 +344,16 @@ export function DemoFundraisingDashboardWorkspace() {
           </p>
         </div>
       </CorporateSection>
+      </DemoDashboardReveal>
 
+      <DemoDashboardReveal index={3}>
       <CorporateSection title="Funding rounds">
         <div className="space-y-3">
-          {NORTHSTAR_FUNDING_ROUNDS.map((round) => (
+          {NORTHSTAR_FUNDING_ROUNDS.map((round, roundIndex) => (
             <div
               key={round.id}
-              className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3"
+              className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 transition-colors duration-300"
+              style={{ transitionDelay: `${roundIndex * 40}ms` }}
             >
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
@@ -366,7 +383,9 @@ export function DemoFundraisingDashboardWorkspace() {
           ))}
         </div>
       </CorporateSection>
+      </DemoDashboardReveal>
     </div>
+    </DemoDashboardMotionShell>
   );
 }
 

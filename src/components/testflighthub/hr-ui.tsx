@@ -1,5 +1,7 @@
 "use client";
 
+import { DemoDashboardKpiValue } from "@/components/dashboard-framework/motion/DemoDashboardKpiValue";
+import { useDemoDashboardMotionArmed } from "@/components/dashboard-framework/motion/demo-dashboard-motion";
 import { cn } from "@/lib/utils";
 
 export function HrSection({
@@ -39,12 +41,15 @@ export function HrKpiTile({
   value,
   hint,
   tone = "neutral",
+  staggerIndex = 0,
 }: {
   label: string;
   value: string | number;
   hint?: string;
   tone?: "neutral" | "sky" | "emerald" | "amber" | "violet" | "rose" | "teal" | "cyan";
+  staggerIndex?: number;
 }) {
+  const demoMotion = useDemoDashboardMotionArmed();
   const toneClass =
     tone === "sky"
       ? "border-sky-400/25 bg-sky-500/10"
@@ -70,7 +75,17 @@ export function HrKpiTile({
       )}
     >
       <p className="text-[10px] font-medium uppercase tracking-[0.12em] text-white/45">{label}</p>
-      <p className="mt-1.5 text-xl font-semibold tabular-nums text-white sm:text-2xl">{value}</p>
+      <p className="mt-1.5 text-xl font-semibold tabular-nums text-white sm:text-2xl">
+        {demoMotion ? (
+          <DemoDashboardKpiValue
+            value={value}
+            staggerIndex={staggerIndex}
+            className="text-xl font-semibold tabular-nums text-white sm:text-2xl"
+          />
+        ) : (
+          value
+        )}
+      </p>
       {hint ? <p className="mt-1 text-xs text-white/40">{hint}</p> : null}
     </div>
   );

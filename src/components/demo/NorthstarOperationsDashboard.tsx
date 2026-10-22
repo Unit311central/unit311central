@@ -16,6 +16,10 @@ import {
   YAxis,
 } from "recharts";
 
+import { DemoDashboardKpiValue } from "@/components/dashboard-framework/motion/DemoDashboardKpiValue";
+import { DemoDashboardMotionShell } from "@/components/dashboard-framework/motion/DemoDashboardMotionShell";
+import { DemoDashboardReveal } from "@/components/dashboard-framework/motion/DemoDashboardReveal";
+import { useDemoRechartsMotion } from "@/components/dashboard-framework/motion/demo-dashboard-motion";
 import { useInternalOperationsBasePath } from "@/components/testflighthub/InternalOperationsBasePathContext";
 import {
   formatNorthstarGbp,
@@ -83,6 +87,11 @@ export default function NorthstarOperationsDashboard() {
     },
   ];
 
+  const pieMotion = useDemoRechartsMotion(0);
+  const locationBarMotion = useDemoRechartsMotion(1);
+  const procurementBarMotion = useDemoRechartsMotion(2);
+  const movementBarMotion = useDemoRechartsMotion(3);
+
   const procurementSpendPreview = [
     { month: "Mar", spend: 118_000 },
     { month: "Apr", spend: 132_000 },
@@ -93,7 +102,9 @@ export default function NorthstarOperationsDashboard() {
   ];
 
   return (
+    <DemoDashboardMotionShell moduleId="operations">
     <div className="mx-auto max-w-6xl space-y-5 px-1 py-4 sm:py-6" aria-label="Operations dashboard">
+      <DemoDashboardReveal index={0}>
       <header className="rounded-2xl border border-white/12 bg-white/[0.03] p-5 sm:p-6">
         <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/40">
           Northstar · Operations
@@ -104,9 +115,11 @@ export default function NorthstarOperationsDashboard() {
           delivery operations — GBP.
         </p>
       </header>
+      </DemoDashboardReveal>
 
+      <DemoDashboardReveal index={1}>
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        {tiles.map((tile) => {
+        {tiles.map((tile, tileIndex) => {
           const Icon = tile.icon;
           return (
             <Link
@@ -120,13 +133,21 @@ export default function NorthstarOperationsDashboard() {
                 </p>
                 <Icon className="h-4 w-4 text-sky-300/80" aria-hidden />
               </div>
-              <p className="mt-3 text-2xl font-semibold tabular-nums text-white">{tile.value}</p>
+              <p className="mt-3 text-2xl font-semibold tabular-nums text-white">
+                <DemoDashboardKpiValue
+                  value={tile.value}
+                  staggerIndex={tileIndex}
+                  className="text-2xl font-semibold tabular-nums text-white"
+                />
+              </p>
               <p className="mt-1 text-xs text-white/40">{tile.hint}</p>
             </Link>
           );
         })}
       </div>
+      </DemoDashboardReveal>
 
+      <DemoDashboardReveal index={2}>
       <div className="grid gap-4 xl:grid-cols-2">
         <section className="rounded-2xl border border-white/12 bg-white/[0.03] p-4 sm:p-5">
           <h2 className="text-sm font-semibold text-white">Inventory · status mix</h2>
@@ -141,6 +162,9 @@ export default function NorthstarOperationsDashboard() {
                   innerRadius={48}
                   outerRadius={78}
                   paddingAngle={2}
+                  isAnimationActive={pieMotion.isAnimationActive}
+                  animationDuration={pieMotion.animationDuration}
+                  animationBegin={pieMotion.animationBegin}
                 >
                   {inventoryCharts.statusMix.map((_, index) => (
                     <Cell key={index} fill={MIX_COLORS[index % MIX_COLORS.length]} />
@@ -183,7 +207,15 @@ export default function NorthstarOperationsDashboard() {
                   contentStyle={chartTooltipStyle}
                   formatter={(value) => formatNorthstarGbp(Number(value ?? 0))}
                 />
-                <Bar dataKey="value" name="Value" fill="#34d399" radius={[0, 4, 4, 0]} />
+                <Bar
+                  dataKey="value"
+                  name="Value"
+                  fill="#34d399"
+                  radius={[0, 4, 4, 0]}
+                  isAnimationActive={locationBarMotion.isAnimationActive}
+                  animationDuration={locationBarMotion.animationDuration}
+                  animationBegin={locationBarMotion.animationBegin}
+                />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -212,7 +244,15 @@ export default function NorthstarOperationsDashboard() {
                   contentStyle={chartTooltipStyle}
                   formatter={(value) => formatNorthstarGbp(Number(value ?? 0))}
                 />
-                <Bar dataKey="spend" name="Spend" fill="#38bdf8" radius={[4, 4, 0, 0]} />
+                <Bar
+                  dataKey="spend"
+                  name="Spend"
+                  fill="#38bdf8"
+                  radius={[4, 4, 0, 0]}
+                  isAnimationActive={procurementBarMotion.isAnimationActive}
+                  animationDuration={procurementBarMotion.animationDuration}
+                  animationBegin={procurementBarMotion.animationBegin}
+                />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -239,8 +279,24 @@ export default function NorthstarOperationsDashboard() {
                 />
                 <Tooltip contentStyle={chartTooltipStyle} />
                 <Legend wrapperStyle={{ fontSize: 11, color: "rgba(255,255,255,0.55)" }} />
-                <Bar dataKey="inbound" name="Inbound" fill="#38bdf8" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="outbound" name="Outbound" fill="#fbbf24" radius={[4, 4, 0, 0]} />
+                <Bar
+                  dataKey="inbound"
+                  name="Inbound"
+                  fill="#38bdf8"
+                  radius={[4, 4, 0, 0]}
+                  isAnimationActive={movementBarMotion.isAnimationActive}
+                  animationDuration={movementBarMotion.animationDuration}
+                  animationBegin={movementBarMotion.animationBegin}
+                />
+                <Bar
+                  dataKey="outbound"
+                  name="Outbound"
+                  fill="#fbbf24"
+                  radius={[4, 4, 0, 0]}
+                  isAnimationActive={movementBarMotion.isAnimationActive}
+                  animationDuration={movementBarMotion.animationDuration}
+                  animationBegin={movementBarMotion.animationBegin + 60}
+                />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -287,6 +343,8 @@ export default function NorthstarOperationsDashboard() {
           </div>
         </div>
       </section>
+      </DemoDashboardReveal>
     </div>
+    </DemoDashboardMotionShell>
   );
 }

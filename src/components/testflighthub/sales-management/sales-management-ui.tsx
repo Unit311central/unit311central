@@ -5,6 +5,8 @@ import type { LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { Inbox, Loader2 } from "lucide-react";
 
+import { DemoDashboardKpiValue } from "@/components/dashboard-framework/motion/DemoDashboardKpiValue";
+import { useDemoDashboardMotionArmed } from "@/components/dashboard-framework/motion/demo-dashboard-motion";
 import { cn } from "@/lib/utils";
 
 import { WsKpiTile } from "../domain-workspace-ui";
@@ -78,17 +80,28 @@ export function SalesKpiTile({
   value,
   hint,
   valueClassName,
+  staggerIndex = 0,
 }: {
   label: string;
   value: string | number;
   hint?: string;
   valueClassName?: string;
+  staggerIndex?: number;
 }) {
+  const demoMotion = useDemoDashboardMotionArmed();
+  const valueClass = cn(
+    "mt-2 text-3xl font-semibold tabular-nums tracking-tight text-white",
+    valueClassName,
+  );
   return (
     <div className="rounded-xl border border-white/10 bg-gradient-to-br from-white/[0.06] to-white/[0.02] px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
       <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/50">{label}</p>
-      <p className={cn("mt-2 text-3xl font-semibold tabular-nums tracking-tight text-white", valueClassName)}>
-        {value}
+      <p className={valueClass}>
+        {demoMotion ? (
+          <DemoDashboardKpiValue value={value} staggerIndex={staggerIndex} className={valueClass} />
+        ) : (
+          value
+        )}
       </p>
       {hint ? <p className="mt-1.5 text-xs leading-snug text-white/45">{hint}</p> : null}
     </div>

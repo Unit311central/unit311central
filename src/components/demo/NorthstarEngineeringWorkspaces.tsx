@@ -24,6 +24,10 @@ import {
   YAxis,
 } from "recharts";
 
+import { DemoDashboardKpiValue } from "@/components/dashboard-framework/motion/DemoDashboardKpiValue";
+import { DemoDashboardMotionShell } from "@/components/dashboard-framework/motion/DemoDashboardMotionShell";
+import { DemoDashboardReveal } from "@/components/dashboard-framework/motion/DemoDashboardReveal";
+import { useDemoRechartsMotion } from "@/components/dashboard-framework/motion/demo-dashboard-motion";
 import { useInternalOperationsBasePath } from "@/components/testflighthub/InternalOperationsBasePathContext";
 import {
   TqmsKpiTile,
@@ -211,11 +215,18 @@ export function NorthstarEngineeringDashboardWorkspace() {
     })
     .slice(0, 4);
 
+  const velocityMotion = useDemoRechartsMotion(0);
+  const budgetMotion = useDemoRechartsMotion(1);
+  const ragMotion = useDemoRechartsMotion(2);
+  const disciplineMotion = useDemoRechartsMotion(3);
+
   return (
+    <DemoDashboardMotionShell moduleId="engineering">
     <Shell
       title="Dashboard"
       subtitle="Programme health, delivery milestones, team load, and engineering risks across Northstar Industrial Technologies."
     >
+      <DemoDashboardReveal index={0}>
       <div className="rounded-2xl border border-teal-400/25 bg-teal-500/10 px-4 py-3 sm:px-5">
         <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-teal-200/80">
           Next delivery gate
@@ -225,9 +236,11 @@ export function NorthstarEngineeringDashboardWorkspace() {
           <span className="ml-2 font-normal text-white/50">· {summary.nextGateDate}</span>
         </p>
       </div>
+      </DemoDashboardReveal>
 
+      <DemoDashboardReveal index={1}>
       <div data-ai-target="engineering-kpis" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        {tiles.map((tile) => {
+        {tiles.map((tile, tileIndex) => {
           const Icon = tile.icon;
           return (
             <Link
@@ -241,13 +254,21 @@ export function NorthstarEngineeringDashboardWorkspace() {
                 </p>
                 <Icon className="h-4 w-4 text-teal-300/80" aria-hidden />
               </div>
-              <p className="mt-3 text-2xl font-semibold tabular-nums text-white">{tile.value}</p>
+              <p className="mt-3 text-2xl font-semibold tabular-nums text-white">
+                <DemoDashboardKpiValue
+                  value={tile.value}
+                  staggerIndex={tileIndex}
+                  className="text-2xl font-semibold tabular-nums text-white"
+                />
+              </p>
               <p className="mt-1 text-xs text-white/40">{tile.hint}</p>
             </Link>
           );
         })}
       </div>
+      </DemoDashboardReveal>
 
+      <DemoDashboardReveal index={2}>
       <div className="grid gap-4 xl:grid-cols-2">
         <section className="rounded-2xl border border-white/12 bg-white/[0.03] p-4 sm:p-5">
           <h2 className="text-sm font-semibold text-white">Delivery velocity</h2>
@@ -275,6 +296,9 @@ export function NorthstarEngineeringDashboardWorkspace() {
                   stroke="#38bdf8"
                   strokeWidth={2}
                   dot={{ fill: "#38bdf8", r: 3 }}
+                  isAnimationActive={velocityMotion.isAnimationActive}
+                  animationDuration={velocityMotion.animationDuration}
+                  animationBegin={velocityMotion.animationBegin}
                 />
               </LineChart>
             </ResponsiveContainer>
@@ -300,7 +324,15 @@ export function NorthstarEngineeringDashboardWorkspace() {
                   tickLine={false}
                 />
                 <Tooltip contentStyle={chartTooltipStyle} />
-                <Bar dataKey="spent" name="£k spent" fill="#2dd4bf" radius={[4, 4, 0, 0]} />
+                <Bar
+                  dataKey="spent"
+                  name="£k spent"
+                  fill="#2dd4bf"
+                  radius={[4, 4, 0, 0]}
+                  isAnimationActive={budgetMotion.isAnimationActive}
+                  animationDuration={budgetMotion.animationDuration}
+                  animationBegin={budgetMotion.animationBegin}
+                />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -328,7 +360,14 @@ export function NorthstarEngineeringDashboardWorkspace() {
                   tickLine={false}
                 />
                 <Tooltip contentStyle={chartTooltipStyle} />
-                <Bar dataKey="count" name="Programmes" radius={[4, 4, 0, 0]}>
+                <Bar
+                  dataKey="count"
+                  name="Programmes"
+                  radius={[4, 4, 0, 0]}
+                  isAnimationActive={ragMotion.isAnimationActive}
+                  animationDuration={ragMotion.animationDuration}
+                  animationBegin={ragMotion.animationBegin}
+                >
                   {ragBars.map((row) => (
                     <Cell
                       key={row.rag}
@@ -360,6 +399,9 @@ export function NorthstarEngineeringDashboardWorkspace() {
                   innerRadius={48}
                   outerRadius={78}
                   paddingAngle={2}
+                  isAnimationActive={disciplineMotion.isAnimationActive}
+                  animationDuration={disciplineMotion.animationDuration}
+                  animationBegin={disciplineMotion.animationBegin}
                 >
                   {disciplineLoad.map((_, index) => (
                     <Cell key={index} fill={PIE_COLORS[index % PIE_COLORS.length]} />
@@ -426,7 +468,9 @@ export function NorthstarEngineeringDashboardWorkspace() {
           </ul>
         </TqmsSection>
       </div>
+      </DemoDashboardReveal>
     </Shell>
+    </DemoDashboardMotionShell>
   );
 }
 

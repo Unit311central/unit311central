@@ -2,6 +2,8 @@
 
 import type { ReactNode } from "react";
 
+import { DemoDashboardKpiValue } from "@/components/dashboard-framework/motion/DemoDashboardKpiValue";
+import { useDemoDashboardMotionArmed } from "@/components/dashboard-framework/motion/demo-dashboard-motion";
 import { CopyToClipboardButton } from "@/components/ui/CopyToClipboardButton";
 import { cn } from "@/lib/utils";
 
@@ -51,17 +53,25 @@ export function WorkspaceKpiTile({
   value,
   hint,
   valueClassName,
+  staggerIndex = 0,
 }: {
   label: string;
   value: string | number;
   hint?: string;
   valueClassName?: string;
+  staggerIndex?: number;
 }) {
+  const demoMotion = useDemoDashboardMotionArmed();
+  const valueClass = cn("mt-2 text-3xl font-semibold tabular-nums tracking-tight text-white", valueClassName);
   return (
     <div className="rounded-2xl border border-white/12 bg-gradient-to-br from-white/[0.05] to-white/[0.02] px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
       <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/45">{label}</p>
-      <p className={cn("mt-2 text-3xl font-semibold tabular-nums tracking-tight text-white", valueClassName)}>
-        {value}
+      <p className={valueClass}>
+        {demoMotion ? (
+          <DemoDashboardKpiValue value={value} staggerIndex={staggerIndex} className={valueClass} />
+        ) : (
+          value
+        )}
       </p>
       {hint ? <p className="mt-1.5 text-[11px] leading-snug text-white/45">{hint}</p> : null}
     </div>

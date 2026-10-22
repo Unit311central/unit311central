@@ -25,6 +25,10 @@ import {
   formatSalesMoney,
   type SalesDashboardMetrics,
 } from "@/lib/sales-management-insights";
+import { DemoDashboardMotionShell } from "@/components/dashboard-framework/motion/DemoDashboardMotionShell";
+import { DemoDashboardReveal } from "@/components/dashboard-framework/motion/DemoDashboardReveal";
+import { useDemoRechartsMotion } from "@/components/dashboard-framework/motion/demo-dashboard-motion";
+import { isBrowserDemoSurface } from "@/lib/demo-enterprise";
 import { leadStatusClass } from "@/lib/crm-data";
 import { cn } from "@/lib/utils";
 
@@ -99,6 +103,10 @@ export default function SalesManagementDashboard() {
     [metrics],
   );
 
+  const pipelineBarMotion = useDemoRechartsMotion(0);
+  const statusPieMotion = useDemoRechartsMotion(1);
+  const leadLineMotion = useDemoRechartsMotion(2);
+
   const href = (tab: string) => getInternalNavHref("sales-management", basePath, { tab });
 
   if (loading) {
@@ -121,9 +129,11 @@ export default function SalesManagementDashboard() {
   const money = (value: number) => formatSalesMoney(value, metrics.currency);
   const showStatusPie = statusChartData.length >= 2;
   const showLeadTrend = metrics.leadsCreatedByMonth.length >= 2;
+  const demoMotion = typeof window !== "undefined" && isBrowserDemoSurface();
 
-  return (
+  const body = (
     <div className="space-y-4">
+      <DemoDashboardReveal index={0}>
       <SalesTabHeader
         title="Sales command centre"
         description="Live KPIs, pipeline charts, and priority actions from workspace CRM, quotes, and discovery data."
@@ -138,25 +148,32 @@ export default function SalesManagementDashboard() {
           </button>
         }
       />
+      </DemoDashboardReveal>
 
+      <DemoDashboardReveal index={1}>
       <SalesKpiGrid>
-        <SalesKpiTile label="Open pipeline value" value={money(metrics.pipelineValue)} hint="Cold, warm, and hot opportunities" />
-        <SalesKpiTile label="Open opportunities" value={String(metrics.openOpportunityCount)} hint="Active pipeline records" />
-        <SalesKpiTile label="Prospects" value={String(metrics.prospectCount)} hint="Cold and warm leads" />
+        <SalesKpiTile staggerIndex={0} label="Open pipeline value" value={money(metrics.pipelineValue)} hint="Cold, warm, and hot opportunities" />
+        <SalesKpiTile staggerIndex={1} label="Open opportunities" value={String(metrics.openOpportunityCount)} hint="Active pipeline records" />
+        <SalesKpiTile staggerIndex={2} label="Prospects" value={String(metrics.prospectCount)} hint="Cold and warm leads" />
         <SalesKpiTile
+          staggerIndex={3}
           label="Win rate"
           value={metrics.winRatePct == null ? "—" : `${metrics.winRatePct}%`}
           hint={`${metrics.wonCount} won · ${metrics.lostCount} lost`}
         />
       </SalesKpiGrid>
+      </DemoDashboardReveal>
 
+      <DemoDashboardReveal index={2}>
       <SalesKpiGrid>
-        <SalesKpiTile label="Open quotes" value={String(metrics.quotesOpenCount)} hint={money(metrics.quotesOpenValue)} />
-        <SalesKpiTile label="Accepted quotes" value={String(metrics.quotesAcceptedCount)} hint="Commercial wins" />
-        <SalesKpiTile label="Upcoming actions" value={String(metrics.upcomingActionsCount)} hint="Next 14 days" />
-        <SalesKpiTile label="Discovery sessions" value={String(metrics.upcomingMeetingsCount)} hint="Scheduled discovery" />
+        <SalesKpiTile staggerIndex={4} label="Open quotes" value={String(metrics.quotesOpenCount)} hint={money(metrics.quotesOpenValue)} />
+        <SalesKpiTile staggerIndex={5} label="Accepted quotes" value={String(metrics.quotesAcceptedCount)} hint="Commercial wins" />
+        <SalesKpiTile staggerIndex={6} label="Upcoming actions" value={String(metrics.upcomingActionsCount)} hint="Next 14 days" />
+        <SalesKpiTile staggerIndex={7} label="Discovery sessions" value={String(metrics.upcomingMeetingsCount)} hint="Scheduled discovery" />
       </SalesKpiGrid>
+      </DemoDashboardReveal>
 
+      <DemoDashboardReveal index={3}>
       <div
         className={cn(
           "grid gap-4",
@@ -172,7 +189,13 @@ export default function SalesManagementDashboard() {
                   <XAxis dataKey="stage" tick={{ fill: "rgba(255,255,255,0.6)", fontSize: 12 }} />
                   <YAxis tick={{ fill: "rgba(255,255,255,0.5)", fontSize: 11 }} width={56} />
                   <Tooltip content={<ChartTooltip valueFormatter={(value) => money(Number(value))} />} />
-                  <Bar dataKey="value" radius={[8, 8, 0, 0]}>
+                  <Bar
+                    dataKey="value"
+                    radius={[8, 8, 0, 0]}
+                    isAnimationActive={pipelineBarMotion.isAnimationActive}
+                    animationDuration={pipelineBarMotion.animationDuration}
+                    animationBegin={pipelineBarMotion.animationBegin}
+                  >
                     {pipelineValueChart.map((entry) => (
                       <Cell key={entry.stage} fill={STATUS_COLORS[entry.stage] ?? "#7c3aed"} />
                     ))}
@@ -192,7 +215,17 @@ export default function SalesManagementDashboard() {
             <SalesChartFrame heightClassName="h-[340px]">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
-                  <Pie data={statusChartData} dataKey="value" nameKey="name" innerRadius={72} outerRadius={118} paddingAngle={2}>
+                  <Pie
+                    data={statusChartData}
+                    dataKey="value"
+                    nameKey="name"
+                    innerRadius={72}
+                    outerRadius={118}
+                    paddingAngle={2}
+                    isAnimationActive={statusPieMotion.isAnimationActive}
+                    animationDuration={statusPieMotion.animationDuration}
+                    animationBegin={statusPieMotion.animationBegin}
+                  >
                     {statusChartData.map((entry) => (
                       <Cell key={entry.name} fill={entry.fill} />
                     ))}
@@ -215,7 +248,9 @@ export default function SalesManagementDashboard() {
           </WsSection>
         ) : null}
       </div>
+      </DemoDashboardReveal>
 
+      <DemoDashboardReveal index={4}>
       <div className={cn("grid gap-4", showLeadTrend ? "xl:grid-cols-2" : "grid-cols-1")}>
         <WsSection title="Pipeline by salesperson" subtitle="Assignment data follows CRM ownership fields" className="p-4 sm:p-5">
           <div className="max-h-[280px] space-y-2 overflow-y-auto pr-1">
@@ -246,14 +281,25 @@ export default function SalesManagementDashboard() {
                   <XAxis dataKey="month" tick={{ fill: "rgba(255,255,255,0.6)", fontSize: 11 }} />
                   <YAxis allowDecimals={false} tick={{ fill: "rgba(255,255,255,0.5)", fontSize: 11 }} width={32} />
                   <Tooltip content={<ChartTooltip />} />
-                  <Line type="monotone" dataKey="count" stroke="#7c3aed" strokeWidth={2.5} dot={{ r: 4 }} />
+                  <Line
+                    type="monotone"
+                    dataKey="count"
+                    stroke="#7c3aed"
+                    strokeWidth={2.5}
+                    dot={{ r: 4 }}
+                    isAnimationActive={leadLineMotion.isAnimationActive}
+                    animationDuration={leadLineMotion.animationDuration}
+                    animationBegin={leadLineMotion.animationBegin}
+                  />
                 </LineChart>
               </ResponsiveContainer>
             </SalesChartFrame>
           </WsSection>
         ) : null}
       </div>
+      </DemoDashboardReveal>
 
+      <DemoDashboardReveal index={5}>
       <div className="grid gap-4 lg:grid-cols-3">
         <WsSection title="Deals requiring attention" subtitle="Overdue CRM follow-ups" className="p-4 sm:p-5">
           <div className="max-h-[240px] space-y-2 overflow-y-auto pr-1">
@@ -368,6 +414,15 @@ export default function SalesManagementDashboard() {
           <p className="mt-1 text-xs text-white/45">Stage view over CRM data</p>
         </Link>
       </div>
+      </DemoDashboardReveal>
     </div>
+  );
+
+  if (!demoMotion) return body;
+
+  return (
+    <DemoDashboardMotionShell moduleId="sales" filterKey={metrics.pipelineValue}>
+      {body}
+    </DemoDashboardMotionShell>
   );
 }

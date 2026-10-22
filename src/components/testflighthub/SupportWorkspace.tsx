@@ -14,6 +14,11 @@ import {
   type SupportTicketPriority,
 } from "@/lib/support-data";
 import { cn } from "@/lib/utils";
+import { DemoDashboardKpiValue } from "@/components/dashboard-framework/motion/DemoDashboardKpiValue";
+import { DemoDashboardMotionShell } from "@/components/dashboard-framework/motion/DemoDashboardMotionShell";
+import { DemoDashboardReveal } from "@/components/dashboard-framework/motion/DemoDashboardReveal";
+import { useDemoRechartsMotion } from "@/components/dashboard-framework/motion/demo-dashboard-motion";
+import { isBrowserDemoSurface } from "@/lib/demo-enterprise";
 import SupportTicketClientActions from "@/components/testflighthub/SupportTicketClientActions";
 import ResponsiveMasterDetail, {
   useMobileDetailPanel,
@@ -122,11 +127,13 @@ function StatBar({
   count,
   max,
   tone,
+  staggerIndex = 0,
 }: {
   label: string;
   count: number;
   max: number;
   tone: "sky" | "amber" | "emerald";
+  staggerIndex?: number;
 }) {
   const width = max > 0 ? Math.max(8, Math.round((count / max) * 100)) : 0;
   const toneClass =
@@ -140,7 +147,13 @@ function StatBar({
     <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
       <div className="flex items-end justify-between gap-3">
         <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/45">{label}</p>
-        <p className="text-2xl font-semibold tabular-nums text-white">{count}</p>
+        <p className="text-2xl font-semibold tabular-nums text-white">
+          <DemoDashboardKpiValue
+            value={count}
+            staggerIndex={staggerIndex}
+            className="text-2xl font-semibold tabular-nums text-white"
+          />
+        </p>
       </div>
       <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/[0.06]">
         <div className={cn("h-full rounded-full border", toneClass)} style={{ width: `${width}%` }} />
@@ -202,6 +215,12 @@ export default function SupportWorkspace({
   const [analyticsNowMs, setAnalyticsNowMs] = useState(() => Date.now());
   const [lastSyncedAt, setLastSyncedAt] = useState<Date | null>(null);
   const { showDetail, openDetail, closeDetail } = useMobileDetailPanel();
+  const historicLineMotion = useDemoRechartsMotion(0);
+  const currentBarMotion = useDemoRechartsMotion(1);
+  const assignedBarMotion = useDemoRechartsMotion(2);
+  const lapsedBarMotion = useDemoRechartsMotion(3);
+  const demoSupportMotion =
+    overviewMode && typeof window !== "undefined" && isBrowserDemoSurface();
 
   function selectTicket(ticketId: string) {
     setSelectedTicketId(ticketId);
@@ -706,9 +725,10 @@ export default function SupportWorkspace({
     }
   }
 
-  return (
+  const workspaceBody = (
     <div className="space-y-6" data-ai-target="support-workspace">
       {overviewMode ? (
+        <DemoDashboardReveal index={0}>
         <section
           data-ai-target="support-kpis"
           className="rounded-2xl border border-emerald-400/25 bg-emerald-500/10 px-4 py-4 sm:px-5"
@@ -740,6 +760,7 @@ export default function SupportWorkspace({
             </div>
           </div>
         </section>
+        </DemoDashboardReveal>
       ) : null}
 
       {mineMode ? (
@@ -1259,6 +1280,7 @@ export default function SupportWorkspace({
       ) : null}
 
       {showAnalytics && !loading && (
+        <DemoDashboardReveal index={overviewMode ? 1 : 0}>
         <section className="rounded-2xl border border-white/15 bg-white/[0.04] p-4 shadow-[0_24px_64px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl sm:p-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-2">
@@ -1342,8 +1364,28 @@ export default function SupportWorkspace({
                         color: "#f8fafc",
                       }}
                     />
-                    <Line type="monotone" dataKey="opened" name="Opened" stroke="#38bdf8" strokeWidth={2} dot={false} />
-                    <Line type="monotone" dataKey="resolved" name="Resolved" stroke="#34d399" strokeWidth={2} dot={false} />
+                    <Line
+                      type="monotone"
+                      dataKey="opened"
+                      name="Opened"
+                      stroke="#38bdf8"
+                      strokeWidth={2}
+                      dot={false}
+                      isAnimationActive={historicLineMotion.isAnimationActive}
+                      animationDuration={historicLineMotion.animationDuration}
+                      animationBegin={historicLineMotion.animationBegin}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="resolved"
+                      name="Resolved"
+                      stroke="#34d399"
+                      strokeWidth={2}
+                      dot={false}
+                      isAnimationActive={historicLineMotion.isAnimationActive}
+                      animationDuration={historicLineMotion.animationDuration}
+                      animationBegin={historicLineMotion.animationBegin + 80}
+                    />
                   </LineChart>
                 </ResponsiveContainer>
               </div>
@@ -1390,7 +1432,13 @@ export default function SupportWorkspace({
                         color: "#f8fafc",
                       }}
                     />
-                    <Bar dataKey="count" radius={[6, 6, 0, 0]}>
+                    <Bar
+                      dataKey="count"
+                      radius={[6, 6, 0, 0]}
+                      isAnimationActive={currentBarMotion.isAnimationActive}
+                      animationDuration={currentBarMotion.animationDuration}
+                      animationBegin={currentBarMotion.animationBegin}
+                    >
                       {currentStateChartData.map((entry) => (
                         <Cell key={entry.label} fill={entry.fill} />
                       ))}
@@ -1438,7 +1486,13 @@ export default function SupportWorkspace({
                           color: "#f8fafc",
                         }}
                       />
-                      <Bar dataKey="count" radius={[6, 6, 0, 0]}>
+                      <Bar
+                        dataKey="count"
+                        radius={[6, 6, 0, 0]}
+                        isAnimationActive={assignedBarMotion.isAnimationActive}
+                        animationDuration={assignedBarMotion.animationDuration}
+                        animationBegin={assignedBarMotion.animationBegin}
+                      >
                         {assignedPerUserChartData.map((entry) => (
                           <Cell key={entry.label} fill={entry.fill} />
                         ))}
@@ -1477,7 +1531,13 @@ export default function SupportWorkspace({
                         color: "#f8fafc",
                       }}
                     />
-                    <Bar dataKey="count" radius={[6, 6, 0, 0]}>
+                    <Bar
+                      dataKey="count"
+                      radius={[6, 6, 0, 0]}
+                      isAnimationActive={lapsedBarMotion.isAnimationActive}
+                      animationDuration={lapsedBarMotion.animationDuration}
+                      animationBegin={lapsedBarMotion.animationBegin}
+                    >
                       {lapsedTimeChartData.map((entry) => (
                         <Cell key={entry.label} fill={entry.fill} />
                       ))}
@@ -1501,13 +1561,25 @@ export default function SupportWorkspace({
           </div>
 
           <div className="mt-4 grid gap-3 sm:grid-cols-3">
-            <StatBar label="In queue" count={inQueueCount} max={statsMax} tone="sky" />
-            <StatBar label="Outstanding" count={outstandingCount} max={statsMax} tone="amber" />
-            <StatBar label="Resolved" count={resolvedCount} max={statsMax} tone="emerald" />
+            <StatBar label="In queue" count={inQueueCount} max={statsMax} tone="sky" staggerIndex={0} />
+            <StatBar label="Outstanding" count={outstandingCount} max={statsMax} tone="amber" staggerIndex={1} />
+            <StatBar label="Resolved" count={resolvedCount} max={statsMax} tone="emerald" staggerIndex={2} />
           </div>
         </section>
+        </DemoDashboardReveal>
       )}
 
     </div>
+  );
+
+  if (!demoSupportMotion) return workspaceBody;
+
+  return (
+    <DemoDashboardMotionShell
+      moduleId="support"
+      filterKey={`${statsPeriod}-${assigneeFilter}-${statusFilter}`}
+    >
+      {workspaceBody}
+    </DemoDashboardMotionShell>
   );
 }

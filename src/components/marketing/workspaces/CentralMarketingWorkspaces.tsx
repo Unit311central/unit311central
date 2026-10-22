@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Pencil, Plus, Trash2 } from "lucide-react";
 
+import { DemoDashboardMotionShell } from "@/components/dashboard-framework/motion/DemoDashboardMotionShell";
+import { DemoDashboardReveal } from "@/components/dashboard-framework/motion/DemoDashboardReveal";
 import { MarketingDashboardShell } from "@/components/marketing/workspaces/MarketingDashboardShell";
 import { demoClientPortalPublicPath } from "@/lib/demo/demo-client-portal-routes";
 import {
@@ -180,8 +182,9 @@ export function CentralMarketingDashboardWorkspace() {
       {loading && !bundle ? (
         <LoadingState label="marketing dashboard" />
       ) : isDemo ? (
-        <>
+        <DemoDashboardMotionShell moduleId="marketing">
           <div className="space-y-5">
+            <DemoDashboardReveal index={0}>
             <div className="flex flex-wrap items-start justify-between gap-3">
               <WorkspaceModuleHeader
                 moduleLabel={chrome.moduleLabel ?? "Marketing and Events"}
@@ -198,6 +201,8 @@ export function CentralMarketingDashboardWorkspace() {
                 {editingTiles ? "Done editing" : "Edit tiles"}
               </button>
             </div>
+            </DemoDashboardReveal>
+            <DemoDashboardReveal index={1}>
             <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
               {tiles.map((tile, index) =>
                 editingTiles ? (
@@ -231,11 +236,19 @@ export function CentralMarketingDashboardWorkspace() {
                     />
                   </div>
                 ) : (
-                  <WorkspaceKpiTile key={tile.id} label={tile.label} value={tile.value} hint={tile.hint} />
+                  <WorkspaceKpiTile
+                    key={tile.id}
+                    label={tile.label}
+                    value={tile.value}
+                    hint={tile.hint}
+                    staggerIndex={index}
+                  />
                 ),
               )}
             </div>
+            </DemoDashboardReveal>
           </div>
+          <DemoDashboardReveal index={2}>
           <WorkspaceSection
             title="Recommended on this dashboard"
             subtitle="Quick links to the workflows teams use most on the Demo workspace."
@@ -252,7 +265,8 @@ export function CentralMarketingDashboardWorkspace() {
               </li>
             </ul>
           </WorkspaceSection>
-        </>
+          </DemoDashboardReveal>
+        </DemoDashboardMotionShell>
       ) : (
         <>
           <MarketingDashboardShell
@@ -498,6 +512,7 @@ export function CentralExternalEventsWorkspace() {
   }
 
   return (
+    <DemoDashboardMotionShell moduleId="events-external">
     <CentralMarketingShell
       title="External events"
       description="Trade shows, conferences, and partner events your organisation attends."
@@ -516,8 +531,9 @@ export function CentralExternalEventsWorkspace() {
           <p className="text-sm text-white/45">No external events yet.</p>
         ) : (
           <ul className="divide-y divide-white/10 rounded-xl border border-white/10">
-            {events.map((row: ExternalEvent) => (
-              <li key={row.id} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 text-sm">
+            {events.map((row: ExternalEvent, eventIndex: number) => (
+              <DemoDashboardReveal key={row.id} index={Math.min(eventIndex, 8)}>
+              <li className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 text-sm">
                 <div>
                   <p className="font-medium text-white/90">{row.name}</p>
                   <p className="text-white/50">
@@ -532,11 +548,13 @@ export function CentralExternalEventsWorkspace() {
                   />
                 </div>
               </li>
+              </DemoDashboardReveal>
             ))}
           </ul>
         )}
       </CentralEntityList>
     </CentralMarketingShell>
+    </DemoDashboardMotionShell>
   );
 }
 
@@ -561,6 +579,7 @@ export function CentralManagedEventsWorkspace() {
   }
 
   return (
+    <DemoDashboardMotionShell moduleId="events-managed">
     <CentralMarketingShell
       title="Managed events"
       description="Owned programmes — webinars, member days, and hosted conferences."
@@ -579,8 +598,9 @@ export function CentralManagedEventsWorkspace() {
           <p className="text-sm text-white/45">No managed events yet.</p>
         ) : (
           <ul className="divide-y divide-white/10 rounded-xl border border-white/10">
-            {events.map((row: ManagedEvent) => (
-              <li key={row.id} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 text-sm">
+            {events.map((row: ManagedEvent, eventIndex: number) => (
+              <DemoDashboardReveal key={row.id} index={Math.min(eventIndex, 8)}>
+              <li className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 text-sm">
                 <div>
                   <p className="font-medium text-white/90">{row.name}</p>
                   <p className="text-white/50">
@@ -595,11 +615,13 @@ export function CentralManagedEventsWorkspace() {
                   />
                 </div>
               </li>
+              </DemoDashboardReveal>
             ))}
           </ul>
         )}
       </CentralEntityList>
     </CentralMarketingShell>
+    </DemoDashboardMotionShell>
   );
 }
 
