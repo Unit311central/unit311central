@@ -1,0 +1,4807 @@
+{
+  "generated_from": "current codebase",
+  "generated_at": "2026-09-26T15:40:05.439Z",
+  "source_files": [
+    "src/lib/platform-workspaces/central-product-nav.ts",
+    "src/lib/platform-workspaces/module-catalogue.ts",
+    "src/lib/internal-operations-data.ts",
+    "src/lib/central-application-model/canonical-modules.ts",
+    "src/components/testflighthub/InternalOperationsDashboard.tsx",
+    "src/app/api/**/route.ts",
+    "supabase/migrations/*.sql"
+  ],
+  "user_expected_22_mapping": {
+    "HOME": {
+      "code_id": "home"
+    },
+    "EXECUTIVE ASSISTANT": {
+      "code_id": "executive-assistant"
+    },
+    "BUSINESS CENTRAL": {
+      "code_id": "business-central"
+    },
+    "SALES MANAGEMENT": {
+      "code_id": "sales-management"
+    },
+    "FINANCES": {
+      "code_id": "financials"
+    },
+    "FUNDRAISING": {
+      "code_id": "fundraising"
+    },
+    "BOARD": {
+      "code_id": "board"
+    },
+    "CORPORATE INFORMATION": {
+      "code_id": "corporate-information"
+    },
+    "OPERATIONS": {
+      "code_id": "operations"
+    },
+    "MARKETING & EVENTS": {
+      "code_id": "marketing-events"
+    },
+    "TECHNOLOGY MANAGEMENT": {
+      "code_id": "technology-management"
+    },
+    "HUMAN RESOURCES": {
+      "code_id": "human-resources"
+    },
+    "BUSINESS PRODUCTIVITY": {
+      "code_id": "business-productivity"
+    },
+    "SUPPORT DESK": {
+      "code_id": "support-desk"
+    },
+    "PROJECT MANAGEMENT": {
+      "code_id": "project-management"
+    },
+    "ENGINEERING": {
+      "code_id": "engineering"
+    },
+    "TRAINING": {
+      "code_id": "training"
+    },
+    "QMS": {
+      "code_id": "qms"
+    },
+    "TOOLS": {
+      "code_id": "tools"
+    },
+    "EXTERNAL MANAGEMENT": {
+      "code_id": "external-client-access"
+    },
+    "SETTINGS": {
+      "code_id": "settings"
+    },
+    "ASSETS, INVENTORY & LOGISTICS": {
+      "code_id": "operations"
+    }
+  },
+  "totals": {
+    "core_modules": 22,
+    "features": 109,
+    "subfeatures": 62,
+    "distinct_view_ids_in_catalogue": 128,
+    "api_route_handlers": 366,
+    "supabase_public_tables_from_migrations": 162
+  },
+  "discrepancies": [
+    "Catalogue module #3 is INTELLIGENCE (id: intelligence); user expected-22 list has no Intelligence slot.",
+    "User EXTERNAL MANAGEMENT → code EXTERNAL CLIENT ACCESS (id: external-client-access).",
+    "User ASSETS, INVENTORY & LOGISTICS is not a top-level catalogue module; sub-areas under OPERATIONS.",
+    "CANONICAL_MODULES adds optional funds and portfolio-companies beyond the 22-module Workspaces catalogue.",
+    "Catalogue labels: MARKETING AND EVENTS, TECH MGMT, BUSINESS PROD vs user long names.",
+    "INTELLIGENCE occupies catalogue slot #3; user list item #3 is BUSINESS CENTRAL in the expected list."
+  ],
+  "modules": [
+    {
+      "name": "HOME",
+      "code_id": "home",
+      "route": "/dashboard (SurveyOperations shell; leaf navigation via ?view=)",
+      "implementation_status": "IMPLEMENTED",
+      "features": [
+        {
+          "name": "HOME",
+          "route": "/dashboard?view=home",
+          "status": "IMPLEMENTED",
+          "subfeatures": [],
+          "components": [
+            "NavImplementationNotice"
+          ],
+          "api_endpoints": [
+            "/api/internal/command-centre",
+            "/api/strategy/items",
+            "/api/strategy/items/[id]",
+            "/api/telemetry",
+            "/api/telemetry/records"
+          ],
+          "database_tables": [
+            "platform_usage_events",
+            "strategy_items",
+            "internal_operators"
+          ],
+          "dependencies": []
+        }
+      ],
+      "shared_code": [
+        "src/lib/platform-session.ts",
+        "src/lib/workspace-context.ts",
+        "src/lib/operator-entitlements-server.ts",
+        "src/components/testflighthub/SurveyOperationsShell.tsx",
+        "src/components/testflighthub/AccessViewGuard.tsx"
+      ],
+      "dependencies": {
+        "reads_from_modules": "NOT ESTABLISHED FROM CODEBASE (exhaustive graph not computed)",
+        "writes_to_modules": "NOT ESTABLISHED FROM CODEBASE",
+        "auth": "platform-session, operator entitlements, workspace_id scoping"
+      },
+      "data_owned": [
+        "platform_usage_events",
+        "strategy_items",
+        "internal_operators"
+      ],
+      "api_endpoints": [
+        "/api/internal/command-centre",
+        "/api/strategy/items",
+        "/api/strategy/items/[id]",
+        "/api/telemetry",
+        "/api/telemetry/records"
+      ]
+    },
+    {
+      "name": "EXECUTIVE ASSISTANT",
+      "code_id": "executive-assistant",
+      "route": "/dashboard (SurveyOperations shell; leaf navigation via ?view=)",
+      "implementation_status": "IMPLEMENTED",
+      "features": [
+        {
+          "name": "EXECUTIVE ASSISTANT",
+          "route": "/dashboard?view=executive-assistant",
+          "status": "IMPLEMENTED",
+          "subfeatures": [],
+          "components": [
+            "ExecutiveAssistantWorkspace"
+          ],
+          "api_endpoints": [
+            "/api/abhi/ea-tests",
+            "/api/demo/ea-tests",
+            "/api/demo/ea-tests/pdf",
+            "/api/demo/ea-tests/probe",
+            "/api/demo/ea-tests/run-one",
+            "/api/executive-assistant/actions",
+            "/api/executive-assistant/actions/plans",
+            "/api/executive-assistant/actions/plans/[id]",
+            "/api/executive-assistant/artifacts/[id]",
+            "/api/executive-assistant/chat",
+            "/api/executive-assistant/conversations",
+            "/api/executive-assistant/conversations/[id]",
+            "/api/executive-assistant/conversations/resume",
+            "/api/executive-assistant/feedback",
+            "/api/executive-assistant/planning/goals",
+            "/api/executive-assistant/planning/goals/[id]",
+            "/api/executive-assistant/proactive",
+            "/api/executive-assistant/tts"
+          ],
+          "database_tables": [
+            "executive_assistant_conversations",
+            "executive_assistant_model_usage"
+          ],
+          "dependencies": []
+        }
+      ],
+      "shared_code": [
+        "src/lib/platform-session.ts",
+        "src/lib/workspace-context.ts",
+        "src/lib/operator-entitlements-server.ts",
+        "src/components/testflighthub/SurveyOperationsShell.tsx",
+        "src/components/testflighthub/AccessViewGuard.tsx"
+      ],
+      "dependencies": {
+        "reads_from_modules": "NOT ESTABLISHED FROM CODEBASE (exhaustive graph not computed)",
+        "writes_to_modules": "NOT ESTABLISHED FROM CODEBASE",
+        "auth": "platform-session, operator entitlements, workspace_id scoping"
+      },
+      "data_owned": [
+        "executive_assistant_conversations",
+        "executive_assistant_model_usage"
+      ],
+      "api_endpoints": [
+        "/api/abhi/ea-tests",
+        "/api/demo/ea-tests",
+        "/api/demo/ea-tests/pdf",
+        "/api/demo/ea-tests/probe",
+        "/api/demo/ea-tests/run-one",
+        "/api/executive-assistant/actions",
+        "/api/executive-assistant/actions/plans",
+        "/api/executive-assistant/actions/plans/[id]",
+        "/api/executive-assistant/artifacts/[id]",
+        "/api/executive-assistant/chat",
+        "/api/executive-assistant/conversations",
+        "/api/executive-assistant/conversations/[id]",
+        "/api/executive-assistant/conversations/resume",
+        "/api/executive-assistant/feedback",
+        "/api/executive-assistant/planning/goals",
+        "/api/executive-assistant/planning/goals/[id]",
+        "/api/executive-assistant/proactive",
+        "/api/executive-assistant/tts"
+      ]
+    },
+    {
+      "name": "INTELLIGENCE",
+      "code_id": "intelligence",
+      "route": "/dashboard (SurveyOperations shell; leaf navigation via ?view=)",
+      "implementation_status": "IMPLEMENTED",
+      "features": [
+        {
+          "name": "Company Intelligence",
+          "route": "/dashboard?view=demo-company-intelligence",
+          "status": "IMPLEMENTED",
+          "subfeatures": [],
+          "components": [],
+          "api_endpoints": [
+            "/api/competitors",
+            "/api/competitors/[id]",
+            "/api/intelligence/briefing",
+            "/api/intelligence/domains",
+            "/api/intelligence/records/[recordId]",
+            "/api/intelligence/search",
+            "/api/intelligence/sources"
+          ],
+          "database_tables": [
+            "competitors",
+            "strategy_items"
+          ],
+          "dependencies": []
+        },
+        {
+          "name": "Client Intelligence",
+          "route": "/dashboard?view=demo-client-intelligence",
+          "status": "IMPLEMENTED",
+          "subfeatures": [],
+          "components": [],
+          "api_endpoints": [
+            "/api/competitors",
+            "/api/competitors/[id]",
+            "/api/intelligence/briefing",
+            "/api/intelligence/domains",
+            "/api/intelligence/records/[recordId]",
+            "/api/intelligence/search",
+            "/api/intelligence/sources"
+          ],
+          "database_tables": [
+            "competitors",
+            "strategy_items"
+          ],
+          "dependencies": []
+        },
+        {
+          "name": "Market Intelligence",
+          "route": "/dashboard?view=demo-market-intelligence",
+          "status": "IMPLEMENTED",
+          "subfeatures": [],
+          "components": [],
+          "api_endpoints": [
+            "/api/competitors",
+            "/api/competitors/[id]",
+            "/api/intelligence/briefing",
+            "/api/intelligence/domains",
+            "/api/intelligence/records/[recordId]",
+            "/api/intelligence/search",
+            "/api/intelligence/sources"
+          ],
+          "database_tables": [
+            "competitors",
+            "strategy_items"
+          ],
+          "dependencies": []
+        }
+      ],
+      "shared_code": [
+        "src/lib/platform-session.ts",
+        "src/lib/workspace-context.ts",
+        "src/lib/operator-entitlements-server.ts",
+        "src/components/testflighthub/SurveyOperationsShell.tsx",
+        "src/components/testflighthub/AccessViewGuard.tsx"
+      ],
+      "dependencies": {
+        "reads_from_modules": "NOT ESTABLISHED FROM CODEBASE (exhaustive graph not computed)",
+        "writes_to_modules": "NOT ESTABLISHED FROM CODEBASE",
+        "auth": "platform-session, operator entitlements, workspace_id scoping"
+      },
+      "data_owned": [
+        "competitors",
+        "strategy_items"
+      ],
+      "api_endpoints": [
+        "/api/competitors",
+        "/api/competitors/[id]",
+        "/api/intelligence/briefing",
+        "/api/intelligence/domains",
+        "/api/intelligence/records/[recordId]",
+        "/api/intelligence/search",
+        "/api/intelligence/sources"
+      ]
+    },
+    {
+      "name": "BUSINESS CENTRAL",
+      "code_id": "business-central",
+      "route": "/dashboard (SurveyOperations shell; leaf navigation via ?view=)",
+      "implementation_status": "IMPLEMENTED",
+      "features": [
+        {
+          "name": "Dashboard",
+          "route": "/dashboard?view=business-central-dashboard",
+          "status": "IMPLEMENTED",
+          "subfeatures": [],
+          "components": [],
+          "api_endpoints": [
+            "/api/client-onboarding",
+            "/api/client-onboarding/[id]",
+            "/api/client-onboarding/[id]/advance",
+            "/api/client-onboarding/[id]/payment-receipt",
+            "/api/client-onboarding/[id]/questionnaire",
+            "/api/clients",
+            "/api/clients/[id]",
+            "/api/clients/[id]/files-root",
+            "/api/clients/[id]/reset-workspace-onboarding",
+            "/api/clients/[id]/support-lounge",
+            "/api/clients/support-lounge/ensure-all",
+            "/api/crm/meetings",
+            "/api/crm/meetings/[id]",
+            "/api/crm/meetings/[id]/focus-pdf",
+            "/api/crm/meetings/[id]/start",
+            "/api/information-repository",
+            "/api/information-repository/sections",
+            "/api/internal-work-packages",
+            "/api/internal-work-packages/[id]",
+            "/api/internal-work-packages/[id]/members",
+            "/api/internal-work-packages/[id]/tasks",
+            "/api/internal-work-packages/[id]/tasks/[taskId]",
+            "/api/internal/command-centre",
+            "/api/strategy/items",
+            "/api/strategy/items/[id]"
+          ],
+          "database_tables": [
+            "internal_clients",
+            "client_onboarding_records",
+            "crm_leads",
+            "crm_connections",
+            "crm_contact_history",
+            "internal_work_packages"
+          ],
+          "dependencies": []
+        },
+        {
+          "name": "Clients",
+          "route": null,
+          "status": "IMPLEMENTED",
+          "subfeatures": [
+            {
+              "name": "Dashboard",
+              "route": "/dashboard?view=clients-dashboard",
+              "viewId": "clients-dashboard",
+              "query": null
+            },
+            {
+              "name": "Client Directory",
+              "route": "/dashboard?view=clients",
+              "viewId": "clients",
+              "query": null
+            },
+            {
+              "name": "Member Intelligence",
+              "route": "/dashboard?view=member-intelligence",
+              "viewId": "member-intelligence",
+              "query": null
+            }
+          ],
+          "components": [],
+          "api_endpoints": [
+            "/api/client-onboarding",
+            "/api/client-onboarding/[id]",
+            "/api/client-onboarding/[id]/advance",
+            "/api/client-onboarding/[id]/payment-receipt",
+            "/api/client-onboarding/[id]/questionnaire",
+            "/api/clients",
+            "/api/clients/[id]",
+            "/api/clients/[id]/files-root",
+            "/api/clients/[id]/reset-workspace-onboarding",
+            "/api/clients/[id]/support-lounge",
+            "/api/clients/support-lounge/ensure-all",
+            "/api/crm/meetings",
+            "/api/crm/meetings/[id]",
+            "/api/crm/meetings/[id]/focus-pdf",
+            "/api/crm/meetings/[id]/start",
+            "/api/information-repository",
+            "/api/information-repository/sections",
+            "/api/internal-work-packages",
+            "/api/internal-work-packages/[id]",
+            "/api/internal-work-packages/[id]/members",
+            "/api/internal-work-packages/[id]/tasks",
+            "/api/internal-work-packages/[id]/tasks/[taskId]",
+            "/api/internal/command-centre",
+            "/api/strategy/items",
+            "/api/strategy/items/[id]"
+          ],
+          "database_tables": [
+            "internal_clients",
+            "client_onboarding_records",
+            "crm_leads",
+            "crm_connections",
+            "crm_contact_history",
+            "internal_work_packages"
+          ],
+          "dependencies": []
+        },
+        {
+          "name": "Management",
+          "route": null,
+          "status": "IMPLEMENTED",
+          "subfeatures": [
+            {
+              "name": "Dashboard",
+              "route": "/dashboard?view=management",
+              "viewId": "management",
+              "query": null
+            },
+            {
+              "name": "Meetings",
+              "route": "/dashboard?view=management&section=meetings",
+              "viewId": "management",
+              "query": {
+                "section": "meetings"
+              }
+            },
+            {
+              "name": "Function Packs",
+              "route": "/dashboard?view=management&section=function-packs",
+              "viewId": "management",
+              "query": {
+                "section": "function-packs"
+              }
+            },
+            {
+              "name": "Actions & Decisions",
+              "route": "/dashboard?view=management&section=actions-decisions",
+              "viewId": "management",
+              "query": {
+                "section": "actions-decisions"
+              }
+            }
+          ],
+          "components": [
+            "ManagementWorkspace"
+          ],
+          "api_endpoints": [
+            "/api/client-onboarding",
+            "/api/client-onboarding/[id]",
+            "/api/client-onboarding/[id]/advance",
+            "/api/client-onboarding/[id]/payment-receipt",
+            "/api/client-onboarding/[id]/questionnaire",
+            "/api/clients",
+            "/api/clients/[id]",
+            "/api/clients/[id]/files-root",
+            "/api/clients/[id]/reset-workspace-onboarding",
+            "/api/clients/[id]/support-lounge",
+            "/api/clients/support-lounge/ensure-all",
+            "/api/crm/meetings",
+            "/api/crm/meetings/[id]",
+            "/api/crm/meetings/[id]/focus-pdf",
+            "/api/crm/meetings/[id]/start",
+            "/api/information-repository",
+            "/api/information-repository/sections",
+            "/api/internal-work-packages",
+            "/api/internal-work-packages/[id]",
+            "/api/internal-work-packages/[id]/members",
+            "/api/internal-work-packages/[id]/tasks",
+            "/api/internal-work-packages/[id]/tasks/[taskId]",
+            "/api/internal/command-centre",
+            "/api/strategy/items",
+            "/api/strategy/items/[id]"
+          ],
+          "database_tables": [
+            "internal_clients",
+            "client_onboarding_records",
+            "crm_leads",
+            "crm_connections",
+            "crm_contact_history",
+            "internal_work_packages"
+          ],
+          "dependencies": []
+        },
+        {
+          "name": "Grants",
+          "route": "/dashboard?view=grants",
+          "status": "IMPLEMENTED",
+          "subfeatures": [],
+          "components": [],
+          "api_endpoints": [
+            "/api/client-onboarding",
+            "/api/client-onboarding/[id]",
+            "/api/client-onboarding/[id]/advance",
+            "/api/client-onboarding/[id]/payment-receipt",
+            "/api/client-onboarding/[id]/questionnaire",
+            "/api/clients",
+            "/api/clients/[id]",
+            "/api/clients/[id]/files-root",
+            "/api/clients/[id]/reset-workspace-onboarding",
+            "/api/clients/[id]/support-lounge",
+            "/api/clients/support-lounge/ensure-all",
+            "/api/crm/meetings",
+            "/api/crm/meetings/[id]",
+            "/api/crm/meetings/[id]/focus-pdf",
+            "/api/crm/meetings/[id]/start",
+            "/api/information-repository",
+            "/api/information-repository/sections",
+            "/api/internal-work-packages",
+            "/api/internal-work-packages/[id]",
+            "/api/internal-work-packages/[id]/members",
+            "/api/internal-work-packages/[id]/tasks",
+            "/api/internal-work-packages/[id]/tasks/[taskId]",
+            "/api/internal/command-centre",
+            "/api/strategy/items",
+            "/api/strategy/items/[id]"
+          ],
+          "database_tables": [
+            "internal_clients",
+            "client_onboarding_records",
+            "crm_leads",
+            "crm_connections",
+            "crm_contact_history",
+            "internal_work_packages"
+          ],
+          "dependencies": []
+        },
+        {
+          "name": "Information Repository",
+          "route": "/dashboard?view=information-repository",
+          "status": "IMPLEMENTED",
+          "subfeatures": [],
+          "components": [
+            "InterfaceWorxInformationRepositoryWorkspace"
+          ],
+          "api_endpoints": [
+            "/api/client-onboarding",
+            "/api/client-onboarding/[id]",
+            "/api/client-onboarding/[id]/advance",
+            "/api/client-onboarding/[id]/payment-receipt",
+            "/api/client-onboarding/[id]/questionnaire",
+            "/api/clients",
+            "/api/clients/[id]",
+            "/api/clients/[id]/files-root",
+            "/api/clients/[id]/reset-workspace-onboarding",
+            "/api/clients/[id]/support-lounge",
+            "/api/clients/support-lounge/ensure-all",
+            "/api/crm/meetings",
+            "/api/crm/meetings/[id]",
+            "/api/crm/meetings/[id]/focus-pdf",
+            "/api/crm/meetings/[id]/start",
+            "/api/information-repository",
+            "/api/information-repository/sections",
+            "/api/internal-work-packages",
+            "/api/internal-work-packages/[id]",
+            "/api/internal-work-packages/[id]/members",
+            "/api/internal-work-packages/[id]/tasks",
+            "/api/internal-work-packages/[id]/tasks/[taskId]",
+            "/api/internal/command-centre",
+            "/api/strategy/items",
+            "/api/strategy/items/[id]"
+          ],
+          "database_tables": [
+            "internal_clients",
+            "client_onboarding_records",
+            "crm_leads",
+            "crm_connections",
+            "crm_contact_history",
+            "internal_work_packages"
+          ],
+          "dependencies": []
+        }
+      ],
+      "shared_code": [
+        "src/lib/platform-session.ts",
+        "src/lib/workspace-context.ts",
+        "src/lib/operator-entitlements-server.ts",
+        "src/components/testflighthub/SurveyOperationsShell.tsx",
+        "src/components/testflighthub/AccessViewGuard.tsx"
+      ],
+      "dependencies": {
+        "reads_from_modules": "NOT ESTABLISHED FROM CODEBASE (exhaustive graph not computed)",
+        "writes_to_modules": "NOT ESTABLISHED FROM CODEBASE",
+        "auth": "platform-session, operator entitlements, workspace_id scoping"
+      },
+      "data_owned": [
+        "internal_clients",
+        "client_onboarding_records",
+        "crm_leads",
+        "crm_connections",
+        "crm_contact_history",
+        "internal_work_packages"
+      ],
+      "api_endpoints": [
+        "/api/client-onboarding",
+        "/api/client-onboarding/[id]",
+        "/api/client-onboarding/[id]/advance",
+        "/api/client-onboarding/[id]/payment-receipt",
+        "/api/client-onboarding/[id]/questionnaire",
+        "/api/clients",
+        "/api/clients/[id]",
+        "/api/clients/[id]/files-root",
+        "/api/clients/[id]/reset-workspace-onboarding",
+        "/api/clients/[id]/support-lounge",
+        "/api/clients/support-lounge/ensure-all",
+        "/api/crm/meetings",
+        "/api/crm/meetings/[id]",
+        "/api/crm/meetings/[id]/focus-pdf",
+        "/api/crm/meetings/[id]/start",
+        "/api/information-repository",
+        "/api/information-repository/sections",
+        "/api/internal-work-packages",
+        "/api/internal-work-packages/[id]",
+        "/api/internal-work-packages/[id]/members",
+        "/api/internal-work-packages/[id]/tasks",
+        "/api/internal-work-packages/[id]/tasks/[taskId]",
+        "/api/internal/command-centre",
+        "/api/strategy/items",
+        "/api/strategy/items/[id]"
+      ]
+    },
+    {
+      "name": "SALES MANAGEMENT",
+      "code_id": "sales-management",
+      "route": "/dashboard (SurveyOperations shell; leaf navigation via ?view=)",
+      "implementation_status": "IMPLEMENTED",
+      "features": [
+        {
+          "name": "Dashboard",
+          "route": "/dashboard?view=sales-management&tab=dashboard",
+          "status": "IMPLEMENTED",
+          "subfeatures": [],
+          "components": [
+            "SalesManagementWorkspace"
+          ],
+          "api_endpoints": [
+            "/api/crm/connections",
+            "/api/crm/connections/[id]",
+            "/api/crm/leads",
+            "/api/crm/leads/[id]",
+            "/api/crm/leads/[id]/approve-pdf",
+            "/api/crm/leads/[id]/commit-discovery",
+            "/api/crm/leads/[id]/discovery-questions",
+            "/api/crm/leads/[id]/generate-pdf",
+            "/api/crm/leads/[id]/generate-pptx",
+            "/api/crm/leads/[id]/logo",
+            "/api/crm/leads/[id]/promote-to-client",
+            "/api/crm/leads/[id]/timeline",
+            "/api/crm/meetings",
+            "/api/crm/meetings/[id]",
+            "/api/crm/meetings/[id]/focus-pdf",
+            "/api/crm/meetings/[id]/start",
+            "/api/crm/report-chat/[token]",
+            "/api/financials/quotes",
+            "/api/financials/quotes/[id]",
+            "/api/financials/quotes/from-lead",
+            "/api/sales-management/activities",
+            "/api/sales-management/commission-rules",
+            "/api/sales-management/dashboard",
+            "/api/sales-management/targets",
+            "/api/sales-management/workspace"
+          ],
+          "database_tables": [
+            "sales_teams",
+            "sales_team_members",
+            "sales_targets",
+            "sales_commissions",
+            "sales_quotes",
+            "sales_quote_line_items",
+            "crm_leads"
+          ],
+          "dependencies": []
+        },
+        {
+          "name": "Overview",
+          "route": null,
+          "status": "IMPLEMENTED",
+          "subfeatures": [
+            {
+              "name": "My Sales",
+              "route": "/dashboard?view=sales-management&tab=my-sales",
+              "viewId": "sales-management",
+              "query": {
+                "tab": "my-sales"
+              }
+            },
+            {
+              "name": "Sales Team",
+              "route": "/dashboard?view=sales-management&tab=sales-team",
+              "viewId": "sales-management",
+              "query": {
+                "tab": "sales-team"
+              }
+            }
+          ],
+          "components": [
+            "SalesManagementWorkspace"
+          ],
+          "api_endpoints": [
+            "/api/crm/connections",
+            "/api/crm/connections/[id]",
+            "/api/crm/leads",
+            "/api/crm/leads/[id]",
+            "/api/crm/leads/[id]/approve-pdf",
+            "/api/crm/leads/[id]/commit-discovery",
+            "/api/crm/leads/[id]/discovery-questions",
+            "/api/crm/leads/[id]/generate-pdf",
+            "/api/crm/leads/[id]/generate-pptx",
+            "/api/crm/leads/[id]/logo",
+            "/api/crm/leads/[id]/promote-to-client",
+            "/api/crm/leads/[id]/timeline",
+            "/api/crm/meetings",
+            "/api/crm/meetings/[id]",
+            "/api/crm/meetings/[id]/focus-pdf",
+            "/api/crm/meetings/[id]/start",
+            "/api/crm/report-chat/[token]",
+            "/api/financials/quotes",
+            "/api/financials/quotes/[id]",
+            "/api/financials/quotes/from-lead",
+            "/api/sales-management/activities",
+            "/api/sales-management/commission-rules",
+            "/api/sales-management/dashboard",
+            "/api/sales-management/targets",
+            "/api/sales-management/workspace"
+          ],
+          "database_tables": [
+            "sales_teams",
+            "sales_team_members",
+            "sales_targets",
+            "sales_commissions",
+            "sales_quotes",
+            "sales_quote_line_items",
+            "crm_leads"
+          ],
+          "dependencies": []
+        },
+        {
+          "name": "Management",
+          "route": null,
+          "status": "IMPLEMENTED",
+          "subfeatures": [
+            {
+              "name": "Targets & Forecast",
+              "route": "/dashboard?view=sales-management&tab=targets",
+              "viewId": "sales-management",
+              "query": {
+                "tab": "targets"
+              }
+            },
+            {
+              "name": "Performance",
+              "route": "/dashboard?view=sales-management&tab=performance",
+              "viewId": "sales-management",
+              "query": {
+                "tab": "performance"
+              }
+            },
+            {
+              "name": "Forecast",
+              "route": "/dashboard?view=sales-management&tab=forecast",
+              "viewId": "sales-management",
+              "query": {
+                "tab": "forecast"
+              }
+            },
+            {
+              "name": "Commissions",
+              "route": "/dashboard?view=sales-management&tab=commissions",
+              "viewId": "sales-management",
+              "query": {
+                "tab": "commissions"
+              }
+            },
+            {
+              "name": "Reports",
+              "route": "/dashboard?view=sales-management&tab=reports",
+              "viewId": "sales-management",
+              "query": {
+                "tab": "reports"
+              }
+            }
+          ],
+          "components": [
+            "SalesManagementWorkspace"
+          ],
+          "api_endpoints": [
+            "/api/crm/connections",
+            "/api/crm/connections/[id]",
+            "/api/crm/leads",
+            "/api/crm/leads/[id]",
+            "/api/crm/leads/[id]/approve-pdf",
+            "/api/crm/leads/[id]/commit-discovery",
+            "/api/crm/leads/[id]/discovery-questions",
+            "/api/crm/leads/[id]/generate-pdf",
+            "/api/crm/leads/[id]/generate-pptx",
+            "/api/crm/leads/[id]/logo",
+            "/api/crm/leads/[id]/promote-to-client",
+            "/api/crm/leads/[id]/timeline",
+            "/api/crm/meetings",
+            "/api/crm/meetings/[id]",
+            "/api/crm/meetings/[id]/focus-pdf",
+            "/api/crm/meetings/[id]/start",
+            "/api/crm/report-chat/[token]",
+            "/api/financials/quotes",
+            "/api/financials/quotes/[id]",
+            "/api/financials/quotes/from-lead",
+            "/api/sales-management/activities",
+            "/api/sales-management/commission-rules",
+            "/api/sales-management/dashboard",
+            "/api/sales-management/targets",
+            "/api/sales-management/workspace"
+          ],
+          "database_tables": [
+            "sales_teams",
+            "sales_team_members",
+            "sales_targets",
+            "sales_commissions",
+            "sales_quotes",
+            "sales_quote_line_items",
+            "crm_leads"
+          ],
+          "dependencies": []
+        },
+        {
+          "name": "Sales",
+          "route": null,
+          "status": "IMPLEMENTED",
+          "subfeatures": [
+            {
+              "name": "Prospects",
+              "route": "/dashboard?view=sales-management&tab=prospects",
+              "viewId": "sales-management",
+              "query": {
+                "tab": "prospects"
+              }
+            },
+            {
+              "name": "Opportunities",
+              "route": "/dashboard?view=sales-management&tab=opportunities",
+              "viewId": "sales-management",
+              "query": {
+                "tab": "opportunities"
+              }
+            },
+            {
+              "name": "Pipeline",
+              "route": "/dashboard?view=sales-management&tab=pipeline",
+              "viewId": "sales-management",
+              "query": {
+                "tab": "pipeline"
+              }
+            },
+            {
+              "name": "Discovery",
+              "route": "/dashboard?view=sales-management&tab=discovery",
+              "viewId": "sales-management",
+              "query": {
+                "tab": "discovery"
+              }
+            },
+            {
+              "name": "Activities",
+              "route": "/dashboard?view=sales-management&tab=activities",
+              "viewId": "sales-management",
+              "query": {
+                "tab": "activities"
+              }
+            },
+            {
+              "name": "Sales Quotes",
+              "route": "/dashboard?view=sales-management&tab=sales-quotes",
+              "viewId": "sales-management",
+              "query": {
+                "tab": "sales-quotes"
+              }
+            },
+            {
+              "name": "Partners",
+              "route": "/dashboard?view=sales-management&tab=partners",
+              "viewId": "sales-management",
+              "query": {
+                "tab": "partners"
+              }
+            }
+          ],
+          "components": [
+            "SalesManagementWorkspace"
+          ],
+          "api_endpoints": [
+            "/api/crm/connections",
+            "/api/crm/connections/[id]",
+            "/api/crm/leads",
+            "/api/crm/leads/[id]",
+            "/api/crm/leads/[id]/approve-pdf",
+            "/api/crm/leads/[id]/commit-discovery",
+            "/api/crm/leads/[id]/discovery-questions",
+            "/api/crm/leads/[id]/generate-pdf",
+            "/api/crm/leads/[id]/generate-pptx",
+            "/api/crm/leads/[id]/logo",
+            "/api/crm/leads/[id]/promote-to-client",
+            "/api/crm/leads/[id]/timeline",
+            "/api/crm/meetings",
+            "/api/crm/meetings/[id]",
+            "/api/crm/meetings/[id]/focus-pdf",
+            "/api/crm/meetings/[id]/start",
+            "/api/crm/report-chat/[token]",
+            "/api/financials/quotes",
+            "/api/financials/quotes/[id]",
+            "/api/financials/quotes/from-lead",
+            "/api/sales-management/activities",
+            "/api/sales-management/commission-rules",
+            "/api/sales-management/dashboard",
+            "/api/sales-management/targets",
+            "/api/sales-management/workspace"
+          ],
+          "database_tables": [
+            "sales_teams",
+            "sales_team_members",
+            "sales_targets",
+            "sales_commissions",
+            "sales_quotes",
+            "sales_quote_line_items",
+            "crm_leads"
+          ],
+          "dependencies": []
+        }
+      ],
+      "shared_code": [
+        "src/lib/platform-session.ts",
+        "src/lib/workspace-context.ts",
+        "src/lib/operator-entitlements-server.ts",
+        "src/components/testflighthub/SurveyOperationsShell.tsx",
+        "src/components/testflighthub/AccessViewGuard.tsx"
+      ],
+      "dependencies": {
+        "reads_from_modules": "NOT ESTABLISHED FROM CODEBASE (exhaustive graph not computed)",
+        "writes_to_modules": "NOT ESTABLISHED FROM CODEBASE",
+        "auth": "platform-session, operator entitlements, workspace_id scoping"
+      },
+      "data_owned": [
+        "sales_teams",
+        "sales_team_members",
+        "sales_targets",
+        "sales_commissions",
+        "sales_quotes",
+        "sales_quote_line_items",
+        "crm_leads"
+      ],
+      "api_endpoints": [
+        "/api/crm/connections",
+        "/api/crm/connections/[id]",
+        "/api/crm/leads",
+        "/api/crm/leads/[id]",
+        "/api/crm/leads/[id]/approve-pdf",
+        "/api/crm/leads/[id]/commit-discovery",
+        "/api/crm/leads/[id]/discovery-questions",
+        "/api/crm/leads/[id]/generate-pdf",
+        "/api/crm/leads/[id]/generate-pptx",
+        "/api/crm/leads/[id]/logo",
+        "/api/crm/leads/[id]/promote-to-client",
+        "/api/crm/leads/[id]/timeline",
+        "/api/crm/meetings",
+        "/api/crm/meetings/[id]",
+        "/api/crm/meetings/[id]/focus-pdf",
+        "/api/crm/meetings/[id]/start",
+        "/api/crm/report-chat/[token]",
+        "/api/financials/quotes",
+        "/api/financials/quotes/[id]",
+        "/api/financials/quotes/from-lead",
+        "/api/sales-management/activities",
+        "/api/sales-management/commission-rules",
+        "/api/sales-management/dashboard",
+        "/api/sales-management/targets",
+        "/api/sales-management/workspace"
+      ]
+    },
+    {
+      "name": "FINANCES",
+      "code_id": "financials",
+      "route": "/dashboard (SurveyOperations shell; leaf navigation via ?view=)",
+      "implementation_status": "IMPLEMENTED",
+      "features": [
+        {
+          "name": "Dashboard",
+          "route": "/dashboard?view=financials",
+          "status": "IMPLEMENTED",
+          "subfeatures": [],
+          "components": [],
+          "api_endpoints": [
+            "/api/expenses/[id]/approval-history",
+            "/api/expenses/[id]/approve",
+            "/api/expenses/[id]/reject",
+            "/api/expenses/[id]/request-changes",
+            "/api/expenses/[id]/submit",
+            "/api/expenses/config",
+            "/api/expenses/my",
+            "/api/expenses/notifications",
+            "/api/expenses/runs",
+            "/api/expenses/runs/[id]",
+            "/api/financials/activity",
+            "/api/financials/clients/[id]/summary",
+            "/api/financials/expenses",
+            "/api/financials/expenses/[id]",
+            "/api/financials/expenses/bulk",
+            "/api/financials/invoices",
+            "/api/financials/ledger/accounts",
+            "/api/financials/ledger/accounts/[id]/transactions",
+            "/api/financials/ledger/journals",
+            "/api/financials/ledger/overview",
+            "/api/financials/ledger/trial-balance",
+            "/api/financials/payables",
+            "/api/financials/quotes",
+            "/api/financials/quotes/[id]",
+            "/api/financials/quotes/from-lead",
+            "/api/financials/supplier-invoices",
+            "/api/financials/supplier-invoices/[id]",
+            "/api/financials/treasury/activity",
+            "/api/financials/treasury/approvals",
+            "/api/financials/treasury/notifications",
+            "/api/financials/treasury/notifications/[id]/read",
+            "/api/financials/treasury/settings",
+            "/api/financials/wise/balances",
+            "/api/financials/wise/quotes",
+            "/api/financials/wise/recipients",
+            "/api/financials/wise/recipients/[id]",
+            "/api/financials/wise/reconcile",
+            "/api/financials/wise/sca-diagnostic",
+            "/api/financials/wise/statements/[balanceId]",
+            "/api/financials/wise/statements/[balanceId]/export",
+            "/api/financials/wise/status",
+            "/api/financials/wise/summary",
+            "/api/financials/wise/transfers",
+            "/api/financials/wise/transfers/[id]",
+            "/api/financials/wise/transfers/[id]/fund",
+            "/api/financials/wise/webhook",
+            "/api/payroll/dashboard",
+            "/api/payroll/employees/[id]/profile",
+            "/api/payroll/runs",
+            "/api/payroll/runs/[id]",
+            "/api/payroll/runs/[id]/approve",
+            "/api/payroll/runs/[id]/pay",
+            "/api/payroll/settings"
+          ],
+          "database_tables": [
+            "accounts",
+            "journal_entries",
+            "journal_lines",
+            "invoices",
+            "wise_payment_matches",
+            "financial_expenses",
+            "treasury_settings"
+          ],
+          "dependencies": []
+        },
+        {
+          "name": "General Ledger",
+          "route": null,
+          "status": "IMPLEMENTED",
+          "subfeatures": [
+            {
+              "name": "Chart of Accounts",
+              "route": "/dashboard?view=general-ledger&tab=accounts",
+              "viewId": "general-ledger",
+              "query": {
+                "tab": "accounts"
+              }
+            },
+            {
+              "name": "Trial Balance",
+              "route": "/dashboard?view=general-ledger&tab=trial",
+              "viewId": "general-ledger",
+              "query": {
+                "tab": "trial"
+              }
+            },
+            {
+              "name": "Journals",
+              "route": "/dashboard?view=general-ledger&tab=journal",
+              "viewId": "general-ledger",
+              "query": {
+                "tab": "journal"
+              }
+            }
+          ],
+          "components": [
+            "GeneralLedgerWorkspace"
+          ],
+          "api_endpoints": [
+            "/api/expenses/[id]/approval-history",
+            "/api/expenses/[id]/approve",
+            "/api/expenses/[id]/reject",
+            "/api/expenses/[id]/request-changes",
+            "/api/expenses/[id]/submit",
+            "/api/expenses/config",
+            "/api/expenses/my",
+            "/api/expenses/notifications",
+            "/api/expenses/runs",
+            "/api/expenses/runs/[id]",
+            "/api/financials/activity",
+            "/api/financials/clients/[id]/summary",
+            "/api/financials/expenses",
+            "/api/financials/expenses/[id]",
+            "/api/financials/expenses/bulk",
+            "/api/financials/invoices",
+            "/api/financials/ledger/accounts",
+            "/api/financials/ledger/accounts/[id]/transactions",
+            "/api/financials/ledger/journals",
+            "/api/financials/ledger/overview",
+            "/api/financials/ledger/trial-balance",
+            "/api/financials/payables",
+            "/api/financials/quotes",
+            "/api/financials/quotes/[id]",
+            "/api/financials/quotes/from-lead",
+            "/api/financials/supplier-invoices",
+            "/api/financials/supplier-invoices/[id]",
+            "/api/financials/treasury/activity",
+            "/api/financials/treasury/approvals",
+            "/api/financials/treasury/notifications",
+            "/api/financials/treasury/notifications/[id]/read",
+            "/api/financials/treasury/settings",
+            "/api/financials/wise/balances",
+            "/api/financials/wise/quotes",
+            "/api/financials/wise/recipients",
+            "/api/financials/wise/recipients/[id]",
+            "/api/financials/wise/reconcile",
+            "/api/financials/wise/sca-diagnostic",
+            "/api/financials/wise/statements/[balanceId]",
+            "/api/financials/wise/statements/[balanceId]/export",
+            "/api/financials/wise/status",
+            "/api/financials/wise/summary",
+            "/api/financials/wise/transfers",
+            "/api/financials/wise/transfers/[id]",
+            "/api/financials/wise/transfers/[id]/fund",
+            "/api/financials/wise/webhook",
+            "/api/payroll/dashboard",
+            "/api/payroll/employees/[id]/profile",
+            "/api/payroll/runs",
+            "/api/payroll/runs/[id]",
+            "/api/payroll/runs/[id]/approve",
+            "/api/payroll/runs/[id]/pay",
+            "/api/payroll/settings"
+          ],
+          "database_tables": [
+            "accounts",
+            "journal_entries",
+            "journal_lines",
+            "invoices",
+            "wise_payment_matches",
+            "financial_expenses",
+            "treasury_settings"
+          ],
+          "dependencies": []
+        },
+        {
+          "name": "Accounts Receivable",
+          "route": null,
+          "status": "IMPLEMENTED",
+          "subfeatures": [
+            {
+              "name": "Invoices",
+              "route": "/dashboard?view=accounts-receivable",
+              "viewId": "accounts-receivable",
+              "query": null
+            },
+            {
+              "name": "Outstanding",
+              "route": "/dashboard?view=accounts-receivable&filter=outstanding",
+              "viewId": "accounts-receivable",
+              "query": {
+                "filter": "outstanding"
+              }
+            },
+            {
+              "name": "Overdue",
+              "route": "/dashboard?view=accounts-receivable&filter=overdue",
+              "viewId": "accounts-receivable",
+              "query": {
+                "filter": "overdue"
+              }
+            },
+            {
+              "name": "Collections",
+              "route": "/dashboard?view=finances-ar-collections",
+              "viewId": "finances-ar-collections",
+              "query": null
+            },
+            {
+              "name": "AR Reporting",
+              "route": "/dashboard?view=finances-ar-reporting",
+              "viewId": "finances-ar-reporting",
+              "query": null
+            }
+          ],
+          "components": [
+            "AccountsReceivableWorkspace"
+          ],
+          "api_endpoints": [
+            "/api/expenses/[id]/approval-history",
+            "/api/expenses/[id]/approve",
+            "/api/expenses/[id]/reject",
+            "/api/expenses/[id]/request-changes",
+            "/api/expenses/[id]/submit",
+            "/api/expenses/config",
+            "/api/expenses/my",
+            "/api/expenses/notifications",
+            "/api/expenses/runs",
+            "/api/expenses/runs/[id]",
+            "/api/financials/activity",
+            "/api/financials/clients/[id]/summary",
+            "/api/financials/expenses",
+            "/api/financials/expenses/[id]",
+            "/api/financials/expenses/bulk",
+            "/api/financials/invoices",
+            "/api/financials/ledger/accounts",
+            "/api/financials/ledger/accounts/[id]/transactions",
+            "/api/financials/ledger/journals",
+            "/api/financials/ledger/overview",
+            "/api/financials/ledger/trial-balance",
+            "/api/financials/payables",
+            "/api/financials/quotes",
+            "/api/financials/quotes/[id]",
+            "/api/financials/quotes/from-lead",
+            "/api/financials/supplier-invoices",
+            "/api/financials/supplier-invoices/[id]",
+            "/api/financials/treasury/activity",
+            "/api/financials/treasury/approvals",
+            "/api/financials/treasury/notifications",
+            "/api/financials/treasury/notifications/[id]/read",
+            "/api/financials/treasury/settings",
+            "/api/financials/wise/balances",
+            "/api/financials/wise/quotes",
+            "/api/financials/wise/recipients",
+            "/api/financials/wise/recipients/[id]",
+            "/api/financials/wise/reconcile",
+            "/api/financials/wise/sca-diagnostic",
+            "/api/financials/wise/statements/[balanceId]",
+            "/api/financials/wise/statements/[balanceId]/export",
+            "/api/financials/wise/status",
+            "/api/financials/wise/summary",
+            "/api/financials/wise/transfers",
+            "/api/financials/wise/transfers/[id]",
+            "/api/financials/wise/transfers/[id]/fund",
+            "/api/financials/wise/webhook",
+            "/api/payroll/dashboard",
+            "/api/payroll/employees/[id]/profile",
+            "/api/payroll/runs",
+            "/api/payroll/runs/[id]",
+            "/api/payroll/runs/[id]/approve",
+            "/api/payroll/runs/[id]/pay",
+            "/api/payroll/settings"
+          ],
+          "database_tables": [
+            "accounts",
+            "journal_entries",
+            "journal_lines",
+            "invoices",
+            "wise_payment_matches",
+            "financial_expenses",
+            "treasury_settings"
+          ],
+          "dependencies": []
+        },
+        {
+          "name": "Accounts Payable",
+          "route": null,
+          "status": "IMPLEMENTED",
+          "subfeatures": [
+            {
+              "name": "Supplier Invoices",
+              "route": "/dashboard?view=accounts-payable&section=invoices",
+              "viewId": "accounts-payable",
+              "query": {
+                "section": "invoices"
+              }
+            },
+            {
+              "name": "Approvals",
+              "route": "/dashboard?view=accounts-payable&section=approvals",
+              "viewId": "accounts-payable",
+              "query": {
+                "section": "approvals"
+              }
+            },
+            {
+              "name": "Outstanding",
+              "route": "/dashboard?view=accounts-payable&section=outstanding",
+              "viewId": "accounts-payable",
+              "query": {
+                "section": "outstanding"
+              }
+            },
+            {
+              "name": "Due Dates",
+              "route": "/dashboard?view=accounts-payable&section=due-dates",
+              "viewId": "accounts-payable",
+              "query": {
+                "section": "due-dates"
+              }
+            },
+            {
+              "name": "Payments",
+              "route": "/dashboard?view=finances-ap-payments",
+              "viewId": "finances-ap-payments",
+              "query": null
+            }
+          ],
+          "components": [
+            "AccountsPayableWorkspace"
+          ],
+          "api_endpoints": [
+            "/api/expenses/[id]/approval-history",
+            "/api/expenses/[id]/approve",
+            "/api/expenses/[id]/reject",
+            "/api/expenses/[id]/request-changes",
+            "/api/expenses/[id]/submit",
+            "/api/expenses/config",
+            "/api/expenses/my",
+            "/api/expenses/notifications",
+            "/api/expenses/runs",
+            "/api/expenses/runs/[id]",
+            "/api/financials/activity",
+            "/api/financials/clients/[id]/summary",
+            "/api/financials/expenses",
+            "/api/financials/expenses/[id]",
+            "/api/financials/expenses/bulk",
+            "/api/financials/invoices",
+            "/api/financials/ledger/accounts",
+            "/api/financials/ledger/accounts/[id]/transactions",
+            "/api/financials/ledger/journals",
+            "/api/financials/ledger/overview",
+            "/api/financials/ledger/trial-balance",
+            "/api/financials/payables",
+            "/api/financials/quotes",
+            "/api/financials/quotes/[id]",
+            "/api/financials/quotes/from-lead",
+            "/api/financials/supplier-invoices",
+            "/api/financials/supplier-invoices/[id]",
+            "/api/financials/treasury/activity",
+            "/api/financials/treasury/approvals",
+            "/api/financials/treasury/notifications",
+            "/api/financials/treasury/notifications/[id]/read",
+            "/api/financials/treasury/settings",
+            "/api/financials/wise/balances",
+            "/api/financials/wise/quotes",
+            "/api/financials/wise/recipients",
+            "/api/financials/wise/recipients/[id]",
+            "/api/financials/wise/reconcile",
+            "/api/financials/wise/sca-diagnostic",
+            "/api/financials/wise/statements/[balanceId]",
+            "/api/financials/wise/statements/[balanceId]/export",
+            "/api/financials/wise/status",
+            "/api/financials/wise/summary",
+            "/api/financials/wise/transfers",
+            "/api/financials/wise/transfers/[id]",
+            "/api/financials/wise/transfers/[id]/fund",
+            "/api/financials/wise/webhook",
+            "/api/payroll/dashboard",
+            "/api/payroll/employees/[id]/profile",
+            "/api/payroll/runs",
+            "/api/payroll/runs/[id]",
+            "/api/payroll/runs/[id]/approve",
+            "/api/payroll/runs/[id]/pay",
+            "/api/payroll/settings"
+          ],
+          "database_tables": [
+            "accounts",
+            "journal_entries",
+            "journal_lines",
+            "invoices",
+            "wise_payment_matches",
+            "financial_expenses",
+            "treasury_settings"
+          ],
+          "dependencies": []
+        },
+        {
+          "name": "Expenses",
+          "route": null,
+          "status": "IMPLEMENTED",
+          "subfeatures": [
+            {
+              "name": "My Expenses",
+              "route": "/dashboard?view=expenses",
+              "viewId": "expenses",
+              "query": null
+            },
+            {
+              "name": "Add Expense",
+              "route": "/dashboard?view=expenses&section=add",
+              "viewId": "expenses",
+              "query": {
+                "section": "add"
+              }
+            },
+            {
+              "name": "All Expenses",
+              "route": "/dashboard?view=expenses&section=all",
+              "viewId": "expenses",
+              "query": {
+                "section": "all"
+              }
+            },
+            {
+              "name": "Approvals",
+              "route": "/dashboard?view=expenses&section=approvals",
+              "viewId": "expenses",
+              "query": {
+                "section": "approvals"
+              }
+            },
+            {
+              "name": "Expense Runs",
+              "route": "/dashboard?view=expenses&section=runs",
+              "viewId": "expenses",
+              "query": {
+                "section": "runs"
+              }
+            },
+            {
+              "name": "Configuration",
+              "route": "/dashboard?view=expenses&section=config",
+              "viewId": "expenses",
+              "query": {
+                "section": "config"
+              }
+            }
+          ],
+          "components": [
+            "ExpensesHubWorkspace"
+          ],
+          "api_endpoints": [
+            "/api/expenses/[id]/approval-history",
+            "/api/expenses/[id]/approve",
+            "/api/expenses/[id]/reject",
+            "/api/expenses/[id]/request-changes",
+            "/api/expenses/[id]/submit",
+            "/api/expenses/config",
+            "/api/expenses/my",
+            "/api/expenses/notifications",
+            "/api/expenses/runs",
+            "/api/expenses/runs/[id]",
+            "/api/financials/activity",
+            "/api/financials/clients/[id]/summary",
+            "/api/financials/expenses",
+            "/api/financials/expenses/[id]",
+            "/api/financials/expenses/bulk",
+            "/api/financials/invoices",
+            "/api/financials/ledger/accounts",
+            "/api/financials/ledger/accounts/[id]/transactions",
+            "/api/financials/ledger/journals",
+            "/api/financials/ledger/overview",
+            "/api/financials/ledger/trial-balance",
+            "/api/financials/payables",
+            "/api/financials/quotes",
+            "/api/financials/quotes/[id]",
+            "/api/financials/quotes/from-lead",
+            "/api/financials/supplier-invoices",
+            "/api/financials/supplier-invoices/[id]",
+            "/api/financials/treasury/activity",
+            "/api/financials/treasury/approvals",
+            "/api/financials/treasury/notifications",
+            "/api/financials/treasury/notifications/[id]/read",
+            "/api/financials/treasury/settings",
+            "/api/financials/wise/balances",
+            "/api/financials/wise/quotes",
+            "/api/financials/wise/recipients",
+            "/api/financials/wise/recipients/[id]",
+            "/api/financials/wise/reconcile",
+            "/api/financials/wise/sca-diagnostic",
+            "/api/financials/wise/statements/[balanceId]",
+            "/api/financials/wise/statements/[balanceId]/export",
+            "/api/financials/wise/status",
+            "/api/financials/wise/summary",
+            "/api/financials/wise/transfers",
+            "/api/financials/wise/transfers/[id]",
+            "/api/financials/wise/transfers/[id]/fund",
+            "/api/financials/wise/webhook",
+            "/api/payroll/dashboard",
+            "/api/payroll/employees/[id]/profile",
+            "/api/payroll/runs",
+            "/api/payroll/runs/[id]",
+            "/api/payroll/runs/[id]/approve",
+            "/api/payroll/runs/[id]/pay",
+            "/api/payroll/settings"
+          ],
+          "database_tables": [
+            "accounts",
+            "journal_entries",
+            "journal_lines",
+            "invoices",
+            "wise_payment_matches",
+            "financial_expenses",
+            "treasury_settings"
+          ],
+          "dependencies": []
+        },
+        {
+          "name": "Banking & Cash",
+          "route": null,
+          "status": "IMPLEMENTED",
+          "subfeatures": [
+            {
+              "name": "Bank",
+              "route": "/dashboard?view=wise",
+              "viewId": "wise",
+              "query": null
+            },
+            {
+              "name": "Cash Position",
+              "route": "/dashboard?view=finances-banking-cash-position",
+              "viewId": "finances-banking-cash-position",
+              "query": null
+            },
+            {
+              "name": "Reconciliation",
+              "route": "/dashboard?view=finances-banking-reconciliation",
+              "viewId": "finances-banking-reconciliation",
+              "query": null
+            }
+          ],
+          "components": [
+            "WiseWorkspace",
+            "FinancesBankingWorkspace"
+          ],
+          "api_endpoints": [
+            "/api/expenses/[id]/approval-history",
+            "/api/expenses/[id]/approve",
+            "/api/expenses/[id]/reject",
+            "/api/expenses/[id]/request-changes",
+            "/api/expenses/[id]/submit",
+            "/api/expenses/config",
+            "/api/expenses/my",
+            "/api/expenses/notifications",
+            "/api/expenses/runs",
+            "/api/expenses/runs/[id]",
+            "/api/financials/activity",
+            "/api/financials/clients/[id]/summary",
+            "/api/financials/expenses",
+            "/api/financials/expenses/[id]",
+            "/api/financials/expenses/bulk",
+            "/api/financials/invoices",
+            "/api/financials/ledger/accounts",
+            "/api/financials/ledger/accounts/[id]/transactions",
+            "/api/financials/ledger/journals",
+            "/api/financials/ledger/overview",
+            "/api/financials/ledger/trial-balance",
+            "/api/financials/payables",
+            "/api/financials/quotes",
+            "/api/financials/quotes/[id]",
+            "/api/financials/quotes/from-lead",
+            "/api/financials/supplier-invoices",
+            "/api/financials/supplier-invoices/[id]",
+            "/api/financials/treasury/activity",
+            "/api/financials/treasury/approvals",
+            "/api/financials/treasury/notifications",
+            "/api/financials/treasury/notifications/[id]/read",
+            "/api/financials/treasury/settings",
+            "/api/financials/wise/balances",
+            "/api/financials/wise/quotes",
+            "/api/financials/wise/recipients",
+            "/api/financials/wise/recipients/[id]",
+            "/api/financials/wise/reconcile",
+            "/api/financials/wise/sca-diagnostic",
+            "/api/financials/wise/statements/[balanceId]",
+            "/api/financials/wise/statements/[balanceId]/export",
+            "/api/financials/wise/status",
+            "/api/financials/wise/summary",
+            "/api/financials/wise/transfers",
+            "/api/financials/wise/transfers/[id]",
+            "/api/financials/wise/transfers/[id]/fund",
+            "/api/financials/wise/webhook",
+            "/api/payroll/dashboard",
+            "/api/payroll/employees/[id]/profile",
+            "/api/payroll/runs",
+            "/api/payroll/runs/[id]",
+            "/api/payroll/runs/[id]/approve",
+            "/api/payroll/runs/[id]/pay",
+            "/api/payroll/settings"
+          ],
+          "database_tables": [
+            "accounts",
+            "journal_entries",
+            "journal_lines",
+            "invoices",
+            "wise_payment_matches",
+            "financial_expenses",
+            "treasury_settings"
+          ],
+          "dependencies": []
+        },
+        {
+          "name": "Planning & Management",
+          "route": null,
+          "status": "IMPLEMENTED",
+          "subfeatures": [
+            {
+              "name": "Budget",
+              "route": "/dashboard?view=finances-planning-budget",
+              "viewId": "finances-planning-budget",
+              "query": null
+            },
+            {
+              "name": "Actual vs Budget",
+              "route": "/dashboard?view=finances-planning-actual-vs-budget",
+              "viewId": "finances-planning-actual-vs-budget",
+              "query": null
+            },
+            {
+              "name": "Cash Flow",
+              "route": "/dashboard?view=finances-planning-cash-flow",
+              "viewId": "finances-planning-cash-flow",
+              "query": null
+            },
+            {
+              "name": "Forecast",
+              "route": "/dashboard?view=finances-planning-forecast",
+              "viewId": "finances-planning-forecast",
+              "query": null
+            },
+            {
+              "name": "KPIs",
+              "route": "/dashboard?view=finances-planning-kpis",
+              "viewId": "finances-planning-kpis",
+              "query": null
+            },
+            {
+              "name": "Management Accounts",
+              "route": "/dashboard?view=finances-planning-management-accounts",
+              "viewId": "finances-planning-management-accounts",
+              "query": null
+            }
+          ],
+          "components": [],
+          "api_endpoints": [
+            "/api/expenses/[id]/approval-history",
+            "/api/expenses/[id]/approve",
+            "/api/expenses/[id]/reject",
+            "/api/expenses/[id]/request-changes",
+            "/api/expenses/[id]/submit",
+            "/api/expenses/config",
+            "/api/expenses/my",
+            "/api/expenses/notifications",
+            "/api/expenses/runs",
+            "/api/expenses/runs/[id]",
+            "/api/financials/activity",
+            "/api/financials/clients/[id]/summary",
+            "/api/financials/expenses",
+            "/api/financials/expenses/[id]",
+            "/api/financials/expenses/bulk",
+            "/api/financials/invoices",
+            "/api/financials/ledger/accounts",
+            "/api/financials/ledger/accounts/[id]/transactions",
+            "/api/financials/ledger/journals",
+            "/api/financials/ledger/overview",
+            "/api/financials/ledger/trial-balance",
+            "/api/financials/payables",
+            "/api/financials/quotes",
+            "/api/financials/quotes/[id]",
+            "/api/financials/quotes/from-lead",
+            "/api/financials/supplier-invoices",
+            "/api/financials/supplier-invoices/[id]",
+            "/api/financials/treasury/activity",
+            "/api/financials/treasury/approvals",
+            "/api/financials/treasury/notifications",
+            "/api/financials/treasury/notifications/[id]/read",
+            "/api/financials/treasury/settings",
+            "/api/financials/wise/balances",
+            "/api/financials/wise/quotes",
+            "/api/financials/wise/recipients",
+            "/api/financials/wise/recipients/[id]",
+            "/api/financials/wise/reconcile",
+            "/api/financials/wise/sca-diagnostic",
+            "/api/financials/wise/statements/[balanceId]",
+            "/api/financials/wise/statements/[balanceId]/export",
+            "/api/financials/wise/status",
+            "/api/financials/wise/summary",
+            "/api/financials/wise/transfers",
+            "/api/financials/wise/transfers/[id]",
+            "/api/financials/wise/transfers/[id]/fund",
+            "/api/financials/wise/webhook",
+            "/api/payroll/dashboard",
+            "/api/payroll/employees/[id]/profile",
+            "/api/payroll/runs",
+            "/api/payroll/runs/[id]",
+            "/api/payroll/runs/[id]/approve",
+            "/api/payroll/runs/[id]/pay",
+            "/api/payroll/settings"
+          ],
+          "database_tables": [
+            "accounts",
+            "journal_entries",
+            "journal_lines",
+            "invoices",
+            "wise_payment_matches",
+            "financial_expenses",
+            "treasury_settings"
+          ],
+          "dependencies": []
+        },
+        {
+          "name": "Financial Reports",
+          "route": "/dashboard?view=financial-reports",
+          "status": "IMPLEMENTED",
+          "subfeatures": [],
+          "components": [
+            "FinancialReportsWorkspace"
+          ],
+          "api_endpoints": [
+            "/api/expenses/[id]/approval-history",
+            "/api/expenses/[id]/approve",
+            "/api/expenses/[id]/reject",
+            "/api/expenses/[id]/request-changes",
+            "/api/expenses/[id]/submit",
+            "/api/expenses/config",
+            "/api/expenses/my",
+            "/api/expenses/notifications",
+            "/api/expenses/runs",
+            "/api/expenses/runs/[id]",
+            "/api/financials/activity",
+            "/api/financials/clients/[id]/summary",
+            "/api/financials/expenses",
+            "/api/financials/expenses/[id]",
+            "/api/financials/expenses/bulk",
+            "/api/financials/invoices",
+            "/api/financials/ledger/accounts",
+            "/api/financials/ledger/accounts/[id]/transactions",
+            "/api/financials/ledger/journals",
+            "/api/financials/ledger/overview",
+            "/api/financials/ledger/trial-balance",
+            "/api/financials/payables",
+            "/api/financials/quotes",
+            "/api/financials/quotes/[id]",
+            "/api/financials/quotes/from-lead",
+            "/api/financials/supplier-invoices",
+            "/api/financials/supplier-invoices/[id]",
+            "/api/financials/treasury/activity",
+            "/api/financials/treasury/approvals",
+            "/api/financials/treasury/notifications",
+            "/api/financials/treasury/notifications/[id]/read",
+            "/api/financials/treasury/settings",
+            "/api/financials/wise/balances",
+            "/api/financials/wise/quotes",
+            "/api/financials/wise/recipients",
+            "/api/financials/wise/recipients/[id]",
+            "/api/financials/wise/reconcile",
+            "/api/financials/wise/sca-diagnostic",
+            "/api/financials/wise/statements/[balanceId]",
+            "/api/financials/wise/statements/[balanceId]/export",
+            "/api/financials/wise/status",
+            "/api/financials/wise/summary",
+            "/api/financials/wise/transfers",
+            "/api/financials/wise/transfers/[id]",
+            "/api/financials/wise/transfers/[id]/fund",
+            "/api/financials/wise/webhook",
+            "/api/payroll/dashboard",
+            "/api/payroll/employees/[id]/profile",
+            "/api/payroll/runs",
+            "/api/payroll/runs/[id]",
+            "/api/payroll/runs/[id]/approve",
+            "/api/payroll/runs/[id]/pay",
+            "/api/payroll/settings"
+          ],
+          "database_tables": [
+            "accounts",
+            "journal_entries",
+            "journal_lines",
+            "invoices",
+            "wise_payment_matches",
+            "financial_expenses",
+            "treasury_settings"
+          ],
+          "dependencies": []
+        }
+      ],
+      "shared_code": [
+        "src/lib/platform-session.ts",
+        "src/lib/workspace-context.ts",
+        "src/lib/operator-entitlements-server.ts",
+        "src/components/testflighthub/SurveyOperationsShell.tsx",
+        "src/components/testflighthub/AccessViewGuard.tsx"
+      ],
+      "dependencies": {
+        "reads_from_modules": "NOT ESTABLISHED FROM CODEBASE (exhaustive graph not computed)",
+        "writes_to_modules": "NOT ESTABLISHED FROM CODEBASE",
+        "auth": "platform-session, operator entitlements, workspace_id scoping"
+      },
+      "data_owned": [
+        "accounts",
+        "journal_entries",
+        "journal_lines",
+        "invoices",
+        "wise_payment_matches",
+        "financial_expenses",
+        "treasury_settings"
+      ],
+      "api_endpoints": [
+        "/api/expenses/[id]/approval-history",
+        "/api/expenses/[id]/approve",
+        "/api/expenses/[id]/reject",
+        "/api/expenses/[id]/request-changes",
+        "/api/expenses/[id]/submit",
+        "/api/expenses/config",
+        "/api/expenses/my",
+        "/api/expenses/notifications",
+        "/api/expenses/runs",
+        "/api/expenses/runs/[id]",
+        "/api/financials/activity",
+        "/api/financials/clients/[id]/summary",
+        "/api/financials/expenses",
+        "/api/financials/expenses/[id]",
+        "/api/financials/expenses/bulk",
+        "/api/financials/invoices",
+        "/api/financials/ledger/accounts",
+        "/api/financials/ledger/accounts/[id]/transactions",
+        "/api/financials/ledger/journals",
+        "/api/financials/ledger/overview",
+        "/api/financials/ledger/trial-balance",
+        "/api/financials/payables",
+        "/api/financials/quotes",
+        "/api/financials/quotes/[id]",
+        "/api/financials/quotes/from-lead",
+        "/api/financials/supplier-invoices",
+        "/api/financials/supplier-invoices/[id]",
+        "/api/financials/treasury/activity",
+        "/api/financials/treasury/approvals",
+        "/api/financials/treasury/notifications",
+        "/api/financials/treasury/notifications/[id]/read",
+        "/api/financials/treasury/settings",
+        "/api/financials/wise/balances",
+        "/api/financials/wise/quotes",
+        "/api/financials/wise/recipients",
+        "/api/financials/wise/recipients/[id]",
+        "/api/financials/wise/reconcile",
+        "/api/financials/wise/sca-diagnostic",
+        "/api/financials/wise/statements/[balanceId]",
+        "/api/financials/wise/statements/[balanceId]/export",
+        "/api/financials/wise/status",
+        "/api/financials/wise/summary",
+        "/api/financials/wise/transfers",
+        "/api/financials/wise/transfers/[id]",
+        "/api/financials/wise/transfers/[id]/fund",
+        "/api/financials/wise/webhook",
+        "/api/payroll/dashboard",
+        "/api/payroll/employees/[id]/profile",
+        "/api/payroll/runs",
+        "/api/payroll/runs/[id]",
+        "/api/payroll/runs/[id]/approve",
+        "/api/payroll/runs/[id]/pay",
+        "/api/payroll/settings"
+      ]
+    },
+    {
+      "name": "FUNDRAISING",
+      "code_id": "fundraising",
+      "route": "/dashboard (SurveyOperations shell; leaf navigation via ?view=)",
+      "implementation_status": "IMPLEMENTED",
+      "features": [
+        {
+          "name": "Dashboard",
+          "route": "/dashboard?view=fundraising-dashboard",
+          "status": "IMPLEMENTED",
+          "subfeatures": [],
+          "components": [
+            "FundraisingDashboardHost"
+          ],
+          "api_endpoints": [],
+          "database_tables": [
+            "NOT ESTABLISHED FROM CODEBASE (no dedicated fundraising tables in migration scan)"
+          ],
+          "dependencies": []
+        },
+        {
+          "name": "Investors",
+          "route": "/dashboard?view=fundraising-investors",
+          "status": "IMPLEMENTED",
+          "subfeatures": [],
+          "components": [
+            "FundraisingInvestorsHost"
+          ],
+          "api_endpoints": [],
+          "database_tables": [
+            "NOT ESTABLISHED FROM CODEBASE (no dedicated fundraising tables in migration scan)"
+          ],
+          "dependencies": []
+        },
+        {
+          "name": "Cap Table Management",
+          "route": "/dashboard?view=fundraising-cap-table",
+          "status": "IMPLEMENTED",
+          "subfeatures": [],
+          "components": [
+            "FundraisingCapTableHost"
+          ],
+          "api_endpoints": [],
+          "database_tables": [
+            "NOT ESTABLISHED FROM CODEBASE (no dedicated fundraising tables in migration scan)"
+          ],
+          "dependencies": []
+        },
+        {
+          "name": "Pipeline",
+          "route": "/dashboard?view=fundraising-pipeline",
+          "status": "IMPLEMENTED",
+          "subfeatures": [],
+          "components": [
+            "FundraisingPipelineHost"
+          ],
+          "api_endpoints": [],
+          "database_tables": [
+            "NOT ESTABLISHED FROM CODEBASE (no dedicated fundraising tables in migration scan)"
+          ],
+          "dependencies": []
+        },
+        {
+          "name": "Meetings",
+          "route": "/dashboard?view=fundraising-meetings",
+          "status": "IMPLEMENTED",
+          "subfeatures": [],
+          "components": [
+            "FundraisingMeetingsHost"
+          ],
+          "api_endpoints": [],
+          "database_tables": [
+            "NOT ESTABLISHED FROM CODEBASE (no dedicated fundraising tables in migration scan)"
+          ],
+          "dependencies": []
+        },
+        {
+          "name": "Pitch Decks",
+          "route": "/dashboard?view=fundraising-pitch-decks",
+          "status": "IMPLEMENTED",
+          "subfeatures": [],
+          "components": [
+            "FundraisingPitchDecksHost"
+          ],
+          "api_endpoints": [],
+          "database_tables": [
+            "NOT ESTABLISHED FROM CODEBASE (no dedicated fundraising tables in migration scan)"
+          ],
+          "dependencies": []
+        },
+        {
+          "name": "Data Rooms",
+          "route": "/dashboard?view=fundraising-data-rooms",
+          "status": "IMPLEMENTED",
+          "subfeatures": [],
+          "components": [
+            "FundraisingDataRoomsHost"
+          ],
+          "api_endpoints": [],
+          "database_tables": [
+            "NOT ESTABLISHED FROM CODEBASE (no dedicated fundraising tables in migration scan)"
+          ],
+          "dependencies": []
+        }
+      ],
+      "shared_code": [
+        "src/lib/platform-session.ts",
+        "src/lib/workspace-context.ts",
+        "src/lib/operator-entitlements-server.ts",
+        "src/components/testflighthub/SurveyOperationsShell.tsx",
+        "src/components/testflighthub/AccessViewGuard.tsx"
+      ],
+      "dependencies": {
+        "reads_from_modules": "NOT ESTABLISHED FROM CODEBASE (exhaustive graph not computed)",
+        "writes_to_modules": "NOT ESTABLISHED FROM CODEBASE",
+        "auth": "platform-session, operator entitlements, workspace_id scoping"
+      },
+      "data_owned": [
+        "NOT ESTABLISHED FROM CODEBASE (no dedicated fundraising tables in migration scan)"
+      ],
+      "api_endpoints": []
+    },
+    {
+      "name": "BOARD",
+      "code_id": "board",
+      "route": "/dashboard (SurveyOperations shell; leaf navigation via ?view=)",
+      "implementation_status": "IMPLEMENTED",
+      "features": [
+        {
+          "name": "Dashboard",
+          "route": "/dashboard?view=board-dashboard",
+          "status": "IMPLEMENTED",
+          "subfeatures": [],
+          "components": [
+            "BoardGovernanceWorkspace"
+          ],
+          "api_endpoints": [
+            "/api/abhi/board-deck",
+            "/api/demo/board-deck",
+            "/api/talanton/board-deck"
+          ],
+          "database_tables": [
+            "board_directors"
+          ],
+          "dependencies": []
+        },
+        {
+          "name": "Meetings",
+          "route": "/dashboard?view=board-meetings",
+          "status": "IMPLEMENTED",
+          "subfeatures": [],
+          "components": [],
+          "api_endpoints": [
+            "/api/abhi/board-deck",
+            "/api/demo/board-deck",
+            "/api/talanton/board-deck"
+          ],
+          "database_tables": [
+            "board_directors"
+          ],
+          "dependencies": []
+        },
+        {
+          "name": "Minutes & Decisions",
+          "route": "/dashboard?view=board-minutes",
+          "status": "IMPLEMENTED",
+          "subfeatures": [],
+          "components": [],
+          "api_endpoints": [
+            "/api/abhi/board-deck",
+            "/api/demo/board-deck",
+            "/api/talanton/board-deck"
+          ],
+          "database_tables": [
+            "board_directors"
+          ],
+          "dependencies": []
+        },
+        {
+          "name": "Board Members",
+          "route": "/dashboard?view=board-members",
+          "status": "IMPLEMENTED",
+          "subfeatures": [],
+          "components": [
+            "BoardGovernanceWorkspace"
+          ],
+          "api_endpoints": [
+            "/api/abhi/board-deck",
+            "/api/demo/board-deck",
+            "/api/talanton/board-deck"
+          ],
+          "database_tables": [
+            "board_directors"
+          ],
+          "dependencies": []
+        },
+        {
+          "name": "Board deck",
+          "route": "/dashboard?view=board-pack",
+          "status": "IMPLEMENTED",
+          "subfeatures": [],
+          "components": [],
+          "api_endpoints": [
+            "/api/abhi/board-deck",
+            "/api/demo/board-deck",
+            "/api/talanton/board-deck"
+          ],
+          "database_tables": [
+            "board_directors"
+          ],
+          "dependencies": []
+        },
+        {
+          "name": "Risk Register",
+          "route": "/dashboard?view=corporate-risk-register",
+          "status": "IMPLEMENTED",
+          "subfeatures": [],
+          "components": [],
+          "api_endpoints": [
+            "/api/abhi/board-deck",
+            "/api/demo/board-deck",
+            "/api/talanton/board-deck"
+          ],
+          "database_tables": [
+            "board_directors"
+          ],
+          "dependencies": []
+        }
+      ],
+      "shared_code": [
+        "src/lib/platform-session.ts",
+        "src/lib/workspace-context.ts",
+        "src/lib/operator-entitlements-server.ts",
+        "src/components/testflighthub/SurveyOperationsShell.tsx",
+        "src/components/testflighthub/AccessViewGuard.tsx"
+      ],
+      "dependencies": {
+        "reads_from_modules": "NOT ESTABLISHED FROM CODEBASE (exhaustive graph not computed)",
+        "writes_to_modules": "NOT ESTABLISHED FROM CODEBASE",
+        "auth": "platform-session, operator entitlements, workspace_id scoping"
+      },
+      "data_owned": [
+        "board_directors"
+      ],
+      "api_endpoints": [
+        "/api/abhi/board-deck",
+        "/api/demo/board-deck",
+        "/api/talanton/board-deck"
+      ]
+    },
+    {
+      "name": "CORPORATE INFORMATION",
+      "code_id": "corporate-information",
+      "route": "/dashboard (SurveyOperations shell; leaf navigation via ?view=)",
+      "implementation_status": "IMPLEMENTED",
+      "features": [
+        {
+          "name": "Dashboard",
+          "route": "/dashboard?view=corporate-dashboard",
+          "status": "IMPLEMENTED",
+          "subfeatures": [],
+          "components": [],
+          "api_endpoints": [
+            "/api/company-details",
+            "/api/company-details/[id]"
+          ],
+          "database_tables": [
+            "company_details"
+          ],
+          "dependencies": []
+        },
+        {
+          "name": "Company Information",
+          "route": "/dashboard?view=corporate-company-details",
+          "status": "IMPLEMENTED",
+          "subfeatures": [],
+          "components": [],
+          "api_endpoints": [
+            "/api/company-details",
+            "/api/company-details/[id]"
+          ],
+          "database_tables": [
+            "company_details"
+          ],
+          "dependencies": []
+        },
+        {
+          "name": "Office Locations",
+          "route": "/dashboard?view=office-locations",
+          "status": "IMPLEMENTED",
+          "subfeatures": [],
+          "components": [],
+          "api_endpoints": [
+            "/api/company-details",
+            "/api/company-details/[id]"
+          ],
+          "database_tables": [
+            "company_details"
+          ],
+          "dependencies": []
+        },
+        {
+          "name": "Bank Accounts",
+          "route": "/dashboard?view=corporate-bank-accounts",
+          "status": "IMPLEMENTED",
+          "subfeatures": [],
+          "components": [],
+          "api_endpoints": [
+            "/api/company-details",
+            "/api/company-details/[id]"
+          ],
+          "database_tables": [
+            "company_details"
+          ],
+          "dependencies": []
+        },
+        {
+          "name": "Professional Advisors",
+          "route": "/dashboard?view=corporate-advisers",
+          "status": "IMPLEMENTED",
+          "subfeatures": [],
+          "components": [],
+          "api_endpoints": [
+            "/api/company-details",
+            "/api/company-details/[id]"
+          ],
+          "database_tables": [
+            "company_details"
+          ],
+          "dependencies": []
+        },
+        {
+          "name": "Contracts",
+          "route": "/dashboard?view=corporate-contracts",
+          "status": "IMPLEMENTED",
+          "subfeatures": [],
+          "components": [],
+          "api_endpoints": [
+            "/api/company-details",
+            "/api/company-details/[id]"
+          ],
+          "database_tables": [
+            "company_details"
+          ],
+          "dependencies": []
+        }
+      ],
+      "shared_code": [
+        "src/lib/platform-session.ts",
+        "src/lib/workspace-context.ts",
+        "src/lib/operator-entitlements-server.ts",
+        "src/components/testflighthub/SurveyOperationsShell.tsx",
+        "src/components/testflighthub/AccessViewGuard.tsx"
+      ],
+      "dependencies": {
+        "reads_from_modules": "NOT ESTABLISHED FROM CODEBASE (exhaustive graph not computed)",
+        "writes_to_modules": "NOT ESTABLISHED FROM CODEBASE",
+        "auth": "platform-session, operator entitlements, workspace_id scoping"
+      },
+      "data_owned": [
+        "company_details"
+      ],
+      "api_endpoints": [
+        "/api/company-details",
+        "/api/company-details/[id]"
+      ]
+    },
+    {
+      "name": "OPERATIONS",
+      "code_id": "operations",
+      "route": "/dashboard (SurveyOperations shell; leaf navigation via ?view=)",
+      "implementation_status": "IMPLEMENTED",
+      "features": [
+        {
+          "name": "Dashboard",
+          "route": "/dashboard?view=operations-dashboard",
+          "status": "IMPLEMENTED",
+          "subfeatures": [],
+          "components": [
+            "OperationsDashboardWorkspace"
+          ],
+          "api_endpoints": [
+            "/api/procurement/dashboard"
+          ],
+          "database_tables": [
+            "procurement_suppliers",
+            "procurement_purchase_orders",
+            "procurement_requisitions",
+            "procurement_goods_receipts"
+          ],
+          "dependencies": []
+        },
+        {
+          "name": "Assets",
+          "route": "/dashboard?view=assets",
+          "status": "IMPLEMENTED",
+          "subfeatures": [],
+          "components": [
+            "div"
+          ],
+          "api_endpoints": [
+            "/api/procurement/dashboard"
+          ],
+          "database_tables": [
+            "procurement_suppliers",
+            "procurement_purchase_orders",
+            "procurement_requisitions",
+            "procurement_goods_receipts"
+          ],
+          "dependencies": []
+        },
+        {
+          "name": "Inventory",
+          "route": "/dashboard?view=inventory-management",
+          "status": "IMPLEMENTED",
+          "subfeatures": [],
+          "components": [
+            "WorkspaceErrorBoundary"
+          ],
+          "api_endpoints": [
+            "/api/procurement/dashboard"
+          ],
+          "database_tables": [
+            "procurement_suppliers",
+            "procurement_purchase_orders",
+            "procurement_requisitions",
+            "procurement_goods_receipts"
+          ],
+          "dependencies": []
+        },
+        {
+          "name": "Procurement",
+          "route": "/dashboard?view=procurement",
+          "status": "IMPLEMENTED",
+          "subfeatures": [],
+          "components": [
+            "WorkspaceErrorBoundary"
+          ],
+          "api_endpoints": [
+            "/api/procurement/dashboard"
+          ],
+          "database_tables": [
+            "procurement_suppliers",
+            "procurement_purchase_orders",
+            "procurement_requisitions",
+            "procurement_goods_receipts"
+          ],
+          "dependencies": []
+        },
+        {
+          "name": "Logistics",
+          "route": "/dashboard?view=logistics",
+          "status": "IMPLEMENTED",
+          "subfeatures": [],
+          "components": [
+            "LogisticsWorkspace"
+          ],
+          "api_endpoints": [
+            "/api/procurement/dashboard"
+          ],
+          "database_tables": [
+            "procurement_suppliers",
+            "procurement_purchase_orders",
+            "procurement_requisitions",
+            "procurement_goods_receipts"
+          ],
+          "dependencies": []
+        }
+      ],
+      "shared_code": [
+        "src/lib/platform-session.ts",
+        "src/lib/workspace-context.ts",
+        "src/lib/operator-entitlements-server.ts",
+        "src/components/testflighthub/SurveyOperationsShell.tsx",
+        "src/components/testflighthub/AccessViewGuard.tsx"
+      ],
+      "dependencies": {
+        "reads_from_modules": "NOT ESTABLISHED FROM CODEBASE (exhaustive graph not computed)",
+        "writes_to_modules": "NOT ESTABLISHED FROM CODEBASE",
+        "auth": "platform-session, operator entitlements, workspace_id scoping"
+      },
+      "data_owned": [
+        "procurement_suppliers",
+        "procurement_purchase_orders",
+        "procurement_requisitions",
+        "procurement_goods_receipts"
+      ],
+      "api_endpoints": [
+        "/api/procurement/dashboard"
+      ]
+    },
+    {
+      "name": "MARKETING AND EVENTS",
+      "code_id": "marketing-events",
+      "route": "/dashboard (SurveyOperations shell; leaf navigation via ?view=)",
+      "implementation_status": "IMPLEMENTED",
+      "features": [
+        {
+          "name": "Dashboard",
+          "route": "/dashboard?view=oa-marketing-dashboard",
+          "status": "IMPLEMENTED",
+          "subfeatures": [],
+          "components": [],
+          "api_endpoints": [
+            "/api/marketing/bundle",
+            "/api/marketing/dashboard",
+            "/api/marketing/resources/[resource]",
+            "/api/website-analytics/events",
+            "/api/website-analytics/refresh",
+            "/api/website-analytics/summary"
+          ],
+          "database_tables": [
+            "marketing_contacts",
+            "marketing_newsletters",
+            "marketing_campaigns",
+            "marketing_external_events",
+            "marketing_managed_events",
+            "marketing_stories"
+          ],
+          "dependencies": []
+        },
+        {
+          "name": "Digital Newsletter",
+          "route": "/dashboard?view=marketing-newsletter",
+          "status": "IMPLEMENTED",
+          "subfeatures": [],
+          "components": [],
+          "api_endpoints": [
+            "/api/marketing/bundle",
+            "/api/marketing/dashboard",
+            "/api/marketing/resources/[resource]",
+            "/api/website-analytics/events",
+            "/api/website-analytics/refresh",
+            "/api/website-analytics/summary"
+          ],
+          "database_tables": [
+            "marketing_contacts",
+            "marketing_newsletters",
+            "marketing_campaigns",
+            "marketing_external_events",
+            "marketing_managed_events",
+            "marketing_stories"
+          ],
+          "dependencies": []
+        },
+        {
+          "name": "External Events",
+          "route": "/dashboard?view=marketing-events",
+          "status": "IMPLEMENTED",
+          "subfeatures": [],
+          "components": [],
+          "api_endpoints": [
+            "/api/marketing/bundle",
+            "/api/marketing/dashboard",
+            "/api/marketing/resources/[resource]",
+            "/api/website-analytics/events",
+            "/api/website-analytics/refresh",
+            "/api/website-analytics/summary"
+          ],
+          "database_tables": [
+            "marketing_contacts",
+            "marketing_newsletters",
+            "marketing_campaigns",
+            "marketing_external_events",
+            "marketing_managed_events",
+            "marketing_stories"
+          ],
+          "dependencies": []
+        },
+        {
+          "name": "Event Management",
+          "route": "/dashboard?view=marketing-event-management",
+          "status": "IMPLEMENTED",
+          "subfeatures": [],
+          "components": [],
+          "api_endpoints": [
+            "/api/marketing/bundle",
+            "/api/marketing/dashboard",
+            "/api/marketing/resources/[resource]",
+            "/api/website-analytics/events",
+            "/api/website-analytics/refresh",
+            "/api/website-analytics/summary"
+          ],
+          "database_tables": [
+            "marketing_contacts",
+            "marketing_newsletters",
+            "marketing_campaigns",
+            "marketing_external_events",
+            "marketing_managed_events",
+            "marketing_stories"
+          ],
+          "dependencies": []
+        },
+        {
+          "name": "Mailing List",
+          "route": "/dashboard?view=marketing-mailing-list",
+          "status": "IMPLEMENTED",
+          "subfeatures": [],
+          "components": [],
+          "api_endpoints": [
+            "/api/marketing/bundle",
+            "/api/marketing/dashboard",
+            "/api/marketing/resources/[resource]",
+            "/api/website-analytics/events",
+            "/api/website-analytics/refresh",
+            "/api/website-analytics/summary"
+          ],
+          "database_tables": [
+            "marketing_contacts",
+            "marketing_newsletters",
+            "marketing_campaigns",
+            "marketing_external_events",
+            "marketing_managed_events",
+            "marketing_stories"
+          ],
+          "dependencies": []
+        },
+        {
+          "name": "Client Stories",
+          "route": "/dashboard?view=portfolio-stories",
+          "status": "IMPLEMENTED",
+          "subfeatures": [],
+          "components": [],
+          "api_endpoints": [
+            "/api/marketing/bundle",
+            "/api/marketing/dashboard",
+            "/api/marketing/resources/[resource]",
+            "/api/website-analytics/events",
+            "/api/website-analytics/refresh",
+            "/api/website-analytics/summary"
+          ],
+          "database_tables": [
+            "marketing_contacts",
+            "marketing_newsletters",
+            "marketing_campaigns",
+            "marketing_external_events",
+            "marketing_managed_events",
+            "marketing_stories"
+          ],
+          "dependencies": []
+        },
+        {
+          "name": "Social",
+          "route": "/dashboard?view=social",
+          "status": "IMPLEMENTED",
+          "subfeatures": [],
+          "components": [],
+          "api_endpoints": [
+            "/api/marketing/bundle",
+            "/api/marketing/dashboard",
+            "/api/marketing/resources/[resource]",
+            "/api/website-analytics/events",
+            "/api/website-analytics/refresh",
+            "/api/website-analytics/summary"
+          ],
+          "database_tables": [
+            "marketing_contacts",
+            "marketing_newsletters",
+            "marketing_campaigns",
+            "marketing_external_events",
+            "marketing_managed_events",
+            "marketing_stories"
+          ],
+          "dependencies": []
+        }
+      ],
+      "shared_code": [
+        "src/lib/platform-session.ts",
+        "src/lib/workspace-context.ts",
+        "src/lib/operator-entitlements-server.ts",
+        "src/components/testflighthub/SurveyOperationsShell.tsx",
+        "src/components/testflighthub/AccessViewGuard.tsx"
+      ],
+      "dependencies": {
+        "reads_from_modules": "NOT ESTABLISHED FROM CODEBASE (exhaustive graph not computed)",
+        "writes_to_modules": "NOT ESTABLISHED FROM CODEBASE",
+        "auth": "platform-session, operator entitlements, workspace_id scoping"
+      },
+      "data_owned": [
+        "marketing_contacts",
+        "marketing_newsletters",
+        "marketing_campaigns",
+        "marketing_external_events",
+        "marketing_managed_events",
+        "marketing_stories"
+      ],
+      "api_endpoints": [
+        "/api/marketing/bundle",
+        "/api/marketing/dashboard",
+        "/api/marketing/resources/[resource]",
+        "/api/website-analytics/events",
+        "/api/website-analytics/refresh",
+        "/api/website-analytics/summary"
+      ]
+    },
+    {
+      "name": "TECH MGMT",
+      "code_id": "technology-management",
+      "route": "/dashboard (SurveyOperations shell; leaf navigation via ?view=)",
+      "implementation_status": "IMPLEMENTED",
+      "features": [
+        {
+          "name": "Dashboard",
+          "route": "/dashboard?view=technology-dashboard",
+          "status": "IMPLEMENTED",
+          "subfeatures": [],
+          "components": [],
+          "api_endpoints": [
+            "/api/architecture-diagrams",
+            "/api/software-assets",
+            "/api/software-assets/[id]",
+            "/api/software-assets/[id]/files",
+            "/api/software-assets/[id]/reveal-password",
+            "/api/technology/telecom",
+            "/api/technology/telecom/[id]"
+          ],
+          "database_tables": [
+            "system_architecture_diagrams"
+          ],
+          "dependencies": []
+        },
+        {
+          "name": "Architecture Diagrams",
+          "route": "/dashboard?view=technology-architecture",
+          "status": "IMPLEMENTED",
+          "subfeatures": [],
+          "components": [
+            "TechnologyArchitectureWorkspace"
+          ],
+          "api_endpoints": [
+            "/api/architecture-diagrams",
+            "/api/software-assets",
+            "/api/software-assets/[id]",
+            "/api/software-assets/[id]/files",
+            "/api/software-assets/[id]/reveal-password",
+            "/api/technology/telecom",
+            "/api/technology/telecom/[id]"
+          ],
+          "database_tables": [
+            "system_architecture_diagrams"
+          ],
+          "dependencies": []
+        },
+        {
+          "name": "Technology Assets",
+          "route": "/dashboard?view=technology-devices",
+          "status": "IMPLEMENTED",
+          "subfeatures": [],
+          "components": [
+            "div"
+          ],
+          "api_endpoints": [
+            "/api/architecture-diagrams",
+            "/api/software-assets",
+            "/api/software-assets/[id]",
+            "/api/software-assets/[id]/files",
+            "/api/software-assets/[id]/reveal-password",
+            "/api/technology/telecom",
+            "/api/technology/telecom/[id]"
+          ],
+          "database_tables": [
+            "system_architecture_diagrams"
+          ],
+          "dependencies": []
+        },
+        {
+          "name": "Software & SaaS Dashboard",
+          "route": "/dashboard?view=technology-software-dashboard",
+          "status": "IMPLEMENTED",
+          "subfeatures": [],
+          "components": [
+            "SoftwareSaasDashboardWorkspace"
+          ],
+          "api_endpoints": [
+            "/api/architecture-diagrams",
+            "/api/software-assets",
+            "/api/software-assets/[id]",
+            "/api/software-assets/[id]/files",
+            "/api/software-assets/[id]/reveal-password",
+            "/api/technology/telecom",
+            "/api/technology/telecom/[id]"
+          ],
+          "database_tables": [
+            "system_architecture_diagrams"
+          ],
+          "dependencies": []
+        },
+        {
+          "name": "Software & SaaS",
+          "route": "/dashboard?view=technology-software",
+          "status": "IMPLEMENTED",
+          "subfeatures": [],
+          "components": [
+            "TechnologySoftwareWorkspace"
+          ],
+          "api_endpoints": [
+            "/api/architecture-diagrams",
+            "/api/software-assets",
+            "/api/software-assets/[id]",
+            "/api/software-assets/[id]/files",
+            "/api/software-assets/[id]/reveal-password",
+            "/api/technology/telecom",
+            "/api/technology/telecom/[id]"
+          ],
+          "database_tables": [
+            "system_architecture_diagrams"
+          ],
+          "dependencies": []
+        },
+        {
+          "name": "Telecommunications",
+          "route": "/dashboard?view=technology-telecommunications",
+          "status": "IMPLEMENTED",
+          "subfeatures": [],
+          "components": [
+            "TelecommunicationsWorkspace"
+          ],
+          "api_endpoints": [
+            "/api/architecture-diagrams",
+            "/api/software-assets",
+            "/api/software-assets/[id]",
+            "/api/software-assets/[id]/files",
+            "/api/software-assets/[id]/reveal-password",
+            "/api/technology/telecom",
+            "/api/technology/telecom/[id]"
+          ],
+          "database_tables": [
+            "system_architecture_diagrams"
+          ],
+          "dependencies": []
+        }
+      ],
+      "shared_code": [
+        "src/lib/platform-session.ts",
+        "src/lib/workspace-context.ts",
+        "src/lib/operator-entitlements-server.ts",
+        "src/components/testflighthub/SurveyOperationsShell.tsx",
+        "src/components/testflighthub/AccessViewGuard.tsx"
+      ],
+      "dependencies": {
+        "reads_from_modules": "NOT ESTABLISHED FROM CODEBASE (exhaustive graph not computed)",
+        "writes_to_modules": "NOT ESTABLISHED FROM CODEBASE",
+        "auth": "platform-session, operator entitlements, workspace_id scoping"
+      },
+      "data_owned": [
+        "system_architecture_diagrams"
+      ],
+      "api_endpoints": [
+        "/api/architecture-diagrams",
+        "/api/software-assets",
+        "/api/software-assets/[id]",
+        "/api/software-assets/[id]/files",
+        "/api/software-assets/[id]/reveal-password",
+        "/api/technology/telecom",
+        "/api/technology/telecom/[id]"
+      ]
+    },
+    {
+      "name": "HUMAN RESOURCES",
+      "code_id": "human-resources",
+      "route": "/dashboard (SurveyOperations shell; leaf navigation via ?view=)",
+      "implementation_status": "IMPLEMENTED",
+      "features": [
+        {
+          "name": "Dashboard",
+          "route": "/dashboard?view=hr-dashboard",
+          "status": "IMPLEMENTED",
+          "subfeatures": [],
+          "components": [
+            "HrWorkspace"
+          ],
+          "api_endpoints": [
+            "/api/hr/employees",
+            "/api/hr/employees/[id]",
+            "/api/hr/employees/[id]/archive",
+            "/api/hr/employees/[id]/compensation-history",
+            "/api/hr/employees/[id]/documents",
+            "/api/hr/employees/[id]/documents/[docId]",
+            "/api/hr/employees/[id]/notes",
+            "/api/hr/employees/[id]/payment-details",
+            "/api/hr/employees/[id]/timeline",
+            "/api/hr/employees/bulk-delete",
+            "/api/payroll/dashboard",
+            "/api/payroll/employees/[id]/profile",
+            "/api/payroll/runs",
+            "/api/payroll/runs/[id]",
+            "/api/payroll/runs/[id]/approve",
+            "/api/payroll/runs/[id]/pay",
+            "/api/payroll/settings"
+          ],
+          "database_tables": [
+            "hr_employees"
+          ],
+          "dependencies": []
+        },
+        {
+          "name": "Employees",
+          "route": "/dashboard?view=hr",
+          "status": "IMPLEMENTED",
+          "subfeatures": [],
+          "components": [
+            "HrWorkspace"
+          ],
+          "api_endpoints": [
+            "/api/hr/employees",
+            "/api/hr/employees/[id]",
+            "/api/hr/employees/[id]/archive",
+            "/api/hr/employees/[id]/compensation-history",
+            "/api/hr/employees/[id]/documents",
+            "/api/hr/employees/[id]/documents/[docId]",
+            "/api/hr/employees/[id]/notes",
+            "/api/hr/employees/[id]/payment-details",
+            "/api/hr/employees/[id]/timeline",
+            "/api/hr/employees/bulk-delete",
+            "/api/payroll/dashboard",
+            "/api/payroll/employees/[id]/profile",
+            "/api/payroll/runs",
+            "/api/payroll/runs/[id]",
+            "/api/payroll/runs/[id]/approve",
+            "/api/payroll/runs/[id]/pay",
+            "/api/payroll/settings"
+          ],
+          "database_tables": [
+            "hr_employees"
+          ],
+          "dependencies": []
+        },
+        {
+          "name": "Org Chart",
+          "route": "/dashboard?view=hr-org-chart",
+          "status": "IMPLEMENTED",
+          "subfeatures": [],
+          "components": [
+            "OrgChartWorkspace"
+          ],
+          "api_endpoints": [
+            "/api/hr/employees",
+            "/api/hr/employees/[id]",
+            "/api/hr/employees/[id]/archive",
+            "/api/hr/employees/[id]/compensation-history",
+            "/api/hr/employees/[id]/documents",
+            "/api/hr/employees/[id]/documents/[docId]",
+            "/api/hr/employees/[id]/notes",
+            "/api/hr/employees/[id]/payment-details",
+            "/api/hr/employees/[id]/timeline",
+            "/api/hr/employees/bulk-delete",
+            "/api/payroll/dashboard",
+            "/api/payroll/employees/[id]/profile",
+            "/api/payroll/runs",
+            "/api/payroll/runs/[id]",
+            "/api/payroll/runs/[id]/approve",
+            "/api/payroll/runs/[id]/pay",
+            "/api/payroll/settings"
+          ],
+          "database_tables": [
+            "hr_employees"
+          ],
+          "dependencies": []
+        },
+        {
+          "name": "Recruitment",
+          "route": "/dashboard?view=hr-recruitment",
+          "status": "IMPLEMENTED",
+          "subfeatures": [],
+          "components": [
+            "RecruitmentWorkspace"
+          ],
+          "api_endpoints": [
+            "/api/hr/employees",
+            "/api/hr/employees/[id]",
+            "/api/hr/employees/[id]/archive",
+            "/api/hr/employees/[id]/compensation-history",
+            "/api/hr/employees/[id]/documents",
+            "/api/hr/employees/[id]/documents/[docId]",
+            "/api/hr/employees/[id]/notes",
+            "/api/hr/employees/[id]/payment-details",
+            "/api/hr/employees/[id]/timeline",
+            "/api/hr/employees/bulk-delete",
+            "/api/payroll/dashboard",
+            "/api/payroll/employees/[id]/profile",
+            "/api/payroll/runs",
+            "/api/payroll/runs/[id]",
+            "/api/payroll/runs/[id]/approve",
+            "/api/payroll/runs/[id]/pay",
+            "/api/payroll/settings"
+          ],
+          "database_tables": [
+            "hr_employees"
+          ],
+          "dependencies": []
+        },
+        {
+          "name": "Time & Attendance",
+          "route": "/dashboard?view=hr-leave",
+          "status": "IMPLEMENTED",
+          "subfeatures": [],
+          "components": [
+            "LeaveManagementWorkspace"
+          ],
+          "api_endpoints": [
+            "/api/hr/employees",
+            "/api/hr/employees/[id]",
+            "/api/hr/employees/[id]/archive",
+            "/api/hr/employees/[id]/compensation-history",
+            "/api/hr/employees/[id]/documents",
+            "/api/hr/employees/[id]/documents/[docId]",
+            "/api/hr/employees/[id]/notes",
+            "/api/hr/employees/[id]/payment-details",
+            "/api/hr/employees/[id]/timeline",
+            "/api/hr/employees/bulk-delete",
+            "/api/payroll/dashboard",
+            "/api/payroll/employees/[id]/profile",
+            "/api/payroll/runs",
+            "/api/payroll/runs/[id]",
+            "/api/payroll/runs/[id]/approve",
+            "/api/payroll/runs/[id]/pay",
+            "/api/payroll/settings"
+          ],
+          "database_tables": [
+            "hr_employees"
+          ],
+          "dependencies": []
+        },
+        {
+          "name": "Payroll",
+          "route": "/dashboard?view=hr-payroll",
+          "status": "IMPLEMENTED",
+          "subfeatures": [],
+          "components": [
+            "PayrollWorkspace"
+          ],
+          "api_endpoints": [
+            "/api/hr/employees",
+            "/api/hr/employees/[id]",
+            "/api/hr/employees/[id]/archive",
+            "/api/hr/employees/[id]/compensation-history",
+            "/api/hr/employees/[id]/documents",
+            "/api/hr/employees/[id]/documents/[docId]",
+            "/api/hr/employees/[id]/notes",
+            "/api/hr/employees/[id]/payment-details",
+            "/api/hr/employees/[id]/timeline",
+            "/api/hr/employees/bulk-delete",
+            "/api/payroll/dashboard",
+            "/api/payroll/employees/[id]/profile",
+            "/api/payroll/runs",
+            "/api/payroll/runs/[id]",
+            "/api/payroll/runs/[id]/approve",
+            "/api/payroll/runs/[id]/pay",
+            "/api/payroll/settings"
+          ],
+          "database_tables": [
+            "hr_employees"
+          ],
+          "dependencies": []
+        },
+        {
+          "name": "Performance",
+          "route": "/dashboard?view=hr-performance",
+          "status": "IMPLEMENTED",
+          "subfeatures": [],
+          "components": [
+            "PerformanceHubWorkspace"
+          ],
+          "api_endpoints": [
+            "/api/hr/employees",
+            "/api/hr/employees/[id]",
+            "/api/hr/employees/[id]/archive",
+            "/api/hr/employees/[id]/compensation-history",
+            "/api/hr/employees/[id]/documents",
+            "/api/hr/employees/[id]/documents/[docId]",
+            "/api/hr/employees/[id]/notes",
+            "/api/hr/employees/[id]/payment-details",
+            "/api/hr/employees/[id]/timeline",
+            "/api/hr/employees/bulk-delete",
+            "/api/payroll/dashboard",
+            "/api/payroll/employees/[id]/profile",
+            "/api/payroll/runs",
+            "/api/payroll/runs/[id]",
+            "/api/payroll/runs/[id]/approve",
+            "/api/payroll/runs/[id]/pay",
+            "/api/payroll/settings"
+          ],
+          "database_tables": [
+            "hr_employees"
+          ],
+          "dependencies": []
+        },
+        {
+          "name": "HR Reports",
+          "route": "/dashboard?view=hr-reports",
+          "status": "IMPLEMENTED",
+          "subfeatures": [],
+          "components": [
+            "HrReportsWorkspace"
+          ],
+          "api_endpoints": [
+            "/api/hr/employees",
+            "/api/hr/employees/[id]",
+            "/api/hr/employees/[id]/archive",
+            "/api/hr/employees/[id]/compensation-history",
+            "/api/hr/employees/[id]/documents",
+            "/api/hr/employees/[id]/documents/[docId]",
+            "/api/hr/employees/[id]/notes",
+            "/api/hr/employees/[id]/payment-details",
+            "/api/hr/employees/[id]/timeline",
+            "/api/hr/employees/bulk-delete",
+            "/api/payroll/dashboard",
+            "/api/payroll/employees/[id]/profile",
+            "/api/payroll/runs",
+            "/api/payroll/runs/[id]",
+            "/api/payroll/runs/[id]/approve",
+            "/api/payroll/runs/[id]/pay",
+            "/api/payroll/settings"
+          ],
+          "database_tables": [
+            "hr_employees"
+          ],
+          "dependencies": []
+        }
+      ],
+      "shared_code": [
+        "src/lib/platform-session.ts",
+        "src/lib/workspace-context.ts",
+        "src/lib/operator-entitlements-server.ts",
+        "src/components/testflighthub/SurveyOperationsShell.tsx",
+        "src/components/testflighthub/AccessViewGuard.tsx"
+      ],
+      "dependencies": {
+        "reads_from_modules": "NOT ESTABLISHED FROM CODEBASE (exhaustive graph not computed)",
+        "writes_to_modules": "NOT ESTABLISHED FROM CODEBASE",
+        "auth": "platform-session, operator entitlements, workspace_id scoping"
+      },
+      "data_owned": [
+        "hr_employees"
+      ],
+      "api_endpoints": [
+        "/api/hr/employees",
+        "/api/hr/employees/[id]",
+        "/api/hr/employees/[id]/archive",
+        "/api/hr/employees/[id]/compensation-history",
+        "/api/hr/employees/[id]/documents",
+        "/api/hr/employees/[id]/documents/[docId]",
+        "/api/hr/employees/[id]/notes",
+        "/api/hr/employees/[id]/payment-details",
+        "/api/hr/employees/[id]/timeline",
+        "/api/hr/employees/bulk-delete",
+        "/api/payroll/dashboard",
+        "/api/payroll/employees/[id]/profile",
+        "/api/payroll/runs",
+        "/api/payroll/runs/[id]",
+        "/api/payroll/runs/[id]/approve",
+        "/api/payroll/runs/[id]/pay",
+        "/api/payroll/settings"
+      ]
+    },
+    {
+      "name": "BUSINESS PROD",
+      "code_id": "business-productivity",
+      "route": "/dashboard (SurveyOperations shell; leaf navigation via ?view=)",
+      "implementation_status": "IMPLEMENTED",
+      "features": [
+        {
+          "name": "Dashboard",
+          "route": "/dashboard?view=productivity-dashboard",
+          "status": "IMPLEMENTED",
+          "subfeatures": [],
+          "components": [
+            "ProductivityDashboardWorkspace"
+          ],
+          "api_endpoints": [
+            "/api/calendar/events",
+            "/api/calendar/events/[id]",
+            "/api/calendar/meetings/[eventId]",
+            "/api/calendar/meetings/[eventId]/transcript",
+            "/api/calendar/meetings/[eventId]/webrtc",
+            "/api/email/accounts",
+            "/api/email/attachments",
+            "/api/email/calendar",
+            "/api/email/credentials",
+            "/api/email/messages",
+            "/api/email/notifications/check",
+            "/api/email/notifications/test",
+            "/api/email/notifications/whatsapp",
+            "/api/email/reply",
+            "/api/email/send",
+            "/api/email/test",
+            "/api/files/browse",
+            "/api/files/categories",
+            "/api/files/categories/[id]",
+            "/api/files/external/browse",
+            "/api/files/folders",
+            "/api/files/folders/[id]",
+            "/api/files/objects/[id]",
+            "/api/files/upload",
+            "/api/files/upload/complete",
+            "/api/files/upload/prepare",
+            "/api/internal-work-packages",
+            "/api/internal-work-packages/[id]",
+            "/api/internal-work-packages/[id]/members",
+            "/api/internal-work-packages/[id]/tasks",
+            "/api/internal-work-packages/[id]/tasks/[taskId]",
+            "/api/messaging/attachments",
+            "/api/messaging/calls",
+            "/api/messaging/calls/[sessionId]",
+            "/api/messaging/calls/[sessionId]/daily",
+            "/api/messaging/calls/[sessionId]/webrtc",
+            "/api/messaging/channels",
+            "/api/messaging/config",
+            "/api/messaging/messages",
+            "/api/messaging/operators",
+            "/api/messaging/scheduled-calls",
+            "/api/messaging/unread"
+          ],
+          "database_tables": [
+            "NOT ESTABLISHED FROM CODEBASE — verify domain lib + migrations"
+          ],
+          "dependencies": []
+        },
+        {
+          "name": "Content Studio",
+          "route": "/dashboard?view=content-studio",
+          "status": "IMPLEMENTED",
+          "subfeatures": [],
+          "components": [
+            "ContentStudioWorkspace"
+          ],
+          "api_endpoints": [
+            "/api/calendar/events",
+            "/api/calendar/events/[id]",
+            "/api/calendar/meetings/[eventId]",
+            "/api/calendar/meetings/[eventId]/transcript",
+            "/api/calendar/meetings/[eventId]/webrtc",
+            "/api/email/accounts",
+            "/api/email/attachments",
+            "/api/email/calendar",
+            "/api/email/credentials",
+            "/api/email/messages",
+            "/api/email/notifications/check",
+            "/api/email/notifications/test",
+            "/api/email/notifications/whatsapp",
+            "/api/email/reply",
+            "/api/email/send",
+            "/api/email/test",
+            "/api/files/browse",
+            "/api/files/categories",
+            "/api/files/categories/[id]",
+            "/api/files/external/browse",
+            "/api/files/folders",
+            "/api/files/folders/[id]",
+            "/api/files/objects/[id]",
+            "/api/files/upload",
+            "/api/files/upload/complete",
+            "/api/files/upload/prepare",
+            "/api/internal-work-packages",
+            "/api/internal-work-packages/[id]",
+            "/api/internal-work-packages/[id]/members",
+            "/api/internal-work-packages/[id]/tasks",
+            "/api/internal-work-packages/[id]/tasks/[taskId]",
+            "/api/messaging/attachments",
+            "/api/messaging/calls",
+            "/api/messaging/calls/[sessionId]",
+            "/api/messaging/calls/[sessionId]/daily",
+            "/api/messaging/calls/[sessionId]/webrtc",
+            "/api/messaging/channels",
+            "/api/messaging/config",
+            "/api/messaging/messages",
+            "/api/messaging/operators",
+            "/api/messaging/scheduled-calls",
+            "/api/messaging/unread"
+          ],
+          "database_tables": [
+            "NOT ESTABLISHED FROM CODEBASE — verify domain lib + migrations"
+          ],
+          "dependencies": []
+        },
+        {
+          "name": "Internal Work Packages",
+          "route": "/dashboard?view=internal-work-packages",
+          "status": "IMPLEMENTED",
+          "subfeatures": [],
+          "components": [
+            "InternalWorkPackagesWorkspace"
+          ],
+          "api_endpoints": [
+            "/api/calendar/events",
+            "/api/calendar/events/[id]",
+            "/api/calendar/meetings/[eventId]",
+            "/api/calendar/meetings/[eventId]/transcript",
+            "/api/calendar/meetings/[eventId]/webrtc",
+            "/api/email/accounts",
+            "/api/email/attachments",
+            "/api/email/calendar",
+            "/api/email/credentials",
+            "/api/email/messages",
+            "/api/email/notifications/check",
+            "/api/email/notifications/test",
+            "/api/email/notifications/whatsapp",
+            "/api/email/reply",
+            "/api/email/send",
+            "/api/email/test",
+            "/api/files/browse",
+            "/api/files/categories",
+            "/api/files/categories/[id]",
+            "/api/files/external/browse",
+            "/api/files/folders",
+            "/api/files/folders/[id]",
+            "/api/files/objects/[id]",
+            "/api/files/upload",
+            "/api/files/upload/complete",
+            "/api/files/upload/prepare",
+            "/api/internal-work-packages",
+            "/api/internal-work-packages/[id]",
+            "/api/internal-work-packages/[id]/members",
+            "/api/internal-work-packages/[id]/tasks",
+            "/api/internal-work-packages/[id]/tasks/[taskId]",
+            "/api/messaging/attachments",
+            "/api/messaging/calls",
+            "/api/messaging/calls/[sessionId]",
+            "/api/messaging/calls/[sessionId]/daily",
+            "/api/messaging/calls/[sessionId]/webrtc",
+            "/api/messaging/channels",
+            "/api/messaging/config",
+            "/api/messaging/messages",
+            "/api/messaging/operators",
+            "/api/messaging/scheduled-calls",
+            "/api/messaging/unread"
+          ],
+          "database_tables": [
+            "NOT ESTABLISHED FROM CODEBASE — verify domain lib + migrations"
+          ],
+          "dependencies": []
+        },
+        {
+          "name": "File Explorer",
+          "route": null,
+          "status": "IMPLEMENTED",
+          "subfeatures": [
+            {
+              "name": "Internal Files",
+              "route": "/dashboard?view=files-internal",
+              "viewId": "files-internal",
+              "query": null
+            },
+            {
+              "name": "External Files",
+              "route": "/dashboard?view=files-external",
+              "viewId": "files-external",
+              "query": null
+            },
+            {
+              "name": "Client Explorer",
+              "route": "/dashboard?view=files-client",
+              "viewId": "files-client",
+              "query": null
+            }
+          ],
+          "components": [
+            "FileRepositoryWorkspace",
+            "ClientFilesExplorerWorkspace"
+          ],
+          "api_endpoints": [
+            "/api/calendar/events",
+            "/api/calendar/events/[id]",
+            "/api/calendar/meetings/[eventId]",
+            "/api/calendar/meetings/[eventId]/transcript",
+            "/api/calendar/meetings/[eventId]/webrtc",
+            "/api/email/accounts",
+            "/api/email/attachments",
+            "/api/email/calendar",
+            "/api/email/credentials",
+            "/api/email/messages",
+            "/api/email/notifications/check",
+            "/api/email/notifications/test",
+            "/api/email/notifications/whatsapp",
+            "/api/email/reply",
+            "/api/email/send",
+            "/api/email/test",
+            "/api/files/browse",
+            "/api/files/categories",
+            "/api/files/categories/[id]",
+            "/api/files/external/browse",
+            "/api/files/folders",
+            "/api/files/folders/[id]",
+            "/api/files/objects/[id]",
+            "/api/files/upload",
+            "/api/files/upload/complete",
+            "/api/files/upload/prepare",
+            "/api/internal-work-packages",
+            "/api/internal-work-packages/[id]",
+            "/api/internal-work-packages/[id]/members",
+            "/api/internal-work-packages/[id]/tasks",
+            "/api/internal-work-packages/[id]/tasks/[taskId]",
+            "/api/messaging/attachments",
+            "/api/messaging/calls",
+            "/api/messaging/calls/[sessionId]",
+            "/api/messaging/calls/[sessionId]/daily",
+            "/api/messaging/calls/[sessionId]/webrtc",
+            "/api/messaging/channels",
+            "/api/messaging/config",
+            "/api/messaging/messages",
+            "/api/messaging/operators",
+            "/api/messaging/scheduled-calls",
+            "/api/messaging/unread"
+          ],
+          "database_tables": [
+            "NOT ESTABLISHED FROM CODEBASE — verify domain lib + migrations"
+          ],
+          "dependencies": []
+        },
+        {
+          "name": "Email",
+          "route": "/dashboard?view=info-email",
+          "status": "IMPLEMENTED",
+          "subfeatures": [],
+          "components": [],
+          "api_endpoints": [
+            "/api/calendar/events",
+            "/api/calendar/events/[id]",
+            "/api/calendar/meetings/[eventId]",
+            "/api/calendar/meetings/[eventId]/transcript",
+            "/api/calendar/meetings/[eventId]/webrtc",
+            "/api/email/accounts",
+            "/api/email/attachments",
+            "/api/email/calendar",
+            "/api/email/credentials",
+            "/api/email/messages",
+            "/api/email/notifications/check",
+            "/api/email/notifications/test",
+            "/api/email/notifications/whatsapp",
+            "/api/email/reply",
+            "/api/email/send",
+            "/api/email/test",
+            "/api/files/browse",
+            "/api/files/categories",
+            "/api/files/categories/[id]",
+            "/api/files/external/browse",
+            "/api/files/folders",
+            "/api/files/folders/[id]",
+            "/api/files/objects/[id]",
+            "/api/files/upload",
+            "/api/files/upload/complete",
+            "/api/files/upload/prepare",
+            "/api/internal-work-packages",
+            "/api/internal-work-packages/[id]",
+            "/api/internal-work-packages/[id]/members",
+            "/api/internal-work-packages/[id]/tasks",
+            "/api/internal-work-packages/[id]/tasks/[taskId]",
+            "/api/messaging/attachments",
+            "/api/messaging/calls",
+            "/api/messaging/calls/[sessionId]",
+            "/api/messaging/calls/[sessionId]/daily",
+            "/api/messaging/calls/[sessionId]/webrtc",
+            "/api/messaging/channels",
+            "/api/messaging/config",
+            "/api/messaging/messages",
+            "/api/messaging/operators",
+            "/api/messaging/scheduled-calls",
+            "/api/messaging/unread"
+          ],
+          "database_tables": [
+            "NOT ESTABLISHED FROM CODEBASE — verify domain lib + migrations"
+          ],
+          "dependencies": []
+        },
+        {
+          "name": "Calendar",
+          "route": "/dashboard?view=calendar",
+          "status": "IMPLEMENTED",
+          "subfeatures": [],
+          "components": [],
+          "api_endpoints": [
+            "/api/calendar/events",
+            "/api/calendar/events/[id]",
+            "/api/calendar/meetings/[eventId]",
+            "/api/calendar/meetings/[eventId]/transcript",
+            "/api/calendar/meetings/[eventId]/webrtc",
+            "/api/email/accounts",
+            "/api/email/attachments",
+            "/api/email/calendar",
+            "/api/email/credentials",
+            "/api/email/messages",
+            "/api/email/notifications/check",
+            "/api/email/notifications/test",
+            "/api/email/notifications/whatsapp",
+            "/api/email/reply",
+            "/api/email/send",
+            "/api/email/test",
+            "/api/files/browse",
+            "/api/files/categories",
+            "/api/files/categories/[id]",
+            "/api/files/external/browse",
+            "/api/files/folders",
+            "/api/files/folders/[id]",
+            "/api/files/objects/[id]",
+            "/api/files/upload",
+            "/api/files/upload/complete",
+            "/api/files/upload/prepare",
+            "/api/internal-work-packages",
+            "/api/internal-work-packages/[id]",
+            "/api/internal-work-packages/[id]/members",
+            "/api/internal-work-packages/[id]/tasks",
+            "/api/internal-work-packages/[id]/tasks/[taskId]",
+            "/api/messaging/attachments",
+            "/api/messaging/calls",
+            "/api/messaging/calls/[sessionId]",
+            "/api/messaging/calls/[sessionId]/daily",
+            "/api/messaging/calls/[sessionId]/webrtc",
+            "/api/messaging/channels",
+            "/api/messaging/config",
+            "/api/messaging/messages",
+            "/api/messaging/operators",
+            "/api/messaging/scheduled-calls",
+            "/api/messaging/unread"
+          ],
+          "database_tables": [
+            "NOT ESTABLISHED FROM CODEBASE — verify domain lib + migrations"
+          ],
+          "dependencies": []
+        },
+        {
+          "name": "Messaging",
+          "route": "/dashboard?view=messaging",
+          "status": "IMPLEMENTED",
+          "subfeatures": [],
+          "components": [],
+          "api_endpoints": [
+            "/api/calendar/events",
+            "/api/calendar/events/[id]",
+            "/api/calendar/meetings/[eventId]",
+            "/api/calendar/meetings/[eventId]/transcript",
+            "/api/calendar/meetings/[eventId]/webrtc",
+            "/api/email/accounts",
+            "/api/email/attachments",
+            "/api/email/calendar",
+            "/api/email/credentials",
+            "/api/email/messages",
+            "/api/email/notifications/check",
+            "/api/email/notifications/test",
+            "/api/email/notifications/whatsapp",
+            "/api/email/reply",
+            "/api/email/send",
+            "/api/email/test",
+            "/api/files/browse",
+            "/api/files/categories",
+            "/api/files/categories/[id]",
+            "/api/files/external/browse",
+            "/api/files/folders",
+            "/api/files/folders/[id]",
+            "/api/files/objects/[id]",
+            "/api/files/upload",
+            "/api/files/upload/complete",
+            "/api/files/upload/prepare",
+            "/api/internal-work-packages",
+            "/api/internal-work-packages/[id]",
+            "/api/internal-work-packages/[id]/members",
+            "/api/internal-work-packages/[id]/tasks",
+            "/api/internal-work-packages/[id]/tasks/[taskId]",
+            "/api/messaging/attachments",
+            "/api/messaging/calls",
+            "/api/messaging/calls/[sessionId]",
+            "/api/messaging/calls/[sessionId]/daily",
+            "/api/messaging/calls/[sessionId]/webrtc",
+            "/api/messaging/channels",
+            "/api/messaging/config",
+            "/api/messaging/messages",
+            "/api/messaging/operators",
+            "/api/messaging/scheduled-calls",
+            "/api/messaging/unread"
+          ],
+          "database_tables": [
+            "NOT ESTABLISHED FROM CODEBASE — verify domain lib + migrations"
+          ],
+          "dependencies": []
+        },
+        {
+          "name": "Communications",
+          "route": "/dashboard?view=communications",
+          "status": "IMPLEMENTED",
+          "subfeatures": [],
+          "components": [],
+          "api_endpoints": [
+            "/api/calendar/events",
+            "/api/calendar/events/[id]",
+            "/api/calendar/meetings/[eventId]",
+            "/api/calendar/meetings/[eventId]/transcript",
+            "/api/calendar/meetings/[eventId]/webrtc",
+            "/api/email/accounts",
+            "/api/email/attachments",
+            "/api/email/calendar",
+            "/api/email/credentials",
+            "/api/email/messages",
+            "/api/email/notifications/check",
+            "/api/email/notifications/test",
+            "/api/email/notifications/whatsapp",
+            "/api/email/reply",
+            "/api/email/send",
+            "/api/email/test",
+            "/api/files/browse",
+            "/api/files/categories",
+            "/api/files/categories/[id]",
+            "/api/files/external/browse",
+            "/api/files/folders",
+            "/api/files/folders/[id]",
+            "/api/files/objects/[id]",
+            "/api/files/upload",
+            "/api/files/upload/complete",
+            "/api/files/upload/prepare",
+            "/api/internal-work-packages",
+            "/api/internal-work-packages/[id]",
+            "/api/internal-work-packages/[id]/members",
+            "/api/internal-work-packages/[id]/tasks",
+            "/api/internal-work-packages/[id]/tasks/[taskId]",
+            "/api/messaging/attachments",
+            "/api/messaging/calls",
+            "/api/messaging/calls/[sessionId]",
+            "/api/messaging/calls/[sessionId]/daily",
+            "/api/messaging/calls/[sessionId]/webrtc",
+            "/api/messaging/channels",
+            "/api/messaging/config",
+            "/api/messaging/messages",
+            "/api/messaging/operators",
+            "/api/messaging/scheduled-calls",
+            "/api/messaging/unread"
+          ],
+          "database_tables": [
+            "NOT ESTABLISHED FROM CODEBASE — verify domain lib + migrations"
+          ],
+          "dependencies": []
+        },
+        {
+          "name": "Whiteboard",
+          "route": "/dashboard?view=whiteboard",
+          "status": "IMPLEMENTED",
+          "subfeatures": [],
+          "components": [
+            "WhiteboardWorkspace"
+          ],
+          "api_endpoints": [
+            "/api/calendar/events",
+            "/api/calendar/events/[id]",
+            "/api/calendar/meetings/[eventId]",
+            "/api/calendar/meetings/[eventId]/transcript",
+            "/api/calendar/meetings/[eventId]/webrtc",
+            "/api/email/accounts",
+            "/api/email/attachments",
+            "/api/email/calendar",
+            "/api/email/credentials",
+            "/api/email/messages",
+            "/api/email/notifications/check",
+            "/api/email/notifications/test",
+            "/api/email/notifications/whatsapp",
+            "/api/email/reply",
+            "/api/email/send",
+            "/api/email/test",
+            "/api/files/browse",
+            "/api/files/categories",
+            "/api/files/categories/[id]",
+            "/api/files/external/browse",
+            "/api/files/folders",
+            "/api/files/folders/[id]",
+            "/api/files/objects/[id]",
+            "/api/files/upload",
+            "/api/files/upload/complete",
+            "/api/files/upload/prepare",
+            "/api/internal-work-packages",
+            "/api/internal-work-packages/[id]",
+            "/api/internal-work-packages/[id]/members",
+            "/api/internal-work-packages/[id]/tasks",
+            "/api/internal-work-packages/[id]/tasks/[taskId]",
+            "/api/messaging/attachments",
+            "/api/messaging/calls",
+            "/api/messaging/calls/[sessionId]",
+            "/api/messaging/calls/[sessionId]/daily",
+            "/api/messaging/calls/[sessionId]/webrtc",
+            "/api/messaging/channels",
+            "/api/messaging/config",
+            "/api/messaging/messages",
+            "/api/messaging/operators",
+            "/api/messaging/scheduled-calls",
+            "/api/messaging/unread"
+          ],
+          "database_tables": [
+            "NOT ESTABLISHED FROM CODEBASE — verify domain lib + migrations"
+          ],
+          "dependencies": []
+        }
+      ],
+      "shared_code": [
+        "src/lib/platform-session.ts",
+        "src/lib/workspace-context.ts",
+        "src/lib/operator-entitlements-server.ts",
+        "src/components/testflighthub/SurveyOperationsShell.tsx",
+        "src/components/testflighthub/AccessViewGuard.tsx"
+      ],
+      "dependencies": {
+        "reads_from_modules": "NOT ESTABLISHED FROM CODEBASE (exhaustive graph not computed)",
+        "writes_to_modules": "NOT ESTABLISHED FROM CODEBASE",
+        "auth": "platform-session, operator entitlements, workspace_id scoping"
+      },
+      "data_owned": [
+        "NOT ESTABLISHED FROM CODEBASE — verify domain lib + migrations"
+      ],
+      "api_endpoints": [
+        "/api/calendar/events",
+        "/api/calendar/events/[id]",
+        "/api/calendar/meetings/[eventId]",
+        "/api/calendar/meetings/[eventId]/transcript",
+        "/api/calendar/meetings/[eventId]/webrtc",
+        "/api/email/accounts",
+        "/api/email/attachments",
+        "/api/email/calendar",
+        "/api/email/credentials",
+        "/api/email/messages",
+        "/api/email/notifications/check",
+        "/api/email/notifications/test",
+        "/api/email/notifications/whatsapp",
+        "/api/email/reply",
+        "/api/email/send",
+        "/api/email/test",
+        "/api/files/browse",
+        "/api/files/categories",
+        "/api/files/categories/[id]",
+        "/api/files/external/browse",
+        "/api/files/folders",
+        "/api/files/folders/[id]",
+        "/api/files/objects/[id]",
+        "/api/files/upload",
+        "/api/files/upload/complete",
+        "/api/files/upload/prepare",
+        "/api/internal-work-packages",
+        "/api/internal-work-packages/[id]",
+        "/api/internal-work-packages/[id]/members",
+        "/api/internal-work-packages/[id]/tasks",
+        "/api/internal-work-packages/[id]/tasks/[taskId]",
+        "/api/messaging/attachments",
+        "/api/messaging/calls",
+        "/api/messaging/calls/[sessionId]",
+        "/api/messaging/calls/[sessionId]/daily",
+        "/api/messaging/calls/[sessionId]/webrtc",
+        "/api/messaging/channels",
+        "/api/messaging/config",
+        "/api/messaging/messages",
+        "/api/messaging/operators",
+        "/api/messaging/scheduled-calls",
+        "/api/messaging/unread"
+      ]
+    },
+    {
+      "name": "SUPPORT DESK",
+      "code_id": "support-desk",
+      "route": "/dashboard (SurveyOperations shell; leaf navigation via ?view=)",
+      "implementation_status": "IMPLEMENTED",
+      "features": [
+        {
+          "name": "Ticket Overview",
+          "route": "/dashboard?view=support-overview",
+          "status": "IMPLEMENTED",
+          "subfeatures": [],
+          "components": [
+            "SupportWorkspace"
+          ],
+          "api_endpoints": [
+            "/api/support/tickets",
+            "/api/support/tickets/[id]",
+            "/api/support/tickets/[id]/assign",
+            "/api/support/tickets/[id]/client-update",
+            "/api/support/tickets/[id]/close",
+            "/api/support/tickets/[id]/lounge-messages",
+            "/api/whatsapp/inbound",
+            "/api/whatsapp/support-flow/assign",
+            "/api/whatsapp/support/reset"
+          ],
+          "database_tables": [
+            "support_tickets",
+            "whatsapp_support_sessions",
+            "support_lounge_messages"
+          ],
+          "dependencies": []
+        },
+        {
+          "name": "Tickets",
+          "route": "/dashboard?view=support",
+          "status": "IMPLEMENTED",
+          "subfeatures": [],
+          "components": [
+            "SupportWorkspace"
+          ],
+          "api_endpoints": [
+            "/api/support/tickets",
+            "/api/support/tickets/[id]",
+            "/api/support/tickets/[id]/assign",
+            "/api/support/tickets/[id]/client-update",
+            "/api/support/tickets/[id]/close",
+            "/api/support/tickets/[id]/lounge-messages",
+            "/api/whatsapp/inbound",
+            "/api/whatsapp/support-flow/assign",
+            "/api/whatsapp/support/reset"
+          ],
+          "database_tables": [
+            "support_tickets",
+            "whatsapp_support_sessions",
+            "support_lounge_messages"
+          ],
+          "dependencies": []
+        },
+        {
+          "name": "My support tickets",
+          "route": "/dashboard?view=support-mine",
+          "status": "IMPLEMENTED",
+          "subfeatures": [],
+          "components": [
+            "SupportWorkspace"
+          ],
+          "api_endpoints": [
+            "/api/support/tickets",
+            "/api/support/tickets/[id]",
+            "/api/support/tickets/[id]/assign",
+            "/api/support/tickets/[id]/client-update",
+            "/api/support/tickets/[id]/close",
+            "/api/support/tickets/[id]/lounge-messages",
+            "/api/whatsapp/inbound",
+            "/api/whatsapp/support-flow/assign",
+            "/api/whatsapp/support/reset"
+          ],
+          "database_tables": [
+            "support_tickets",
+            "whatsapp_support_sessions",
+            "support_lounge_messages"
+          ],
+          "dependencies": []
+        },
+        {
+          "name": "WhatsApp Integration",
+          "route": "/dashboard?view=whatsapp-integration",
+          "status": "IMPLEMENTED",
+          "subfeatures": [],
+          "components": [
+            "WorkspaceErrorBoundary"
+          ],
+          "api_endpoints": [
+            "/api/support/tickets",
+            "/api/support/tickets/[id]",
+            "/api/support/tickets/[id]/assign",
+            "/api/support/tickets/[id]/client-update",
+            "/api/support/tickets/[id]/close",
+            "/api/support/tickets/[id]/lounge-messages",
+            "/api/whatsapp/inbound",
+            "/api/whatsapp/support-flow/assign",
+            "/api/whatsapp/support/reset"
+          ],
+          "database_tables": [
+            "support_tickets",
+            "whatsapp_support_sessions",
+            "support_lounge_messages"
+          ],
+          "dependencies": []
+        }
+      ],
+      "shared_code": [
+        "src/lib/platform-session.ts",
+        "src/lib/workspace-context.ts",
+        "src/lib/operator-entitlements-server.ts",
+        "src/components/testflighthub/SurveyOperationsShell.tsx",
+        "src/components/testflighthub/AccessViewGuard.tsx"
+      ],
+      "dependencies": {
+        "reads_from_modules": "NOT ESTABLISHED FROM CODEBASE (exhaustive graph not computed)",
+        "writes_to_modules": "NOT ESTABLISHED FROM CODEBASE",
+        "auth": "platform-session, operator entitlements, workspace_id scoping"
+      },
+      "data_owned": [
+        "support_tickets",
+        "whatsapp_support_sessions",
+        "support_lounge_messages"
+      ],
+      "api_endpoints": [
+        "/api/support/tickets",
+        "/api/support/tickets/[id]",
+        "/api/support/tickets/[id]/assign",
+        "/api/support/tickets/[id]/client-update",
+        "/api/support/tickets/[id]/close",
+        "/api/support/tickets/[id]/lounge-messages",
+        "/api/whatsapp/inbound",
+        "/api/whatsapp/support-flow/assign",
+        "/api/whatsapp/support/reset"
+      ]
+    },
+    {
+      "name": "PROJECT MANAGEMENT",
+      "code_id": "project-management",
+      "route": "/dashboard (SurveyOperations shell; leaf navigation via ?view=)",
+      "implementation_status": "IMPLEMENTED",
+      "features": [
+        {
+          "name": "Dashboard",
+          "route": "/dashboard?view=projects-dashboard",
+          "status": "IMPLEMENTED",
+          "subfeatures": [],
+          "components": [],
+          "api_endpoints": [
+            "/api/projects",
+            "/api/projects/[id]",
+            "/api/projects/[id]/tasks",
+            "/api/projects/[id]/tasks/[taskId]",
+            "/api/projects/bulk-delete"
+          ],
+          "database_tables": [
+            "internal_projects",
+            "internal_project_tasks"
+          ],
+          "dependencies": []
+        },
+        {
+          "name": "Internal Projects",
+          "route": "/dashboard?view=projects-internal",
+          "status": "IMPLEMENTED",
+          "subfeatures": [],
+          "components": [],
+          "api_endpoints": [
+            "/api/projects",
+            "/api/projects/[id]",
+            "/api/projects/[id]/tasks",
+            "/api/projects/[id]/tasks/[taskId]",
+            "/api/projects/bulk-delete"
+          ],
+          "database_tables": [
+            "internal_projects",
+            "internal_project_tasks"
+          ],
+          "dependencies": []
+        },
+        {
+          "name": "External Projects",
+          "route": "/dashboard?view=projects-external",
+          "status": "IMPLEMENTED",
+          "subfeatures": [],
+          "components": [],
+          "api_endpoints": [
+            "/api/projects",
+            "/api/projects/[id]",
+            "/api/projects/[id]/tasks",
+            "/api/projects/[id]/tasks/[taskId]",
+            "/api/projects/bulk-delete"
+          ],
+          "database_tables": [
+            "internal_projects",
+            "internal_project_tasks"
+          ],
+          "dependencies": []
+        }
+      ],
+      "shared_code": [
+        "src/lib/platform-session.ts",
+        "src/lib/workspace-context.ts",
+        "src/lib/operator-entitlements-server.ts",
+        "src/components/testflighthub/SurveyOperationsShell.tsx",
+        "src/components/testflighthub/AccessViewGuard.tsx"
+      ],
+      "dependencies": {
+        "reads_from_modules": "NOT ESTABLISHED FROM CODEBASE (exhaustive graph not computed)",
+        "writes_to_modules": "NOT ESTABLISHED FROM CODEBASE",
+        "auth": "platform-session, operator entitlements, workspace_id scoping"
+      },
+      "data_owned": [
+        "internal_projects",
+        "internal_project_tasks"
+      ],
+      "api_endpoints": [
+        "/api/projects",
+        "/api/projects/[id]",
+        "/api/projects/[id]/tasks",
+        "/api/projects/[id]/tasks/[taskId]",
+        "/api/projects/bulk-delete"
+      ]
+    },
+    {
+      "name": "ENGINEERING",
+      "code_id": "engineering",
+      "route": "/dashboard (SurveyOperations shell; leaf navigation via ?view=)",
+      "implementation_status": "IMPLEMENTED",
+      "features": [
+        {
+          "name": "Dashboard",
+          "route": "/dashboard?view=engineering-dashboard",
+          "status": "IMPLEMENTED",
+          "subfeatures": [],
+          "components": [],
+          "api_endpoints": [
+            "/api/engineering/masters",
+            "/api/engineering/sops",
+            "/api/engineering/sops/[id]",
+            "/api/engineering/sops/[id]/actions",
+            "/api/engineering/sops/[id]/run",
+            "/api/engineering/sops/dashboard",
+            "/api/engineering/sops/reports",
+            "/api/engineering/sops/runs",
+            "/api/engineering/sops/runs/[runId]",
+            "/api/engineering/sops/runs/[runId]/steps/[stepId]",
+            "/api/engineering/sops/tasks",
+            "/api/engineering/sops/templates",
+            "/api/engineering/technical-files",
+            "/api/engineering/technical-files/[id]",
+            "/api/engineering/technical-files/[id]/download",
+            "/api/engineering/technical-files/[id]/versions",
+            "/api/engineering/technical-files/[id]/versions/[versionId]/restore",
+            "/api/engineering/technical-files/upload/prepare"
+          ],
+          "database_tables": [
+            "engineering_technical_files",
+            "engineering_sops"
+          ],
+          "dependencies": []
+        },
+        {
+          "name": "Programs & Milestones",
+          "route": "/dashboard?view=engineering-programs",
+          "status": "IMPLEMENTED",
+          "subfeatures": [],
+          "components": [],
+          "api_endpoints": [
+            "/api/engineering/masters",
+            "/api/engineering/sops",
+            "/api/engineering/sops/[id]",
+            "/api/engineering/sops/[id]/actions",
+            "/api/engineering/sops/[id]/run",
+            "/api/engineering/sops/dashboard",
+            "/api/engineering/sops/reports",
+            "/api/engineering/sops/runs",
+            "/api/engineering/sops/runs/[runId]",
+            "/api/engineering/sops/runs/[runId]/steps/[stepId]",
+            "/api/engineering/sops/tasks",
+            "/api/engineering/sops/templates",
+            "/api/engineering/technical-files",
+            "/api/engineering/technical-files/[id]",
+            "/api/engineering/technical-files/[id]/download",
+            "/api/engineering/technical-files/[id]/versions",
+            "/api/engineering/technical-files/[id]/versions/[versionId]/restore",
+            "/api/engineering/technical-files/upload/prepare"
+          ],
+          "database_tables": [
+            "engineering_technical_files",
+            "engineering_sops"
+          ],
+          "dependencies": []
+        },
+        {
+          "name": "Team & Capacity",
+          "route": "/dashboard?view=engineering-capacity",
+          "status": "IMPLEMENTED",
+          "subfeatures": [],
+          "components": [],
+          "api_endpoints": [
+            "/api/engineering/masters",
+            "/api/engineering/sops",
+            "/api/engineering/sops/[id]",
+            "/api/engineering/sops/[id]/actions",
+            "/api/engineering/sops/[id]/run",
+            "/api/engineering/sops/dashboard",
+            "/api/engineering/sops/reports",
+            "/api/engineering/sops/runs",
+            "/api/engineering/sops/runs/[runId]",
+            "/api/engineering/sops/runs/[runId]/steps/[stepId]",
+            "/api/engineering/sops/tasks",
+            "/api/engineering/sops/templates",
+            "/api/engineering/technical-files",
+            "/api/engineering/technical-files/[id]",
+            "/api/engineering/technical-files/[id]/download",
+            "/api/engineering/technical-files/[id]/versions",
+            "/api/engineering/technical-files/[id]/versions/[versionId]/restore",
+            "/api/engineering/technical-files/upload/prepare"
+          ],
+          "database_tables": [
+            "engineering_technical_files",
+            "engineering_sops"
+          ],
+          "dependencies": []
+        },
+        {
+          "name": "Risks",
+          "route": "/dashboard?view=engineering-risks",
+          "status": "IMPLEMENTED",
+          "subfeatures": [],
+          "components": [],
+          "api_endpoints": [
+            "/api/engineering/masters",
+            "/api/engineering/sops",
+            "/api/engineering/sops/[id]",
+            "/api/engineering/sops/[id]/actions",
+            "/api/engineering/sops/[id]/run",
+            "/api/engineering/sops/dashboard",
+            "/api/engineering/sops/reports",
+            "/api/engineering/sops/runs",
+            "/api/engineering/sops/runs/[runId]",
+            "/api/engineering/sops/runs/[runId]/steps/[stepId]",
+            "/api/engineering/sops/tasks",
+            "/api/engineering/sops/templates",
+            "/api/engineering/technical-files",
+            "/api/engineering/technical-files/[id]",
+            "/api/engineering/technical-files/[id]/download",
+            "/api/engineering/technical-files/[id]/versions",
+            "/api/engineering/technical-files/[id]/versions/[versionId]/restore",
+            "/api/engineering/technical-files/upload/prepare"
+          ],
+          "database_tables": [
+            "engineering_technical_files",
+            "engineering_sops"
+          ],
+          "dependencies": []
+        },
+        {
+          "name": "Technical Files",
+          "route": "/dashboard?view=engineering-technical-files",
+          "status": "IMPLEMENTED",
+          "subfeatures": [],
+          "components": [
+            "WorkspaceErrorBoundary"
+          ],
+          "api_endpoints": [
+            "/api/engineering/masters",
+            "/api/engineering/sops",
+            "/api/engineering/sops/[id]",
+            "/api/engineering/sops/[id]/actions",
+            "/api/engineering/sops/[id]/run",
+            "/api/engineering/sops/dashboard",
+            "/api/engineering/sops/reports",
+            "/api/engineering/sops/runs",
+            "/api/engineering/sops/runs/[runId]",
+            "/api/engineering/sops/runs/[runId]/steps/[stepId]",
+            "/api/engineering/sops/tasks",
+            "/api/engineering/sops/templates",
+            "/api/engineering/technical-files",
+            "/api/engineering/technical-files/[id]",
+            "/api/engineering/technical-files/[id]/download",
+            "/api/engineering/technical-files/[id]/versions",
+            "/api/engineering/technical-files/[id]/versions/[versionId]/restore",
+            "/api/engineering/technical-files/upload/prepare"
+          ],
+          "database_tables": [
+            "engineering_technical_files",
+            "engineering_sops"
+          ],
+          "dependencies": []
+        },
+        {
+          "name": "SOPs",
+          "route": null,
+          "status": "IMPLEMENTED",
+          "subfeatures": [
+            {
+              "name": "Dashboard",
+              "route": "/dashboard?view=engineering-sops-dashboard",
+              "viewId": "engineering-sops-dashboard",
+              "query": null
+            },
+            {
+              "name": "SOP Library",
+              "route": "/dashboard?view=engineering-sops-library",
+              "viewId": "engineering-sops-library",
+              "query": null
+            },
+            {
+              "name": "My Tasks",
+              "route": "/dashboard?view=engineering-sops-tasks",
+              "viewId": "engineering-sops-tasks",
+              "query": null
+            },
+            {
+              "name": "Active Runs",
+              "route": "/dashboard?view=engineering-sops-runs",
+              "viewId": "engineering-sops-runs",
+              "query": null
+            },
+            {
+              "name": "Reviews & Approvals",
+              "route": "/dashboard?view=engineering-sops-reviews",
+              "viewId": "engineering-sops-reviews",
+              "query": null
+            },
+            {
+              "name": "SOP Templates",
+              "route": "/dashboard?view=engineering-sops-templates",
+              "viewId": "engineering-sops-templates",
+              "query": null
+            },
+            {
+              "name": "Reports",
+              "route": "/dashboard?view=engineering-sops-reports",
+              "viewId": "engineering-sops-reports",
+              "query": null
+            }
+          ],
+          "components": [],
+          "api_endpoints": [
+            "/api/engineering/masters",
+            "/api/engineering/sops",
+            "/api/engineering/sops/[id]",
+            "/api/engineering/sops/[id]/actions",
+            "/api/engineering/sops/[id]/run",
+            "/api/engineering/sops/dashboard",
+            "/api/engineering/sops/reports",
+            "/api/engineering/sops/runs",
+            "/api/engineering/sops/runs/[runId]",
+            "/api/engineering/sops/runs/[runId]/steps/[stepId]",
+            "/api/engineering/sops/tasks",
+            "/api/engineering/sops/templates",
+            "/api/engineering/technical-files",
+            "/api/engineering/technical-files/[id]",
+            "/api/engineering/technical-files/[id]/download",
+            "/api/engineering/technical-files/[id]/versions",
+            "/api/engineering/technical-files/[id]/versions/[versionId]/restore",
+            "/api/engineering/technical-files/upload/prepare"
+          ],
+          "database_tables": [
+            "engineering_technical_files",
+            "engineering_sops"
+          ],
+          "dependencies": []
+        }
+      ],
+      "shared_code": [
+        "src/lib/platform-session.ts",
+        "src/lib/workspace-context.ts",
+        "src/lib/operator-entitlements-server.ts",
+        "src/components/testflighthub/SurveyOperationsShell.tsx",
+        "src/components/testflighthub/AccessViewGuard.tsx"
+      ],
+      "dependencies": {
+        "reads_from_modules": "NOT ESTABLISHED FROM CODEBASE (exhaustive graph not computed)",
+        "writes_to_modules": "NOT ESTABLISHED FROM CODEBASE",
+        "auth": "platform-session, operator entitlements, workspace_id scoping"
+      },
+      "data_owned": [
+        "engineering_technical_files",
+        "engineering_sops"
+      ],
+      "api_endpoints": [
+        "/api/engineering/masters",
+        "/api/engineering/sops",
+        "/api/engineering/sops/[id]",
+        "/api/engineering/sops/[id]/actions",
+        "/api/engineering/sops/[id]/run",
+        "/api/engineering/sops/dashboard",
+        "/api/engineering/sops/reports",
+        "/api/engineering/sops/runs",
+        "/api/engineering/sops/runs/[runId]",
+        "/api/engineering/sops/runs/[runId]/steps/[stepId]",
+        "/api/engineering/sops/tasks",
+        "/api/engineering/sops/templates",
+        "/api/engineering/technical-files",
+        "/api/engineering/technical-files/[id]",
+        "/api/engineering/technical-files/[id]/download",
+        "/api/engineering/technical-files/[id]/versions",
+        "/api/engineering/technical-files/[id]/versions/[versionId]/restore",
+        "/api/engineering/technical-files/upload/prepare"
+      ]
+    },
+    {
+      "name": "TRAINING",
+      "code_id": "training",
+      "route": "/dashboard (SurveyOperations shell; leaf navigation via ?view=)",
+      "implementation_status": "IMPLEMENTED",
+      "features": [
+        {
+          "name": "Dashboard",
+          "route": "/dashboard?view=training-dashboard",
+          "status": "IMPLEMENTED",
+          "subfeatures": [],
+          "components": [],
+          "api_endpoints": [
+            "/api/lms/assessment/draw",
+            "/api/lms/assessment/submit",
+            "/api/lms/assignments",
+            "/api/lms/catalog",
+            "/api/lms/certificates",
+            "/api/lms/certificates/[number]/pdf",
+            "/api/lms/certificates/verify",
+            "/api/lms/complete",
+            "/api/lms/courses",
+            "/api/lms/courses/[slug]",
+            "/api/lms/courses/[slug]/publish",
+            "/api/lms/enrolments",
+            "/api/lms/enrolments/[id]/progress",
+            "/api/lms/generate-from-document",
+            "/api/lms/reporting"
+          ],
+          "database_tables": [
+            "lms_courses",
+            "lms_enrolments",
+            "lms_certificates"
+          ],
+          "dependencies": []
+        },
+        {
+          "name": "Course Builder",
+          "route": "/dashboard?view=course-builder",
+          "status": "IMPLEMENTED",
+          "subfeatures": [],
+          "components": [
+            "CourseBuilderWorkspace"
+          ],
+          "api_endpoints": [
+            "/api/lms/assessment/draw",
+            "/api/lms/assessment/submit",
+            "/api/lms/assignments",
+            "/api/lms/catalog",
+            "/api/lms/certificates",
+            "/api/lms/certificates/[number]/pdf",
+            "/api/lms/certificates/verify",
+            "/api/lms/complete",
+            "/api/lms/courses",
+            "/api/lms/courses/[slug]",
+            "/api/lms/courses/[slug]/publish",
+            "/api/lms/enrolments",
+            "/api/lms/enrolments/[id]/progress",
+            "/api/lms/generate-from-document",
+            "/api/lms/reporting"
+          ],
+          "database_tables": [
+            "lms_courses",
+            "lms_enrolments",
+            "lms_certificates"
+          ],
+          "dependencies": []
+        },
+        {
+          "name": "Courses",
+          "route": null,
+          "status": "IMPLEMENTED",
+          "subfeatures": [
+            {
+              "name": "Staff Courses",
+              "route": "/dashboard?view=training",
+              "viewId": "training",
+              "query": null
+            },
+            {
+              "name": "External Courses",
+              "route": "/dashboard?view=training-external",
+              "viewId": "training-external",
+              "query": null
+            },
+            {
+              "name": "QMS Courses",
+              "route": "/dashboard?view=qms-training",
+              "viewId": "qms-training",
+              "query": null
+            }
+          ],
+          "components": [
+            "ExternalTrainingWorkspace",
+            "QmsTrainingWorkspace"
+          ],
+          "api_endpoints": [
+            "/api/lms/assessment/draw",
+            "/api/lms/assessment/submit",
+            "/api/lms/assignments",
+            "/api/lms/catalog",
+            "/api/lms/certificates",
+            "/api/lms/certificates/[number]/pdf",
+            "/api/lms/certificates/verify",
+            "/api/lms/complete",
+            "/api/lms/courses",
+            "/api/lms/courses/[slug]",
+            "/api/lms/courses/[slug]/publish",
+            "/api/lms/enrolments",
+            "/api/lms/enrolments/[id]/progress",
+            "/api/lms/generate-from-document",
+            "/api/lms/reporting"
+          ],
+          "database_tables": [
+            "lms_courses",
+            "lms_enrolments",
+            "lms_certificates"
+          ],
+          "dependencies": []
+        }
+      ],
+      "shared_code": [
+        "src/lib/platform-session.ts",
+        "src/lib/workspace-context.ts",
+        "src/lib/operator-entitlements-server.ts",
+        "src/components/testflighthub/SurveyOperationsShell.tsx",
+        "src/components/testflighthub/AccessViewGuard.tsx"
+      ],
+      "dependencies": {
+        "reads_from_modules": "NOT ESTABLISHED FROM CODEBASE (exhaustive graph not computed)",
+        "writes_to_modules": "NOT ESTABLISHED FROM CODEBASE",
+        "auth": "platform-session, operator entitlements, workspace_id scoping"
+      },
+      "data_owned": [
+        "lms_courses",
+        "lms_enrolments",
+        "lms_certificates"
+      ],
+      "api_endpoints": [
+        "/api/lms/assessment/draw",
+        "/api/lms/assessment/submit",
+        "/api/lms/assignments",
+        "/api/lms/catalog",
+        "/api/lms/certificates",
+        "/api/lms/certificates/[number]/pdf",
+        "/api/lms/certificates/verify",
+        "/api/lms/complete",
+        "/api/lms/courses",
+        "/api/lms/courses/[slug]",
+        "/api/lms/courses/[slug]/publish",
+        "/api/lms/enrolments",
+        "/api/lms/enrolments/[id]/progress",
+        "/api/lms/generate-from-document",
+        "/api/lms/reporting"
+      ]
+    },
+    {
+      "name": "QMS",
+      "code_id": "qms",
+      "route": "/dashboard (SurveyOperations shell; leaf navigation via ?view=)",
+      "implementation_status": "IMPLEMENTED",
+      "features": [
+        {
+          "name": "Dashboard",
+          "route": "/dashboard?view=quality-management",
+          "status": "IMPLEMENTED",
+          "subfeatures": [],
+          "components": [
+            "QualityManagementWorkspace"
+          ],
+          "api_endpoints": [],
+          "database_tables": [
+            "qa_workspace_tasks"
+          ],
+          "dependencies": []
+        },
+        {
+          "name": "Document Control",
+          "route": "/dashboard?view=qms-document-control",
+          "status": "IMPLEMENTED",
+          "subfeatures": [],
+          "components": [
+            "DocumentControlWorkspace"
+          ],
+          "api_endpoints": [],
+          "database_tables": [
+            "qa_workspace_tasks"
+          ],
+          "dependencies": []
+        },
+        {
+          "name": "CAPA",
+          "route": "/dashboard?view=qms-capa",
+          "status": "IMPLEMENTED",
+          "subfeatures": [],
+          "components": [
+            "CapaWorkspace"
+          ],
+          "api_endpoints": [],
+          "database_tables": [
+            "qa_workspace_tasks"
+          ],
+          "dependencies": []
+        },
+        {
+          "name": "Internal Audits",
+          "route": "/dashboard?view=qms-internal-audits",
+          "status": "IMPLEMENTED",
+          "subfeatures": [],
+          "components": [
+            "InternalAuditsWorkspace"
+          ],
+          "api_endpoints": [],
+          "database_tables": [
+            "qa_workspace_tasks"
+          ],
+          "dependencies": []
+        },
+        {
+          "name": "Management Review",
+          "route": "/dashboard?view=qms-management-review",
+          "status": "IMPLEMENTED",
+          "subfeatures": [],
+          "components": [
+            "ManagementReviewWorkspace"
+          ],
+          "api_endpoints": [],
+          "database_tables": [
+            "qa_workspace_tasks"
+          ],
+          "dependencies": []
+        },
+        {
+          "name": "Reporting",
+          "route": "/dashboard?view=qms-reports",
+          "status": "IMPLEMENTED",
+          "subfeatures": [],
+          "components": [
+            "TqmsReportsWorkspace"
+          ],
+          "api_endpoints": [],
+          "database_tables": [
+            "qa_workspace_tasks"
+          ],
+          "dependencies": []
+        }
+      ],
+      "shared_code": [
+        "src/lib/platform-session.ts",
+        "src/lib/workspace-context.ts",
+        "src/lib/operator-entitlements-server.ts",
+        "src/components/testflighthub/SurveyOperationsShell.tsx",
+        "src/components/testflighthub/AccessViewGuard.tsx"
+      ],
+      "dependencies": {
+        "reads_from_modules": "NOT ESTABLISHED FROM CODEBASE (exhaustive graph not computed)",
+        "writes_to_modules": "NOT ESTABLISHED FROM CODEBASE",
+        "auth": "platform-session, operator entitlements, workspace_id scoping"
+      },
+      "data_owned": [
+        "qa_workspace_tasks"
+      ],
+      "api_endpoints": []
+    },
+    {
+      "name": "TOOLS",
+      "code_id": "tools",
+      "route": "/dashboard (SurveyOperations shell; leaf navigation via ?view=)",
+      "implementation_status": "IMPLEMENTED",
+      "features": [
+        {
+          "name": "Website Management",
+          "route": "/dashboard?view=website-management",
+          "status": "IMPLEMENTED",
+          "subfeatures": [],
+          "components": [
+            "WebsiteManagementWorkspace"
+          ],
+          "api_endpoints": [
+            "/api/integrations/catalog",
+            "/api/integrations/connections",
+            "/api/integrations/connections/[providerCode]",
+            "/api/integrations/connections/[providerCode]/test",
+            "/api/integrations/providers",
+            "/api/qa/tasks",
+            "/api/qa/tasks/[id]",
+            "/api/qa/tasks/export",
+            "/api/telemetry",
+            "/api/telemetry/records",
+            "/api/users",
+            "/api/users/[id]",
+            "/api/website-analytics/events",
+            "/api/website-analytics/refresh",
+            "/api/website-analytics/summary"
+          ],
+          "database_tables": [
+            "integrations",
+            "telemetry"
+          ],
+          "dependencies": []
+        },
+        {
+          "name": "Integrations",
+          "route": "/dashboard?view=integrations",
+          "status": "IMPLEMENTED",
+          "subfeatures": [],
+          "components": [
+            "WorkspaceErrorBoundary"
+          ],
+          "api_endpoints": [
+            "/api/integrations/catalog",
+            "/api/integrations/connections",
+            "/api/integrations/connections/[providerCode]",
+            "/api/integrations/connections/[providerCode]/test",
+            "/api/integrations/providers",
+            "/api/qa/tasks",
+            "/api/qa/tasks/[id]",
+            "/api/qa/tasks/export",
+            "/api/telemetry",
+            "/api/telemetry/records",
+            "/api/users",
+            "/api/users/[id]",
+            "/api/website-analytics/events",
+            "/api/website-analytics/refresh",
+            "/api/website-analytics/summary"
+          ],
+          "database_tables": [
+            "integrations",
+            "telemetry"
+          ],
+          "dependencies": []
+        },
+        {
+          "name": "Testing",
+          "route": "/dashboard?view=testing",
+          "status": "IMPLEMENTED",
+          "subfeatures": [],
+          "components": [
+            "div"
+          ],
+          "api_endpoints": [
+            "/api/integrations/catalog",
+            "/api/integrations/connections",
+            "/api/integrations/connections/[providerCode]",
+            "/api/integrations/connections/[providerCode]/test",
+            "/api/integrations/providers",
+            "/api/qa/tasks",
+            "/api/qa/tasks/[id]",
+            "/api/qa/tasks/export",
+            "/api/telemetry",
+            "/api/telemetry/records",
+            "/api/users",
+            "/api/users/[id]",
+            "/api/website-analytics/events",
+            "/api/website-analytics/refresh",
+            "/api/website-analytics/summary"
+          ],
+          "database_tables": [
+            "integrations",
+            "telemetry"
+          ],
+          "dependencies": []
+        },
+        {
+          "name": "Telemetry",
+          "route": "/dashboard?view=telemetry",
+          "status": "IMPLEMENTED",
+          "subfeatures": [],
+          "components": [
+            "TelemetryDashboard"
+          ],
+          "api_endpoints": [
+            "/api/integrations/catalog",
+            "/api/integrations/connections",
+            "/api/integrations/connections/[providerCode]",
+            "/api/integrations/connections/[providerCode]/test",
+            "/api/integrations/providers",
+            "/api/qa/tasks",
+            "/api/qa/tasks/[id]",
+            "/api/qa/tasks/export",
+            "/api/telemetry",
+            "/api/telemetry/records",
+            "/api/users",
+            "/api/users/[id]",
+            "/api/website-analytics/events",
+            "/api/website-analytics/refresh",
+            "/api/website-analytics/summary"
+          ],
+          "database_tables": [
+            "integrations",
+            "telemetry"
+          ],
+          "dependencies": []
+        },
+        {
+          "name": "Users",
+          "route": "/dashboard?view=users",
+          "status": "IMPLEMENTED",
+          "subfeatures": [],
+          "components": [
+            "UserManagementWorkspace"
+          ],
+          "api_endpoints": [
+            "/api/integrations/catalog",
+            "/api/integrations/connections",
+            "/api/integrations/connections/[providerCode]",
+            "/api/integrations/connections/[providerCode]/test",
+            "/api/integrations/providers",
+            "/api/qa/tasks",
+            "/api/qa/tasks/[id]",
+            "/api/qa/tasks/export",
+            "/api/telemetry",
+            "/api/telemetry/records",
+            "/api/users",
+            "/api/users/[id]",
+            "/api/website-analytics/events",
+            "/api/website-analytics/refresh",
+            "/api/website-analytics/summary"
+          ],
+          "database_tables": [
+            "integrations",
+            "telemetry"
+          ],
+          "dependencies": []
+        }
+      ],
+      "shared_code": [
+        "src/lib/platform-session.ts",
+        "src/lib/workspace-context.ts",
+        "src/lib/operator-entitlements-server.ts",
+        "src/components/testflighthub/SurveyOperationsShell.tsx",
+        "src/components/testflighthub/AccessViewGuard.tsx"
+      ],
+      "dependencies": {
+        "reads_from_modules": "NOT ESTABLISHED FROM CODEBASE (exhaustive graph not computed)",
+        "writes_to_modules": "NOT ESTABLISHED FROM CODEBASE",
+        "auth": "platform-session, operator entitlements, workspace_id scoping"
+      },
+      "data_owned": [
+        "integrations",
+        "telemetry"
+      ],
+      "api_endpoints": [
+        "/api/integrations/catalog",
+        "/api/integrations/connections",
+        "/api/integrations/connections/[providerCode]",
+        "/api/integrations/connections/[providerCode]/test",
+        "/api/integrations/providers",
+        "/api/qa/tasks",
+        "/api/qa/tasks/[id]",
+        "/api/qa/tasks/export",
+        "/api/telemetry",
+        "/api/telemetry/records",
+        "/api/users",
+        "/api/users/[id]",
+        "/api/website-analytics/events",
+        "/api/website-analytics/refresh",
+        "/api/website-analytics/summary"
+      ]
+    },
+    {
+      "name": "EXTERNAL CLIENT ACCESS",
+      "code_id": "external-client-access",
+      "route": "/dashboard (SurveyOperations shell; leaf navigation via ?view=)",
+      "implementation_status": "IMPLEMENTED",
+      "features": [
+        {
+          "name": "Dashboard",
+          "route": "/dashboard?view=external-client-access",
+          "status": "IMPLEMENTED",
+          "subfeatures": [],
+          "components": [],
+          "api_endpoints": [
+            "/api/external-users",
+            "/api/external-users/[id]"
+          ],
+          "database_tables": [
+            "platform_users"
+          ],
+          "dependencies": []
+        },
+        {
+          "name": "External Users",
+          "route": "/dashboard?view=users-external",
+          "status": "IMPLEMENTED",
+          "subfeatures": [],
+          "components": [
+            "ExternalUsersWorkspace"
+          ],
+          "api_endpoints": [
+            "/api/external-users",
+            "/api/external-users/[id]"
+          ],
+          "database_tables": [
+            "platform_users"
+          ],
+          "dependencies": []
+        }
+      ],
+      "shared_code": [
+        "src/lib/platform-session.ts",
+        "src/lib/workspace-context.ts",
+        "src/lib/operator-entitlements-server.ts",
+        "src/components/testflighthub/SurveyOperationsShell.tsx",
+        "src/components/testflighthub/AccessViewGuard.tsx"
+      ],
+      "dependencies": {
+        "reads_from_modules": "NOT ESTABLISHED FROM CODEBASE (exhaustive graph not computed)",
+        "writes_to_modules": "NOT ESTABLISHED FROM CODEBASE",
+        "auth": "platform-session, operator entitlements, workspace_id scoping"
+      },
+      "data_owned": [
+        "platform_users"
+      ],
+      "api_endpoints": [
+        "/api/external-users",
+        "/api/external-users/[id]"
+      ]
+    },
+    {
+      "name": "SETTINGS",
+      "code_id": "settings",
+      "route": "/dashboard (SurveyOperations shell; leaf navigation via ?view=)",
+      "implementation_status": "IMPLEMENTED",
+      "features": [
+        {
+          "name": "Profile",
+          "route": "/dashboard?view=profile",
+          "status": "IMPLEMENTED",
+          "subfeatures": [],
+          "components": [
+            "ProfileWorkspace"
+          ],
+          "api_endpoints": [
+            "/api/auth/crm-invite-signup",
+            "/api/auth/forgot-password",
+            "/api/auth/login",
+            "/api/auth/logout",
+            "/api/auth/reset-password",
+            "/api/auth/signup",
+            "/api/auth/verify-email",
+            "/api/auth/verify-reset-otp",
+            "/api/auth/whoami",
+            "/api/platform-billing",
+            "/api/platform-billing/ensure",
+            "/api/users",
+            "/api/users/[id]"
+          ],
+          "database_tables": [
+            "platform_organisations",
+            "workspace_admin_metadata"
+          ],
+          "dependencies": []
+        },
+        {
+          "name": "General",
+          "route": "/dashboard?view=settings",
+          "status": "IMPLEMENTED",
+          "subfeatures": [],
+          "components": [],
+          "api_endpoints": [
+            "/api/auth/crm-invite-signup",
+            "/api/auth/forgot-password",
+            "/api/auth/login",
+            "/api/auth/logout",
+            "/api/auth/reset-password",
+            "/api/auth/signup",
+            "/api/auth/verify-email",
+            "/api/auth/verify-reset-otp",
+            "/api/auth/whoami",
+            "/api/platform-billing",
+            "/api/platform-billing/ensure",
+            "/api/users",
+            "/api/users/[id]"
+          ],
+          "database_tables": [
+            "platform_organisations",
+            "workspace_admin_metadata"
+          ],
+          "dependencies": []
+        },
+        {
+          "name": "Billing",
+          "route": "/dashboard?view=billing",
+          "status": "IMPLEMENTED",
+          "subfeatures": [],
+          "components": [],
+          "api_endpoints": [
+            "/api/auth/crm-invite-signup",
+            "/api/auth/forgot-password",
+            "/api/auth/login",
+            "/api/auth/logout",
+            "/api/auth/reset-password",
+            "/api/auth/signup",
+            "/api/auth/verify-email",
+            "/api/auth/verify-reset-otp",
+            "/api/auth/whoami",
+            "/api/platform-billing",
+            "/api/platform-billing/ensure",
+            "/api/users",
+            "/api/users/[id]"
+          ],
+          "database_tables": [
+            "platform_organisations",
+            "workspace_admin_metadata"
+          ],
+          "dependencies": []
+        },
+        {
+          "name": "Appearance",
+          "route": "/dashboard?view=appearance",
+          "status": "IMPLEMENTED",
+          "subfeatures": [],
+          "components": [
+            "AppearanceSettingsWorkspace"
+          ],
+          "api_endpoints": [
+            "/api/auth/crm-invite-signup",
+            "/api/auth/forgot-password",
+            "/api/auth/login",
+            "/api/auth/logout",
+            "/api/auth/reset-password",
+            "/api/auth/signup",
+            "/api/auth/verify-email",
+            "/api/auth/verify-reset-otp",
+            "/api/auth/whoami",
+            "/api/platform-billing",
+            "/api/platform-billing/ensure",
+            "/api/users",
+            "/api/users/[id]"
+          ],
+          "database_tables": [
+            "platform_organisations",
+            "workspace_admin_metadata"
+          ],
+          "dependencies": []
+        }
+      ],
+      "shared_code": [
+        "src/lib/platform-session.ts",
+        "src/lib/workspace-context.ts",
+        "src/lib/operator-entitlements-server.ts",
+        "src/components/testflighthub/SurveyOperationsShell.tsx",
+        "src/components/testflighthub/AccessViewGuard.tsx"
+      ],
+      "dependencies": {
+        "reads_from_modules": "NOT ESTABLISHED FROM CODEBASE (exhaustive graph not computed)",
+        "writes_to_modules": "NOT ESTABLISHED FROM CODEBASE",
+        "auth": "platform-session, operator entitlements, workspace_id scoping"
+      },
+      "data_owned": [
+        "platform_organisations",
+        "workspace_admin_metadata"
+      ],
+      "api_endpoints": [
+        "/api/auth/crm-invite-signup",
+        "/api/auth/forgot-password",
+        "/api/auth/login",
+        "/api/auth/logout",
+        "/api/auth/reset-password",
+        "/api/auth/signup",
+        "/api/auth/verify-email",
+        "/api/auth/verify-reset-otp",
+        "/api/auth/whoami",
+        "/api/platform-billing",
+        "/api/platform-billing/ensure",
+        "/api/users",
+        "/api/users/[id]"
+      ]
+    }
+  ]
+}
