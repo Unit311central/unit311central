@@ -80,7 +80,12 @@ const toolViews =
   toolsSection.kind === "workspace"
     ? toolsSection.items.map((item) => item.view).filter(Boolean)
     : [];
-assert.deepEqual(toolViews, ["wolf-ai-wildlife-vision", "users", "wolf-test-ground"]);
+assert.deepEqual(toolViews, [
+  "wolf-ai-wildlife-vision",
+  "users",
+  "wolf-test-ground",
+  "wolf-ground-webrtc",
+]);
 
 const surfacedWolf = filterInternalNavSectionsForDemoSurface(wolfNav);
 const surfacedTools = surfacedWolf.find((section) => section.label === "Tools");
@@ -92,6 +97,7 @@ assert.deepEqual(surfacedToolLabels, [
   "Users",
   "Unit311 Support",
   "WOLF Test Ground",
+  "WOLF Test Ground WebRTC",
 ]);
 
 const surfacedCentral = filterInternalNavSectionsForDemoSurface(internalSurveyNavSections);
@@ -100,6 +106,7 @@ const centralToolLabels =
   centralTools?.kind === "workspace" ? centralTools.items.map((item) => item.label) : [];
 assert.deepEqual(centralToolLabels.at(-1), "Unit311 Support");
 assert.ok(!centralToolLabels.includes("WOLF Test Ground"));
+assert.ok(!centralToolLabels.includes("WOLF Test Ground WebRTC"));
 
 const settingsSection = wolfNav.find((section) => section.label === "Settings");
 assert.ok(settingsSection?.kind === "workspace");

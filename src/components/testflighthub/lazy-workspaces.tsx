@@ -200,6 +200,9 @@ export const WolfAiWildlifeVisionDemo = lazyWorkspace(
 export const WolfTestGroundWorkspace = lazyWorkspace(
   () => import("@/components/wolf/WolfTestGroundWorkspace"),
 );
+export const WolfGroundWebRtcWorkspace = lazyWorkspace(
+  () => import("@/components/wolf/WolfGroundWebRtcWorkspace"),
+);
 export const WolfSharkWorkspace = lazyWorkspace(
   () => import("@/components/wolf/shark/WolfSharkWorkspace"),
 );

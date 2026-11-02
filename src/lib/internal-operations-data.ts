@@ -275,6 +275,7 @@ export type InternalOperationsView =
   | "wolf-fleet"
   | "wolf-ai-wildlife-vision"
   | "wolf-test-ground"
+  | "wolf-ground-webrtc"
   | "wolf-shark-dashboard"
   | "wolf-shark-video-analysis"
   | "wolf-shark-ai-detection"
@@ -630,6 +631,7 @@ export const internalOperationsViews: InternalOperationsView[] = [
   "wolf-fleet",
   "wolf-ai-wildlife-vision",
   "wolf-test-ground",
+  "wolf-ground-webrtc",
   "wolf-shark-dashboard",
   "wolf-shark-video-analysis",
   "wolf-shark-ai-detection",
@@ -1577,6 +1579,10 @@ export const internalViewTitles: Record<
   },
   "wolf-test-ground": {
     title: "WOLF Test Ground",
+    subtitle: "WOLF Central · Tools",
+  },
+  "wolf-ground-webrtc": {
+    title: "WOLF Test Ground WebRTC",
     subtitle: "WOLF Central · Tools",
   },
   "wolf-shark-dashboard": { title: "SHARK Dashboard", subtitle: "WOLF Central · SHARK" },
