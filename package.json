@@ -182,6 +182,9 @@
     "test:intelligence": "node --import tsx src/lib/intelligence/__tests__/registry.check.ts && node --import tsx src/lib/intelligence/__tests__/workspace-context.check.ts && node --import tsx src/lib/intelligence/__tests__/phase2.check.ts && node --import tsx src/lib/intelligence/__tests__/deploy-ready.check.ts"
   },
   "dependencies": {
+    "@capacitor/camera": "^6.1.2",
+    "@capacitor/core": "^6.2.1",
+    "@capacitor/geolocation": "^6.1.0",
     "@daily-co/daily-js": "^0.91.0",
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/utilities": "^3.2.2",

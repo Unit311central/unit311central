@@ -1,11 +1,14 @@
 import type { CapacitorConfig } from "@capacitor/cli";
 
+const phoneLink =
+  "/dashboard?view=wolf-phone-link";
+
 const config: CapacitorConfig = {
   appId: "com.unit311central.app",
-  appName: "Unit311 Central",
+  appName: "WOLF Central",
   webDir: "www",
   server: {
-    url: "https://unit311central.com/login",
+    url: `https://wolf.unit311central.com/login?next=${encodeURIComponent(phoneLink)}`,
     cleartext: false,
     androidScheme: "https",
   },

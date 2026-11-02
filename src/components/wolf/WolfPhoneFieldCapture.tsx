@@ -9,11 +9,17 @@ import {
   formatCaptureSummary,
   type PhoneFieldLog,
 } from "@/lib/wolf/phone-capture";
+import {
+  captureNativePhotoBlob,
+  isWolfNativeShell,
+  readNativeGeolocation,
+} from "@/lib/wolf/phone-native-shell";
 import { WOLF_PHONE_TELEMETRY_PATH } from "@/lib/wolf/phone-telemetry";
 
 type Status = { tone: "neutral" | "ok" | "bad"; text: string };
 
 export default function WolfPhoneFieldCapture() {
+  const [nativeShell, setNativeShell] = useState(false);
   const [status, setStatus] = useState<Status>({
     tone: "neutral",
     text: "Uses the latest GPSLogger fix when you save.",
@@ -40,6 +46,18 @@ export default function WolfPhoneFieldCapture() {
   useEffect(() => {
     void refreshLogs();
   }, [refreshLogs]);
+
+  useEffect(() => {
+    void isWolfNativeShell().then((native) => {
+      setNativeShell(native);
+      if (native) {
+        setStatus({
+          tone: "neutral",
+          text: "WOLF Android app — use these buttons on the phone. GPSLogger still feeds the live stream while Brix is full screen.",
+        });
+      }
+    });
+  }, []);
 
   const latestFixFromApi = async () => {
     const response = await fetch(WOLF_PHONE_TELEMETRY_PATH, { cache: "no-store" });
@@ -74,6 +92,14 @@ export default function WolfPhoneFieldCapture() {
   const fixPayload = async () => {
     const fromLogger = await latestFixFromApi();
     if (fromLogger) return fromLogger;
+    if (nativeShell) {
+      try {
+        const nativeFix = await readNativeGeolocation();
+        if (nativeFix) return nativeFix;
+      } catch {
+        /* fall through */
+      }
+    }
     const position = await oneShotGeolocation();
     if (!position) return null;
     const { latitude, longitude, altitude, speed, heading } = position.coords;
@@ -159,6 +185,23 @@ export default function WolfPhoneFieldCapture() {
     if (file) void uploadMedia("photo", file);
   };
 
+  const takePhoto = async () => {
+    if (nativeShell) {
+      try {
+        const blob = await captureNativePhotoBlob();
+        if (!blob) {
+          setStatus({ tone: "bad", text: "Camera did not return a photo." });
+          return;
+        }
+        await uploadMedia("photo", new File([blob], "capture.jpg", { type: blob.type || "image/jpeg" }));
+      } catch {
+        setStatus({ tone: "bad", text: "Camera permission was denied." });
+      }
+      return;
+    }
+    photoInputRef.current?.click();
+  };
+
   const stopStream = () => {
     recorderRef.current?.stop();
     recorderRef.current = null;
@@ -214,7 +257,7 @@ export default function WolfPhoneFieldCapture() {
     <section className={`${wolfCardClass} mt-6 max-w-xl px-4 py-4`}>
       <h2 className="text-sm font-semibold text-white">Field capture</h2>
       <p className="mt-2 text-sm text-white/70">
-        Open this page when you need a mark, photo, or clip. Brix can stay on stream key test; GPSLogger supplies the location.
+        On the phone: open WOLF (browser or the Unit311 Android app) — not the laptop. Switch here from Brix when you need a mark, photo, or clip.
       </p>
       <p
         className={`mt-3 text-sm ${status.tone === "bad" ? "text-red-300" : status.tone === "ok" ? "text-emerald-300" : "text-white/80"}`}
@@ -232,7 +275,7 @@ export default function WolfPhoneFieldCapture() {
         </button>
         <button
           type="button"
-          onClick={() => photoInputRef.current?.click()}
+          onClick={() => void takePhoto()}
           className="rounded-full border border-white/20 px-4 py-2 text-sm font-semibold text-white"
         >
           Take photo

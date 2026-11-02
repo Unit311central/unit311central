@@ -1,8 +1,8 @@
-# Unit311 Central — Android shell
+# WOLF Central — Android shell
 
-Capacitor wrapper that loads the live Unit311 workspace login from `https://unit311central.com/login`.
+Capacitor wrapper that opens **WOLF** on the phone: `https://wolf.unit311central.com/login`, then **Tools → Phone Link** after sign-in.
 
-After login, the WebView follows the normal redirect to your workspace host (for example `https://demo.unit311central.com/dashboard`).
+Use it for field capture (log position, photo, video) with the native camera while you are on the phone. **Brix** can stay full screen on stream key `test`; keep **GPSLogger** running for the live WebRTC overlay while you stream.
 
 **This folder is isolated.** It does not change the Next.js app, workspaces, or modules.
 

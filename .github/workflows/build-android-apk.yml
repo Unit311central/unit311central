@@ -61,11 +61,11 @@ jobs:
           tag_name: android-${{ github.run_number }}
           name: Android test build ${{ github.run_number }}
           body: |
-            Debug APK for testing BCN Drone Center on Android.
+            Debug APK for WOLF Central on Android (Capacitor shell).
 
-            Install: download `bcn-drone-center-debug.apk`, allow installs from your browser/files app, then open the APK.
+            Install: download the APK, allow installs from your browser/files app, then open **WOLF Central**.
 
-            Loads the live site from https://barcelonadronecenter.vercel.app
+            After login, opens Phone Link on https://wolf.unit311central.com for GPSLogger setup and field capture. Keep GPSLogger running while Brix streams.
           files: mobile/android/app/build/outputs/apk/debug/app-debug.apk
           make_latest: true
         env:
