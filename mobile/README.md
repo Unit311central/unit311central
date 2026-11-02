@@ -1,8 +1,8 @@
 # WOLF Central — Android shell
 
-Capacitor wrapper that opens **WOLF** on the phone: `https://wolf.unit311central.com/login`, then **Tools → Phone Link** after sign-in.
+Capacitor wrapper that opens **WOLF Central** on the phone: `https://wolf.unit311central.com/login`.
 
-Use it for field capture (log position, photo, video) with the native camera while you are on the phone. **Brix** can stay full screen on stream key `test`; keep **GPSLogger** running for the live WebRTC overlay while you stream.
+After sign-in you get the same workspace as the desktop browser (dashboard, sidebar, Tools, WebRTC, Sky, and the rest). **Phone Link** and field capture live under **Tools** when you need them on the phone.
 
 **This folder is isolated.** It does not change the Next.js app, workspaces, or modules.
 

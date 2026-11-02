@@ -65,7 +65,7 @@ jobs:
 
             Install: download the APK, allow installs from your browser/files app, then open **WOLF Central**.
 
-            After login, opens Phone Link on https://wolf.unit311central.com for GPSLogger setup and field capture. Keep GPSLogger running while Brix streams.
+            After login, loads the full WOLF workspace on https://wolf.unit311central.com (same as desktop in the browser).
           files: mobile/android/app/build/outputs/apk/debug/app-debug.apk
           make_latest: true
         env:
