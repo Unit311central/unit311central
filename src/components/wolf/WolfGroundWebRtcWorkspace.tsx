@@ -32,6 +32,15 @@ const EMPTY_DIAGNOSTICS: Diagnostics = {
   detail: "This page uses WebRTC only. It does not play HLS.",
 };
 
+type WolfWebRtcWorkspaceProps = {
+  title?: string;
+  eyebrow?: string;
+  description?: string;
+  signallingPath?: string;
+  idleDetail?: string;
+  publishUrl?: string;
+};
+
 function connectionLabel(status: ConnectionStatus): string {
   switch (status) {
     case "idle":
@@ -90,16 +99,23 @@ function waitForIceGathering(pc: RTCPeerConnection, timeoutMs: number): Promise<
   });
 }
 
-async function releaseSession(sessionPath: string | null) {
+async function releaseSession(signallingPath: string, sessionPath: string | null) {
   if (!sessionPath) return;
-  await fetch(WOLF_GROUND_WEBRTC_PATH, {
+  await fetch(signallingPath, {
     method: "DELETE",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ sessionPath }),
   }).catch(() => undefined);
 }
 
-export default function WolfGroundWebRtcWorkspace() {
+export default function WolfGroundWebRtcWorkspace({
+  title = "WOLF Test Ground WebRTC",
+  eyebrow = "Tools",
+  description = "Direct WebRTC live video streaming test.",
+  signallingPath = WOLF_GROUND_WEBRTC_PATH,
+  idleDetail = "This page uses WebRTC only. It does not play HLS.",
+  publishUrl,
+}: WolfWebRtcWorkspaceProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const pcRef = useRef<RTCPeerConnection | null>(null);
   const sessionRef = useRef<string | null>(null);
@@ -109,7 +125,10 @@ export default function WolfGroundWebRtcWorkspace() {
   const [connection, setConnection] = useState<ConnectionStatus>("idle");
   const [stream, setStream] = useState<StreamStatus>("waiting");
   const [needsGesture, setNeedsGesture] = useState(false);
-  const [diagnostics, setDiagnostics] = useState<Diagnostics>(EMPTY_DIAGNOSTICS);
+  const [diagnostics, setDiagnostics] = useState<Diagnostics>({
+    ...EMPTY_DIAGNOSTICS,
+    detail: idleDetail,
+  });
 
   const patchDiagnostics = useCallback((patch: Partial<Diagnostics>) => {
     setDiagnostics((current) => ({ ...current, ...patch }));
@@ -129,12 +148,12 @@ export default function WolfGroundWebRtcWorkspace() {
     if (pc) pc.close();
     const session = sessionRef.current;
     sessionRef.current = null;
-    void releaseSession(session);
+    void releaseSession(signallingPath, session);
     const video = videoRef.current;
     if (video) {
       video.srcObject = null;
     }
-  }, [stopStats]);
+  }, [signallingPath, stopStats]);
 
   const readStats = useCallback(
     async (pc: RTCPeerConnection, attempt: number) => {
@@ -205,7 +224,7 @@ export default function WolfGroundWebRtcWorkspace() {
     setDiagnostics({
       ...EMPTY_DIAGNOSTICS,
       connection: "Gathering local candidates",
-      detail: "WebRTC only. No HLS fallback.",
+      detail: idleDetail,
     });
 
     const pc = new RTCPeerConnection({ iceServers: [] });
@@ -248,7 +267,7 @@ export default function WolfGroundWebRtcWorkspace() {
 
       setConnection("signalling");
       patchDiagnostics({ connection: "Posting WHEP offer" });
-      const response = await fetch(WOLF_GROUND_WEBRTC_PATH, {
+      const response = await fetch(signallingPath, {
         method: "POST",
         headers: { "Content-Type": "application/sdp" },
         body: pc.localDescription.sdp,
@@ -302,7 +321,7 @@ export default function WolfGroundWebRtcWorkspace() {
       });
       closePeer();
     }
-  }, [closePeer, patchDiagnostics, readStats]);
+  }, [closePeer, idleDetail, patchDiagnostics, readStats, signallingPath]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -325,9 +344,12 @@ export default function WolfGroundWebRtcWorkspace() {
   return (
     <div className={`${wolfShellClass} px-4 py-6 sm:px-6 sm:py-8`}>
       <header className="mb-6 max-w-3xl">
-        <p className={wolfEyebrowClass}>Tools</p>
-        <h1 className="mt-1 text-2xl font-semibold text-white">WOLF Test Ground WebRTC</h1>
-        <p className="mt-2 text-sm text-white/70">Direct WebRTC live video streaming test.</p>
+        <p className={wolfEyebrowClass}>{eyebrow}</p>
+        <h1 className="mt-1 text-2xl font-semibold text-white">{title}</h1>
+        <p className="mt-2 text-sm text-white/70">{description}</p>
+        {publishUrl ? (
+          <p className="mt-2 break-all font-mono text-xs text-white/80">RTMP {publishUrl}</p>
+        ) : null}
       </header>
 
       <section className={`${wolfCardClass} max-w-4xl overflow-hidden`} aria-label="WebRTC video">

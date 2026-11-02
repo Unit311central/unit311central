@@ -212,6 +212,7 @@ function moduleKeysForView(viewId: string | undefined, moduleId: string): string
     "wolf-drone-operations": ["wolf-drone-operations"],
     "wolf-fleet": ["wolf-fleet"],
     "wolf-shark": ["wolf-shark"],
+    "wolf-sky": ["wolf-sky"],
   };
 
   return moduleFallbacks[moduleId] ?? [];

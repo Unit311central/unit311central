@@ -29,6 +29,7 @@ assert.equal(
   whepSessionPath("https://4s4dzedw76v0re-8889.proxy.runpod.net/live/test/whep/session1"),
   "/live/test/whep/session1",
 );
+assert.equal(whepSessionPath("/live/sky/whep/session1"), "/live/sky/whep/session1");
 assert.equal(whepSessionPath("/live/other/whep/session1"), null);
 assert.equal(whepSessionPath("/live/test/whep/../../secret"), null);
 assert.equal(whepSessionPath("https://evil.example/live/test/whep/session1"), "/live/test/whep/session1");

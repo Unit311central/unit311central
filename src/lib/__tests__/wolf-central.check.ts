@@ -32,7 +32,7 @@ import { WOLF_DEMO_RESERVE_SEEDS } from "@/lib/wolf/central/demo-seed";
 import { WOLF_EMPTY_FLEET_METRICS } from "@/lib/wolf/wolf-empty-dashboards";
 import { canonicalizeWorkspaceHostSubdomain } from "@/lib/platform-workspaces/workspace-host-alias-service";
 
-assert.equal(WORKSPACE_MODULE_CATALOGUE.length, 28);
+assert.equal(WORKSPACE_MODULE_CATALOGUE.length, 29);
 assert.equal(WORKSPACE_CORE_MODULE_COUNT, 22);
 assert.ok(WORKSPACE_MODULE_IDS.includes("wolf-animals"));
 assert.ok(WORKSPACE_MODULE_IDS.includes("wolf-fleet"));
@@ -60,6 +60,7 @@ assert.ok(wolfNav.some((section) => section.label === "External Client Access"))
 assert.ok(!wolfNav.some((section) => section.label === "Inventory"));
 
 const wolfModules = wolfCentralEnabledModules();
+assert.ok(wolfModules.includes("wolf-sky"));
 assert.ok(wolfModules.includes("wolf-animals"));
 assert.ok(wolfModules.includes("wolf-fleet"));
 assert.ok(wolfModules.includes("wolf-tools"));

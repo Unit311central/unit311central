@@ -1,40 +1,58 @@
 /**
- * WHEP signalling target for the WOLF Ground WebRTC test page.
+ * WHEP signalling targets for WOLF live WebRTC pages.
  * The browser never calls RunPod directly. Media stays on the WebRTC
  * peer connection; this module only names the signalling URL.
  *
- * The default is MediaMTX's documented WHEP address on the existing pod.
- * The running pod has not confirmed that listener. Set WOLF_WHEP_URL when
- * the real webrtcAddress is known.
+ * Phone test page: live/test. DJI Neo on WOLF Sky: live/sky.
+ * Set WOLF_WHEP_URL or WOLF_SKY_WHEP_URL to override a target.
  */
 
 export const PROPOSED_WHEP_URL =
   "https://4s4dzedw76v0re-8889.proxy.runpod.net/live/test/whep";
 
+export const SKY_WHEP_URL =
+  "https://4s4dzedw76v0re-8889.proxy.runpod.net/live/sky/whep";
+
+export const WOLF_SKY_RTMP_URL = "rtmp://38.80.152.147:39908/live/sky";
+
 export const WOLF_GROUND_WEBRTC_PATH = "/api/wolf/live/webrtc";
 
-const SESSION_PATH = /^\/live\/test\/whep\/[A-Za-z0-9_-]+$/;
+export const WOLF_SKY_WEBRTC_PATH = "/api/wolf/live/sky/webrtc";
 
-export function resolveWhepUrl(envValue: string | undefined): string {
+const SESSION_PATH = /^\/live\/(?:test|sky)\/whep\/[A-Za-z0-9_-]+$/;
+
+function resolveHttpsUrl(
+  envValue: string | undefined,
+  fallback: string,
+  envName: string,
+): string {
   const trimmed = envValue?.trim();
-  if (!trimmed) return PROPOSED_WHEP_URL;
+  if (!trimmed) return fallback;
 
   let url: URL;
   try {
     url = new URL(trimmed);
   } catch {
-    throw new Error("WOLF_WHEP_URL is not a valid URL.");
+    throw new Error(`${envName} is not a valid URL.`);
   }
   if (url.protocol !== "https:") {
-    throw new Error("WOLF_WHEP_URL must use https.");
+    throw new Error(`${envName} must use https.`);
   }
   if (url.username || url.password) {
-    throw new Error("WOLF_WHEP_URL must not include credentials.");
+    throw new Error(`${envName} must not include credentials.`);
   }
   return url.toString();
 }
 
-/** Keep a MediaMTX WHEP session path. Reject anything else. */
+export function resolveWhepUrl(envValue: string | undefined): string {
+  return resolveHttpsUrl(envValue, PROPOSED_WHEP_URL, "WOLF_WHEP_URL");
+}
+
+export function resolveSkyWhepUrl(envValue: string | undefined): string {
+  return resolveHttpsUrl(envValue, SKY_WHEP_URL, "WOLF_SKY_WHEP_URL");
+}
+
+/** Keep a MediaMTX WHEP session path for the phone or the Neo. Reject anything else. */
 export function whepSessionPath(location: string | null | undefined): string | null {
   if (!location) return null;
   let path = location.trim();

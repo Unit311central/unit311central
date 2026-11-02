@@ -29,7 +29,7 @@ const allLabels = wolfNav.flatMap((section) => collectLabels(section.items));
 
 assert.ok(!allLabels.some((label) => /coming soon/i.test(label)), "nav must not expose Coming soon items");
 assert.equal(wolfNav.filter((section) => section.kind === "pin").length, 2);
-assert.equal(wolfNav.filter((section) => section.kind === "workspace").length, 19);
+assert.equal(wolfNav.filter((section) => section.kind === "workspace").length, 20);
 
 const sectionTitles = wolfNav
   .filter((section) => section.kind === "workspace")
@@ -47,6 +47,7 @@ assert.ok(sectionTitles.includes("Project Management"));
 assert.ok(sectionTitles.includes("Engineering"));
 assert.ok(sectionTitles.includes("Analytics"));
 assert.ok(sectionTitles.includes("Tools"));
+assert.ok(sectionTitles.includes("WOLF Sky"));
 assert.ok(sectionTitles.includes("Settings"));
 assert.ok(!sectionTitles.includes("Administration"));
 
@@ -86,6 +87,12 @@ assert.deepEqual(toolViews, [
   "wolf-test-ground",
   "wolf-ground-webrtc",
 ]);
+
+const skySection = wolfNav.find((section) => section.label === "WOLF Sky");
+assert.ok(skySection?.kind === "workspace");
+const skyViews =
+  skySection?.kind === "workspace" ? skySection.items.map((item) => item.view) : [];
+assert.deepEqual(skyViews, ["wolf-sky"]);
 
 const surfacedWolf = filterInternalNavSectionsForDemoSurface(wolfNav);
 const surfacedTools = surfacedWolf.find((section) => section.label === "Tools");

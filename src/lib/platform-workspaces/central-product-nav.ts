@@ -260,6 +260,16 @@ export function buildWolfDroneOperationsNavSection(): InternalNavSection {
   };
 }
 
+export function buildWolfSkyNavSection(): InternalNavSection {
+  return {
+    kind: "workspace",
+    label: "WOLF Sky",
+    icon: "Radio",
+    color: "#0284c7",
+    items: [{ label: "Live RGB", icon: "Video", view: "wolf-sky" }],
+  };
+}
+
 export function buildWolfFleetNavSection(): InternalNavSection {
   return {
     kind: "workspace",
@@ -456,6 +466,12 @@ export function buildCentralProductNavSections(): readonly CentralProductModuleS
       id: "wolf-shark",
       label: "WOLF SHARK",
       section: buildWolfSharkNavSection(),
+    },
+    {
+      number: 29,
+      id: "wolf-sky",
+      label: "WOLF SKY",
+      section: buildWolfSkyNavSection(),
     },
   ] as const;
 }

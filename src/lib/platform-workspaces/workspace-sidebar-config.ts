@@ -19,6 +19,7 @@ import { isPailexSlug } from "@/lib/pailex/pailex-surface";
 import { isWolfCentralSlug } from "@/lib/wolf/wolf-surface";
 
 const WOLF_CENTRAL_SHARK_MODULE_ID = "wolf-shark";
+const WOLF_CENTRAL_SKY_MODULE_ID = "wolf-sky";
 const WOLF_CENTRAL_SALES_MODULE_ID = "sales-management";
 import {
   getNavSectionKey,
@@ -236,6 +237,7 @@ const SECTION_LABEL_TO_MODULE_ID: Record<string, string> = {
   Containment: "wolf-containment",
   Environment: "wolf-environment",
   "Drone Operations": "wolf-drone-operations",
+  "WOLF Sky": "wolf-sky",
   Fleet: "wolf-fleet",
   SHARK: "wolf-shark",
   "Regulatory Intelligence": "intelligence",
@@ -248,6 +250,7 @@ const VIEW_PREFIX_TO_MODULE_ID: Array<{ prefix: string; moduleId: string }> = [
   { prefix: "marketing-abhi-", moduleId: "marketing-events" },
   { prefix: "portfolio-", moduleId: "business-central" },
   { prefix: "wolf-shark", moduleId: "wolf-shark" },
+  { prefix: "wolf-sky", moduleId: "wolf-sky" },
   { prefix: "wolf-", moduleId: "wolf-animals" },
 ];
 
@@ -610,7 +613,9 @@ export function applyWolfCentralSharkSidebarRows(
     });
   }
 
-  return next;
+  const drone = next.find((row) => row.moduleId === "wolf-drone-operations");
+  const skyOrder = drone ? drone.displayOrder + 5 : displayOrder + 5;
+  return applyWolfCentralMandatoryModuleRow(next, WOLF_CENTRAL_SKY_MODULE_ID, skyOrder);
 }
 
 /** Validate PUT payload module ids against the central catalogue. */

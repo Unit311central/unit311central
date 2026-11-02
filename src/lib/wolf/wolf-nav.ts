@@ -125,6 +125,13 @@ export function buildWolfCentralNavSections(): readonly InternalNavSection[] {
     },
     {
       kind: "workspace",
+      label: "WOLF Sky",
+      icon: "Radio",
+      color: "#0284c7",
+      items: [{ label: "Live RGB", icon: "Video", view: "wolf-sky" }],
+    },
+    {
+      kind: "workspace",
       label: "Containment",
       icon: "Shield",
       color: WOLF_RUST,
