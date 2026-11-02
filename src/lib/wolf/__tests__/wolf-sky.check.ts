@@ -7,10 +7,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 
 import { buildWolfCentralNavSections } from "@/lib/wolf/wolf-nav";
-import {
-  applyWolfCentralSharkSidebarRows,
-  resolveCatalogueModuleIdForNavSection,
-} from "@/lib/platform-workspaces/workspace-sidebar-config";
+import { applyWolfCentralSharkSidebarRows } from "@/lib/platform-workspaces/workspace-sidebar-config";
 import {
   PROPOSED_WHEP_URL,
   SKY_WHEP_URL,
@@ -21,17 +18,18 @@ import {
 } from "@/lib/wolf/webrtc-playback";
 
 const nav = buildWolfCentralNavSections();
-const sky = nav.find((section) => section.label === "WOLF Sky");
-assert.ok(sky?.kind === "workspace");
-assert.equal(resolveCatalogueModuleIdForNavSection(sky!), "wolf-sky");
-if (sky?.kind === "workspace") {
-  assert.equal(sky.items[0]?.label, "Live RGB");
-  assert.equal(sky.items[0]?.view, "wolf-sky");
-}
-
-const droneAt = nav.findIndex((section) => section.label === "Drone Operations");
-const skyAt = nav.findIndex((section) => section.label === "WOLF Sky");
-assert.ok(droneAt >= 0 && skyAt === droneAt + 1);
+const tools = nav.find((section) => section.label === "Tools");
+assert.ok(tools?.kind === "workspace");
+const skyItem =
+  tools?.kind === "workspace" ? tools.items.find((item) => item.view === "wolf-sky") : undefined;
+assert.equal(skyItem?.label, "WOLF Sky");
+const webrtcAt =
+  tools?.kind === "workspace"
+    ? tools.items.findIndex((item) => item.view === "wolf-ground-webrtc")
+    : -1;
+const skyAt =
+  tools?.kind === "workspace" ? tools.items.findIndex((item) => item.view === "wolf-sky") : -1;
+assert.ok(webrtcAt >= 0 && skyAt === webrtcAt + 1);
 
 assert.equal(WOLF_SKY_WEBRTC_PATH, "/api/wolf/live/sky/webrtc");
 assert.equal(WOLF_SKY_RTMP_URL, "rtmp://38.80.152.147:39908/live/sky");

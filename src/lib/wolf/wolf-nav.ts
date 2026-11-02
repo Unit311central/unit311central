@@ -125,13 +125,6 @@ export function buildWolfCentralNavSections(): readonly InternalNavSection[] {
     },
     {
       kind: "workspace",
-      label: "WOLF Sky",
-      icon: "Radio",
-      color: "#0284c7",
-      items: [{ label: "Live RGB", icon: "Video", view: "wolf-sky" }],
-    },
-    {
-      kind: "workspace",
       label: "Containment",
       icon: "Shield",
       color: WOLF_RUST,
@@ -199,6 +192,7 @@ export function buildWolfCentralNavSections(): readonly InternalNavSection[] {
         { label: "Users", icon: "Users", view: "users" },
         { label: "WOLF Test Ground", icon: "Video", view: "wolf-test-ground" },
         { label: "WOLF Test Ground WebRTC", icon: "Radio", view: "wolf-ground-webrtc" },
+        { label: "WOLF Sky", icon: "Radio", view: "wolf-sky" },
       ],
     },
     {
