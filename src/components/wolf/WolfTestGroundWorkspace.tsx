@@ -98,6 +98,8 @@ export default function WolfTestGroundWorkspace() {
       const hls = new Hls({
         enableWorker: false,
         lowLatencyMode: false,
+        liveSyncDuration: 3,
+        liveMaxLatencyDuration: 8,
       });
       hlsRef.current = hls;
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
