@@ -12,6 +12,7 @@ export default function WolfSkyWorkspace() {
       signallingPath={WOLF_SKY_WEBRTC_PATH}
       publishUrl={WOLF_SKY_RTMP_URL}
       lowDelay
+      showPhoneTelemetry={false}
       idleDetail="Waiting for the DJI Neo on live/sky. This page plays WebRTC only."
     />
   );

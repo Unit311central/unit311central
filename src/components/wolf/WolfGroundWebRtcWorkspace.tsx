@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import WolfPhoneTelemetryOverlay from "@/components/wolf/WolfPhoneTelemetryOverlay";
 import { wolfCardClass, wolfEyebrowClass, wolfShellClass } from "@/components/wolf/wolf-ui";
 import { WOLF_GROUND_WEBRTC_PATH } from "@/lib/wolf/webrtc-playback";
 
@@ -40,6 +41,7 @@ type WolfWebRtcWorkspaceProps = {
   idleDetail?: string;
   publishUrl?: string;
   lowDelay?: boolean;
+  showPhoneTelemetry?: boolean;
 };
 
 function connectionLabel(status: ConnectionStatus): string {
@@ -117,6 +119,7 @@ export default function WolfGroundWebRtcWorkspace({
   idleDetail = "This page uses WebRTC only. It does not play HLS.",
   publishUrl,
   lowDelay = false,
+  showPhoneTelemetry = true,
 }: WolfWebRtcWorkspaceProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const pcRef = useRef<RTCPeerConnection | null>(null);
@@ -396,6 +399,7 @@ export default function WolfGroundWebRtcWorkspace({
             playsInline
             controls
           />
+          {showPhoneTelemetry ? <WolfPhoneTelemetryOverlay /> : null}
           {needsGesture ? (
             <button
               type="button"

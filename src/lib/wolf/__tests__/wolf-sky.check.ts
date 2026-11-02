@@ -29,7 +29,11 @@ const webrtcAt =
     : -1;
 const skyAt =
   tools?.kind === "workspace" ? tools.items.findIndex((item) => item.view === "wolf-sky") : -1;
-assert.ok(webrtcAt >= 0 && skyAt === webrtcAt + 1);
+const phoneLinkAt =
+  tools?.kind === "workspace"
+    ? tools.items.findIndex((item) => item.view === "wolf-phone-link")
+    : -1;
+assert.ok(webrtcAt >= 0 && phoneLinkAt === webrtcAt + 1 && skyAt === phoneLinkAt + 1);
 
 assert.equal(WOLF_SKY_WEBRTC_PATH, "/api/wolf/live/sky/webrtc");
 assert.equal(WOLF_SKY_RTMP_URL, "rtmp://38.80.152.147:39908/live/sky");
