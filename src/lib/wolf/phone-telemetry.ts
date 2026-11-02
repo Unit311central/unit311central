@@ -2,7 +2,14 @@
 
 export const WOLF_PHONE_DRONE_ID = "wolf-phone";
 export const WOLF_PHONE_TELEMETRY_PATH = "/api/wolf/live/phone-telemetry";
-export const PHONE_FIX_FRESH_MS = 20_000;
+export const WOLF_PHONE_LINK_PATH = "/api/wolf/live/phone-link";
+/** GPSLogger posts on an interval while Brix is in front. Keep the last fix through one missed post. */
+export const PHONE_FIX_FRESH_MS = 90_000;
+export const PHONE_LOGGER_INTERVAL_SECONDS = 10;
+
+export function gpsLoggerBody(token: string): string {
+  return `token=${token}&latitude=%LAT&longitude=%LON&altitude=%ALT&speed=%SPD&heading=%DIR`;
+}
 
 export type PhoneFixInput = {
   latitude: number;
@@ -31,19 +38,29 @@ function finiteOrNull(value: unknown): number | null {
   return Number.isFinite(number) ? number : null;
 }
 
+function firstFinite(record: Record<string, unknown>, keys: string[]): number | null {
+  for (const key of keys) {
+    if (!(key in record)) continue;
+    const value = finiteOrNull(record[key]);
+    if (value != null) return value;
+  }
+  return null;
+}
+
 export function parsePhoneFixInput(body: unknown): PhoneFixInput | null {
   if (!body || typeof body !== "object") return null;
   const record = body as Record<string, unknown>;
-  const latitude = finiteOrNull(record.latitude);
-  const longitude = finiteOrNull(record.longitude);
+  const latitude = firstFinite(record, ["latitude", "lat"]);
+  const longitude = firstFinite(record, ["longitude", "lon"]);
   if (latitude == null || longitude == null) return null;
   if (latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) return null;
 
-  const altitudeM = finiteOrNull(record.altitudeM);
-  const speedMps = finiteOrNull(record.speedMps);
-  const headingDeg = finiteOrNull(record.headingDeg);
-  if (speedMps != null && speedMps < 0) return null;
-  if (headingDeg != null && (headingDeg < 0 || headingDeg >= 360)) return null;
+  const altitudeM = firstFinite(record, ["altitudeM", "altitude", "alt"]);
+  let speedMps = firstFinite(record, ["speedMps", "speed", "spd"]);
+  let headingDeg = firstFinite(record, ["headingDeg", "heading", "direction", "dir"]);
+  if (speedMps != null && speedMps < 0) speedMps = null;
+  if (headingDeg != null && headingDeg === 360) headingDeg = 0;
+  if (headingDeg != null && (headingDeg < 0 || headingDeg >= 360)) headingDeg = null;
 
   return { latitude, longitude, altitudeM, speedMps, headingDeg };
 }

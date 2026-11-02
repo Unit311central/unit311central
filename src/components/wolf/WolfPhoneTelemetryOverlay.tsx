@@ -36,7 +36,7 @@ export default function WolfPhoneTelemetryOverlay() {
   return (
     <div className="pointer-events-none absolute bottom-3 left-3 max-w-[80%] rounded-lg bg-black/70 px-3 py-2 text-white shadow-lg">
       <p className="text-[10px] font-semibold uppercase tracking-wide text-white/60">Phone</p>
-      <p className="font-mono text-sm">{label?.position ?? "Waiting for phone location"}</p>
+      <p className="font-mono text-sm">{label?.position ?? "Waiting for GPSLogger"}</p>
       {label?.detail ? <p className="font-mono text-xs text-white/80">{label.detail}</p> : null}
     </div>
   );

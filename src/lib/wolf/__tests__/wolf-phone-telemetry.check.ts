@@ -8,10 +8,12 @@ import fs from "node:fs";
 
 import {
   formatPhoneFix,
+  gpsLoggerBody,
   parsePhoneFixInput,
   phoneFixStatus,
   rowToPhoneFix,
 } from "@/lib/wolf/phone-telemetry";
+import { phoneIngestToken, workspaceIdFromPhoneToken } from "@/lib/wolf/phone-telemetry-token";
 
 const fix = parsePhoneFixInput({
   latitude: 52.52,
@@ -26,8 +28,18 @@ const shown = formatPhoneFix({ ...fix!, recordedAt: "2026-11-02T20:00:00.000Z" }
 assert.equal(shown.position, "52.52000° N, 13.40500° E");
 assert.equal(shown.detail, "42 m · 11 km/h · 008°");
 
+const loggerFix = parsePhoneFixInput({
+  latitude: "52.52",
+  longitude: "13.405",
+  altitude: "42.2",
+  speed: "3",
+  heading: "8",
+});
+assert.equal(formatPhoneFix({ ...loggerFix!, recordedAt: "2026-11-02T20:00:00.000Z" }).detail, "42 m · 11 km/h · 008°");
+assert.equal(parsePhoneFixInput({ latitude: "1", longitude: "2", altitude: "", speed: "", heading: "" })?.altitudeM, null);
+
 assert.equal(parsePhoneFixInput({ latitude: 91, longitude: 0 }), null);
-assert.equal(parsePhoneFixInput({ latitude: 1, longitude: 2, speedMps: -1 }), null);
+assert.equal(parsePhoneFixInput({ latitude: 1, longitude: 2, speedMps: -1 })?.speedMps, null);
 
 const fresh = rowToPhoneFix(
   {
@@ -38,7 +50,7 @@ const fresh = rowToPhoneFix(
     speed: 4,
     status: "hdg:90.0",
   },
-  Date.parse("2026-11-02T20:00:05.000Z"),
+  Date.parse("2026-11-02T20:00:30.000Z"),
 );
 assert.equal(fresh?.headingDeg, 90);
 assert.equal(
@@ -51,14 +63,24 @@ assert.equal(
       speed: null,
       status: "phone",
     },
-    Date.parse("2026-11-02T20:01:00.000Z"),
+    Date.parse("2026-11-02T20:02:00.000Z"),
   ),
   null,
 );
 
+const workspaceId = "cd5c37a5-add4-4a8b-830c-6d26b775f62c";
+const token = phoneIngestToken(workspaceId, "test-secret");
+assert.equal(workspaceIdFromPhoneToken(token, "test-secret"), workspaceId);
+assert.equal(workspaceIdFromPhoneToken(`${token}x`, "test-secret"), null);
+assert.match(gpsLoggerBody(token), new RegExp(`^token=${token}&latitude=%LAT`));
+
 const page = fs.readFileSync("src/components/wolf/WolfPhoneLinkWorkspace.tsx", "utf8");
-assert.match(page, /Share location/);
+assert.match(page, /GPSLogger/);
 assert.match(page, /stream key test/);
+assert.doesNotMatch(page, /split screen/);
+const route = fs.readFileSync("src/app/api/wolf/live/phone-telemetry/route.ts", "utf8");
+assert.match(route, /workspaceIdFromPhoneToken/);
+assert.match(route, /application\/x-www-form-urlencoded/);
 const sky = fs.readFileSync("src/components/wolf/WolfSkyWorkspace.tsx", "utf8");
 assert.match(sky, /showPhoneTelemetry=\{false\}/);
 
