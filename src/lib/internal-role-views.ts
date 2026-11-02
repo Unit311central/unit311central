@@ -1771,8 +1771,15 @@ function ensureClientUnit311SupportToolsNav(
     if (tools.items.some((item) => item.view === "unit311-support")) {
       return [...sections];
     }
+    const items = [...tools.items];
+    const testGroundIdx = items.findIndex((item) => item.view === "wolf-test-ground");
+    if (testGroundIdx >= 0) {
+      items.splice(testGroundIdx, 0, supportItem);
+    } else {
+      items.push(supportItem);
+    }
     const out = [...sections];
-    out[toolsIdx] = { ...tools, items: [...tools.items, supportItem] };
+    out[toolsIdx] = { ...tools, items };
     return out;
   }
 

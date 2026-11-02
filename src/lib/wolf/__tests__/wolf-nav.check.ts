@@ -6,6 +6,8 @@
 import assert from "node:assert/strict";
 
 import type { InternalNavChildItem, InternalNavItem } from "@/lib/internal-operations-data";
+import { internalSurveyNavSections } from "@/lib/internal-operations-data";
+import { filterInternalNavSectionsForDemoSurface } from "@/lib/internal-role-views";
 import { resolveWorkspaceNavBaseSections } from "@/lib/platform-workspaces/workspace-nav-resolver";
 import { SAEC_SLUG } from "@/lib/saec-surface";
 import { buildWolfCentralNavSections, wolfCentralNavViews } from "@/lib/wolf/wolf-nav";
@@ -78,7 +80,26 @@ const toolViews =
   toolsSection.kind === "workspace"
     ? toolsSection.items.map((item) => item.view).filter(Boolean)
     : [];
-assert.deepEqual(toolViews, ["wolf-ai-wildlife-vision", "users"]);
+assert.deepEqual(toolViews, ["wolf-ai-wildlife-vision", "users", "wolf-test-ground"]);
+
+const surfacedWolf = filterInternalNavSectionsForDemoSurface(wolfNav);
+const surfacedTools = surfacedWolf.find((section) => section.label === "Tools");
+assert.ok(surfacedTools?.kind === "workspace");
+const surfacedToolLabels =
+  surfacedTools?.kind === "workspace" ? surfacedTools.items.map((item) => item.label) : [];
+assert.deepEqual(surfacedToolLabels, [
+  "AI Wildlife Vision (Demo)",
+  "Users",
+  "Unit311 Support",
+  "WOLF Test Ground",
+]);
+
+const surfacedCentral = filterInternalNavSectionsForDemoSurface(internalSurveyNavSections);
+const centralTools = surfacedCentral.find((section) => section.label === "Tools");
+const centralToolLabels =
+  centralTools?.kind === "workspace" ? centralTools.items.map((item) => item.label) : [];
+assert.deepEqual(centralToolLabels.at(-1), "Unit311 Support");
+assert.ok(!centralToolLabels.includes("WOLF Test Ground"));
 
 const settingsSection = wolfNav.find((section) => section.label === "Settings");
 assert.ok(settingsSection?.kind === "workspace");

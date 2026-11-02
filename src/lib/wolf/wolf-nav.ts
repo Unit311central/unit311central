@@ -190,6 +190,7 @@ export function buildWolfCentralNavSections(): readonly InternalNavSection[] {
           view: "wolf-ai-wildlife-vision",
         },
         { label: "Users", icon: "Users", view: "users" },
+        { label: "WOLF Test Ground", icon: "Video", view: "wolf-test-ground" },
       ],
     },
     {

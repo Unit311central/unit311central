@@ -317,6 +317,7 @@ import {
   WolfDroneSummaryWorkspace,
   WolfFleetSummaryWorkspace,
   WolfAiWildlifeVisionDemo,
+  WolfTestGroundWorkspace,
   WolfSharkWorkspace,
   PailexViewHost,
   MemberIntelligenceWorkspace,
@@ -1567,6 +1568,7 @@ export default function InternalOperationsDashboard({
           {activeView === "wolf-drone-operations" && <WolfDroneSummaryWorkspace />}
           {activeView === "wolf-fleet" && <WolfFleetSummaryWorkspace />}
           {activeView === "wolf-ai-wildlife-vision" && <WolfAiWildlifeVisionDemo />}
+          {activeView === "wolf-test-ground" && <WolfTestGroundWorkspace />}
 
           {isSharkView(activeView) ? (
             <WolfSharkWorkspace activeView={activeView as SharkViewId} />
