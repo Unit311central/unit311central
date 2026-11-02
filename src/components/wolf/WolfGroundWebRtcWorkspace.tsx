@@ -39,6 +39,7 @@ type WolfWebRtcWorkspaceProps = {
   signallingPath?: string;
   idleDetail?: string;
   publishUrl?: string;
+  lowDelay?: boolean;
 };
 
 function connectionLabel(status: ConnectionStatus): string {
@@ -115,6 +116,7 @@ export default function WolfGroundWebRtcWorkspace({
   signallingPath = WOLF_GROUND_WEBRTC_PATH,
   idleDetail = "This page uses WebRTC only. It does not play HLS.",
   publishUrl,
+  lowDelay = false,
 }: WolfWebRtcWorkspaceProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const pcRef = useRef<RTCPeerConnection | null>(null);
@@ -232,8 +234,21 @@ export default function WolfGroundWebRtcWorkspace({
     pc.addTransceiver("video", { direction: "recvonly" });
     pc.addTransceiver("audio", { direction: "recvonly" });
 
+    const tightenDelay = () => {
+      if (!lowDelay) return;
+      for (const receiver of pc.getReceivers()) {
+        const hint = receiver as RTCRtpReceiver & {
+          playoutDelayHint?: number;
+          jitterBufferTarget?: number;
+        };
+        hint.playoutDelayHint = 0;
+        if ("jitterBufferTarget" in hint) hint.jitterBufferTarget = 0;
+      }
+    };
+
     pc.addEventListener("track", (event) => {
       if (!alive()) return;
+      tightenDelay();
       const video = videoRef.current;
       if (!video) return;
       const [media] = event.streams;
@@ -300,6 +315,7 @@ export default function WolfGroundWebRtcWorkspace({
       const answer = await response.text();
       const signallingUrl = response.headers.get("x-wolf-whep-url") ?? "WHEP";
       await pc.setRemoteDescription({ type: "answer", sdp: answer });
+      tightenDelay();
       if (!alive()) return;
       setConnection("connecting");
       patchDiagnostics({
@@ -321,7 +337,7 @@ export default function WolfGroundWebRtcWorkspace({
       });
       closePeer();
     }
-  }, [closePeer, idleDetail, patchDiagnostics, readStats, signallingPath]);
+  }, [closePeer, idleDetail, lowDelay, patchDiagnostics, readStats, signallingPath]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {

@@ -45,6 +45,7 @@ assert.match(page, /WOLF Sky/);
 assert.match(page, /WOLF_SKY_RTMP_URL/);
 assert.match(page, /WOLF_SKY_WEBRTC_PATH/);
 assert.match(page, /WolfGroundWebRtcWorkspace/);
+assert.match(page, /lowDelay/);
 assert.doesNotMatch(page, /hls\.js|live\/test/);
 
 const phoneRoute = fs.readFileSync("src/app/api/wolf/live/webrtc/route.ts", "utf8");
