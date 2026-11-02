@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 
+import WolfPhoneFieldCapture from "@/components/wolf/WolfPhoneFieldCapture";
 import { wolfCardClass, wolfEyebrowClass, wolfShellClass } from "@/components/wolf/wolf-ui";
 import { PHONE_LOGGER_INTERVAL_SECONDS, WOLF_PHONE_LINK_PATH } from "@/lib/wolf/phone-telemetry";
 
@@ -101,6 +102,7 @@ export default function WolfPhoneLinkWorkspace() {
           </>
         ) : null}
       </section>
+      <WolfPhoneFieldCapture />
     </div>
   );
 }
