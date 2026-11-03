@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import WolfPhoneFieldCapture from "@/components/wolf/WolfPhoneFieldCapture";
 import WolfPhoneTelemetryOverlay from "@/components/wolf/WolfPhoneTelemetryOverlay";
 import { wolfCardClass, wolfEyebrowClass, wolfShellClass } from "@/components/wolf/wolf-ui";
 import { WOLF_GROUND_WEBRTC_PATH } from "@/lib/wolf/webrtc-playback";
@@ -42,6 +43,7 @@ type WolfWebRtcWorkspaceProps = {
   publishUrl?: string;
   lowDelay?: boolean;
   showPhoneTelemetry?: boolean;
+  showFieldCapture?: boolean;
 };
 
 function connectionLabel(status: ConnectionStatus): string {
@@ -70,6 +72,20 @@ function streamLabel(status: StreamStatus): string {
     case "failed":
       return "No video";
   }
+}
+
+function signallingFailureDetail(failure: {
+  error?: string;
+  upstreamStatus?: number;
+  detail?: string;
+} | null): string {
+  const detail = failure?.detail ?? "";
+  if (failure?.upstreamStatus === 404 || /no stream is available/i.test(detail)) {
+    return "Brix is not on the air for stream key test. In Brix, start RTMP to rtmp://38.80.152.147:39908/live with key test. When Brix shows it is live, tap Reconnect here. WOLF can stay open in split screen or switch back from Brix.";
+  }
+  const upstream =
+    typeof failure?.upstreamStatus === "number" ? ` Upstream HTTP ${failure.upstreamStatus}.` : "";
+  return `${failure?.error ?? "WHEP did not return an SDP answer."}${upstream} ${detail}`.trim();
 }
 
 function pillClass(kind: "ok" | "bad" | "pending"): string {
@@ -120,6 +136,7 @@ export default function WolfGroundWebRtcWorkspace({
   publishUrl,
   lowDelay = false,
   showPhoneTelemetry = true,
+  showFieldCapture = showPhoneTelemetry,
 }: WolfWebRtcWorkspaceProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const pcRef = useRef<RTCPeerConnection | null>(null);
@@ -304,12 +321,10 @@ export default function WolfGroundWebRtcWorkspace({
         setConnection("failed");
         setStream("failed");
         const url = failure?.signallingUrl ? ` ${failure.signallingUrl}` : "";
-        const upstream =
-          typeof failure?.upstreamStatus === "number" ? ` Upstream HTTP ${failure.upstreamStatus}.` : "";
         patchDiagnostics({
           connection: "Signalling failed",
           signalling: `HTTP ${response.status}${url}`,
-          detail: `${failure?.error ?? "WHEP did not return an SDP answer."}${upstream} ${failure?.detail ?? ""}`.trim(),
+          detail: signallingFailureDetail(failure),
         });
         closePeer();
         return;
@@ -371,87 +386,103 @@ export default function WolfGroundWebRtcWorkspace({
         ) : null}
       </header>
 
-      <section className={`${wolfCardClass} max-w-4xl overflow-hidden`} aria-label="WebRTC video">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 px-4 py-3">
-          <h2 className="text-sm font-semibold text-white">Live Video</h2>
-          <div className="flex flex-wrap items-center gap-2">
-            <span className={pillClass(connection === "connected" ? "ok" : connection === "failed" ? "bad" : "pending")} role="status">
-              Connection {connectionLabel(connection)}
-            </span>
-            <span className={pillClass(stream === "receiving" ? "ok" : stream === "failed" ? "bad" : "pending")} role="status">
-              Stream {streamLabel(stream)}
-            </span>
-            <button
-              type="button"
-              onClick={() => void connect()}
-              className="rounded-full border border-white/20 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-white"
-            >
-              Reconnect
-            </button>
-          </div>
-        </div>
-        <div className="relative aspect-video bg-black">
-          <video
-            ref={videoRef}
-            className="h-full w-full bg-black object-contain"
-            muted
-            autoPlay
-            playsInline
-            controls
-          />
-          {showPhoneTelemetry ? <WolfPhoneTelemetryOverlay /> : null}
-          {needsGesture ? (
-            <button
-              type="button"
-              onClick={playFromGesture}
-              className="absolute inset-0 m-auto h-12 w-28 rounded-full bg-white text-sm font-semibold text-black"
-            >
-              Play
-            </button>
-          ) : null}
-        </div>
-      </section>
+      <div
+        className={
+          showFieldCapture
+            ? "grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(280px,22rem)] lg:items-start"
+            : "max-w-4xl"
+        }
+      >
+        <div className={showFieldCapture ? "min-w-0 space-y-4" : "space-y-4"}>
+          <section className={`${wolfCardClass} overflow-hidden`} aria-label="WebRTC video">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 px-4 py-3">
+              <h2 className="text-sm font-semibold text-white">Live Video</h2>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className={pillClass(connection === "connected" ? "ok" : connection === "failed" ? "bad" : "pending")} role="status">
+                  Connection {connectionLabel(connection)}
+                </span>
+                <span className={pillClass(stream === "receiving" ? "ok" : stream === "failed" ? "bad" : "pending")} role="status">
+                  Stream {streamLabel(stream)}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => void connect()}
+                  className="rounded-full border border-white/20 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-white"
+                >
+                  Reconnect
+                </button>
+              </div>
+            </div>
+            <div className="relative aspect-video bg-black">
+              <video
+                ref={videoRef}
+                className="h-full w-full bg-black object-contain"
+                muted
+                autoPlay
+                playsInline
+                controls
+              />
+              {showPhoneTelemetry ? <WolfPhoneTelemetryOverlay /> : null}
+              {needsGesture ? (
+                <button
+                  type="button"
+                  onClick={playFromGesture}
+                  className="absolute inset-0 m-auto h-12 w-28 rounded-full bg-white text-sm font-semibold text-black"
+                >
+                  Play
+                </button>
+              ) : null}
+            </div>
+          </section>
 
-      <section className={`${wolfCardClass} mt-4 max-w-4xl px-4 py-4`} aria-label="Connection diagnostics">
-        <h2 className="text-sm font-semibold text-white">Diagnostics</h2>
-        <dl className="mt-3 grid gap-2 text-sm text-white/75 sm:grid-cols-2">
-          <div>
-            <dt className="text-[11px] uppercase tracking-wide text-white/45">Connection</dt>
-            <dd>{diagnostics.connection}</dd>
+          <section className={`${wolfCardClass} px-4 py-4`} aria-label="Connection diagnostics">
+            <h2 className="text-sm font-semibold text-white">Diagnostics</h2>
+            <dl className="mt-3 grid gap-2 text-sm text-white/75 sm:grid-cols-2">
+              <div>
+                <dt className="text-[11px] uppercase tracking-wide text-white/45">Connection</dt>
+                <dd>{diagnostics.connection}</dd>
+              </div>
+              <div>
+                <dt className="text-[11px] uppercase tracking-wide text-white/45">ICE</dt>
+                <dd>{diagnostics.ice}</dd>
+              </div>
+              <div>
+                <dt className="text-[11px] uppercase tracking-wide text-white/45">Signalling</dt>
+                <dd className="break-all">{diagnostics.signalling}</dd>
+              </div>
+              <div>
+                <dt className="text-[11px] uppercase tracking-wide text-white/45">Selected candidate</dt>
+                <dd className="break-all">{diagnostics.candidate}</dd>
+              </div>
+              <div>
+                <dt className="text-[11px] uppercase tracking-wide text-white/45">Frames</dt>
+                <dd>{diagnostics.frames}</dd>
+              </div>
+              <div>
+                <dt className="text-[11px] uppercase tracking-wide text-white/45">Round trip</dt>
+                <dd>{diagnostics.roundTrip}</dd>
+              </div>
+              <div>
+                <dt className="text-[11px] uppercase tracking-wide text-white/45">Jitter buffer</dt>
+                <dd>{diagnostics.jitterBuffer}</dd>
+              </div>
+              <div>
+                <dt className="text-[11px] uppercase tracking-wide text-white/45">Time to first frame</dt>
+                <dd>{diagnostics.firstFrame}</dd>
+              </div>
+            </dl>
+            <p className="mt-3 text-sm text-white/65" role="alert">
+              {diagnostics.detail}
+            </p>
+          </section>
+        </div>
+
+        {showFieldCapture ? (
+          <div className="min-w-0">
+            <WolfPhoneFieldCapture layout="sidebar" />
           </div>
-          <div>
-            <dt className="text-[11px] uppercase tracking-wide text-white/45">ICE</dt>
-            <dd>{diagnostics.ice}</dd>
-          </div>
-          <div>
-            <dt className="text-[11px] uppercase tracking-wide text-white/45">Signalling</dt>
-            <dd className="break-all">{diagnostics.signalling}</dd>
-          </div>
-          <div>
-            <dt className="text-[11px] uppercase tracking-wide text-white/45">Selected candidate</dt>
-            <dd className="break-all">{diagnostics.candidate}</dd>
-          </div>
-          <div>
-            <dt className="text-[11px] uppercase tracking-wide text-white/45">Frames</dt>
-            <dd>{diagnostics.frames}</dd>
-          </div>
-          <div>
-            <dt className="text-[11px] uppercase tracking-wide text-white/45">Round trip</dt>
-            <dd>{diagnostics.roundTrip}</dd>
-          </div>
-          <div>
-            <dt className="text-[11px] uppercase tracking-wide text-white/45">Jitter buffer</dt>
-            <dd>{diagnostics.jitterBuffer}</dd>
-          </div>
-          <div>
-            <dt className="text-[11px] uppercase tracking-wide text-white/45">Time to first frame</dt>
-            <dd>{diagnostics.firstFrame}</dd>
-          </div>
-        </dl>
-        <p className="mt-3 text-sm text-white/65" role="alert">
-          {diagnostics.detail}
-        </p>
-      </section>
+        ) : null}
+      </div>
     </div>
   );
 }

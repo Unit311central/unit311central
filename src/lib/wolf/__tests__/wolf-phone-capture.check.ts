@@ -30,7 +30,11 @@ const page = fs.readFileSync("src/components/wolf/WolfPhoneFieldCapture.tsx", "u
 assert.match(page, /Log position/);
 assert.match(page, /Take photo/);
 assert.match(page, /Record video/);
+const webrtc = fs.readFileSync("src/components/wolf/WolfGroundWebRtcWorkspace.tsx", "utf8");
+assert.match(webrtc, /WolfPhoneFieldCapture/);
+assert.match(webrtc, /layout="sidebar"/);
+
 const link = fs.readFileSync("src/components/wolf/WolfPhoneLinkWorkspace.tsx", "utf8");
-assert.match(link, /WolfPhoneFieldCapture/);
+assert.match(link, /WOLF Test Ground WebRTC/);
 
 console.log("wolf-phone-capture.check.ts — all assertions passed.");

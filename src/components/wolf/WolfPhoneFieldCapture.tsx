@@ -18,7 +18,16 @@ import { WOLF_PHONE_TELEMETRY_PATH } from "@/lib/wolf/phone-telemetry";
 
 type Status = { tone: "neutral" | "ok" | "bad"; text: string };
 
-export default function WolfPhoneFieldCapture() {
+type WolfPhoneFieldCaptureProps = {
+  /** Shown beside the live WebRTC player (Test Ground). */
+  layout?: "standalone" | "sidebar";
+  className?: string;
+};
+
+export default function WolfPhoneFieldCapture({
+  layout = "standalone",
+  className = "",
+}: WolfPhoneFieldCaptureProps) {
   const [nativeShell, setNativeShell] = useState(false);
   const [status, setStatus] = useState<Status>({
     tone: "neutral",
@@ -253,11 +262,18 @@ export default function WolfPhoneFieldCapture() {
 
   useEffect(() => () => stopStream(), []);
 
+  const shellClass =
+    layout === "sidebar"
+      ? `${wolfCardClass} px-4 py-4 lg:sticky lg:top-4`
+      : `${wolfCardClass} mt-6 max-w-xl px-4 py-4`;
+
   return (
-    <section className={`${wolfCardClass} mt-6 max-w-xl px-4 py-4`}>
+    <section className={`${shellClass} ${className}`.trim()} aria-label="Field capture">
       <h2 className="text-sm font-semibold text-white">Field capture</h2>
       <p className="mt-2 text-sm text-white/70">
-        On the phone: open WOLF (browser or the Unit311 Android app) — not the laptop. Switch here from Brix when you need a mark, photo, or clip.
+        {layout === "sidebar"
+          ? "On the phone, use this panel while the live stream plays on the left. Switch from Brix when you need a mark, photo, or clip."
+          : "On the phone: open WOLF (browser or the Unit311 Android app) — not the laptop. Switch here from Brix when you need a mark, photo, or clip."}
       </p>
       <p
         className={`mt-3 text-sm ${status.tone === "bad" ? "text-red-300" : status.tone === "ok" ? "text-emerald-300" : "text-white/80"}`}

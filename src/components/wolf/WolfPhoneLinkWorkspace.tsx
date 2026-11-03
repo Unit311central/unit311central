@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 
-import WolfPhoneFieldCapture from "@/components/wolf/WolfPhoneFieldCapture";
 import { wolfCardClass, wolfEyebrowClass, wolfShellClass } from "@/components/wolf/wolf-ui";
 import { PHONE_LOGGER_INTERVAL_SECONDS, WOLF_PHONE_LINK_PATH } from "@/lib/wolf/phone-telemetry";
 
@@ -102,7 +101,13 @@ export default function WolfPhoneLinkWorkspace() {
           </>
         ) : null}
       </section>
-      <WolfPhoneFieldCapture />
+      <section className={`${wolfCardClass} mt-6 max-w-xl px-4 py-4`}>
+        <h2 className="text-sm font-semibold text-white">Field capture</h2>
+        <p className="mt-2 text-sm text-white/70">
+          Log position, take photos, and record clips from the phone on{" "}
+          <span className="font-semibold text-white">Tools → WOLF Test Ground WebRTC</span>. The buttons sit in the right-hand column next to the live video.
+        </p>
+      </section>
     </div>
   );
 }
