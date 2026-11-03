@@ -86,6 +86,7 @@ assert.deepEqual(toolViews, [
   "wolf-test-ground",
   "wolf-ground-webrtc",
   "wolf-phone-link",
+  "wolf-veterinary-connection",
   "wolf-sky",
 ]);
 
@@ -101,6 +102,7 @@ assert.deepEqual(surfacedToolLabels, [
   "WOLF Test Ground",
   "WOLF Test Ground WebRTC",
   "Phone Link",
+  "Veterinary Connection",
   "WOLF Sky",
 ]);
 

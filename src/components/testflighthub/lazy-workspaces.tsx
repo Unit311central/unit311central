@@ -206,6 +206,9 @@ export const WolfGroundWebRtcWorkspace = lazyWorkspace(
 export const WolfPhoneLinkWorkspace = lazyWorkspace(
   () => import("@/components/wolf/WolfPhoneLinkWorkspace"),
 );
+export const WolfVeterinaryConnectionWorkspace = lazyWorkspace(
+  () => import("@/components/wolf/WolfVeterinaryConnectionWorkspace"),
+);
 export const WolfSkyWorkspace = lazyWorkspace(
   () => import("@/components/wolf/WolfSkyWorkspace"),
 );

@@ -193,6 +193,7 @@ export function buildWolfCentralNavSections(): readonly InternalNavSection[] {
         { label: "WOLF Test Ground", icon: "Video", view: "wolf-test-ground" },
         { label: "WOLF Test Ground WebRTC", icon: "Radio", view: "wolf-ground-webrtc" },
         { label: "Phone Link", icon: "Smartphone", view: "wolf-phone-link" },
+        { label: "Veterinary Connection", icon: "HeartHandshake", view: "wolf-veterinary-connection" },
         { label: "WOLF Sky", icon: "Radio", view: "wolf-sky" },
       ],
     },
