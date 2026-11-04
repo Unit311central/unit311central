@@ -11,6 +11,8 @@ import {
   formatPhoneFix,
   type PhoneFix,
 } from "@/lib/wolf/phone-telemetry";
+import { pushPhoneGpsToWolf } from "@/lib/wolf/phone-telemetry-push";
+import { isWolfNativeShell } from "@/lib/wolf/phone-native-shell";
 
 type Recipe = {
   path: string;
@@ -57,8 +59,13 @@ export default function WolfPhoneLinkWorkspace() {
   const [error, setError] = useState("");
   const [telemetry, setTelemetry] = useState<TelemetryStatus | null>(null);
   const [telemetryError, setTelemetryError] = useState("");
+  const [nativeApp, setNativeApp] = useState(false);
   const [browserGpsBusy, setBrowserGpsBusy] = useState(false);
   const [browserGpsMessage, setBrowserGpsMessage] = useState("");
+
+  useEffect(() => {
+    void isWolfNativeShell().then(setNativeApp);
+  }, []);
 
   const refreshTelemetry = useCallback(async () => {
     try {
@@ -106,43 +113,14 @@ export default function WolfPhoneLinkWorkspace() {
   const sendBrowserGps = async () => {
     setBrowserGpsBusy(true);
     setBrowserGpsMessage("");
-    try {
-      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-        if (!navigator.geolocation) {
-          reject(new Error("This browser has no geolocation."));
-          return;
-        }
-        navigator.geolocation.getCurrentPosition(resolve, reject, {
-          enableHighAccuracy: true,
-          maximumAge: 5000,
-          timeout: 15000,
-        });
-      });
-      const { latitude, longitude, altitude, speed, heading } = position.coords;
-      const response = await fetch(WOLF_PHONE_TELEMETRY_PATH, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          latitude,
-          longitude,
-          altitudeM: altitude,
-          speedMps: speed != null && speed >= 0 ? speed : null,
-          headingDeg: heading != null && heading >= 0 ? heading : null,
-        }),
-      });
-      if (!response.ok) {
-        const payload = (await response.json().catch(() => null)) as { error?: string } | null;
-        throw new Error(payload?.error ?? `HTTP ${response.status}`);
-      }
-      setBrowserGpsMessage("Sent this phone’s GPS to WOLF. Check WebRTC overlay in ~2s.");
-      void refreshTelemetry();
-    } catch (sendError) {
-      setBrowserGpsMessage(
-        sendError instanceof Error ? sendError.message : "Could not send browser GPS.",
-      );
-    } finally {
-      setBrowserGpsBusy(false);
+    const result = await pushPhoneGpsToWolf();
+    setBrowserGpsBusy(false);
+    if (!result.ok) {
+      setBrowserGpsMessage(result.error);
+      return;
     }
+    setBrowserGpsMessage("Sent GPS to WOLF. Open WebRTC — overlay updates in ~2s.");
+    void refreshTelemetry();
   };
 
   let statusLine = "No GPS received for your WOLF workspace yet.";
@@ -179,7 +157,7 @@ export default function WolfPhoneLinkWorkspace() {
             onClick={() => void sendBrowserGps()}
             className="rounded-full bg-white px-4 py-2 text-sm font-semibold text-black disabled:opacity-50"
           >
-            {browserGpsBusy ? "Sending…" : "Send GPS from this browser (test)"}
+            {browserGpsBusy ? "Sending…" : nativeApp ? "Send GPS now" : "Send GPS from this browser (test)"}
           </button>
           <Link
             href="/dashboard?view=wolf-ground-webrtc"
