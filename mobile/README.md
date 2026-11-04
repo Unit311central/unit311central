@@ -66,6 +66,10 @@ npm run open:android
 
 Then **Build → Build Bundle(s) / APK(s) → Build APK(s)**.
 
+## iPhone testers
+
+See **[IOS_TESTFLIGHT.md](./IOS_TESTFLIGHT.md)**. There is no installable `.ipa` for email like Android. Send **https://wolf.unit311central.com/app-download** — Safari + Add to Home Screen.
+
 ## Re-sync after config changes
 
 If you edit `capacitor.config.ts`:

@@ -13,6 +13,11 @@ const config: CapacitorConfig = {
     backgroundColor: "#07111F",
     appendUserAgent: " WOLFCentralCapacitor/1",
   },
+  ios: {
+    backgroundColor: "#07111F",
+    appendUserAgent: " WOLFCentralCapacitor/1",
+    contentInset: "automatic",
+  },
 };
 
 export default config;
