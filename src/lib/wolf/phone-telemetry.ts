@@ -8,7 +8,7 @@ export const PHONE_FIX_FRESH_MS = 90_000;
 export const PHONE_LOGGER_INTERVAL_SECONDS = 10;
 
 export function gpsLoggerBody(token: string): string {
-  return `token=${token}&latitude=%LAT&longitude=%LON&altitude=%ALT&speed=%SPD&heading=%DIR`;
+  return `token=${encodeURIComponent(token)}&latitude=%LAT&longitude=%LON&altitude=%ALT&speed=%SPD&heading=%DIR`;
 }
 
 export type PhoneFixInput = {

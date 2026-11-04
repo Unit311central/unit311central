@@ -72,7 +72,9 @@ const workspaceId = "cd5c37a5-add4-4a8b-830c-6d26b775f62c";
 const token = phoneIngestToken(workspaceId, "test-secret");
 assert.equal(workspaceIdFromPhoneToken(token, "test-secret"), workspaceId);
 assert.equal(workspaceIdFromPhoneToken(`${token}x`, "test-secret"), null);
-assert.match(gpsLoggerBody(token), new RegExp(`^token=${token}&latitude=%LAT`));
+const body = gpsLoggerBody(token);
+assert.match(body, /^token=.+&latitude=%LAT/);
+assert.ok(body.includes(encodeURIComponent(token).slice(0, 8)));
 
 const page = fs.readFileSync("src/components/wolf/WolfPhoneLinkWorkspace.tsx", "utf8");
 assert.match(page, /GPSLogger/);

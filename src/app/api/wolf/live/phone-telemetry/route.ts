@@ -73,8 +73,19 @@ export async function GET() {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  const fix = data ? rowToPhoneFix(data, Date.now()) : null;
-  return NextResponse.json({ fix });
+  const nowMs = Date.now();
+  const fix = data ? rowToPhoneFix(data, nowMs) : null;
+  const lastFixAt = data?.timestamp ?? null;
+  const ageMs =
+    data?.timestamp && Number.isFinite(Date.parse(data.timestamp))
+      ? nowMs - Date.parse(data.timestamp)
+      : null;
+  return NextResponse.json({
+    fix,
+    lastFixAt,
+    ageMs,
+    fresh: fix != null,
+  });
 }
 
 export async function POST(request: Request) {

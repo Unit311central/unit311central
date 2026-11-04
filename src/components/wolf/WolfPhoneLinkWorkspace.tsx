@@ -83,8 +83,15 @@ export default function WolfPhoneLinkWorkspace() {
             from F-Droid.
           </li>
           <li>Open Logging details and turn on Log to custom URL.</li>
-          <li>Set the method to POST and the header to Content-Type: application/x-www-form-urlencoded.</li>
-          <li>Paste the URL and the body below.</li>
+          <li>Set the method to POST.</li>
+          <li>
+            Under HTTP headers, add one line:{" "}
+            <span className="font-mono text-xs text-white/90">
+              Content-Type: application/x-www-form-urlencoded
+            </span>
+          </li>
+          <li>Paste the URL and the HTTP body below (not the header field).</li>
+          <li>In GPSLogger, enable <span className="font-semibold">Log to custom URL</span> and tap Start on the main screen.</li>
           <li>Set the logging interval to {PHONE_LOGGER_INTERVAL_SECONDS} seconds.</li>
           <li>When Android asks, allow location all the time.</li>
           <li>Start logging, leave the GPSLogger notification on, then open Brix.</li>
