@@ -9,6 +9,11 @@ import fs from "node:fs";
 const push = fs.readFileSync("src/lib/wolf/phone-telemetry-push.ts", "utf8");
 assert.match(push, /pushPhoneGpsToWolf/);
 assert.match(push, /readNativeGeolocation/);
+assert.match(push, /credentials: "same-origin"/);
+
+const shell = fs.readFileSync("src/lib/wolf/phone-native-shell.ts", "utf8");
+assert.match(shell, /requestPermissions/);
+assert.match(shell, /WOLFCentralCapacitor/);
 assert.match(push, /WOLF_PHONE_TELEMETRY_PATH/);
 
 const overlay = fs.readFileSync("src/components/wolf/WolfPhoneTelemetryOverlay.tsx", "utf8");

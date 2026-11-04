@@ -11,6 +11,7 @@ const config: CapacitorConfig = {
   },
   android: {
     backgroundColor: "#07111F",
+    appendUserAgent: " WOLFCentralCapacitor/1",
   },
 };
 
