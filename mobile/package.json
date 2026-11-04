@@ -6,7 +6,7 @@
   "scripts": {
     "sync": "cap sync",
     "open:android": "cap open android",
-    "build:android": "cap sync android && cd android && node -e \"require('child_process').execSync(process.platform==='win32'?'gradlew.bat assembleDebug':'./gradlew assembleDebug',{stdio:'inherit',shell:true})\""
+    "build:android": "cap sync android && node scripts/patch-android-manifest.mjs && cd android && node -e \"require('child_process').execSync(process.platform==='win32'?'gradlew.bat assembleDebug':'./gradlew assembleDebug',{stdio:'inherit',shell:true})\""
   },
   "dependencies": {
     "@capacitor/android": "^6.2.1",

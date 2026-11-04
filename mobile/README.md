@@ -4,6 +4,8 @@ Capacitor wrapper that opens **WOLF Central** on the phone: `https://wolf.unit31
 
 After sign-in you get the same workspace as the desktop browser (dashboard, sidebar, Tools, WebRTC, Sky, and the rest). **Phone Link** and field capture live under **Tools** when you need them on the phone.
 
+**Location:** The debug build declares `ACCESS_FINE_LOCATION` / `ACCESS_COARSE_LOCATION` (see `scripts/patch-android-manifest.mjs`). After install, allow location for **WOLF Central** so **Send GPS now** on WebRTC works.
+
 **This folder is isolated.** It does not change the Next.js app, workspaces, or modules.
 
 ## Prerequisites

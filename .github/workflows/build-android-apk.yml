@@ -44,6 +44,10 @@ jobs:
         working-directory: mobile
         run: npx cap sync android
 
+      - name: Patch AndroidManifest for GPS
+        working-directory: mobile
+        run: node scripts/patch-android-manifest.mjs
+
       - name: Build debug APK
         working-directory: mobile/android
         run: ./gradlew assembleDebug --no-daemon
