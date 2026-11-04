@@ -10,6 +10,7 @@ import {
   phoneFixStatus,
   rowToPhoneFix,
 } from "@/lib/wolf/phone-telemetry";
+import { wolfPhoneIngestSecret } from "@/lib/wolf/phone-ingest-secret";
 import { workspaceIdFromPhoneToken } from "@/lib/wolf/phone-telemetry-token";
 import { requireWolfCentralWorkspace } from "@/lib/wolf/wolf-central-auth";
 
@@ -22,7 +23,7 @@ function authFailure(error: unknown) {
 }
 
 function ingestSecret(): string {
-  return process.env.SUPABASE_SERVICE_ROLE_KEY?.trim() ?? "";
+  return wolfPhoneIngestSecret();
 }
 
 async function readRecord(request: Request): Promise<Record<string, unknown> | null> {

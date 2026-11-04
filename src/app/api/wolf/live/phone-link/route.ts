@@ -6,6 +6,7 @@ import {
   WOLF_PHONE_TELEMETRY_PATH,
   gpsLoggerBody,
 } from "@/lib/wolf/phone-telemetry";
+import { wolfPhoneIngestSecret } from "@/lib/wolf/phone-ingest-secret";
 import { phoneIngestToken } from "@/lib/wolf/phone-telemetry-token";
 import { requireWolfCentralWorkspace } from "@/lib/wolf/wolf-central-auth";
 
@@ -25,7 +26,7 @@ export async function GET() {
   } catch (error) {
     return authFailure(error);
   }
-  const secret = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim() ?? "";
+  const secret = wolfPhoneIngestSecret();
   if (!isSupabaseServiceRoleConfigured() || !secret) {
     return NextResponse.json({ error: "Phone telemetry store is not configured." }, { status: 503 });
   }
@@ -34,5 +35,6 @@ export async function GET() {
     path: WOLF_PHONE_TELEMETRY_PATH,
     body: gpsLoggerBody(phoneIngestToken(workspaceId, secret)),
     intervalSeconds: PHONE_LOGGER_INTERVAL_SECONDS,
+    workspaceHint: workspaceId.slice(0, 8),
   });
 }

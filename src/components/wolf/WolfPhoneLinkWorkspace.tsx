@@ -1,14 +1,29 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import Link from "next/link";
+import { useCallback, useEffect, useState } from "react";
 
 import { wolfCardClass, wolfEyebrowClass, wolfShellClass } from "@/components/wolf/wolf-ui";
-import { PHONE_LOGGER_INTERVAL_SECONDS, WOLF_PHONE_LINK_PATH } from "@/lib/wolf/phone-telemetry";
+import {
+  PHONE_LOGGER_INTERVAL_SECONDS,
+  WOLF_PHONE_LINK_PATH,
+  WOLF_PHONE_TELEMETRY_PATH,
+  formatPhoneFix,
+  type PhoneFix,
+} from "@/lib/wolf/phone-telemetry";
 
 type Recipe = {
   path: string;
   body: string;
   intervalSeconds: number;
+  workspaceHint?: string;
+};
+
+type TelemetryStatus = {
+  fix: PhoneFix | null;
+  lastFixAt: string | null;
+  ageMs: number | null;
+  fresh: boolean;
 };
 
 function CopyBlock({ label, value }: { label: string; value: string }) {
@@ -40,6 +55,27 @@ function CopyBlock({ label, value }: { label: string; value: string }) {
 export default function WolfPhoneLinkWorkspace() {
   const [recipe, setRecipe] = useState<Recipe | null>(null);
   const [error, setError] = useState("");
+  const [telemetry, setTelemetry] = useState<TelemetryStatus | null>(null);
+  const [telemetryError, setTelemetryError] = useState("");
+  const [browserGpsBusy, setBrowserGpsBusy] = useState(false);
+  const [browserGpsMessage, setBrowserGpsMessage] = useState("");
+
+  const refreshTelemetry = useCallback(async () => {
+    try {
+      const response = await fetch(WOLF_PHONE_TELEMETRY_PATH, { cache: "no-store" });
+      if (!response.ok) {
+        setTelemetryError(`Status API HTTP ${response.status}`);
+        setTelemetry(null);
+        return;
+      }
+      const payload = (await response.json()) as TelemetryStatus;
+      setTelemetry(payload);
+      setTelemetryError("");
+    } catch {
+      setTelemetryError("Could not read phone GPS status.");
+      setTelemetry(null);
+    }
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -57,12 +93,64 @@ export default function WolfPhoneLinkWorkspace() {
       }
     };
     void load();
+    void refreshTelemetry();
+    const timer = window.setInterval(() => void refreshTelemetry(), 3000);
     return () => {
       cancelled = true;
+      window.clearInterval(timer);
     };
-  }, []);
+  }, [refreshTelemetry]);
 
   const endpoint = recipe ? `${window.location.origin}${recipe.path}` : "";
+
+  const sendBrowserGps = async () => {
+    setBrowserGpsBusy(true);
+    setBrowserGpsMessage("");
+    try {
+      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+        if (!navigator.geolocation) {
+          reject(new Error("This browser has no geolocation."));
+          return;
+        }
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: true,
+          maximumAge: 5000,
+          timeout: 15000,
+        });
+      });
+      const { latitude, longitude, altitude, speed, heading } = position.coords;
+      const response = await fetch(WOLF_PHONE_TELEMETRY_PATH, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          latitude,
+          longitude,
+          altitudeM: altitude,
+          speedMps: speed != null && speed >= 0 ? speed : null,
+          headingDeg: heading != null && heading >= 0 ? heading : null,
+        }),
+      });
+      if (!response.ok) {
+        const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+        throw new Error(payload?.error ?? `HTTP ${response.status}`);
+      }
+      setBrowserGpsMessage("Sent this phone’s GPS to WOLF. Check WebRTC overlay in ~2s.");
+      void refreshTelemetry();
+    } catch (sendError) {
+      setBrowserGpsMessage(
+        sendError instanceof Error ? sendError.message : "Could not send browser GPS.",
+      );
+    } finally {
+      setBrowserGpsBusy(false);
+    }
+  };
+
+  let statusLine = "No GPS received for your WOLF workspace yet.";
+  if (telemetry?.fresh && telemetry.fix) {
+    statusLine = `Live: ${formatPhoneFix(telemetry.fix).position}`;
+  } else if (telemetry?.lastFixAt && typeof telemetry.ageMs === "number") {
+    statusLine = `Last GPS ${Math.round(telemetry.ageMs / 1000)}s ago (stale for overlay — need ≤90s).`;
+  }
 
   return (
     <div className={`${wolfShellClass} px-4 py-6 sm:px-6 sm:py-8`}>
@@ -73,6 +161,40 @@ export default function WolfPhoneLinkWorkspace() {
           Brix stays full screen on stream key test. GPSLogger sends the location in the background, and WOLF draws it on the WebRTC page. The picture stays clean.
         </p>
       </header>
+
+      <section className={`${wolfCardClass} mb-6 max-w-xl px-4 py-4`} aria-live="polite">
+        <h2 className="text-sm font-semibold text-white">GPS status (this WOLF account)</h2>
+        <p className="mt-2 text-sm text-white/80">{telemetryError || statusLine}</p>
+        {recipe?.workspaceHint ? (
+          <p className="mt-1 text-xs text-white/45">Workspace key prefix: {recipe.workspaceHint}…</p>
+        ) : null}
+        <p className="mt-3 text-xs text-white/55">
+          If this worked before and you did not change GPSLogger, the server may have rotated keys — copy the{" "}
+          <span className="text-white/75">HTTP body</span> below again into GPSLogger (same URL and settings).
+        </p>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <button
+            type="button"
+            disabled={browserGpsBusy}
+            onClick={() => void sendBrowserGps()}
+            className="rounded-full bg-white px-4 py-2 text-sm font-semibold text-black disabled:opacity-50"
+          >
+            {browserGpsBusy ? "Sending…" : "Send GPS from this browser (test)"}
+          </button>
+          <Link
+            href="/dashboard?view=wolf-ground-webrtc"
+            className="rounded-full border border-white/20 px-4 py-2 text-sm font-semibold text-white"
+          >
+            Open WebRTC overlay
+          </Link>
+        </div>
+        {browserGpsMessage ? (
+          <p className="mt-3 text-sm text-teal-200" role="status">
+            {browserGpsMessage}
+          </p>
+        ) : null}
+      </section>
+
       <section className={`${wolfCardClass} max-w-xl px-4 py-4`}>
         <ol className="list-decimal space-y-2 pl-5 text-sm text-white/80">
           <li>
@@ -91,7 +213,10 @@ export default function WolfPhoneLinkWorkspace() {
             </span>
           </li>
           <li>Paste the URL and the HTTP body below (not the header field).</li>
-          <li>In GPSLogger, enable <span className="font-semibold">Log to custom URL</span> and tap Start on the main screen.</li>
+          <li>
+            In GPSLogger, enable <span className="font-semibold">Log to custom URL</span> and tap Start on the main
+            screen.
+          </li>
           <li>Set the logging interval to {PHONE_LOGGER_INTERVAL_SECONDS} seconds.</li>
           <li>When Android asks, allow location all the time.</li>
           <li>Start logging, leave the GPSLogger notification on, then open Brix.</li>
@@ -112,7 +237,8 @@ export default function WolfPhoneLinkWorkspace() {
         <h2 className="text-sm font-semibold text-white">Field capture</h2>
         <p className="mt-2 text-sm text-white/70">
           Log position, take photos, and record clips from the phone on{" "}
-          <span className="font-semibold text-white">Tools → WOLF Test Ground WebRTC</span>. The buttons sit in the right-hand column next to the live video.
+          <span className="font-semibold text-white">Tools → WOLF Test Ground WebRTC</span>. The buttons sit in the
+          right-hand column next to the live video.
         </p>
       </section>
     </div>
