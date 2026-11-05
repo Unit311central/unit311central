@@ -100,7 +100,8 @@ export function buildWolfCentralNavSections(): readonly InternalNavSection[] {
       icon: "Fence",
       color: "#C4A35A",
       items: [
-        { label: "Stable Management", icon: "Fence", view: "wolf-stable", badge: "demo" },
+        { label: "Overview", icon: "LayoutDashboard", view: "wolf-stable-overview", badge: "demo" },
+        { label: "Stables", icon: "Fence", view: "wolf-stable", badge: "demo" },
       ],
     },
     {

@@ -329,3 +329,12 @@ export function stableArea(facility: StableFacility, areaId: string): StableArea
 export function activeStableAlerts(facility: StableFacility): StableAlert[] {
   return facility.alerts.filter((alert) => alert.active);
 }
+
+/** Camera 05, the real WebRTC tile, is always first. Simulated cameras follow. */
+export function stableCamerasInMonitorOrder(facility: StableFacility): StableCamera[] {
+  return [...facility.cameras].sort((left, right) => {
+    if (left.mode === "webrtc" && right.mode !== "webrtc") return -1;
+    if (right.mode === "webrtc" && left.mode !== "webrtc") return 1;
+    return left.name.localeCompare(right.name);
+  });
+}

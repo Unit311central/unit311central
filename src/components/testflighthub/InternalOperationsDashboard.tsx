@@ -832,6 +832,7 @@ export default function InternalOperationsDashboard({
           url.searchParams.set(key, value);
         }
       } else if (
+        activeView !== "wolf-stable-facility" &&
         !FINANCES_QUERY_PARAM_VIEWS.has(activeView) &&
         !SALES_MANAGEMENT_QUERY_PARAM_VIEWS.has(activeView) &&
         !MANAGEMENT_QUERY_PARAM_VIEWS.has(activeView) &&
@@ -918,6 +919,7 @@ export default function InternalOperationsDashboard({
           activeView === "settings" ||
           activeView === "billing" ||
           activeView === "sales-management" ||
+          activeView === "wolf-stable-overview" ||
           activeView === "wolf-stable" ||
           activeView === "wolf-stable-facility"
             ? "relative mx-auto w-full min-w-0 px-1 py-1 sm:px-2 md:px-3 lg:px-4 lg:py-2 xl:max-w-[100rem]"
@@ -1569,7 +1571,9 @@ export default function InternalOperationsDashboard({
           {activeView === "saec-installations-escalators" && <SaecInstallationsEscalatorsWorkspace />}
 
           {activeView === "wolf-estate" && <WolfEstateDashboard />}
-          {(activeView === "wolf-stable" || activeView === "wolf-stable-facility") && (
+          {(activeView === "wolf-stable-overview" ||
+            activeView === "wolf-stable" ||
+            activeView === "wolf-stable-facility") && (
             <WolfStableManagementWorkspace view={activeView} />
           )}
           {activeView === "wolf-safari-parks" && <WolfSafariParksWorkspace />}
