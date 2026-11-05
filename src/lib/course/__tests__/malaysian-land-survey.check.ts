@@ -24,6 +24,7 @@ import {
   isViewAllowedForWorkspaceGrants,
 } from "@/lib/workspace-enabled-views";
 import { WOLF_COURSE_RESPONSE_VIEWS } from "@/lib/wolf/course-response-views";
+import { WOLF_STABLE_VIEWS } from "@/lib/wolf/stable/views";
 import { WOLF_CENTRAL_SLUG } from "@/lib/wolf/wolf-surface";
 
 assert.equal(trimParticipantName("  Aisha Rahman  "), "Aisha Rahman");
@@ -169,6 +170,7 @@ assert.doesNotMatch(sql, /create policy[^;]+to anon/i);
 assert.deepEqual(applyWolfWorkspaceAllowedViews(["home"], WOLF_CENTRAL_SLUG, [], []), [
   "home",
   ...WOLF_COURSE_RESPONSE_VIEWS,
+  ...WOLF_STABLE_VIEWS,
 ]);
 assert.equal(applyWolfWorkspaceAllowedViews(null, WOLF_CENTRAL_SLUG, [], []), null);
 assert.equal(applyWolfWorkspaceAllowedViews(["home"], "unit311", [], [])?.[0], "home");

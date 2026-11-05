@@ -267,6 +267,8 @@ export type InternalOperationsView =
   | "saec-installations-elevators"
   | "saec-installations-escalators"
   | "wolf-estate"
+  | "wolf-stable"
+  | "wolf-stable-facility"
   | "wolf-safari-parks"
   | "wolf-animals"
   | "wolf-containment"
@@ -628,6 +630,8 @@ export const internalOperationsViews: InternalOperationsView[] = [
   "saec-installations-elevators",
   "saec-installations-escalators",
   "wolf-estate",
+  "wolf-stable",
+  "wolf-stable-facility",
   "wolf-safari-parks",
   "wolf-animals",
   "wolf-containment",
@@ -1577,6 +1581,14 @@ export const internalViewTitles: Record<
   "saec-installations-elevators": { title: "Elevators", subtitle: "Operations · Installations" },
   "saec-installations-escalators": { title: "Escalators", subtitle: "Operations · Installations" },
   "wolf-estate": { title: "WOLF Estate", subtitle: "WOLF Central" },
+  "wolf-stable": {
+    title: "Stable Management",
+    subtitle: "Equestrian Facility Monitoring & Management",
+  },
+  "wolf-stable-facility": {
+    title: "Windsor Estate Stables",
+    subtitle: "Stable Management",
+  },
   "wolf-safari-parks": { title: "Safari Parks", subtitle: "WOLF Central" },
   "wolf-animals": { title: "Animals summary", subtitle: "WOLF Central" },
   "wolf-containment": { title: "Containment summary", subtitle: "WOLF Central" },

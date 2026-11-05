@@ -5,10 +5,17 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import WolfPhoneFieldCapture from "@/components/wolf/WolfPhoneFieldCapture";
 import WolfPhoneTelemetryOverlay from "@/components/wolf/WolfPhoneTelemetryOverlay";
 import { wolfCardClass, wolfEyebrowClass, wolfShellClass } from "@/components/wolf/wolf-ui";
+import {
+  wolfGroundWebRtcLinkLabel,
+  wolfGroundWebRtcLinkStatus,
+  type WolfGroundWebRtcLinkStatus,
+  type WolfWebRtcConnectionStatus,
+  type WolfWebRtcStreamStatus,
+} from "@/lib/wolf/webrtc-link-status";
 import { WOLF_GROUND_WEBRTC_PATH } from "@/lib/wolf/webrtc-playback";
 
-type ConnectionStatus = "idle" | "gathering" | "signalling" | "connecting" | "connected" | "failed";
-type StreamStatus = "waiting" | "receiving" | "failed";
+type ConnectionStatus = WolfWebRtcConnectionStatus;
+type StreamStatus = WolfWebRtcStreamStatus;
 
 type Diagnostics = {
   connection: string;
@@ -127,17 +134,15 @@ async function releaseSession(signallingPath: string, sessionPath: string | null
   }).catch(() => undefined);
 }
 
-export default function WolfGroundWebRtcWorkspace({
-  title = "WOLF Test Ground WebRTC",
-  eyebrow = "Tools",
-  description = "Direct WebRTC live video streaming test.",
-  signallingPath = WOLF_GROUND_WEBRTC_PATH,
-  idleDetail = "This page uses WebRTC only. It does not play HLS.",
-  publishUrl,
-  lowDelay = false,
-  showPhoneTelemetry = true,
-  showFieldCapture = showPhoneTelemetry,
-}: WolfWebRtcWorkspaceProps) {
+function useWolfGroundWebRtcSession({
+  signallingPath,
+  idleDetail,
+  lowDelay,
+}: {
+  signallingPath: string;
+  idleDetail: string;
+  lowDelay: boolean;
+}) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const pcRef = useRef<RTCPeerConnection | null>(null);
   const sessionRef = useRef<string | null>(null);
@@ -374,6 +379,94 @@ export default function WolfGroundWebRtcWorkspace({
     video.muted = true;
     void video.play().then(() => setNeedsGesture(false));
   };
+
+  return { videoRef, connection, stream, needsGesture, diagnostics, connect, playFromGesture };
+}
+
+/**
+ * Embedded player for other WOLF surfaces. Same signalling, ICE, and WHEP
+ * session handling as the Test Ground page. No still-image fallback.
+ */
+export function WolfGroundWebRtcPlayer({
+  signallingPath = WOLF_GROUND_WEBRTC_PATH,
+  idleDetail = "This player uses the existing WOLF Ground WebRTC path. It does not play HLS.",
+  lowDelay = false,
+  showPhoneTelemetry = false,
+  onLinkStatus,
+}: {
+  signallingPath?: string;
+  idleDetail?: string;
+  lowDelay?: boolean;
+  showPhoneTelemetry?: boolean;
+  onLinkStatus?: (status: WolfGroundWebRtcLinkStatus) => void;
+}) {
+  const { videoRef, connection, stream, needsGesture, diagnostics, connect, playFromGesture } =
+    useWolfGroundWebRtcSession({ signallingPath, idleDetail, lowDelay });
+  const linkStatus = wolfGroundWebRtcLinkStatus(connection, stream, diagnostics.detail);
+
+  useEffect(() => {
+    onLinkStatus?.(linkStatus);
+  }, [linkStatus, onLinkStatus]);
+
+  const kind = linkStatus === "live" ? "ok" : linkStatus === "connecting" ? "pending" : "bad";
+
+  return (
+    <div className="relative h-full w-full bg-black">
+      <video
+        ref={videoRef}
+        className="h-full w-full bg-black object-contain"
+        muted
+        autoPlay
+        playsInline
+      />
+      {showPhoneTelemetry ? <WolfPhoneTelemetryOverlay /> : null}
+      <div className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between gap-2 p-3">
+        <span className={pillClass(kind)} role="status">
+          {wolfGroundWebRtcLinkLabel(linkStatus)}
+        </span>
+      </div>
+      {linkStatus !== "live" ? (
+        <div className="pointer-events-none absolute inset-x-0 bottom-12 bg-gradient-to-t from-black/80 to-transparent p-3">
+          <p className="max-w-prose text-xs leading-relaxed text-white/80" role="alert">
+            {diagnostics.detail}
+          </p>
+        </div>
+      ) : null}
+      <div className="absolute right-3 bottom-3 flex items-center gap-2">
+        {needsGesture ? (
+          <button
+            type="button"
+            onClick={playFromGesture}
+            className="rounded-full bg-white px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-black"
+          >
+            Play
+          </button>
+        ) : null}
+        <button
+          type="button"
+          onClick={() => void connect()}
+          className="rounded-full border border-white/30 bg-black/50 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-white"
+        >
+          Reconnect
+        </button>
+      </div>
+    </div>
+  );
+}
+
+export default function WolfGroundWebRtcWorkspace({
+  title = "WOLF Test Ground WebRTC",
+  eyebrow = "Tools",
+  description = "Direct WebRTC live video streaming test.",
+  signallingPath = WOLF_GROUND_WEBRTC_PATH,
+  idleDetail = "This page uses WebRTC only. It does not play HLS.",
+  publishUrl,
+  lowDelay = false,
+  showPhoneTelemetry = true,
+  showFieldCapture = showPhoneTelemetry,
+}: WolfWebRtcWorkspaceProps) {
+  const { videoRef, connection, stream, needsGesture, diagnostics, connect, playFromGesture } =
+    useWolfGroundWebRtcSession({ signallingPath, idleDetail, lowDelay });
 
   return (
     <div className={`${wolfShellClass} px-4 py-6 sm:px-6 sm:py-8`}>

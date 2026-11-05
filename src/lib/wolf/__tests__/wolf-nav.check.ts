@@ -28,7 +28,13 @@ const wolfNav = buildWolfCentralNavSections();
 const allLabels = wolfNav.flatMap((section) => collectLabels(section.items));
 
 assert.ok(!allLabels.some((label) => /coming soon/i.test(label)), "nav must not expose Coming soon items");
-assert.equal(wolfNav.filter((section) => section.kind === "pin").length, 2);
+assert.equal(wolfNav.filter((section) => section.kind === "pin").length, 3);
+const pinSections = wolfNav.filter((section) => section.kind === "pin");
+assert.equal(pinSections[0]?.items[0]?.view, "wolf-estate");
+assert.equal(pinSections[1]?.label, "Stable Management");
+assert.equal(pinSections[1]?.items[0]?.view, "wolf-stable");
+assert.equal(pinSections[1]?.items[0]?.label, "Stable Management");
+assert.equal(pinSections[2]?.items[0]?.view, "executive-assistant");
 assert.equal(wolfNav.filter((section) => section.kind === "workspace").length, 19);
 
 const sectionTitles = wolfNav

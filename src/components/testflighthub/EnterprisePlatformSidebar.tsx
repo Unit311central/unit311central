@@ -19,6 +19,7 @@ import {
   ClipboardList,
   ContactRound,
   Cpu,
+  Fence,
   FlaskConical,
   FolderKanban,
   FolderOpen,
@@ -125,6 +126,7 @@ const iconMap = {
   ClipboardList,
   ContactRound,
   Cpu,
+  Fence,
   FlaskConical,
   FolderKanban,
   FolderOpen,
@@ -1023,9 +1025,11 @@ export default function EnterprisePlatformSidebar({
           }}
         >
           {pinSections.map((section) =>
-            section.items.map((item) =>
-              renderPinItem(item, resolveOnwardAirNavAccent(section) ?? section.color),
-            ),
+            section.label
+              ? renderWorkspace(section)
+              : section.items.map((item) =>
+                  renderPinItem(item, resolveOnwardAirNavAccent(section) ?? section.color),
+                ),
           )}
           {workspaceSections.map((section) => renderWorkspace(section))}
         </div>

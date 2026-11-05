@@ -310,6 +310,7 @@ import {
   SaecInstallationsElevatorsWorkspace,
   SaecInstallationsEscalatorsWorkspace,
   WolfEstateDashboard,
+  WolfStableManagementWorkspace,
   WolfSafariParksWorkspace,
   WolfAnimalsSummaryWorkspace,
   WolfContainmentSummaryWorkspace,
@@ -916,7 +917,9 @@ export default function InternalOperationsDashboard({
           activeView === "home" ||
           activeView === "settings" ||
           activeView === "billing" ||
-          activeView === "sales-management"
+          activeView === "sales-management" ||
+          activeView === "wolf-stable" ||
+          activeView === "wolf-stable-facility"
             ? "relative mx-auto w-full min-w-0 px-1 py-1 sm:px-2 md:px-3 lg:px-4 lg:py-2 xl:max-w-[100rem]"
             : "relative mx-auto w-full min-w-0 max-w-7xl px-1 py-2 sm:px-2 md:px-3 lg:px-5 lg:py-3 xl:max-w-[90rem] xl:px-6 xl:py-4"
         }
@@ -1566,6 +1569,9 @@ export default function InternalOperationsDashboard({
           {activeView === "saec-installations-escalators" && <SaecInstallationsEscalatorsWorkspace />}
 
           {activeView === "wolf-estate" && <WolfEstateDashboard />}
+          {(activeView === "wolf-stable" || activeView === "wolf-stable-facility") && (
+            <WolfStableManagementWorkspace view={activeView} />
+          )}
           {activeView === "wolf-safari-parks" && <WolfSafariParksWorkspace />}
           {activeView === "wolf-animals" && <WolfAnimalsSummaryWorkspace />}
           {activeView === "wolf-containment" && <WolfContainmentSummaryWorkspace />}

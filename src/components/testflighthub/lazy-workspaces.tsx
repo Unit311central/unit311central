@@ -176,6 +176,9 @@ export const SaecInstallationsEscalatorsWorkspace = lazyWorkspace(
 export const WolfEstateDashboard = lazyWorkspace(
   () => import("@/components/wolf/WolfEstateDashboard"),
 );
+export const WolfStableManagementWorkspace = lazyWorkspace(
+  () => import("@/components/wolf/stable/WolfStableManagementWorkspace"),
+);
 export const WolfSafariParksWorkspace = lazyWorkspace(
   () => import("@/components/wolf/WolfSafariParksWorkspace"),
 );
