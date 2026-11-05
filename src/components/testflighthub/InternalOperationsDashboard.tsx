@@ -321,6 +321,7 @@ import {
   WolfGroundWebRtcWorkspace,
   WolfPhoneLinkWorkspace,
   WolfVeterinaryConnectionWorkspace,
+  WolfCourseResponsesWorkspace,
   WolfSkyWorkspace,
   WolfSharkWorkspace,
   PailexViewHost,
@@ -1576,6 +1577,9 @@ export default function InternalOperationsDashboard({
           {activeView === "wolf-ground-webrtc" && <WolfGroundWebRtcWorkspace />}
           {activeView === "wolf-phone-link" && <WolfPhoneLinkWorkspace />}
           {activeView === "wolf-veterinary-connection" && <WolfVeterinaryConnectionWorkspace />}
+          {(activeView === "wolf-course-overview" || activeView === "wolf-course-details") && (
+            <WolfCourseResponsesWorkspace view={activeView} />
+          )}
           {activeView === "wolf-sky" && <WolfSkyWorkspace />}
 
           {isSharkView(activeView) ? (

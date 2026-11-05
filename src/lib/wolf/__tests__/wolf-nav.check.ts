@@ -104,7 +104,21 @@ assert.deepEqual(surfacedToolLabels, [
   "Phone Link",
   "Veterinary Connection",
   "WOLF Sky",
+  "Course responses",
 ]);
+
+const courseResponses = toolsSection.kind === "workspace"
+  ? toolsSection.items.find((item) => item.label === "Course responses")
+  : undefined;
+assert.deepEqual(
+  courseResponses?.children?.map((child) => ({ label: child.label, view: child.view })),
+  [
+    { label: "Overview", view: "wolf-course-overview" },
+    { label: "Details", view: "wolf-course-details" },
+  ],
+);
+assert.ok(views.includes("wolf-course-overview"));
+assert.ok(views.includes("wolf-course-details"));
 
 const surfacedCentral = filterInternalNavSectionsForDemoSurface(internalSurveyNavSections);
 const centralTools = surfacedCentral.find((section) => section.label === "Tools");

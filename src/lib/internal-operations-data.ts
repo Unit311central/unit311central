@@ -279,6 +279,8 @@ export type InternalOperationsView =
   | "wolf-ground-webrtc"
   | "wolf-phone-link"
   | "wolf-veterinary-connection"
+  | "wolf-course-overview"
+  | "wolf-course-details"
   | "wolf-shark-dashboard"
   | "wolf-shark-video-analysis"
   | "wolf-shark-ai-detection"
@@ -638,6 +640,8 @@ export const internalOperationsViews: InternalOperationsView[] = [
   "wolf-ground-webrtc",
   "wolf-phone-link",
   "wolf-veterinary-connection",
+  "wolf-course-overview",
+  "wolf-course-details",
   "wolf-shark-dashboard",
   "wolf-shark-video-analysis",
   "wolf-shark-ai-detection",
@@ -1599,6 +1603,14 @@ export const internalViewTitles: Record<
   "wolf-veterinary-connection": {
     title: "Veterinary Connection",
     subtitle: "WOLF Central · Tools",
+  },
+  "wolf-course-overview": {
+    title: "Overview",
+    subtitle: "Tools · Course responses",
+  },
+  "wolf-course-details": {
+    title: "Details",
+    subtitle: "Tools · Course responses",
   },
   "wolf-shark-dashboard": { title: "SHARK Dashboard", subtitle: "WOLF Central · SHARK" },
   "wolf-shark-video-analysis": { title: "SHARK Video Analysis", subtitle: "WOLF Central · SHARK" },

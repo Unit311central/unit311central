@@ -8,6 +8,7 @@ import { isPailexWorkspaceView } from "@/lib/pailex/pailex-views";
 import { resolveGreenDesertWorkspaceEnablement } from "@/lib/greendesert/greendesert-provisioning";
 import { isGreenDesertSlug } from "@/lib/greendesert-surface";
 import { WOLF_CENTRAL_ANALYTICS_VIEWS } from "@/lib/wolf/wolf-analytics-nav";
+import { WOLF_COURSE_RESPONSE_VIEWS } from "@/lib/wolf/course-response-views";
 import { isWolfCentralSlug } from "@/lib/wolf/wolf-surface";
 import {
   getWorkspaceModuleEntry,
@@ -100,6 +101,7 @@ export function isViewAllowedForWorkspaceGrants(
 
   if (isWolfCentralSlug(slug)) {
     if ((WOLF_CENTRAL_ANALYTICS_VIEWS as readonly string[]).includes(view)) return true;
+    if ((WOLF_COURSE_RESPONSE_VIEWS as readonly string[]).includes(view)) return true;
     const enabledViews = viewsForWorkspaceEnablement(
       options?.enabledModules,
       options?.enabledSubModules,
@@ -144,11 +146,15 @@ export function applyWolfWorkspaceAllowedViews(
   enabledSubModules: readonly string[] | null | undefined,
 ): InternalOperationsView[] | null {
   if (!isWolfCentralSlug(workspaceSlug)) return allowedViews ?? null;
-  return mergeAllowedViewsWithWorkspaceEnablement(
+  const merged = mergeAllowedViewsWithWorkspaceEnablement(
     allowedViews,
     enabledModules,
     enabledSubModules,
   );
+  if (merged == null) return null;
+  const next = new Set<InternalOperationsView>(merged);
+  for (const view of WOLF_COURSE_RESPONSE_VIEWS) next.add(view);
+  return [...next];
 }
 
 /** Demo operators: union legacy explicit grants with all enabled catalogue views. */

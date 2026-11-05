@@ -195,6 +195,14 @@ export function buildWolfCentralNavSections(): readonly InternalNavSection[] {
         { label: "Phone Link", icon: "Smartphone", view: "wolf-phone-link" },
         { label: "Veterinary Connection", icon: "HeartHandshake", view: "wolf-veterinary-connection" },
         { label: "WOLF Sky", icon: "Radio", view: "wolf-sky" },
+        {
+          label: "Course responses",
+          icon: "ClipboardList",
+          children: [
+            { label: "Overview", view: "wolf-course-overview" },
+            { label: "Details", view: "wolf-course-details" },
+          ],
+        },
       ],
     },
     {
