@@ -192,5 +192,9 @@ const publicForm = readFileSync("src/components/course/MalaysianLandSurveyForm.t
 assert.doesNotMatch(publicForm, /SERVICE_ROLE|createSupabaseServiceRoleClient/);
 const publicRoute = readFileSync("src/app/api/course/malaysian-land-survey/route.ts", "utf8");
 assert.doesNotMatch(publicRoute, /export async function GET/);
+const schema = readFileSync("src/lib/course/malaysian-land-survey-schema.ts", "utf8");
+assert.match(schema, /222_malaysian_land_survey_course_responses\.sql/);
+assert.match(schema, /withMigrationQueryClient/);
+assert.doesNotMatch(schema, /process\.env\.SUPABASE_SERVICE_ROLE_KEY/);
 
 console.log("malaysian-land-survey.check.ts — all assertions passed.");

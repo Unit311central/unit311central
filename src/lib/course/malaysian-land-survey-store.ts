@@ -1,5 +1,6 @@
 import "server-only";
 
+import { ensureCourseResponseSchema } from "@/lib/course/malaysian-land-survey-schema";
 import {
   classifyCourseInsertError,
   type CourseSubmissionInput,
@@ -51,7 +52,7 @@ function mapRow(row: CourseResponseRow): CourseSubmissionRecord {
   };
 }
 
-export async function insertCourseSubmission(
+async function insertCourseSubmissionOnce(
   submission: CourseSubmissionInput,
 ): Promise<CourseStoreResult> {
   let supabase: ReturnType<typeof createSupabaseServiceRoleClient>;
@@ -89,6 +90,27 @@ export async function insertCourseSubmission(
   };
 }
 
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+export async function insertCourseSubmission(
+  submission: CourseSubmissionInput,
+): Promise<CourseStoreResult> {
+  let result = await insertCourseSubmissionOnce(submission);
+  if (result.ok || result.reason !== "unavailable") return result;
+
+  const ready = await ensureCourseResponseSchema();
+  if (!ready) return { ok: false, reason: "unavailable" };
+
+  for (let attempt = 0; attempt < 4; attempt += 1) {
+    result = await insertCourseSubmissionOnce(submission);
+    if (result.ok || result.reason !== "unavailable") return result;
+    await sleep(800 * (attempt + 1));
+  }
+  return result;
+}
+
 export async function listCourseSubmissions(): Promise<
   { ok: true; submissions: CourseSubmissionRecord[] } | { ok: false; reason: "unavailable" | "unknown" }
 > {
@@ -99,12 +121,25 @@ export async function listCourseSubmissions(): Promise<
     return { ok: false, reason: "unavailable" };
   }
 
-  const { data, error } = await supabase
+  let { data, error } = await supabase
     .from("malaysian_land_survey_course_responses")
     .select(
       "id, participant_name, question_1_answers, question_2_answers, question_3_answers, question_4_answers, question_5_comments, submitted_at",
     )
     .order("submitted_at", { ascending: false });
+
+  if (error && classifyCourseInsertError(error) === "unavailable") {
+    const ready = await ensureCourseResponseSchema();
+    if (!ready) return { ok: false, reason: "unavailable" };
+    const retried = await supabase
+      .from("malaysian_land_survey_course_responses")
+      .select(
+        "id, participant_name, question_1_answers, question_2_answers, question_3_answers, question_4_answers, question_5_comments, submitted_at",
+      )
+      .order("submitted_at", { ascending: false });
+    data = retried.data;
+    error = retried.error;
+  }
 
   if (error) {
     const reason = classifyCourseInsertError(error);
