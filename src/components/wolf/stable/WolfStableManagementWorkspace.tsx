@@ -11,6 +11,7 @@ import {
   activeStableAlerts,
   stableArea,
   stableFacilityById,
+  WOLF_STABLE_DIRECTORY,
   WOLF_STABLE_FACILITIES,
   type StableFacility,
   type StableHorse,
@@ -231,19 +232,60 @@ function Portfolio() {
 }
 
 function Directory() {
+  const basePath = useInternalOperationsBasePath();
   return (
     <div className="px-4 py-6 sm:px-6 sm:py-8">
       <header className="mb-6 max-w-3xl">
         <p className={wolfEyebrowClass}>Stable Management</p>
         <h1 className="mt-1 text-2xl font-semibold text-white">Stables</h1>
         <p className="mt-2 text-sm text-white/65">
-          Facilities available in this workspace. Additional facilities can be added beside Windsor Estate Stables.
+          Windsor Estate Stables is the live facility. The other rows are example listings and do not open a yard.
         </p>
       </header>
-      <div className="grid gap-4">
-        {WOLF_STABLE_FACILITIES.map((facility) => (
-          <FacilitySummaryCard key={facility.id} facility={facility} />
-        ))}
+      <div className={`${wolfCardClass} overflow-x-auto`}>
+        <table className="w-full min-w-[760px] border-collapse text-left text-sm">
+          <thead>
+            <tr className="border-b border-white/10">
+              {["Stable", "Location", "Horses", "Areas", "Cameras", "Alerts", "Listing"].map((label) => (
+                <th key={label} className={`${wolfMetricLabelClass} px-4 py-3 font-semibold`}>
+                  {label}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {WOLF_STABLE_DIRECTORY.map((row) => (
+              <tr key={row.id} className="border-b border-white/10 last:border-b-0">
+                <td className="px-4 py-3">
+                  {row.live ? (
+                    <Link
+                      href={stableFacilityHref(basePath, row.id, "overview")}
+                      className="font-semibold text-white underline-offset-2 hover:text-emerald-100 hover:underline"
+                    >
+                      {row.name}
+                    </Link>
+                  ) : (
+                    <span className="font-semibold text-white">{row.name}</span>
+                  )}
+                </td>
+                <td className="px-4 py-3 text-white/70">{row.location}</td>
+                <td className="px-4 py-3 text-white/80">{row.horses ?? "—"}</td>
+                <td className="px-4 py-3 text-white/80">{row.areas ?? "—"}</td>
+                <td className="px-4 py-3 text-white/80">{row.cameras ?? "—"}</td>
+                <td className="px-4 py-3 text-white/80">{row.alerts ?? "—"}</td>
+                <td className="px-4 py-3">
+                  {row.live ? (
+                    <span className="inline-flex items-center rounded-full border border-emerald-400/30 bg-emerald-500/15 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-emerald-100">
+                      Live
+                    </span>
+                  ) : (
+                    <DemonstrationMark>Example</DemonstrationMark>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   );
