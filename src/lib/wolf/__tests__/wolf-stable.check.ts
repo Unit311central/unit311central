@@ -11,6 +11,7 @@ import {
   activeStableAlerts,
   stableCamerasInMonitorOrder,
   stableFacilityById,
+  WOLF_STABLE_DIRECTORY,
   WOLF_STABLE_FACILITIES,
 } from "@/lib/wolf/stable/demo-data";
 import {
@@ -110,6 +111,18 @@ for (const horse of facility.horses) {
 }
 
 assert.equal(WOLF_STABLE_FACILITIES.length, 1);
+assert.deepEqual(
+  WOLF_STABLE_DIRECTORY.map((row) => ({ id: row.id, live: row.live, horses: row.horses })),
+  [
+    { id: "windsor-estate-stables", live: true, horses: 5 },
+    { id: "lambourn-downs-stables", live: false, horses: null },
+    { id: "highclere-park-stables", live: false, horses: null },
+  ],
+);
+assert.equal(stableFacilityById("lambourn-downs-stables"), null);
+assert.equal(stableFacilityById("highclere-park-stables"), null);
+assert.equal(WOLF_STABLE_DIRECTORY[0]?.cameras, 5);
+assert.equal(WOLF_STABLE_DIRECTORY[1]?.cameras, null);
 
 assert.equal(wolfGroundWebRtcLinkStatus("idle", "waiting", ""), "connecting");
 assert.equal(wolfGroundWebRtcLinkStatus("connected", "waiting", ""), "connecting");
@@ -135,6 +148,8 @@ const stableDir = fs.readdirSync("src/components/wolf/stable").filter((name) => 
 const stableSource = stableDir
   .map((name) => fs.readFileSync(`src/components/wolf/stable/${name}`, "utf8"))
   .join("\n");
+assert.match(stableSource, /WOLF_STABLE_DIRECTORY/);
+assert.match(stableSource, /example listings/i);
 assert.match(stableSource, /WolfGroundWebRtcPlayer/);
 assert.match(stableSource, /SIMULATED LIVE/);
 assert.match(stableSource, /Camera 05 – Live Camera \/ Phone Camera/);

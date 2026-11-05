@@ -109,6 +109,18 @@ export type StableFacility = {
   alerts: StableAlert[];
 };
 
+/** Directory row. Example rows are listings only and are not live facilities. */
+export type StableDirectoryRow = {
+  id: string;
+  name: string;
+  location: string;
+  live: boolean;
+  horses: number | null;
+  areas: number | null;
+  cameras: number | null;
+  alerts: number | null;
+};
+
 const emptyRecords = {
   veterinary: { label: "Veterinary records", entries: null },
   feeding: { label: "Feeding schedule", entries: null },
@@ -329,6 +341,44 @@ export function stableArea(facility: StableFacility, areaId: string): StableArea
 export function activeStableAlerts(facility: StableFacility): StableAlert[] {
   return facility.alerts.filter((alert) => alert.active);
 }
+
+const EXAMPLE_STABLE_DIRECTORY: readonly StableDirectoryRow[] = [
+  {
+    id: "lambourn-downs-stables",
+    name: "Lambourn Downs Stables",
+    location: "Lambourn, Berkshire, United Kingdom",
+    live: false,
+    horses: null,
+    areas: null,
+    cameras: null,
+    alerts: null,
+  },
+  {
+    id: "highclere-park-stables",
+    name: "Highclere Park Stables",
+    location: "Highclere, Hampshire, United Kingdom",
+    live: false,
+    horses: null,
+    areas: null,
+    cameras: null,
+    alerts: null,
+  },
+];
+
+/** Windsor is the only live facility. The other rows are example listings. */
+export const WOLF_STABLE_DIRECTORY: readonly StableDirectoryRow[] = [
+  ...WOLF_STABLE_FACILITIES.map((facility) => ({
+    id: facility.id,
+    name: facility.name,
+    location: facility.location,
+    live: true,
+    horses: facility.horses.length,
+    areas: facility.areas.length,
+    cameras: facility.cameras.length,
+    alerts: activeStableAlerts(facility).length,
+  })),
+  ...EXAMPLE_STABLE_DIRECTORY,
+];
 
 /** Camera 05, the real WebRTC tile, is always first. Simulated cameras follow. */
 export function stableCamerasInMonitorOrder(facility: StableFacility): StableCamera[] {
