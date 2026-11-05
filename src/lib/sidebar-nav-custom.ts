@@ -642,7 +642,22 @@ export function applySidebarSectionOrder(
   }
   for (const section of byKey.values()) ordered.push(section);
 
-  return [...pins, ...ordered, ...(settings ? [settings] : [])];
+  return placeStableManagementMenu([...pins, ...ordered, ...(settings ? [settings] : [])]);
+}
+
+/** Own left-hand menu. Kept as the first workspace so it is not folded into another section. */
+export function placeStableManagementMenu(
+  sections: readonly InternalNavSection[],
+): InternalNavSection[] {
+  const stableIndex = sections.findIndex((section) => section.label === "Stable Management");
+  if (stableIndex < 0) return [...sections];
+  const stable = sections[stableIndex];
+  if (!stable || stable.kind === "pin") return [...sections];
+  const rest = sections.filter((_, index) => index !== stableIndex);
+  const firstWorkspace = rest.findIndex((section) => section.kind === "workspace");
+  const insertAt = firstWorkspace >= 0 ? firstWorkspace : rest.length;
+  rest.splice(insertAt, 0, stable);
+  return rest;
 }
 
 /** Move one workspace section key to another index in the movable order list. */

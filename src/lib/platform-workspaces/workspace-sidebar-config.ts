@@ -26,6 +26,7 @@ import {
   isFixedPinSection,
   isMovableWorkspaceSection,
   isSettingsSection,
+  placeStableManagementMenu,
 } from "@/lib/sidebar-nav-custom";
 import type { InternalNavSection, InternalOperationsView } from "@/lib/internal-operations-data";
 import { patchTalantonBusinessProductivityNavSections } from "@/lib/internal-role-views";
@@ -290,6 +291,8 @@ export function resolveCatalogueModuleIdForNavSection(section: InternalNavSectio
     return null;
   }
 
+  if (label === "Stable Management") return null;
+
   if (label && SECTION_LABEL_TO_MODULE_ID[label]) {
     return SECTION_LABEL_TO_MODULE_ID[label]!;
   }
@@ -478,11 +481,11 @@ export function applyWorkspaceSidebarModuleConfig(
     return getNavSectionKey(a).localeCompare(getNavSectionKey(b));
   });
 
-  const ordered = [
+  const ordered = placeStableManagementMenu([
     ...injectMissingFixedPinSections(pins),
     ...normalizedMovable,
     ...(settings ? [settings] : []),
-  ];
+  ]);
   if (isTalantonImpactSlug(workspaceSlug)) {
     return patchTalantonBusinessProductivityNavSections(ordered);
   }

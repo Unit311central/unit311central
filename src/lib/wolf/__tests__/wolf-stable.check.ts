@@ -12,17 +12,38 @@ import {
   stableFacilityById,
   WOLF_STABLE_FACILITIES,
 } from "@/lib/wolf/stable/demo-data";
+import { applyWorkspaceSidebarModuleConfig } from "@/lib/platform-workspaces/workspace-sidebar-config";
 import { wolfGroundWebRtcLinkStatus } from "@/lib/wolf/webrtc-link-status";
 import { buildWolfCentralNavSections } from "@/lib/wolf/wolf-nav";
 
 const nav = buildWolfCentralNavSections();
 const pins = nav.filter((section) => section.kind === "pin");
+const stable = nav.find((section) => section.label === "Stable Management");
 assert.equal(pins[0]?.items[0]?.label, "Estate overview");
-assert.equal(pins[1]?.label, "Stable Management");
-assert.equal(pins[1]?.items.length, 1);
-assert.equal(pins[1]?.items[0]?.label, "Stable Management");
-assert.equal(pins[1]?.items[0]?.view, "wolf-stable");
+assert.equal(stable?.kind, "workspace");
+assert.equal(stable?.items.length, 1);
+assert.equal(stable?.items[0]?.label, "Stable Management");
+assert.equal(stable?.items[0]?.view, "wolf-stable");
+assert.ok(!pins.some((section) => section.items.some((item) => item.view === "wolf-stable")));
 assert.ok(!nav.some((section) => section.label === "Tools" && section.items.some((item) => item.view === "wolf-stable")));
+assert.ok(!nav.some((section) => section.label === "Animals" && section.items.some((item) => item.view === "wolf-stable")));
+
+const ordered = applyWorkspaceSidebarModuleConfig(nav, {
+  modules: [
+    { moduleId: "sales-management", enabled: true, displayOrder: 0 },
+    { moduleId: "wolf-animals", enabled: true, displayOrder: 1 },
+  ],
+});
+const orderedWorkspaces = ordered.filter((section) => section.kind === "workspace");
+assert.equal(orderedWorkspaces[0]?.label, "Stable Management");
+assert.equal(orderedWorkspaces[0]?.items[0]?.view, "wolf-stable");
+assert.ok(
+  !ordered.some(
+    (section) =>
+      section.label !== "Stable Management" &&
+      section.items.some((item) => item.view === "wolf-stable"),
+  ),
+);
 
 const facility = stableFacilityById("windsor-estate-stables");
 assert.ok(facility);

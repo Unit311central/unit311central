@@ -95,7 +95,7 @@ export function buildWolfCentralNavSections(): readonly InternalNavSection[] {
       items: [{ label: "Estate overview", icon: "Globe2", view: "wolf-estate" }],
     },
     {
-      kind: "pin",
+      kind: "workspace",
       label: "Stable Management",
       icon: "Fence",
       color: "#C4A35A",
