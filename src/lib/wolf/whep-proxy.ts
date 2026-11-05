@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { describeWhepUpstreamBody } from "@/lib/wolf/whep-failure";
 import { requireWolfCentralWorkspace } from "@/lib/wolf/wolf-central-auth";
 import { whepSessionPath } from "@/lib/wolf/webrtc-playback";
 
@@ -10,11 +11,6 @@ function authFailure(error: unknown) {
   const message = error instanceof Error ? error.message : "Authentication required.";
   const status = message.includes("only available") ? 403 : 401;
   return NextResponse.json({ error: message }, { status });
-}
-
-function snippet(text: string): string {
-  const flat = text.replace(/\s+/g, " ").trim();
-  return flat.slice(0, 180);
 }
 
 async function readSdp(request: Request): Promise<string | NextResponse> {
@@ -92,7 +88,7 @@ export async function proxyWhepPost(
       error: "WHEP signalling did not return an SDP answer.",
       upstreamStatus: upstream.status,
       signallingUrl: target,
-      detail: snippet(body) || "Empty response.",
+      detail: describeWhepUpstreamBody(upstream.status, body),
     },
     { status: upstream.status === 404 ? 502 : upstream.status || 502 },
   );

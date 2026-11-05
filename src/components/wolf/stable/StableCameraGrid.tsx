@@ -42,23 +42,23 @@ function SimulatedCamera({
   return (
     <>
       <article className={`${wolfCardClass} flex h-full flex-col overflow-hidden`}>
-        <header className="flex items-start justify-between gap-3 px-4 py-3">
-          <div>
-            <p className="text-sm font-semibold text-white">{cameraTitle(camera)}</p>
-            <p className="mt-0.5 text-xs text-white/50">{areaName}</p>
-            <button
-              type="button"
-              onClick={onOpenHorse}
-              className="mt-2 flex items-center gap-2 text-left text-sm text-emerald-200 hover:text-emerald-100"
-            >
-              <img src={horse.photo} alt="" className="h-8 w-8 rounded-full object-cover" />
-              {horse.name}
-            </button>
-          </div>
-          <span className="rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white/55">
-            Still photograph
-          </span>
-        </header>
+      <header className="flex items-start justify-between gap-3 px-4 py-3">
+        <div className="min-w-0">
+          <p className="text-sm font-semibold text-white">{cameraTitle(camera)}</p>
+          <p className="mt-0.5 text-xs text-white/50">{areaName}</p>
+          <button
+            type="button"
+            onClick={onOpenHorse}
+            className="mt-2 flex items-center gap-2 text-left text-sm text-emerald-200 hover:text-emerald-100"
+          >
+            <img src={horse.photo} alt="" className="h-8 w-8 rounded-full object-cover" />
+            {horse.name}
+          </button>
+        </div>
+        <span className="shrink-0 rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white/55">
+          Still photograph
+        </span>
+      </header>
         <button
           type="button"
           onClick={() => setEnlarged(true)}
@@ -175,7 +175,7 @@ function LiveCamera({
   return (
     <article className={shell}>
       <header className="flex items-start justify-between gap-3 px-4 py-3">
-        <div>
+        <div className="min-w-0">
           <p className="text-sm font-semibold text-white">{cameraTitle(camera)}</p>
           <p className="mt-0.5 text-xs text-white/50">{areaName}</p>
           <button
@@ -187,7 +187,7 @@ function LiveCamera({
             {horse.name}
           </button>
         </div>
-        <span className="rounded-full border border-white/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white/80">
+        <span className="shrink-0 rounded-full border border-white/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white/80">
           {statusLabel}
         </span>
       </header>

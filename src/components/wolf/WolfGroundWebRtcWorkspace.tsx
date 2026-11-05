@@ -12,6 +12,7 @@ import {
   type WolfWebRtcConnectionStatus,
   type WolfWebRtcStreamStatus,
 } from "@/lib/wolf/webrtc-link-status";
+import { signallingFailureDetail } from "@/lib/wolf/whep-failure";
 import { WOLF_GROUND_WEBRTC_PATH } from "@/lib/wolf/webrtc-playback";
 
 type ConnectionStatus = WolfWebRtcConnectionStatus;
@@ -79,20 +80,6 @@ function streamLabel(status: StreamStatus): string {
     case "failed":
       return "No video";
   }
-}
-
-function signallingFailureDetail(failure: {
-  error?: string;
-  upstreamStatus?: number;
-  detail?: string;
-} | null): string {
-  const detail = failure?.detail ?? "";
-  if (failure?.upstreamStatus === 404 || /no stream is available/i.test(detail)) {
-    return "Brix is not on the air for stream key test. In Brix, start RTMP to rtmp://38.80.152.147:39908/live with key test. When Brix shows it is live, tap Reconnect here. WOLF can stay open in split screen or switch back from Brix.";
-  }
-  const upstream =
-    typeof failure?.upstreamStatus === "number" ? ` Upstream HTTP ${failure.upstreamStatus}.` : "";
-  return `${failure?.error ?? "WHEP did not return an SDP answer."}${upstream} ${detail}`.trim();
 }
 
 function pillClass(kind: "ok" | "bad" | "pending"): string {
@@ -427,7 +414,7 @@ export function WolfGroundWebRtcPlayer({
       </div>
       {linkStatus !== "live" ? (
         <div className="pointer-events-none absolute inset-x-0 bottom-12 bg-gradient-to-t from-black/80 to-transparent p-3">
-          <p className="max-w-prose text-xs leading-relaxed text-white/80" role="alert">
+          <p className="max-w-prose text-xs leading-relaxed break-words text-white/80" role="alert">
             {diagnostics.detail}
           </p>
         </div>

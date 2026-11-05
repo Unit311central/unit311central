@@ -24,6 +24,7 @@ import {
 } from "@/lib/wolf/stable/demo-operations";
 import { STABLE_FACILITY_TABS } from "@/lib/wolf/stable/facility-tabs";
 import { applyWorkspaceSidebarModuleConfig } from "@/lib/platform-workspaces/workspace-sidebar-config";
+import { describeWhepUpstreamBody, signallingFailureDetail } from "@/lib/wolf/whep-failure";
 import { wolfGroundWebRtcLinkStatus } from "@/lib/wolf/webrtc-link-status";
 import { buildWolfCentralNavSections } from "@/lib/wolf/wolf-nav";
 
@@ -135,6 +136,38 @@ assert.equal(
   wolfGroundWebRtcLinkStatus("failed", "failed", "WHEP signalling endpoint is unreachable."),
   "failed",
 );
+
+const runpodWaitingPage =
+  '<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8" /><title>Waiting for service to respond — RunPod</title></head><body>Waiting for service to respond</body></html>';
+assert.equal(
+  describeWhepUpstreamBody(502, runpodWaitingPage),
+  "The live camera service is not responding.",
+);
+assert.equal(
+  signallingFailureDetail({
+    error: "WHEP signalling did not return an SDP answer.",
+    upstreamStatus: 502,
+    detail: describeWhepUpstreamBody(502, runpodWaitingPage),
+  }),
+  "The live camera is not responding. Tap Reconnect.",
+);
+assert.equal(
+  signallingFailureDetail({
+    error: "WHEP signalling did not return an SDP answer.",
+    upstreamStatus: 502,
+    detail: runpodWaitingPage,
+  }),
+  "The live camera is not responding. Tap Reconnect.",
+);
+assert.match(
+  signallingFailureDetail({ upstreamStatus: 404, detail: "no stream is available" }),
+  /stream key test/,
+);
+assert.doesNotMatch(signallingFailureDetail({
+  error: "WHEP signalling did not return an SDP answer.",
+  upstreamStatus: 502,
+  detail: runpodWaitingPage,
+}), /<!doctype|<html/i);
 
 const player = fs.readFileSync("src/components/wolf/WolfGroundWebRtcWorkspace.tsx", "utf8");
 assert.match(player, /export function WolfGroundWebRtcPlayer/);
