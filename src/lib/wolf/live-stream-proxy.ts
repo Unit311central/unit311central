@@ -4,7 +4,7 @@
  */
 
 export const WOLF_HLS_UPSTREAM_URL =
-  "https://4s4dzedw76v0re-8888.proxy.runpod.net/live/test/index.m3u8";
+  "https://qep1qch979u8pa-8888.proxy.runpod.net/live/test/index.m3u8";
 
 export const WOLF_TEST_GROUND_HLS_PREFIX = "/api/live/stream";
 

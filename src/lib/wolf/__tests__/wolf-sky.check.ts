@@ -36,7 +36,7 @@ const phoneLinkAt =
 assert.ok(webrtcAt >= 0 && phoneLinkAt === webrtcAt + 1 && skyAt === phoneLinkAt + 1);
 
 assert.equal(WOLF_SKY_WEBRTC_PATH, "/api/wolf/live/sky/webrtc");
-assert.equal(WOLF_SKY_RTMP_URL, "rtmp://38.80.152.147:39908/live/sky");
+assert.equal(WOLF_SKY_RTMP_URL, "rtmp://38.80.152.147:38190/live/sky");
 assert.equal(resolveSkyWhepUrl(undefined), SKY_WHEP_URL);
 assert.ok(SKY_WHEP_URL.endsWith("/live/sky/whep"));
 assert.ok(PROPOSED_WHEP_URL.endsWith("/live/test/whep"));

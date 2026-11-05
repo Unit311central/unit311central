@@ -8,12 +8,12 @@
  */
 
 export const PROPOSED_WHEP_URL =
-  "https://4s4dzedw76v0re-8889.proxy.runpod.net/live/test/whep";
+  "https://qep1qch979u8pa-8889.proxy.runpod.net/live/test/whep";
 
 export const SKY_WHEP_URL =
-  "https://4s4dzedw76v0re-8889.proxy.runpod.net/live/sky/whep";
+  "https://qep1qch979u8pa-8889.proxy.runpod.net/live/sky/whep";
 
-export const WOLF_SKY_RTMP_URL = "rtmp://38.80.152.147:39908/live/sky";
+export const WOLF_SKY_RTMP_URL = "rtmp://38.80.152.147:38190/live/sky";
 
 export const WOLF_GROUND_WEBRTC_PATH = "/api/wolf/live/webrtc";
 

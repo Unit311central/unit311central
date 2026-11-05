@@ -29,15 +29,15 @@ assert.equal(getWolfHlsUpstreamUrl(), WOLF_HLS_UPSTREAM_URL);
 assert.equal(wolfTestGroundPlaybackPath(), "/api/live/stream/index.m3u8");
 assert.equal(
   wolfTestGroundUpstreamUrl("index.m3u8")?.href,
-  "https://4s4dzedw76v0re-8888.proxy.runpod.net/live/test/index.m3u8",
+  "https://qep1qch979u8pa-8888.proxy.runpod.net/live/test/index.m3u8",
 );
 assert.equal(
   wolfTestGroundUpstreamUrl("video1_seg1.mp4", "?session=abc")?.href,
-  "https://4s4dzedw76v0re-8888.proxy.runpod.net/live/test/video1_seg1.mp4?session=abc",
+  "https://qep1qch979u8pa-8888.proxy.runpod.net/live/test/video1_seg1.mp4?session=abc",
 );
 assert.equal(
   wolfTestGroundUpstreamUrl("part1.m4s")?.href,
-  "https://4s4dzedw76v0re-8888.proxy.runpod.net/live/test/part1.m4s",
+  "https://qep1qch979u8pa-8888.proxy.runpod.net/live/test/part1.m4s",
 );
 assert.equal(wolfTestGroundUpstreamUrl("../secret"), null);
 assert.equal(wolfTestGroundUpstreamUrl("a/../../etc"), null);
@@ -50,7 +50,7 @@ assert.match(rewritten, /\/api\/live\/stream\/init\.mp4/);
 assert.match(rewritten, /\/api\/live\/stream\/video1_part1\.m4s/);
 assert.match(rewritten, /\/api\/live\/stream\/seg1\.mp4/);
 assert.match(rewritten, /\/api\/live\/stream\/old\.ts/);
-assert.doesNotMatch(rewritten, /4s4dzedw76v0re/);
+assert.doesNotMatch(rewritten, /4s4dzedw76v0re|qep1qch979u8pa/);
 assert.doesNotMatch(rewritten, /wolf-aeris/);
 assert.doesNotMatch(rewritten, /8890/);
 
@@ -95,7 +95,7 @@ const master = await fetchWolfHlsResource(new URL(manifest), manifest, "test-sec
 assert.equal(master.status, 200);
 assert.match(await master.text(), /video1_stream\.m3u8/);
 const segment = await fetchWolfHlsResource(
-  new URL("https://4s4dzedw76v0re-8888.proxy.runpod.net/live/test/video1_seg1.mp4"),
+  new URL("https://qep1qch979u8pa-8888.proxy.runpod.net/live/test/video1_seg1.mp4"),
   manifest,
   "test-secret",
 );

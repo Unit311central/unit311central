@@ -88,7 +88,7 @@ function signallingFailureDetail(failure: {
 } | null): string {
   const detail = failure?.detail ?? "";
   if (failure?.upstreamStatus === 404 || /no stream is available/i.test(detail)) {
-    return "Brix is not on the air for stream key test. In Brix, start RTMP to rtmp://38.80.152.147:39908/live with key test. When Brix shows it is live, tap Reconnect here. WOLF can stay open in split screen or switch back from Brix.";
+    return "Brix is not on the air for stream key test. In Brix, start RTMP to rtmp://38.80.152.147:38190/live with key test. When Brix shows it is live, tap Reconnect here. WOLF can stay open in split screen or switch back from Brix.";
   }
   const upstream =
     typeof failure?.upstreamStatus === "number" ? ` Upstream HTTP ${failure.upstreamStatus}.` : "";
