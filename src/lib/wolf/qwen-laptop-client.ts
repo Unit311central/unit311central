@@ -5,7 +5,7 @@ import {
 } from "@/lib/wolf/qwen-laptop-overlay";
 
 const EMPTY = { objects: [] } as const;
-const DEFAULT_MODEL = "Qwen/Qwen2.5-VL-7B-Instruct";
+const DEFAULT_MODEL = "Qwen/Qwen2.5-VL-3B-Instruct";
 
 export function qwenOverlayConfig(): { apiKey: string; baseUrl: string; model: string } | null {
   const baseUrl = (process.env.WOLF_VISION_URL?.trim() || process.env.QWEN_BASE_URL?.trim() || "").replace(

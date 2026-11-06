@@ -84,7 +84,7 @@ async function checkClient() {
       const body = Buffer.concat(chunks).toString("utf8");
       assert.equal(req.headers.authorization, "Bearer EMPTY");
       assert.match(body, /data:image\/jpeg;base64,/);
-      assert.match(body, /Qwen\/Qwen2\.5-VL-7B-Instruct/);
+      assert.match(body, /Qwen\/Qwen2\.5-VL-3B-Instruct/);
       assert.match(body, /tables and chairs/);
       res.setHeader("content-type", "application/json");
       res.end(
