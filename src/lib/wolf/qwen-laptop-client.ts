@@ -4,16 +4,30 @@ import {
   type QwenLaptopAnswer,
 } from "@/lib/wolf/qwen-laptop-overlay";
 
-const EMPTY = { laptop: false, label: null, box: null } as const;
+const EMPTY = { objects: [] } as const;
+const DEFAULT_MODEL = "Qwen/Qwen2.5-VL-7B-Instruct";
 
 export function qwenOverlayConfig(): { apiKey: string; baseUrl: string; model: string } | null {
-  const apiKey = process.env.QWEN_API_KEY?.trim() || process.env.WOLF_QWEN_API_KEY?.trim() || "";
-  if (!apiKey) return null;
-  const baseUrl = (
-    process.env.QWEN_BASE_URL?.trim() || "https://dashscope-intl.aliyuncs.com/compatible-mode/v1"
-  ).replace(/\/$/, "");
-  const model = process.env.QWEN_VISION_MODEL?.trim() || "qwen-vl-plus";
+  const baseUrl = (process.env.WOLF_VISION_URL?.trim() || process.env.QWEN_BASE_URL?.trim() || "").replace(
+    /\/$/,
+    "",
+  );
+  if (!baseUrl || !isRunpodVisionUrl(baseUrl)) return null;
+  const apiKey = process.env.QWEN_API_KEY?.trim() || process.env.WOLF_QWEN_API_KEY?.trim() || "EMPTY";
+  const model = process.env.QWEN_VISION_MODEL?.trim() || DEFAULT_MODEL;
   return { apiKey, baseUrl, model };
+}
+
+function isRunpodVisionUrl(value: string): boolean {
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    return false;
+  }
+  if (url.username || url.password) return false;
+  if (url.protocol === "https:") return true;
+  return url.protocol === "http:" && (url.hostname === "127.0.0.1" || url.hostname === "localhost");
 }
 
 function messageText(content: unknown): string {
@@ -39,7 +53,7 @@ export async function askQwenAboutLaptop(
     return {
       ...EMPTY,
       configured: false,
-      error: "Qwen is not configured. Set QWEN_API_KEY on the server.",
+      error: "Set WOLF_VISION_URL to the Qwen server on your RunPod GPU.",
     };
   }
   let response: Response;

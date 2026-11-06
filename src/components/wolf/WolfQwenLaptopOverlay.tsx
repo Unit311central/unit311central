@@ -3,10 +3,10 @@
 import { useEffect, useState, type RefObject } from "react";
 
 import {
-  QWEN_LAPTOP_LABEL,
   laptopOverlayPixels,
   type LaptopBox,
-  type LaptopOverlay,
+  type SceneObject,
+  type SceneOverlay,
 } from "@/lib/wolf/qwen-laptop-overlay";
 
 const SAMPLE_MS = 4_000;
@@ -19,6 +19,8 @@ type Placement = {
   height: number;
   labelTop: number;
 };
+
+type DrawnObject = SceneObject & { placement: Placement | null };
 
 function captureJpeg(video: HTMLVideoElement): Promise<Blob | null> {
   const scale = Math.min(1, SAMPLE_WIDTH / video.videoWidth);
@@ -43,30 +45,31 @@ function placeBox(video: HTMLVideoElement, box: LaptopBox): Placement | null {
   );
 }
 
+function drawObjects(video: HTMLVideoElement | null, objects: SceneObject[]): DrawnObject[] {
+  return objects.map((object) => ({
+    ...object,
+    placement: video && object.box ? placeBox(video, object.box) : null,
+  }));
+}
+
 export default function WolfQwenLaptopOverlay({
   videoRef,
   preview,
 }: {
   videoRef: RefObject<HTMLVideoElement | null>;
-  preview?: { reading: LaptopOverlay; placement: Placement | null; note?: string | null };
+  preview?: { reading: SceneOverlay; drawn?: DrawnObject[]; note?: string | null };
 }) {
-  const [reading, setReading] = useState<LaptopOverlay | null>(preview?.reading ?? null);
-  const [placement, setPlacement] = useState<Placement | null>(preview?.placement ?? null);
+  const [drawn, setDrawn] = useState<DrawnObject[]>(preview?.drawn ?? []);
   const [note, setNote] = useState<string | null>(preview?.note ?? null);
 
   useEffect(() => {
     if (preview) return undefined;
     let stopped = false;
     let busy = false;
-    let latestBox: LaptopBox | null = null;
+    let latest: SceneObject[] = [];
 
     const position = () => {
-      const video = videoRef.current;
-      if (!video || !latestBox) {
-        setPlacement(null);
-        return;
-      }
-      setPlacement(placeBox(video, latestBox));
+      setDrawn(drawObjects(videoRef.current, latest));
     };
 
     const tick = async () => {
@@ -83,7 +86,7 @@ export default function WolfQwenLaptopOverlay({
           body: jpeg,
         });
         const data = (await response.json().catch(() => null)) as
-          | (LaptopOverlay & { error?: string | null })
+          | (SceneOverlay & { error?: string | null })
           | null;
         if (stopped) return;
         if (!response.ok || !data) {
@@ -92,8 +95,7 @@ export default function WolfQwenLaptopOverlay({
           return;
         }
         setNote(null);
-        setReading({ laptop: data.laptop, label: data.label, box: data.box });
-        latestBox = data.laptop ? data.box : null;
+        latest = Array.isArray(data.objects) ? data.objects : [];
         position();
       } catch {
         if (!stopped) setNote("Qwen could not read this frame.");
@@ -114,37 +116,37 @@ export default function WolfQwenLaptopOverlay({
     };
   }, [preview, videoRef]);
 
-  const showLabel = reading?.laptop === true;
-  const banner = showLabel && !placement;
+  const unplaced = drawn.filter((object) => !object.placement);
 
   return (
     <div className="pointer-events-none absolute inset-0" aria-live="polite">
-      {showLabel && placement ? (
-        <div
-          className="absolute border-2 border-emerald-300"
-          style={{
-            left: placement.left,
-            top: placement.top,
-            width: placement.width,
-            height: placement.height,
-          }}
-        >
-          <span
-            className="absolute left-0 whitespace-nowrap rounded bg-emerald-400 px-2 py-0.5 text-xs font-semibold text-black"
-            style={{ top: placement.labelTop }}
+      {drawn.map((object, index) =>
+        object.placement ? (
+          <div
+            key={`${object.label}-${index}`}
+            className="absolute border-2 border-emerald-300"
+            style={{
+              left: object.placement.left,
+              top: object.placement.top,
+              width: object.placement.width,
+              height: object.placement.height,
+            }}
           >
-            {QWEN_LAPTOP_LABEL}
-          </span>
-        </div>
-      ) : null}
-      {banner ? (
+            <span
+              className="absolute left-0 whitespace-nowrap rounded bg-emerald-400 px-2 py-0.5 text-xs font-semibold text-black"
+              style={{ top: object.placement.labelTop }}
+            >
+              {object.label}
+            </span>
+          </div>
+        ) : null,
+      )}
+      {unplaced.length > 0 ? (
         <span className="absolute top-3 left-1/2 -translate-x-1/2 whitespace-nowrap rounded bg-emerald-400 px-2 py-0.5 text-xs font-semibold text-black">
-          {QWEN_LAPTOP_LABEL}
+          {unplaced.map((object) => object.label).join(", ")}
         </span>
       ) : null}
-      {note ? (
-        <p className="absolute inset-x-3 bottom-12 text-xs text-white/80">{note}</p>
-      ) : null}
+      {note ? <p className="absolute inset-x-3 bottom-12 text-xs text-white/80">{note}</p> : null}
     </div>
   );
 }

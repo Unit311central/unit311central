@@ -1,6 +1,4 @@
-/** Qwen vision read of one live frame. The on-screen words stay fixed. */
-
-export const QWEN_LAPTOP_LABEL = "this is a laptop";
+/** One Qwen read of a live frame. Labels are the short names Qwen returns. */
 
 export type LaptopBox = {
   x: number;
@@ -9,13 +7,16 @@ export type LaptopBox = {
   height: number;
 };
 
-export type LaptopOverlay = {
-  laptop: boolean;
-  label: typeof QWEN_LAPTOP_LABEL | null;
+export type SceneObject = {
+  label: string;
   box: LaptopBox | null;
 };
 
-export type QwenLaptopAnswer = LaptopOverlay & {
+export type SceneOverlay = {
+  objects: SceneObject[];
+};
+
+export type QwenLaptopAnswer = SceneOverlay & {
   configured: boolean;
   error: string | null;
 };
@@ -28,13 +29,16 @@ export type ContainedFrame = {
 };
 
 const PROMPT = [
-  "Look at this camera frame.",
-  "If a laptop computer is visible, reply with JSON only:",
-  '{"laptop":true,"box":{"x":0.1,"y":0.2,"width":0.3,"height":0.4}}',
-  "The box is the laptop, as fractions of image width and height, origin at the top left.",
-  "If no laptop is visible, reply with JSON only:",
-  '{"laptop":false,"box":null}',
+  "This is one frame from a DJI Neo drone.",
+  "Name the physical objects you can see. Start with tables and chairs, then other furniture and objects.",
+  "Reply with JSON only:",
+  '{"objects":[{"label":"chair","box":{"x":0.1,"y":0.2,"width":0.3,"height":0.4}}]}',
+  "Each box is fractions of image width and height, origin at the top left.",
+  "Each label is a short English name.",
+  "If nothing is recognizable, reply {\"objects\":[]}.",
 ].join(" ");
+
+const MAX_OBJECTS = 8;
 
 export function qwenLaptopPrompt(): string {
   return PROMPT;
@@ -46,7 +50,7 @@ function finiteUnit(value: unknown): number | null {
   return value;
 }
 
-function boxFrom(value: unknown): LaptopBox | null {
+export function boxFromUnknown(value: unknown): LaptopBox | null {
   if (!value || typeof value !== "object") return null;
   const record = value as Record<string, unknown>;
   const x = finiteUnit(record.x);
@@ -64,13 +68,22 @@ function boxFrom(value: unknown): LaptopBox | null {
   };
 }
 
-function overlayFromRecord(record: Record<string, unknown>): LaptopOverlay {
-  const laptop = record.laptop === true;
-  if (!laptop) return { laptop: false, label: null, box: null };
-  return { laptop: true, label: QWEN_LAPTOP_LABEL, box: boxFrom(record.box) };
+export function sceneLabel(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const cleaned = value.replace(/[^a-zA-Z0-9 -]/g, " ").replace(/\s+/g, " ").trim();
+  if (!cleaned) return null;
+  return cleaned.slice(0, 32);
 }
 
-export function parseQwenLaptopOverlay(raw: string): LaptopOverlay {
+function objectFrom(value: unknown): SceneObject | null {
+  if (!value || typeof value !== "object") return null;
+  const record = value as Record<string, unknown>;
+  const label = sceneLabel(record.label);
+  if (!label) return null;
+  return { label, box: boxFromUnknown(record.box) };
+}
+
+export function parseQwenLaptopOverlay(raw: string): SceneOverlay {
   const text = raw.trim();
   const start = text.indexOf("{");
   const end = text.lastIndexOf("}");
@@ -78,16 +91,18 @@ export function parseQwenLaptopOverlay(raw: string): LaptopOverlay {
     try {
       const parsed = JSON.parse(text.slice(start, end + 1)) as unknown;
       if (parsed && typeof parsed === "object") {
-        return overlayFromRecord(parsed as Record<string, unknown>);
+        const objects = (parsed as { objects?: unknown }).objects;
+        if (Array.isArray(objects)) {
+          return {
+            objects: objects.map(objectFrom).filter((item): item is SceneObject => item !== null).slice(0, MAX_OBJECTS),
+          };
+        }
       }
     } catch {
-      // Fall through to a plain-language read.
+      // Fall through to an empty scene.
     }
   }
-  if (/\blaptop\b/i.test(text) && !/\bno laptop\b/i.test(text)) {
-    return { laptop: true, label: QWEN_LAPTOP_LABEL, box: null };
-  }
-  return { laptop: false, label: null, box: null };
+  return { objects: [] };
 }
 
 export function containFrame(
@@ -125,4 +140,3 @@ export function laptopOverlayPixels(
     labelTop: top < frame.y + 28 ? 4 : -28,
   };
 }
-
