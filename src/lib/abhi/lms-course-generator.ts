@@ -134,7 +134,6 @@ export async function generateAbhiCourseFromDocument(options: {
     const client = createOpenAIClient();
     const response = await client.chat.completions.create({
       model: getAssistantModel(),
-      temperature: 0.4,
       response_format: { type: "json_object" },
       messages: [
         {
