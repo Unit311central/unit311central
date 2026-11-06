@@ -40,7 +40,6 @@ export async function regenerateProcedureAnimationSpec(options: {
     const client = createOpenAIClient();
     const response = await client.chat.completions.create({
       model: getAssistantModel(),
-      temperature: 0.35,
       response_format: { type: "json_object" },
       messages: [
         {
