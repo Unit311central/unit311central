@@ -3,8 +3,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Camera, Loader2, Save, Send } from "lucide-react";
 
+import type { ExpenseAssignee } from "@/lib/expense-assignees";
 import type { ExpenseCurrency, FinancialExpense } from "@/lib/expenses-data";
-import type { HrEmployee } from "@/lib/hr-data";
 import type {
   ExpenseBillingCode,
   ExpenseCategory,
@@ -17,13 +17,17 @@ import { expenseInputClassName, FieldLabel, readApiJson } from "./expense-hub-sh
 
 type ExpenseAddFormProps = {
   currency: string;
-  employees: HrEmployee[];
+  assignees: ExpenseAssignee[];
   categories: ExpenseCategory[];
   billingCodes: ExpenseBillingCode[];
   mileageRates: ExpenseMileageRate[];
   currentUserId: string;
   currentUserName: string;
-  defaultEmployeeId?: string | null;
+  defaultAssigneeId?: string | null;
+  /** Shown under the person picker. Unit311 internal uses the internal-user register. */
+  assigneeNote?: string;
+  /** Name for a saved assignee who is no longer in the picker list. */
+  unlistedAssigneeName?: string | null;
   editExpense?: FinancialExpense | null;
   onSaved: (expense: FinancialExpense, message: string) => void;
   onCancel?: () => void;
@@ -54,13 +58,15 @@ function todayIso() {
 
 export default function ExpenseAddForm({
   currency,
-  employees,
+  assignees,
   categories,
   billingCodes,
   mileageRates,
   currentUserId,
   currentUserName,
-  defaultEmployeeId,
+  defaultAssigneeId,
+  assigneeNote,
+  unlistedAssigneeName,
   editExpense,
   onSaved,
   onCancel,
@@ -73,8 +79,7 @@ export default function ExpenseAddForm({
   const [form, setForm] = useState<FormState>(() => ({
     claimantEmployeeId:
       editExpense?.claimantEmployeeId ??
-      defaultEmployeeId ??
-      employees[0]?.id ??
+      defaultAssigneeId ??
       "",
     description: editExpense?.description ?? "",
     expenseCategoryId: editExpense?.expenseCategoryId ?? activeCategories[0]?.id ?? "",
@@ -241,14 +246,21 @@ export default function ExpenseAddForm({
               setForm((current) => ({ ...current, claimantEmployeeId: event.target.value }))
             }
           >
-            {employees.map((employee) => (
-              <option key={employee.id} value={employee.id}>
-                {employee.fullName}
+            <option value="">Select a person</option>
+            {assignees.map((assignee) => (
+              <option key={assignee.id} value={assignee.id}>
+                {assignee.fullName}
               </option>
             ))}
+            {form.claimantEmployeeId &&
+            !assignees.some((assignee) => assignee.id === form.claimantEmployeeId) ? (
+              <option value={form.claimantEmployeeId}>
+                {unlistedAssigneeName || "Current assignee"}
+              </option>
+            ) : null}
           </select>
           <p className="mt-1 text-[10px] text-white/35">
-            Default claimant: {currentUserName}
+            {assigneeNote ?? `Default claimant: ${currentUserName}`}
           </p>
         </div>
         <div>

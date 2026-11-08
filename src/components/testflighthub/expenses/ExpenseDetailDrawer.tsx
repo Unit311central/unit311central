@@ -11,7 +11,7 @@ import {
 } from "@/lib/expenses-data";
 import type { ExpenseApprovalEvent } from "@/lib/expense-management/types";
 import type { ExpenseBillingCode, ExpenseCategory } from "@/lib/expense-management/types";
-import type { HrEmployee } from "@/lib/hr-data";
+import type { ExpenseAssignee } from "@/lib/expense-assignees";
 import { formatShortDate } from "@/lib/expense-workflow-summary";
 import { useWorkspaceReportingCurrency } from "@/lib/workspace-reporting-currency";
 
@@ -20,7 +20,7 @@ import { readApiJson } from "./expense-hub-shared";
 type ExpenseDetailDrawerProps = {
   expense: FinancialExpense | null;
   onClose: () => void;
-  employees: HrEmployee[];
+  assignees: ExpenseAssignee[];
   categories: ExpenseCategory[];
   billingCodes: ExpenseBillingCode[];
 };
@@ -46,10 +46,10 @@ function actionLabel(action: string) {
   }
 }
 
-function claimantName(expense: FinancialExpense, employees: HrEmployee[]) {
+function claimantName(expense: FinancialExpense, assignees: ExpenseAssignee[]) {
   if (!expense.claimantEmployeeId) return expense.submitterName ?? "—";
-  const match = employees.find((row) => row.id === expense.claimantEmployeeId);
-  return match?.fullName ?? expense.submitterName;
+  const match = assignees.find((row) => row.id === expense.claimantEmployeeId);
+  return match?.fullName ?? expense.submitterName ?? "—";
 }
 
 function categoryName(expense: FinancialExpense, categories: ExpenseCategory[]) {
@@ -66,7 +66,7 @@ function billingName(expense: FinancialExpense, billingCodes: ExpenseBillingCode
 export default function ExpenseDetailDrawer({
   expense,
   onClose,
-  employees,
+  assignees,
   categories,
   billingCodes,
 }: ExpenseDetailDrawerProps) {
@@ -137,7 +137,7 @@ export default function ExpenseDetailDrawer({
 
         <div className="space-y-5 overflow-y-auto px-5 py-4">
           <div className="grid gap-3 sm:grid-cols-2">
-            <DetailField label="Assigned to" value={claimantName(expense, employees)} />
+            <DetailField label="Assigned to" value={claimantName(expense, assignees)} />
             <DetailField label="Submitted by" value={expense.submitterName} />
             <DetailField label="Category" value={categoryName(expense, categories)} />
             <DetailField label="Billing code" value={billingName(expense, billingCodes)} />
