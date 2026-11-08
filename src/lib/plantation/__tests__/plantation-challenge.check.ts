@@ -102,6 +102,17 @@ assert.equal(
   true,
 );
 
+const workspace = readFileSync("src/components/wolf/WolfPlantationChallengeWorkspace.tsx", "utf8");
+const overviewSource = workspace.slice(workspace.indexOf("function Overview"), workspace.indexOf("function Details"));
+assert.match(overviewSource, /<th className="px-2 py-2 font-medium">Name<\/th>/);
+assert.match(overviewSource, /metric\.label/);
+assert.match(overviewSource, /submission\.participantName/);
+assert.doesNotMatch(overviewSource, /rows\[index\]/);
+assert.match(readFileSync("src/lib/plantation/plantation-challenge.ts", "utf8"), /Hectare section 1/);
+assert.match(readFileSync("src/lib/plantation/plantation-challenge.ts", "utf8"), /Hectare section 2/);
+assert.match(readFileSync("src/lib/plantation/plantation-challenge.ts", "utf8"), /Tree section 1/);
+assert.match(readFileSync("src/lib/plantation/plantation-challenge.ts", "utf8"), /Tree section 2/);
+
 const middleware = readFileSync("src/middleware.ts", "utf8");
 assert.match(middleware, /isPlantationChallengePath\(pathname\)/);
 assert.match(middleware, /WOLF_CENTRAL_ORIGIN\}\/plantation/);

@@ -6,25 +6,25 @@ export const PLANTATION_METRICS = [
   {
     key: "section1Hectares",
     column: "section_1_hectares",
-    label: "Section 1 hectares",
+    label: "Hectare section 1",
     kind: "hectares",
   },
   {
     key: "section2Hectares",
     column: "section_2_hectares",
-    label: "Section 2 hectares",
+    label: "Hectare section 2",
     kind: "hectares",
   },
   {
     key: "section1Trees",
     column: "section_1_trees",
-    label: "Section 1 trees",
+    label: "Tree section 1",
     kind: "trees",
   },
   {
     key: "section2Trees",
     column: "section_2_trees",
-    label: "Section 2 trees",
+    label: "Tree section 2",
     kind: "trees",
   },
 ] as const;

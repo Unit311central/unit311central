@@ -92,55 +92,57 @@ function Overview({
   deletingId: string | null;
   onDelete: (submission: PlantationSubmissionRecord) => void;
 }) {
-  const ranked = PLANTATION_METRICS.map((metric) => ({
-    metric,
-    rows: rankPlantationSubmissions(submissions, metric.key),
-  }));
-  const rowCount = submissions.length;
+  const [sortKey, setSortKey] = useState<PlantationMetricKey>("section1Hectares");
+  const rows = rankPlantationSubmissions(submissions, sortKey);
 
   return (
     <section className={`${wolfCardClass} overflow-x-auto p-4 sm:p-5`}>
-      {rowCount === 0 ? (
+      {rows.length === 0 ? (
         <p className="text-sm text-white/55">No entries yet.</p>
       ) : (
-        <table className="w-full min-w-[760px] border-collapse text-left text-sm">
-          <thead>
-            <tr className="border-b border-white/10 text-xs uppercase tracking-wide text-white/45">
-              <th className="px-2 py-2 font-medium"> </th>
-              {PLANTATION_METRICS.map((metric) => (
-                <th key={metric.key} className="px-2 py-2 font-medium">
-                  {metric.label}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {Array.from({ length: rowCount }, (_, index) => (
-              <tr key={index} className="border-b border-white/8 align-top">
-                <td className="px-2 py-3 tabular-nums text-white/40">{index + 1}</td>
-                {ranked.map(({ metric, rows }) => {
-                  const submission = rows[index];
+        <>
+          <p className="mb-3 text-xs text-white/45">Largest value in the selected column is at the top.</p>
+          <table className="w-full min-w-[760px] border-collapse text-left text-sm">
+            <thead>
+              <tr className="border-b border-white/10 text-xs uppercase tracking-wide text-white/45">
+                <th className="px-2 py-2 font-medium">Name</th>
+                {PLANTATION_METRICS.map((metric) => {
+                  const selected = sortKey === metric.key;
                   return (
-                    <td key={metric.key} className="px-2 py-3">
-                      <div className="flex items-start justify-between gap-2">
-                        <div>
-                          <p className="font-medium text-white">{submission.participantName}</p>
-                          <p className="mt-1 tabular-nums text-white/75">
-                            {metricValue(submission, metric.key)}
-                          </p>
-                        </div>
-                        <DeleteButton
-                          busy={deletingId === submission.id}
-                          onDelete={() => onDelete(submission)}
-                        />
-                      </div>
-                    </td>
+                    <th key={metric.key} className="px-2 py-2 font-medium" aria-sort={selected ? "descending" : "none"}>
+                      <button
+                        type="button"
+                        onClick={() => setSortKey(metric.key)}
+                        className={`uppercase tracking-wide ${selected ? "text-white" : "text-white/45 hover:text-white"}`}
+                      >
+                        {metric.label}
+                        {selected ? <span aria-hidden="true"> ↓</span> : null}
+                      </button>
+                    </th>
                   );
                 })}
+                <th className="px-2 py-2 font-medium">
+                  <span className="sr-only">Delete</span>
+                </th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {rows.map((submission) => (
+                <tr key={submission.id} className="border-b border-white/8">
+                  <td className="px-2 py-3 font-medium text-white">{submission.participantName}</td>
+                  {PLANTATION_METRICS.map((metric) => (
+                    <td key={metric.key} className="px-2 py-3 tabular-nums text-white/80">
+                      {metricValue(submission, metric.key)}
+                    </td>
+                  ))}
+                  <td className="px-2 py-3">
+                    <DeleteButton busy={deletingId === submission.id} onDelete={() => onDelete(submission)} />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </>
       )}
     </section>
   );
@@ -169,10 +171,11 @@ function Details({
         <thead>
           <tr className="border-b border-white/10 text-xs uppercase tracking-wide text-white/45">
             <th className="px-2 py-2 font-medium">Name</th>
-            <th className="px-2 py-2 font-medium">Section 1 hectares</th>
-            <th className="px-2 py-2 font-medium">Section 2 hectares</th>
-            <th className="px-2 py-2 font-medium">Section 1 trees</th>
-            <th className="px-2 py-2 font-medium">Section 2 trees</th>
+            {PLANTATION_METRICS.map((metric) => (
+              <th key={metric.key} className="px-2 py-2 font-medium">
+                {metric.label}
+              </th>
+            ))}
             <th className="px-2 py-2 font-medium">Submitted</th>
             <th className="px-2 py-2 font-medium"> </th>
           </tr>
