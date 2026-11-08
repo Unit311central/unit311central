@@ -1,9 +1,17 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, startTransition } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, startTransition } from "react";
 import { useSearchParams } from "next/navigation";
 import { ArrowLeft, Loader2, Plus, Receipt } from "lucide-react";
 
+import {
+  expenseAssigneesFromHrEmployees,
+  expenseAssigneesFromInternalUsers,
+  expenseAssigneesUseInternalUsers,
+  mergeExpenseAssignees,
+  resolveDefaultExpenseAssigneeId,
+  type ExpenseAssignee,
+} from "@/lib/expense-assignees";
 import {
   isAccountsPayableSeedExpense,
   type FinancialExpense,
@@ -55,10 +63,18 @@ export default function ExpensesHubWorkspace({ onBackToFinancials }: ExpensesHub
     setSection(resolveExpenseHubSection(searchParams.get("section")));
   }, [searchParams]);
   const { allowedViews } = useOperatorEntitlements();
-  const [sessionUser, setSessionUser] = useState<{ userId: string; displayName: string }>({
+  const [sessionUser, setSessionUser] = useState<{
+    userId: string;
+    displayName: string;
+    email: string;
+    username: string;
+  }>({
     userId: "",
     displayName: "",
+    email: "",
+    username: "",
   });
+  const [workspaceSlug, setWorkspaceSlug] = useState("");
 
   const access = useMemo(
     () =>
@@ -75,6 +91,7 @@ export default function ExpensesHubWorkspace({ onBackToFinancials }: ExpensesHub
   const [myExpenses, setMyExpenses] = useState<FinancialExpense[]>([]);
   const [allExpenses, setAllExpenses] = useState<FinancialExpense[]>([]);
   const [employees, setEmployees] = useState<HrEmployee[]>([]);
+  const [internalAssignees, setInternalAssignees] = useState<ExpenseAssignee[]>([]);
   const [categories, setCategories] = useState<ExpenseCategory[]>([]);
   const [billingCodes, setBillingCodes] = useState<ExpenseBillingCode[]>([]);
   const [mileageRates, setMileageRates] = useState<ExpenseMileageRate[]>([]);
@@ -103,41 +120,80 @@ export default function ExpensesHubWorkspace({ onBackToFinancials }: ExpensesHub
     [claimExpenses, reportingCurrency],
   );
 
-  const defaultEmployeeId = useMemo(() => {
-    const match = employees.find(
-      (employee) =>
-        employee.email &&
-        sessionUser.displayName &&
-        employee.fullName.toLowerCase() === sessionUser.displayName.toLowerCase(),
-    );
-    return match?.id ?? employees[0]?.id ?? null;
-  }, [employees, sessionUser.displayName]);
+  const useInternalAssignees = expenseAssigneesUseInternalUsers({
+    host: typeof window !== "undefined" ? window.location.hostname : null,
+    workspaceSlug,
+  });
+
+  const formAssignees = useMemo(
+    () =>
+      useInternalAssignees
+        ? internalAssignees
+        : expenseAssigneesFromHrEmployees(employees),
+    [employees, internalAssignees, useInternalAssignees],
+  );
+
+  const lookupAssignees = useMemo(
+    () =>
+      mergeExpenseAssignees(
+        formAssignees,
+        expenseAssigneesFromHrEmployees(employees),
+      ),
+    [employees, formAssignees],
+  );
+
+  const defaultAssigneeId = useMemo(
+    () => resolveDefaultExpenseAssigneeId(formAssignees, sessionUser),
+    [formAssignees, sessionUser],
+  );
 
   useEffect(() => {
     void fetch("/api/auth/whoami", { cache: "no-store" })
       .then((response) => response.json())
-      .then((payload: { userId?: string; displayName?: string }) => {
+      .then((payload: {
+        userId?: string;
+        displayName?: string;
+        email?: string;
+        username?: string;
+        workspaceSlug?: string;
+      }) => {
         setSessionUser({
           userId: String(payload.userId ?? ""),
           displayName: String(payload.displayName ?? ""),
+          email: String(payload.email ?? ""),
+          username: String(payload.username ?? ""),
         });
+        setWorkspaceSlug(String(payload.workspaceSlug ?? ""));
       })
       .catch(() => {
         /* optional */
       });
   }, []);
 
+  const loadGeneration = useRef(0);
+
   const loadCore = useCallback(async () => {
+    const generation = ++loadGeneration.current;
+    const stillCurrent = () => generation === loadGeneration.current;
     setLoading(true);
     setError(null);
     try {
-      const [myResponse, configResponse, employeesResponse, notificationsResponse] =
+      const useInternalUsers = expenseAssigneesUseInternalUsers({
+        host: typeof window !== "undefined" ? window.location.hostname : null,
+        workspaceSlug,
+      });
+      const [myResponse, configResponse, employeesResponse, notificationsResponse, usersResponse, operatorsResponse] =
         await Promise.all([
           fetch("/api/expenses/my", { cache: "no-store" }),
           fetch("/api/expenses/config", { cache: "no-store" }),
           fetch("/api/hr/employees", { cache: "no-store" }),
           fetch("/api/expenses/notifications", { cache: "no-store" }),
+          useInternalUsers ? fetch("/api/users", { cache: "no-store" }) : Promise.resolve(null),
+          useInternalUsers
+            ? fetch("/api/messaging/operators", { cache: "no-store" })
+            : Promise.resolve(null),
         ]);
+      if (!stillCurrent()) return;
 
       const myData = await readApiJson<{
         expenses?: FinancialExpense[];
@@ -161,13 +217,36 @@ export default function ExpensesHubWorkspace({ onBackToFinancials }: ExpensesHub
         setSchedule(configData.schedule ?? null);
       }
 
-      const employeesData = await readApiJson<{ employees?: HrEmployee[] }>(employeesResponse);
       if (employeesResponse.ok) {
+        const employeesData = await readApiJson<{ employees?: HrEmployee[] }>(employeesResponse);
         setEmployees(
           (employeesData.employees ?? []).filter(
             (employee) => employee.employmentStatus !== "archived",
           ),
         );
+      }
+
+      if (useInternalUsers) {
+        const peopleResponse = usersResponse?.ok ? usersResponse : operatorsResponse;
+        if (!peopleResponse) throw new Error("Failed to load internal users");
+        const usersData = await readApiJson<{
+          users?: Array<{
+            id: string;
+            fullName?: string;
+            email?: string;
+            username?: string;
+            status?: string;
+            operatorLabel?: string;
+          }>;
+          error?: string;
+        }>(peopleResponse);
+        if (!peopleResponse.ok) {
+          throw new Error(usersData.error ?? "Failed to load internal users");
+        }
+        if (!stillCurrent()) return;
+        setInternalAssignees(expenseAssigneesFromInternalUsers(usersData.users ?? []));
+      } else if (stillCurrent()) {
+        setInternalAssignees([]);
       }
 
       if (notificationsResponse.ok) {
@@ -189,11 +268,13 @@ export default function ExpensesHubWorkspace({ onBackToFinancials }: ExpensesHub
         }
       }
     } catch (loadError) {
-      setError(loadError instanceof Error ? loadError.message : "Failed to load expenses");
+      if (stillCurrent()) {
+        setError(loadError instanceof Error ? loadError.message : "Failed to load expenses");
+      }
     } finally {
-      setLoading(false);
+      if (stillCurrent()) setLoading(false);
     }
-  }, [access.canViewAll]);
+  }, [access.canViewAll, reportingCurrency, workspaceSlug]);
 
   useEffect(() => {
     startTransition(() => {
@@ -341,14 +422,26 @@ export default function ExpensesHubWorkspace({ onBackToFinancials }: ExpensesHub
       {!loading && section === "add" && sessionUser.userId && (
         <section className="rounded-2xl border border-white/15 bg-white/[0.04] p-5 sm:p-6">
           <ExpenseAddForm
+            key={`${editExpense?.id ?? "new"}-${defaultAssigneeId}`}
             currency={reportingCurrency}
-            employees={employees}
+            assignees={formAssignees}
             categories={categories}
             billingCodes={billingCodes}
             mileageRates={mileageRates}
             currentUserId={sessionUser.userId}
             currentUserName={sessionUser.displayName || "You"}
-            defaultEmployeeId={defaultEmployeeId}
+            defaultAssigneeId={defaultAssigneeId}
+            assigneeNote={
+              useInternalAssignees
+                ? `Unit311 internal users. Signed in as ${sessionUser.displayName || "you"}.`
+                : undefined
+            }
+            unlistedAssigneeName={
+              editExpense?.claimantEmployeeId
+                ? lookupAssignees.find((assignee) => assignee.id === editExpense.claimantEmployeeId)
+                    ?.fullName
+                : null
+            }
             editExpense={editExpense}
             onSaved={handleSaved}
             onCancel={
@@ -405,7 +498,7 @@ export default function ExpensesHubWorkspace({ onBackToFinancials }: ExpensesHub
       <ExpenseDetailDrawer
         expense={selectedExpense}
         onClose={() => setSelectedExpense(null)}
-        employees={employees}
+        assignees={lookupAssignees}
         categories={categories}
         billingCodes={billingCodes}
       />
