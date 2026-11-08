@@ -24,6 +24,7 @@ import {
   isViewAllowedForWorkspaceGrants,
 } from "@/lib/workspace-enabled-views";
 import { WOLF_COURSE_RESPONSE_VIEWS } from "@/lib/wolf/course-response-views";
+import { WOLF_PLANTATION_CHALLENGE_VIEWS } from "@/lib/wolf/plantation-challenge-views";
 import { WOLF_STABLE_VIEWS } from "@/lib/wolf/stable/views";
 import { WOLF_CENTRAL_SLUG } from "@/lib/wolf/wolf-surface";
 
@@ -170,6 +171,7 @@ assert.doesNotMatch(sql, /create policy[^;]+to anon/i);
 assert.deepEqual(applyWolfWorkspaceAllowedViews(["home"], WOLF_CENTRAL_SLUG, [], []), [
   "home",
   ...WOLF_COURSE_RESPONSE_VIEWS,
+  ...WOLF_PLANTATION_CHALLENGE_VIEWS,
   ...WOLF_STABLE_VIEWS,
 ]);
 assert.equal(applyWolfWorkspaceAllowedViews(null, WOLF_CENTRAL_SLUG, [], []), null);

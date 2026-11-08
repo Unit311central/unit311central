@@ -211,6 +211,13 @@ export function buildWolfCentralNavSections(): readonly InternalNavSection[] {
           children: [
             { label: "Overview", view: "wolf-course-overview" },
             { label: "Details", view: "wolf-course-details" },
+            {
+              label: "Plantation challenge",
+              children: [
+                { label: "Overview", view: "wolf-plantation-overview" },
+                { label: "Details", view: "wolf-plantation-details" },
+              ],
+            },
           ],
         },
       ],

@@ -215,6 +215,9 @@ export const WolfVeterinaryConnectionWorkspace = lazyWorkspace(
 export const WolfCourseResponsesWorkspace = lazyWorkspace(
   () => import("@/components/wolf/WolfCourseResponsesWorkspace"),
 );
+export const WolfPlantationChallengeWorkspace = lazyWorkspace(
+  () => import("@/components/wolf/WolfPlantationChallengeWorkspace"),
+);
 export const WolfSkyWorkspace = lazyWorkspace(
   () => import("@/components/wolf/WolfSkyWorkspace"),
 );

@@ -85,6 +85,7 @@ import {
 } from "@/lib/mam/mam-website";
 import { INTERNAL_WORKSPACE_SLUG } from "@/lib/workspace-host";
 import { isMalaysianLandSurveyCoursePath } from "@/lib/course/malaysian-land-survey-public-path";
+import { isPlantationChallengePath } from "@/lib/plantation/plantation-challenge-public-path";
 import { isWolfCentralHost, WOLF_CENTRAL_ORIGIN } from "@/lib/wolf/wolf-surface";
 
 /** Next.js / browser prefetch must not clear auth gates or bounce live sessions. */
@@ -249,6 +250,22 @@ export async function middleware(request: NextRequest) {
       return response;
     }
     return redirectExternal(`${WOLF_CENTRAL_ORIGIN}/course${search}`);
+  }
+
+  // Plantation challenge form is public on the WOLF host. No login.
+  if (isPlantationChallengePath(pathname)) {
+    if (isWolfCentralHost(host) || isLocalDevHost(host)) {
+      const headers = new Headers(request.headers);
+      headers.set("x-unit311-bare-chrome", "1");
+      headers.set("x-unit311-pathname", pathname);
+      const response = NextResponse.next({ request: { headers } });
+      response.headers.set(
+        "Cache-Control",
+        "private, no-cache, no-store, max-age=0, must-revalidate",
+      );
+      return response;
+    }
+    return redirectExternal(`${WOLF_CENTRAL_ORIGIN}/plantation${search}`);
   }
 
   // Internal workspace slug must never be a customer subdomain host.

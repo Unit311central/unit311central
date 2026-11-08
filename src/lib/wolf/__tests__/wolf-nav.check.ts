@@ -115,12 +115,26 @@ const courseResponses = toolsSection.kind === "workspace"
   ? toolsSection.items.find((item) => item.label === "Course responses")
   : undefined;
 assert.deepEqual(
-  courseResponses?.children?.map((child) => ({ label: child.label, view: child.view })),
+  courseResponses?.children?.map((child) => ({
+    label: child.label,
+    view: child.view,
+    children: child.children?.map((nested) => ({ label: nested.label, view: nested.view })),
+  })),
   [
-    { label: "Overview", view: "wolf-course-overview" },
-    { label: "Details", view: "wolf-course-details" },
+    { label: "Overview", view: "wolf-course-overview", children: undefined },
+    { label: "Details", view: "wolf-course-details", children: undefined },
+    {
+      label: "Plantation challenge",
+      view: undefined,
+      children: [
+        { label: "Overview", view: "wolf-plantation-overview" },
+        { label: "Details", view: "wolf-plantation-details" },
+      ],
+    },
   ],
 );
+assert.ok(views.includes("wolf-plantation-overview"));
+assert.ok(views.includes("wolf-plantation-details"));
 assert.ok(views.includes("wolf-course-overview"));
 assert.ok(views.includes("wolf-course-details"));
 

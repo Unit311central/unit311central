@@ -323,6 +323,7 @@ import {
   WolfPhoneLinkWorkspace,
   WolfVeterinaryConnectionWorkspace,
   WolfCourseResponsesWorkspace,
+  WolfPlantationChallengeWorkspace,
   WolfSkyWorkspace,
   WolfSharkWorkspace,
   PailexViewHost,
@@ -1589,6 +1590,9 @@ export default function InternalOperationsDashboard({
           {activeView === "wolf-veterinary-connection" && <WolfVeterinaryConnectionWorkspace />}
           {(activeView === "wolf-course-overview" || activeView === "wolf-course-details") && (
             <WolfCourseResponsesWorkspace view={activeView} />
+          )}
+          {(activeView === "wolf-plantation-overview" || activeView === "wolf-plantation-details") && (
+            <WolfPlantationChallengeWorkspace view={activeView} />
           )}
           {activeView === "wolf-sky" && <WolfSkyWorkspace />}
 
