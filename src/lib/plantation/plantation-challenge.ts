@@ -160,6 +160,21 @@ export function formatPlantationTrees(value: number): string {
   return String(Math.trunc(value));
 }
 
+export const PLANTATION_EXPORT_QUESTION_5 = "Question 5: Enter estimate number of palm oil trees in section 2";
+
+export function plantationChallengeExportRows(
+  submissions: readonly PlantationSubmissionRecord[],
+): Record<string, string | number>[] {
+  return submissions.map((submission) => ({
+    Name: submission.participantName,
+    "Hectare section 1": submission.section1Hectares,
+    "Hectare section 2": submission.section2Hectares,
+    "Tree section 1": submission.section1Trees,
+    [PLANTATION_EXPORT_QUESTION_5]: submission.section2Trees,
+    Submitted: formatPlantationSubmittedAt(submission.submittedAt),
+  }));
+}
+
 export function formatPlantationSubmittedAt(iso: string): string {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return iso;

@@ -3,12 +3,14 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { wolfCardClass, wolfEyebrowClass, wolfShellClass } from "@/components/wolf/wolf-ui";
+import { downloadExcelWorkbook } from "@/lib/excel-download";
 import {
   PLANTATION_METRICS,
   formatPlantationHectares,
   formatPlantationSubmittedAt,
   formatPlantationTrees,
   plantationBarPercent,
+  plantationChallengeExportRows,
   rankPlantationSubmissions,
   type PlantationMetricKey,
   type PlantationSubmissionRecord,
@@ -293,11 +295,27 @@ export default function WolfPlantationChallengeWorkspace({ view }: { view: WolfP
     }
   }
 
+  async function onExport() {
+    await downloadExcelWorkbook("plantation-challenge.xlsx", [
+      { name: "Responses", rows: plantationChallengeExportRows(submissions) },
+    ]);
+  }
+
   return (
     <div className={wolfShellClass}>
-      <header className="mb-6">
-        <p className={wolfEyebrowClass}>Tools · Course responses · Plantation challenge</p>
-        <h1 className="mt-2 text-2xl font-semibold text-white">{title}</h1>
+      <header className="mb-6 flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <p className={wolfEyebrowClass}>Tools · Course responses · Plantation challenge</p>
+          <h1 className="mt-2 text-2xl font-semibold text-white">{title}</h1>
+        </div>
+        <button
+          type="button"
+          onClick={() => void onExport()}
+          disabled={loading || submissions.length === 0}
+          className="rounded-full border border-white/15 px-3 py-1.5 text-xs font-medium text-white/80 hover:border-white/30 hover:text-white disabled:opacity-40"
+        >
+          Export to Excel
+        </button>
       </header>
       {loading ? <p className="text-sm text-white/55">Loading entries…</p> : null}
       {error ? <p className="text-sm text-red-200">{error}</p> : null}

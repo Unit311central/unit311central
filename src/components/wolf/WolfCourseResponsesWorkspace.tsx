@@ -7,11 +7,13 @@ import { wolfCardClass, wolfEyebrowClass, wolfMetricLabelClass, wolfMetricValueC
 import {
   COURSE_CHOICE_QUESTIONS,
   COURSE_QUESTION_5,
+  courseResponsesExportRows,
   formatCourseSubmittedAt,
   summarizeCourseResponses,
   type CourseQuestionSummary,
   type CourseSubmissionRecord,
 } from "@/lib/course/malaysian-land-survey";
+import { downloadExcelWorkbook } from "@/lib/excel-download";
 import type { WolfCourseResponseView } from "@/lib/wolf/course-response-views";
 
 type LoadState = {
@@ -282,13 +284,27 @@ export default function WolfCourseResponsesWorkspace({ view }: { view: WolfCours
             submissions.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={reload}
-          className="rounded-full border border-white/15 px-3 py-1.5 text-xs font-medium text-white/70 hover:border-white/30 hover:text-white"
-        >
-          Refresh
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() =>
+              void downloadExcelWorkbook("malaysian-land-survey-responses.xlsx", [
+                { name: "Responses", rows: courseResponsesExportRows(submissions) },
+              ])
+            }
+            disabled={loading || submissions.length === 0}
+            className="rounded-full border border-white/15 px-3 py-1.5 text-xs font-medium text-white/80 hover:border-white/30 hover:text-white disabled:opacity-40"
+          >
+            Export to Excel
+          </button>
+          <button
+            type="button"
+            onClick={reload}
+            className="rounded-full border border-white/15 px-3 py-1.5 text-xs font-medium text-white/70 hover:border-white/30 hover:text-white"
+          >
+            Refresh
+          </button>
+        </div>
       </header>
       {loading ? <p className="text-sm text-white/50">Loading responses…</p> : null}
       {error ? (

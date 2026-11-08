@@ -297,6 +297,25 @@ export function summarizeCourseResponses(
   };
 }
 
+export const COURSE_EXPORT_QUESTION_5 = `Question 5: ${COURSE_QUESTION_5.title}`;
+
+export function courseResponsesExportRows(
+  submissions: readonly CourseSubmissionRecord[],
+): Record<string, string>[] {
+  return submissions.map((submission) => {
+    const row: Record<string, string> = {
+      Name: submission.participantName,
+    };
+    for (const question of COURSE_CHOICE_QUESTIONS) {
+      const answers = submission[question.id];
+      row[`Question ${question.number}`] = answers?.length ? answers.join("; ") : "";
+    }
+    row[COURSE_EXPORT_QUESTION_5] = submission.question5?.trim() ?? "";
+    row.Submitted = formatCourseSubmittedAt(submission.submittedAt);
+    return row;
+  });
+}
+
 export function formatCourseSubmittedAt(iso: string, timeZone?: string): string {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return iso;

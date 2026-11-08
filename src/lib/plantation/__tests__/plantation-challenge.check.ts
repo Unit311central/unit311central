@@ -5,12 +5,15 @@
  */
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
+import * as XLSX from "xlsx";
 
 import { migrationsMissingSatisfactionProbes } from "@/lib/migration-satisfaction-probes";
 import {
   classifyPlantationInsertError,
   parsePlantationSubmission,
+  PLANTATION_EXPORT_QUESTION_5,
   plantationBarPercent,
+  plantationChallengeExportRows,
   rankPlantationSubmissions,
   type PlantationSubmissionRecord,
 } from "@/lib/plantation/plantation-challenge";
@@ -87,6 +90,21 @@ assert.equal(plantationBarPercent(4, 8), 50);
 assert.equal(plantationBarPercent(0, 8), 0);
 assert.equal(plantationBarPercent(1, 0), 0);
 assert.ok(Math.abs(plantationBarPercent(5.3, 8) - 66.25) < 0.001);
+
+const exported = plantationChallengeExportRows(rows);
+assert.equal(exported.length, 2);
+assert.equal(exported.find((row) => row.Name === "Ada")?.[PLANTATION_EXPORT_QUESTION_5], 900);
+assert.equal(exported.find((row) => row.Name === "Bo")?.[PLANTATION_EXPORT_QUESTION_5], 100);
+const sheet = XLSX.utils.json_to_sheet(exported);
+const book = XLSX.utils.book_new();
+XLSX.utils.book_append_sheet(book, sheet, "Responses");
+const exportPath = "/tmp/plantation-challenge-export.xlsx";
+XLSX.writeFile(book, exportPath);
+const opened = XLSX.readFile(exportPath);
+const workbookRows = XLSX.utils.sheet_to_json<Record<string, string | number>>(opened.Sheets.Responses);
+assert.equal(workbookRows.find((row) => row.Name === "Ada")?.[PLANTATION_EXPORT_QUESTION_5], 900);
+assert.equal(workbookRows.find((row) => row.Name === "Bo")?.[PLANTATION_EXPORT_QUESTION_5], 100);
+assert.match(readFileSync("src/components/wolf/WolfPlantationChallengeWorkspace.tsx", "utf8"), /Export to Excel/);
 
 assert.equal(isPlantationChallengePath("/plantation"), true);
 assert.equal(isPlantationChallengePath("/plantation/"), true);

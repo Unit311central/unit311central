@@ -5,16 +5,20 @@
  */
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
+import * as XLSX from "xlsx";
 
 import {
   COURSE_DUPLICATE_MESSAGE,
+  COURSE_EXPORT_QUESTION_5,
   COURSE_QUESTION_1_OPTIONS,
   classifyCourseInsertError,
+  courseResponsesExportRows,
   formatCourseSubmittedAt,
   normalizeParticipantName,
   parseCourseSubmission,
   summarizeCourseResponses,
   trimParticipantName,
+  type CourseSubmissionRecord,
 } from "@/lib/course/malaysian-land-survey";
 import { isMalaysianLandSurveyCoursePath } from "@/lib/course/malaysian-land-survey-public-path";
 import { migrationsMissingSatisfactionProbes } from "@/lib/migration-satisfaction-probes";
@@ -200,5 +204,41 @@ const schema = readFileSync("src/lib/course/malaysian-land-survey-schema.ts", "u
 assert.match(schema, /222_malaysian_land_survey_course_responses\.sql/);
 assert.match(schema, /withMigrationQueryClient/);
 assert.doesNotMatch(schema, /process\.env\.SUPABASE_SERVICE_ROLE_KEY/);
+
+const courseRows: CourseSubmissionRecord[] = [
+  {
+    id: "aisha",
+    participantName: "Aisha Rahman",
+    normalizedName: "aisha rahman",
+    question1: ["Urban development"],
+    question2: ["Drones / UAVs"],
+    question3: ["GIS / mapping software"],
+    question4: null,
+    question5: "Please include a coastal example.",
+    submittedAt: "2026-11-08T02:00:00.000Z",
+  },
+  {
+    id: "ben",
+    participantName: "Ben",
+    normalizedName: "ben",
+    question1: null,
+    question2: null,
+    question3: null,
+    question4: null,
+    question5: null,
+    submittedAt: "2026-11-08T02:05:00.000Z",
+  },
+];
+const courseExport = courseResponsesExportRows(courseRows);
+assert.equal(courseExport.length, 2);
+assert.equal(courseExport[0]?.[COURSE_EXPORT_QUESTION_5], "Please include a coastal example.");
+assert.equal(courseExport[1]?.[COURSE_EXPORT_QUESTION_5], "");
+const courseSheet = XLSX.utils.json_to_sheet(courseExport);
+const courseWorkbookRows = XLSX.utils.sheet_to_json<Record<string, string>>(courseSheet, { defval: "" });
+assert.equal(courseWorkbookRows[0]?.Name, "Aisha Rahman");
+assert.equal(courseWorkbookRows[0]?.[COURSE_EXPORT_QUESTION_5], "Please include a coastal example.");
+assert.equal(courseWorkbookRows[1]?.Name, "Ben");
+assert.equal(courseWorkbookRows[1]?.[COURSE_EXPORT_QUESTION_5], "");
+assert.match(readFileSync("src/components/wolf/WolfCourseResponsesWorkspace.tsx", "utf8"), /Export to Excel/);
 
 console.log("malaysian-land-survey.check.ts — all assertions passed.");
