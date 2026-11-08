@@ -8,6 +8,7 @@ import {
   formatPlantationHectares,
   formatPlantationSubmittedAt,
   formatPlantationTrees,
+  plantationBarPercent,
   rankPlantationSubmissions,
   type PlantationMetricKey,
   type PlantationSubmissionRecord,
@@ -83,6 +84,52 @@ function DeleteButton({
   );
 }
 
+const METRIC_BAR_CLASS: Record<PlantationMetricKey, string> = {
+  section1Hectares: "bg-emerald-400",
+  section2Hectares: "bg-cyan-300",
+  section1Trees: "bg-amber-300",
+  section2Trees: "bg-orange-300",
+};
+
+function MetricChart({
+  metric,
+  submissions,
+}: {
+  metric: (typeof PLANTATION_METRICS)[number];
+  submissions: PlantationSubmissionRecord[];
+}) {
+  const ranked = rankPlantationSubmissions(submissions, metric.key);
+  const max = ranked.reduce((highest, submission) => Math.max(highest, submission[metric.key]), 0);
+
+  return (
+    <section className={`${wolfCardClass} p-4 sm:p-5`}>
+      <h2 className="text-sm font-semibold uppercase tracking-[0.14em] text-white">{metric.label}</h2>
+      <ol className="mt-4 space-y-3">
+        {ranked.map((submission, index) => {
+          const width = plantationBarPercent(submission[metric.key], max);
+          return (
+            <li key={submission.id}>
+              <div className="mb-1.5 flex items-baseline justify-between gap-3 text-sm">
+                <p className="min-w-0 truncate font-medium text-white">
+                  <span className="mr-2 tabular-nums text-white/35">{index + 1}</span>
+                  {submission.participantName}
+                </p>
+                <p className="shrink-0 tabular-nums text-white/80">{metricValue(submission, metric.key)}</p>
+              </div>
+              <div className="h-4 overflow-hidden rounded-full bg-white/10">
+                <div
+                  className={`h-full rounded-full ${METRIC_BAR_CLASS[metric.key]}`}
+                  style={{ width: `${width}%` }}
+                />
+              </div>
+            </li>
+          );
+        })}
+      </ol>
+    </section>
+  );
+}
+
 function Overview({
   submissions,
   deletingId,
@@ -95,14 +142,24 @@ function Overview({
   const [sortKey, setSortKey] = useState<PlantationMetricKey>("section1Hectares");
   const rows = rankPlantationSubmissions(submissions, sortKey);
 
-  return (
-    <section className={`${wolfCardClass} overflow-x-auto p-4 sm:p-5`}>
-      {rows.length === 0 ? (
+  if (rows.length === 0) {
+    return (
+      <section className={`${wolfCardClass} p-5`}>
         <p className="text-sm text-white/55">No entries yet.</p>
-      ) : (
-        <>
-          <p className="mb-3 text-xs text-white/45">Largest value in the selected column is at the top.</p>
-          <table className="w-full min-w-[760px] border-collapse text-left text-sm">
+      </section>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="grid gap-4 lg:grid-cols-2">
+        {PLANTATION_METRICS.map((metric) => (
+          <MetricChart key={metric.key} metric={metric} submissions={submissions} />
+        ))}
+      </div>
+      <section className={`${wolfCardClass} overflow-x-auto p-4 sm:p-5`}>
+        <p className="mb-3 text-xs text-white/45">Largest value in the selected column is at the top.</p>
+        <table className="w-full min-w-[760px] border-collapse text-left text-sm">
             <thead>
               <tr className="border-b border-white/10 text-xs uppercase tracking-wide text-white/45">
                 <th className="px-2 py-2 font-medium">Name</th>
@@ -142,9 +199,8 @@ function Overview({
               ))}
             </tbody>
           </table>
-        </>
-      )}
-    </section>
+      </section>
+    </div>
   );
 }
 

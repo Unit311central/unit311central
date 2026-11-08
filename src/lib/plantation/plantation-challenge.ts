@@ -144,6 +144,12 @@ export function rankPlantationSubmissions(
   });
 }
 
+/** Bar length as a percentage of the largest value in that estimate. */
+export function plantationBarPercent(value: number, max: number): number {
+  if (!Number.isFinite(value) || !Number.isFinite(max) || max <= 0 || value <= 0) return 0;
+  return Math.min(100, (value / max) * 100);
+}
+
 export function formatPlantationHectares(value: number): string {
   if (!Number.isFinite(value)) return "";
   return String(Math.round(value * 10000) / 10000);

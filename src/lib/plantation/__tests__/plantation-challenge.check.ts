@@ -10,6 +10,7 @@ import { migrationsMissingSatisfactionProbes } from "@/lib/migration-satisfactio
 import {
   classifyPlantationInsertError,
   parsePlantationSubmission,
+  plantationBarPercent,
   rankPlantationSubmissions,
   type PlantationSubmissionRecord,
 } from "@/lib/plantation/plantation-challenge";
@@ -81,6 +82,11 @@ assert.deepEqual(
   rankPlantationSubmissions(rows, "section2Trees").map((row) => row.participantName),
   ["Ada", "Bo"],
 );
+assert.equal(plantationBarPercent(8, 8), 100);
+assert.equal(plantationBarPercent(4, 8), 50);
+assert.equal(plantationBarPercent(0, 8), 0);
+assert.equal(plantationBarPercent(1, 0), 0);
+assert.ok(Math.abs(plantationBarPercent(5.3, 8) - 66.25) < 0.001);
 
 assert.equal(isPlantationChallengePath("/plantation"), true);
 assert.equal(isPlantationChallengePath("/plantation/"), true);
@@ -107,6 +113,7 @@ const overviewSource = workspace.slice(workspace.indexOf("function Overview"), w
 assert.match(overviewSource, /<th className="px-2 py-2 font-medium">Name<\/th>/);
 assert.match(overviewSource, /metric\.label/);
 assert.match(overviewSource, /submission\.participantName/);
+assert.match(overviewSource, /<MetricChart/);
 assert.doesNotMatch(overviewSource, /rows\[index\]/);
 assert.match(readFileSync("src/lib/plantation/plantation-challenge.ts", "utf8"), /Hectare section 1/);
 assert.match(readFileSync("src/lib/plantation/plantation-challenge.ts", "utf8"), /Hectare section 2/);
