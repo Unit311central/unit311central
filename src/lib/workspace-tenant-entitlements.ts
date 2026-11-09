@@ -14,6 +14,8 @@ import {
   mergeWorkspaceTenantUserRecord,
 } from "@/lib/workspace-tenant-users-service";
 import type { CurrentWorkspace } from "@/lib/workspace-context";
+import { isWolfCentralOperatorUsername } from "@/lib/wolf/wolf-messaging-operators";
+import { isWolfCentralSlug } from "@/lib/wolf/wolf-surface";
 
 function isWorkspaceAdministratorMembership(input: {
   role?: string | null;
@@ -41,6 +43,17 @@ export async function resolveWorkspaceTenantEntitlements(input: {
     return null;
   }
   if (!isSupabaseConfigured()) return null;
+
+  if (isWolfCentralSlug(workspace.slug) && isWolfCentralOperatorUsername(input.username)) {
+    return {
+      role: "Admin",
+      roles: ["Admin"],
+      department: "Operations",
+      departments: ["Operations"],
+      allowedViews: null,
+      homeTiles: defaultHomeTilesForRoles(["Admin"], ["Operations"]),
+    };
+  }
 
   try {
     const supabase = createTenancyServerClient();

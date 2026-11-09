@@ -33,6 +33,15 @@ export function isWolfMessagingAllowedOperator(
   return addresses.some((address) => WOLF_CENTRAL_OPERATOR_ALLOWLIST_SET.has(address));
 }
 
+/** WOLF Central operators who may administer the workspace, including user creation. */
+export function isWolfCentralOperatorUsername(username: string | null | undefined): boolean {
+  const normalized = normalizePlatformUsername(String(username ?? "")).toLowerCase();
+  if (!normalized) return false;
+  if (WOLF_CENTRAL_OPERATOR_ALLOWLIST_SET.has(normalized)) return true;
+  const localPart = normalized.split("@")[0] ?? "";
+  return localPart === "jordi" && (normalized === "jordi" || normalized.endsWith("@wolf.unit311central.com"));
+}
+
 export function filterWolfMessagingOperators(users: readonly ManagedUser[]): ManagedUser[] {
   return users.filter(isWolfMessagingAllowedOperator);
 }

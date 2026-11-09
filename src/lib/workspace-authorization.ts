@@ -8,6 +8,8 @@ import {
 } from "@/lib/workspace-host";
 import { demoWorkspaceSlug } from "@/lib/runtime-surface";
 import { isGreenDesertSlug } from "@/lib/greendesert-surface";
+import { isWolfCentralSlug } from "@/lib/wolf/wolf-surface";
+import { isWolfCentralOperatorUsername } from "@/lib/wolf/wolf-messaging-operators";
 
 /**
  * Shared workspace authorization (RC1-C07).
@@ -78,7 +80,7 @@ export async function authorizeWorkspaceAccess(
 
     const { data: user, error: userError } = await supabase
       .from("platform_users")
-      .select("id, user_type, workspace_id, is_active")
+      .select("id, user_type, workspace_id, is_active, username, email")
       .eq("id", userId)
       .maybeSingle();
 
@@ -105,6 +107,13 @@ export async function authorizeWorkspaceAccess(
       typeof user.workspace_id === "string" ? user.workspace_id.trim() : "";
     if (primaryWorkspaceId && primaryWorkspaceId === workspaceId) {
       return { allowed: true, reason: "primary_workspace", userType };
+    }
+
+    if (
+      isWolfCentralSlug(workspace.slug) &&
+      (isWolfCentralOperatorUsername(user.username) || isWolfCentralOperatorUsername(user.email))
+    ) {
+      return { allowed: true, reason: "workspace_membership", userType };
     }
 
     const { data: membership, error: membershipError } = await supabase

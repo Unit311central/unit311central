@@ -23,6 +23,8 @@ import {
   requireCurrentWorkspace,
   type CurrentWorkspace,
 } from "@/lib/workspace-context";
+import { isWolfCentralSlug } from "@/lib/wolf/wolf-surface";
+import { isWolfCentralOperatorUsername } from "@/lib/wolf/wolf-messaging-operators";
 
 const AUTH_REQUIRED = "Authentication required.";
 const INSUFFICIENT_PRIVILEGES = "Insufficient privileges.";
@@ -215,6 +217,10 @@ export async function requireUsersModuleAdministratorSession(): Promise<
     isAbhiSlug(workspace.slug) &&
     isAbhiPortalsAllowedUsername(session.username)
   ) {
+    return { session, workspace };
+  }
+
+  if (isWolfCentralSlug(workspace.slug) && isWolfCentralOperatorUsername(session.username)) {
     return { session, workspace };
   }
 

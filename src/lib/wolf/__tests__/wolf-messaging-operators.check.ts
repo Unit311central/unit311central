@@ -4,14 +4,17 @@
  * Run: npx tsx src/lib/wolf/__tests__/wolf-messaging-operators.check.ts
  */
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 
 import type { ManagedUser } from "@/lib/user-management-data";
 import {
   filterWolfMessagingOperatorIds,
   filterWolfMessagingOperators,
+  isWolfCentralOperatorUsername,
   isWolfMessagingAllowedOperator,
   WOLF_CENTRAL_OPERATOR_ALLOWLIST,
 } from "@/lib/wolf/wolf-messaging-operators";
+import { usesWorkspaceTenantUserManagement } from "@/lib/customer-workspace-surface";
 
 function fixture(partial: Partial<ManagedUser> & Pick<ManagedUser, "id" | "username" | "email">): ManagedUser {
   return {
@@ -65,6 +68,19 @@ assert.ok(
 assert.deepEqual(
   filterWolfMessagingOperatorIds([...allowedUsers, blockedUser], ["1", "2", "6", "99"]),
   ["1", "2"],
+);
+assert.equal(isWolfCentralOperatorUsername("jordi@wolf.unit311central.com"), true);
+assert.equal(isWolfCentralOperatorUsername("Jordi"), true);
+assert.equal(isWolfCentralOperatorUsername("other@wolf.unit311central.com"), false);
+assert.equal(
+  usesWorkspaceTenantUserManagement("wolf-central", "jordi@wolf.unit311central.com"),
+  true,
+);
+assert.equal(usesWorkspaceTenantUserManagement("wolf-central", "jordi"), true);
+assert.equal(usesWorkspaceTenantUserManagement("wolf-central", "other@wolf.unit311central.com"), false);
+assert.match(
+  readFileSync("src/lib/internal-admin-auth.ts", "utf8"),
+  /isWolfCentralOperatorUsername\(session\.username\)/,
 );
 
 console.log("wolf-messaging-operators.check.ts — all assertions passed.");
