@@ -82,5 +82,50 @@ assert.match(
   readFileSync("src/lib/internal-admin-auth.ts", "utf8"),
   /isWolfCentralOperatorUsername\(session\.username\)/,
 );
+assert.match(
+  readFileSync("src/lib/workspace-authorization.ts", "utf8"),
+  /from "@\/lib\/wolf\/wolf-operator-access"/,
+);
+assert.doesNotMatch(
+  readFileSync("src/lib/wolf/wolf-operator-access.ts", "utf8"),
+  /from ["'](?:@\/lib\/platform-auth|node:crypto)["']/,
+);
+
+function localImports(source: string): string[] {
+  return [...source.matchAll(/from\s+["']([^"']+)["']/g)]
+    .map((match) => match[1])
+    .filter((specifier) => specifier.startsWith("@/") || specifier.startsWith("."));
+}
+
+function resolveSpecifier(specifier: string): string | null {
+  const base = specifier.startsWith("@/")
+    ? `src/${specifier.slice(2)}`
+    : specifier;
+  for (const candidate of [base, `${base}.ts`, `${base}.tsx`]) {
+    try {
+      readFileSync(candidate, "utf8");
+      return candidate;
+    } catch {
+      // try the next candidate
+    }
+  }
+  return null;
+}
+
+const cryptoImporters = new Set<string>();
+const seen = new Set<string>();
+const queue = ["src/middleware.ts"];
+while (queue.length > 0) {
+  const file = queue.pop()!;
+  if (seen.has(file)) continue;
+  seen.add(file);
+  const source = readFileSync(file, "utf8");
+  if (/from ["']node:crypto["']|import ["']node:crypto["']/.test(source)) cryptoImporters.add(file);
+  for (const specifier of localImports(source)) {
+    const resolved = resolveSpecifier(specifier);
+    if (resolved) queue.push(resolved);
+  }
+}
+assert.deepEqual([...cryptoImporters], [], `middleware import graph reaches node:crypto via ${[...cryptoImporters].join(", ")}`);
 
 console.log("wolf-messaging-operators.check.ts — all assertions passed.");

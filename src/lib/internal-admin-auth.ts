@@ -24,7 +24,7 @@ import {
   type CurrentWorkspace,
 } from "@/lib/workspace-context";
 import { isWolfCentralSlug } from "@/lib/wolf/wolf-surface";
-import { isWolfCentralOperatorUsername } from "@/lib/wolf/wolf-messaging-operators";
+import { isWolfCentralOperatorUsername } from "@/lib/wolf/wolf-operator-access";
 
 const AUTH_REQUIRED = "Authentication required.";
 const INSUFFICIENT_PRIVILEGES = "Insufficient privileges.";

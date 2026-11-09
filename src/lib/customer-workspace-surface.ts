@@ -16,7 +16,7 @@ import { TALANTON_PORTALS_ADMIN_USERNAME } from "@/lib/talanton/portals-auth";
 import { isTalantonImpactSlug } from "@/lib/talanton-surface";
 import { isSaecSlug } from "@/lib/saec-surface";
 import { isPailexSlug } from "@/lib/pailex/pailex-surface";
-import { isWolfCentralOperatorUsername } from "@/lib/wolf/wolf-messaging-operators";
+import { isWolfCentralOperatorUsername } from "@/lib/wolf/wolf-operator-access";
 import { isWolfCentralSlug } from "@/lib/wolf/wolf-surface";
 import { INTERNAL_WORKSPACE_SLUG } from "@/lib/workspace-host";
 

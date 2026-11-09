@@ -9,7 +9,7 @@ import {
 import { demoWorkspaceSlug } from "@/lib/runtime-surface";
 import { isGreenDesertSlug } from "@/lib/greendesert-surface";
 import { isWolfCentralSlug } from "@/lib/wolf/wolf-surface";
-import { isWolfCentralOperatorUsername } from "@/lib/wolf/wolf-messaging-operators";
+import { isWolfCentralOperatorUsername } from "@/lib/wolf/wolf-operator-access";
 
 /**
  * Shared workspace authorization (RC1-C07).

@@ -1,16 +1,14 @@
 import { normalizePlatformUsername } from "@/lib/platform-auth";
 import type { ManagedUser } from "@/lib/user-management-data";
+import {
+  WOLF_CENTRAL_OPERATOR_ALLOWLIST,
+  isWolfCentralOperatorUsername,
+} from "@/lib/wolf/wolf-operator-access";
 import { isWolfCentralSlug } from "@/lib/wolf/wolf-surface";
 
-/** WOLF Central operators allowed in Messaging and Whiteboard collaborator pickers. */
-export const WOLF_CENTRAL_OPERATOR_ALLOWLIST = [
-  "admin@wolf.unit311central.com",
-  "alex@wolf.unit311central.com",
-  "jordi@wolf.unit311central.com",
-  "bcn@wolf.unit311central.com",
-  "bcnengineer@wolf.unit311central.com",
-] as const;
+export { WOLF_CENTRAL_OPERATOR_ALLOWLIST, isWolfCentralOperatorUsername };
 
+/** WOLF Central operators allowed in Messaging and Whiteboard collaborator pickers. */
 const WOLF_CENTRAL_OPERATOR_ALLOWLIST_SET = new Set<string>(
   WOLF_CENTRAL_OPERATOR_ALLOWLIST.map((email) => email.toLowerCase()),
 );
@@ -31,15 +29,6 @@ export function isWolfMessagingAllowedOperator(
 ): boolean {
   const addresses = wolfMessagingOperatorAddresses(user);
   return addresses.some((address) => WOLF_CENTRAL_OPERATOR_ALLOWLIST_SET.has(address));
-}
-
-/** WOLF Central operators who may administer the workspace, including user creation. */
-export function isWolfCentralOperatorUsername(username: string | null | undefined): boolean {
-  const normalized = normalizePlatformUsername(String(username ?? "")).toLowerCase();
-  if (!normalized) return false;
-  if (WOLF_CENTRAL_OPERATOR_ALLOWLIST_SET.has(normalized)) return true;
-  const localPart = normalized.split("@")[0] ?? "";
-  return localPart === "jordi" && (normalized === "jordi" || normalized.endsWith("@wolf.unit311central.com"));
 }
 
 export function filterWolfMessagingOperators(users: readonly ManagedUser[]): ManagedUser[] {

@@ -14,7 +14,7 @@ import {
   mergeWorkspaceTenantUserRecord,
 } from "@/lib/workspace-tenant-users-service";
 import type { CurrentWorkspace } from "@/lib/workspace-context";
-import { isWolfCentralOperatorUsername } from "@/lib/wolf/wolf-messaging-operators";
+import { isWolfCentralOperatorUsername } from "@/lib/wolf/wolf-operator-access";
 import { isWolfCentralSlug } from "@/lib/wolf/wolf-surface";
 
 function isWorkspaceAdministratorMembership(input: {
