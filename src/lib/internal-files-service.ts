@@ -20,6 +20,7 @@ import {
   resolveFilesWorkspaceId,
   type FilesWorkspaceScope,
 } from "@/lib/files-workspace";
+import { ensureInternalFilesProjectUploadLimit } from "@/lib/internal-files-storage-limit";
 
 type DbCategory = {
   id: string;
@@ -426,6 +427,7 @@ export async function prepareFileUpload(
   scope?: FilesWorkspaceScope,
 ) {
   assertUploadableFile(options.name, options.size);
+  await ensureInternalFilesProjectUploadLimit(options.size);
 
   const workspaceId = await resolveFilesWorkspaceId(scope);
 

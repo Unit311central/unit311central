@@ -379,7 +379,12 @@ export default function FileRepositoryWorkspace({
         });
 
         if (!uploadResponse.ok) {
-          throw new Error(`Failed to upload ${file.name} to storage (${uploadResponse.status}).`);
+          const detail = (await uploadResponse.text()).replace(/\s+/g, " ").trim().slice(0, 180);
+          throw new Error(
+            detail
+              ? `Failed to upload ${file.name} to storage (${uploadResponse.status}). ${detail}`
+              : `Failed to upload ${file.name} to storage (${uploadResponse.status}).`,
+          );
         }
 
         const completeResponse = await fetch("/api/files/upload/complete", {
