@@ -1,5 +1,6 @@
 export const INTERNAL_FILES_BUCKET = "internal-files";
-export const INTERNAL_FILES_MAX_BYTES = 52_428_800;
+/** 500 MB. The internal-files bucket limit in migration 224 must stay in step. */
+export const INTERNAL_FILES_MAX_BYTES = 500 * 1024 * 1024;
 
 export type FileCategory = {
   id: string;
