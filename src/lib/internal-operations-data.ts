@@ -79,6 +79,9 @@ export type InternalOperationsView =
   | "fleet"
   | "testing"
   | "qa-tasks"
+  | "attendance-dashboard"
+  | "attendance-employees"
+  | "attendance-test"
   | "projects"
   | "projects-dashboard"
   | "projects-internal"
@@ -442,6 +445,9 @@ export const internalOperationsViews: InternalOperationsView[] = [
   "fleet",
   "testing",
   "qa-tasks",
+  "attendance-dashboard",
+  "attendance-employees",
+  "attendance-test",
   "projects",
   "projects-dashboard",
   "projects-internal",
@@ -1318,6 +1324,9 @@ export const internalViewTitles: Record<
   fleet: { title: "Fleet", subtitle: "Internal Operations" },
   testing: { title: "Flight Simulator Testing", subtitle: "Tools" },
   "qa-tasks": { title: "QA Tasks", subtitle: "Tools" },
+  "attendance-dashboard": { title: "Dashboard", subtitle: "Attendance" },
+  "attendance-employees": { title: "Employees", subtitle: "Attendance" },
+  "attendance-test": { title: "Test", subtitle: "Attendance" },
   projects: { title: "Projects", subtitle: "Projects" },
   "projects-dashboard": { title: "Projects Dashboard", subtitle: "Projects" },
   "projects-internal": { title: "Internal Projects", subtitle: "Projects" },

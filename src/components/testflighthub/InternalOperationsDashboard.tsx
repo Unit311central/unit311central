@@ -65,6 +65,8 @@ import {
   ABHI_HIDDEN_VIEWS,
   CUSTOMER_PLATFORM_HIDDEN_VIEWS,
 } from "@/lib/internal-role-views";
+import { isAttendanceNavView } from "@/lib/attendance/constants";
+import { isDemoWorkspaceSlug } from "@/lib/demo/read-only";
 import { isViewAllowedForWorkspaceGrants } from "@/lib/workspace-enabled-views";
 import { resolveWorkspaceNavEnablement } from "@/lib/platform-workspaces/workspace-product-nav";
 import {
@@ -367,6 +369,9 @@ import { OnwardAirIpPatentsWorkspace } from "@/components/onwardair/OnwardAirIpP
 import { NorthstarIntelligenceRouter, NorthstarIntelligenceDashboard } from "@/components/demo/intelligence/NorthstarIntelligenceWorkspaces";
 import IntelligenceCentralWorkspace from "@/components/intelligence/IntelligenceCentralWorkspace";
 import IntelligenceDashboardWorkspace from "@/components/intelligence/IntelligenceDashboardWorkspace";
+import AttendanceDashboard from "@/components/attendance/AttendanceDashboard";
+import AttendanceEmployees from "@/components/attendance/AttendanceEmployees";
+import AttendanceSimulation from "@/components/attendance/AttendanceSimulation";
 import QaTasksWorkspace from "@/components/qa-workspace/QaTasksWorkspace";
 import { isQaEnabledWorkspaceSlug } from "@/lib/qa-workspace/surface";
 import { isIntelligenceOperationsView } from "@/lib/intelligence/views";
@@ -1053,6 +1058,12 @@ export default function InternalOperationsDashboard({
           )}
 
           {activeView === "qa-tasks" && <QaTasksWorkspace />}
+
+          {activeView === "attendance-dashboard" ||
+          activeView === "attendance-employees" ||
+          activeView === "attendance-test" ? (
+            <AttendanceDemoSlot view={activeView} />
+          ) : null}
 
           {(isWarm("projects") ||
             isWarm("projects-dashboard") ||
@@ -1801,6 +1812,18 @@ export default function InternalOperationsDashboard({
   );
 }
 
+function AttendanceDemoSlot({
+  view,
+}: {
+  view: "attendance-dashboard" | "attendance-employees" | "attendance-test";
+}) {
+  const { ready, workspaceSlug } = useOperatorEntitlements();
+  if (!ready || !isDemoWorkspaceSlug(workspaceSlug)) return null;
+  if (view === "attendance-employees") return <AttendanceEmployees />;
+  if (view === "attendance-test") return <AttendanceSimulation />;
+  return <AttendanceDashboard />;
+}
+
 function FilesInternalWorkspace({ initialFolderId }: { initialFolderId: string | null }) {
   return <FileRepositoryWorkspace scope="internal" initialFolderId={initialFolderId} />;
 }
@@ -1853,6 +1876,10 @@ function AccessViewGuard({
       return;
     }
     if (activeView === "qa-tasks" && isQaEnabledWorkspaceSlug(workspaceSlug)) {
+      return;
+    }
+    if (isAttendanceNavView(activeView)) {
+      if (!isDemoWorkspaceSlug(workspaceSlug)) onRedirect("home");
       return;
     }
     if (

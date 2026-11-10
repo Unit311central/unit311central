@@ -1,3 +1,4 @@
+import { ATTENDANCE_VIEWS, isAttendanceNavView } from "@/lib/attendance/constants";
 import { DEMO_WORKSPACE_SLUG } from "@/lib/app-domains";
 import { isDemoWorkspaceSlug } from "@/lib/demo/read-only";
 import type { InternalOperationsView } from "@/lib/internal-operations-data";
@@ -99,6 +100,10 @@ export function isViewAllowedForWorkspaceGrants(
   const slug = String(options?.workspaceSlug ?? "")
     .trim()
     .toLowerCase();
+  if (isAttendanceNavView(view) && (slug === DEMO_WORKSPACE_SLUG || slug === "demo")) {
+    return true;
+  }
+
   if (isPailexSlug(slug) && isPailexWorkspaceView(view)) return true;
 
   if (isWolfCentralSlug(slug)) {
@@ -171,11 +176,15 @@ export function applyDemoWorkspaceAllowedViews(
   enabledSubModules: readonly string[] | null | undefined,
 ): InternalOperationsView[] | null {
   if (!isDemoWorkspaceSlug(workspaceSlug)) return allowedViews ?? null;
-  return mergeAllowedViewsWithWorkspaceEnablement(
+  const merged = mergeAllowedViewsWithWorkspaceEnablement(
     allowedViews,
     enabledModules,
     enabledSubModules,
   );
+  if (merged == null) return null;
+  const next = new Set<InternalOperationsView>(merged);
+  for (const view of ATTENDANCE_VIEWS) next.add(view);
+  return [...next];
 }
 
 /** Green Desert operators: union explicit grants with full catalogue enablement. */
