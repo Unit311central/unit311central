@@ -128,6 +128,11 @@ export async function ensureAttendanceCast(): Promise<void> {
     .eq("workspace_id", WORKSPACE_ID);
   if (error) throw error;
 
+  if ((existing ?? []).length > 0) {
+    attendanceCastReady = true;
+    return;
+  }
+
   const byNumber = new Map((existing ?? []).map((row) => [row.employee_number as string, row.id as string]));
 
   for (const member of ATTENDANCE_CAST) {
@@ -250,6 +255,39 @@ export async function updateAttendanceEmployee(
   if (!data) throw new Error("Employee not found.");
   const [employee] = await withBadges([data as EmployeeRow]);
   return employee;
+}
+
+export async function deleteAttendanceEmployee(employeeId: string): Promise<void> {
+  const supabase = client();
+  const { data: employee, error: lookupError } = await supabase
+    .from("attendance_employees")
+    .select("id")
+    .eq("workspace_id", WORKSPACE_ID)
+    .eq("id", employeeId)
+    .maybeSingle();
+  if (lookupError) throw lookupError;
+  if (!employee) throw new Error("Employee not found.");
+
+  const { error: eventError } = await supabase
+    .from("attendance_events")
+    .delete()
+    .eq("workspace_id", WORKSPACE_ID)
+    .eq("employee_id", employeeId);
+  if (eventError) throw eventError;
+
+  const { error: deleteError } = await supabase
+    .from("attendance_employees")
+    .delete()
+    .eq("workspace_id", WORKSPACE_ID)
+    .eq("id", employeeId);
+  if (deleteError) throw deleteError;
+
+  const { count, error: countError } = await supabase
+    .from("attendance_employees")
+    .select("id", { count: "exact", head: true })
+    .eq("workspace_id", WORKSPACE_ID);
+  if (countError) throw countError;
+  if (!count) attendanceCastReady = false;
 }
 
 export async function replaceAttendanceBadge(
