@@ -15,6 +15,7 @@ import {
   WOLF_CENTRAL_OPERATOR_ALLOWLIST,
 } from "@/lib/wolf/wolf-messaging-operators";
 import { usesWorkspaceTenantUserManagement } from "@/lib/customer-workspace-surface";
+import { requestTargetsWolfCentral } from "@/lib/wolf/wolf-surface";
 
 function fixture(partial: Partial<ManagedUser> & Pick<ManagedUser, "id" | "username" | "email">): ManagedUser {
   return {
@@ -85,6 +86,30 @@ assert.match(
 assert.match(
   readFileSync("src/lib/workspace-authorization.ts", "utf8"),
   /from "@\/lib\/wolf\/wolf-operator-access"/,
+);
+assert.match(
+  readFileSync("src/lib/workspace-context.ts", "utf8"),
+  /sessionUsername: session\.username/,
+);
+assert.match(
+  readFileSync("src/lib/internal-admin-auth.ts", "utf8"),
+  /requestTargetsWolfCentral\(requestHeaders\)/,
+);
+assert.equal(
+  requestTargetsWolfCentral({
+    get(name: string) {
+      return name === "origin" ? "https://wolf.unit311central.com" : null;
+    },
+  }),
+  true,
+);
+assert.equal(
+  requestTargetsWolfCentral({
+    get(name: string) {
+      return name === "origin" ? "https://talantonimpact.unit311central.com" : null;
+    },
+  }),
+  false,
 );
 assert.doesNotMatch(
   readFileSync("src/lib/wolf/wolf-operator-access.ts", "utf8"),

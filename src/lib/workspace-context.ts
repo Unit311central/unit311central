@@ -200,6 +200,7 @@ async function authorizeActiveWorkspace(
   const decision = await authorizeUserForWorkspace(session.sub, workspace.id, {
     workspace,
     userTypeHint: session.userType,
+    sessionUsername: session.username,
   });
   return decision.allowed;
 }

@@ -1,3 +1,4 @@
+import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 
 import { getInternalOperatorByUsername } from "@/lib/internal-operators-service";
@@ -23,8 +24,9 @@ import {
   requireCurrentWorkspace,
   type CurrentWorkspace,
 } from "@/lib/workspace-context";
-import { isWolfCentralSlug } from "@/lib/wolf/wolf-surface";
+import { WOLF_CENTRAL_SLUG, isWolfCentralSlug, requestTargetsWolfCentral } from "@/lib/wolf/wolf-surface";
 import { isWolfCentralOperatorUsername } from "@/lib/wolf/wolf-operator-access";
+import { findWorkspaceBySlug } from "@/lib/workspace-host";
 
 const AUTH_REQUIRED = "Authentication required.";
 const INSUFFICIENT_PRIVILEGES = "Insufficient privileges.";
@@ -90,6 +92,13 @@ export async function requireInternalWorkspaceSession(): Promise<
   try {
     const workspace = await requireCurrentWorkspace();
 
+    if (isWolfCentralSlug(workspace.slug) && isWolfCentralOperatorUsername(session.username)) {
+      return {
+        session: session.userType === "internal" ? session : { ...session, userType: "internal" },
+        workspace,
+      };
+    }
+
     if (isDemoWorkspaceSlug(workspace.slug)) {
       return { session, workspace };
     }
@@ -141,6 +150,23 @@ export async function requireInternalWorkspaceSession(): Promise<
       error: NextResponse.json({ error: INSUFFICIENT_PRIVILEGES }, { status: 403 }),
     };
   } catch (error) {
+    if (error instanceof WorkspaceAccessError && isWolfCentralOperatorUsername(session.username)) {
+      const requestHeaders = await headers();
+      if (requestTargetsWolfCentral(requestHeaders)) {
+        const record = await findWorkspaceBySlug(WOLF_CENTRAL_SLUG);
+        if (record) {
+          return {
+            session: { ...session, userType: "internal" },
+            workspace: {
+              id: record.id,
+              slug: record.slug,
+              name: record.name,
+              workspaceType: record.workspaceType ?? null,
+            },
+          };
+        }
+      }
+    }
     if (error instanceof WorkspaceAccessError) {
       return {
         error: NextResponse.json(

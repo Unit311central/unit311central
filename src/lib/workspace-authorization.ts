@@ -46,6 +46,8 @@ export type AuthorizeWorkspaceAccessInput = {
   workspace?: Pick<WorkspaceHostRecord, "id" | "slug"> | null;
   /** Optional session userType hint; DB remains authoritative when available. */
   userTypeHint?: "internal" | "external" | null;
+  /** Signed session username. Used when the platform user row uses a different label. */
+  sessionUsername?: string | null;
 };
 
 /**
@@ -89,6 +91,12 @@ export async function authorizeWorkspaceAccess(
     }
 
     if (!user) {
+      if (
+        isWolfCentralSlug(workspace.slug) &&
+        isWolfCentralOperatorUsername(input.sessionUsername)
+      ) {
+        return { allowed: true, reason: "workspace_membership", userType: "internal" };
+      }
       return { allowed: false, reason: "user_not_found" };
     }
 
@@ -111,7 +119,9 @@ export async function authorizeWorkspaceAccess(
 
     if (
       isWolfCentralSlug(workspace.slug) &&
-      (isWolfCentralOperatorUsername(user.username) || isWolfCentralOperatorUsername(user.email))
+      (isWolfCentralOperatorUsername(input.sessionUsername) ||
+        isWolfCentralOperatorUsername(user.username) ||
+        isWolfCentralOperatorUsername(user.email))
     ) {
       return { allowed: true, reason: "workspace_membership", userType };
     }

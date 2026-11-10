@@ -79,6 +79,7 @@ export async function evaluateCustomerHostSessionGate(
   const decision = await authorizeUserForWorkspace(session.sub, workspace.id, {
     workspace,
     userTypeHint: session.userType,
+    sessionUsername: session.username,
   });
 
   if (!decision.allowed) {

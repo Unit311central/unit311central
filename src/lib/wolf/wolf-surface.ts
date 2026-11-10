@@ -47,6 +47,33 @@ export function isWolfCentralHost(host: string | null | undefined): boolean {
   return false;
 }
 
+/** True when this request is aimed at the WOLF host, including the browser Origin. */
+export function requestTargetsWolfCentral(headerList: {
+  get(name: string): string | null;
+}): boolean {
+  const raw = [
+    headerList.get("x-forwarded-host"),
+    headerList.get("host"),
+    headerList.get("origin"),
+    headerList.get("x-unit311-workspace-slug"),
+  ];
+  for (const value of raw) {
+    if (!value) continue;
+    for (const part of value.split(",")) {
+      const token = part.trim();
+      if (!token) continue;
+      if (isWolfCentralHost(token) || isWolfCentralSlug(token)) return true;
+      if (!token.includes("://")) continue;
+      try {
+        if (isWolfCentralHost(new URL(token).host)) return true;
+      } catch {
+        // Ignore values that are not URLs.
+      }
+    }
+  }
+  return false;
+}
+
 export function isBrowserWolfCentralSurface(): boolean {
   if (typeof window === "undefined") return false;
   if (isWolfCentralHost(window.location.hostname)) return true;
