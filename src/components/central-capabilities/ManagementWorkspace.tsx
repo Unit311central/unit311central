@@ -21,6 +21,11 @@ import {
   resolveManagementSection,
   resolveManagementShellTitle,
 } from "@/lib/central-capabilities/management-nav";
+import {
+  managementContextSelectorEnabled,
+  resolveManagementPageContext,
+} from "@/lib/central-capabilities/management-context";
+import { WolfManagementPlaceholder } from "@/components/central-capabilities/ManagementContextSelector";
 import type {
   ManagementActionPlaceholder,
   ManagementFunctionPackPlaceholder,
@@ -827,6 +832,7 @@ function ManagementSectionNav({ section }: { section: ManagementSectionId }) {
 
 export default function ManagementWorkspace() {
   const searchParams = useSearchParams();
+  const basePath = useInternalOperationsBasePath();
   const entitlements = useOperatorEntitlements();
   const access = useMemo(
     () =>
@@ -851,6 +857,9 @@ export default function ManagementWorkspace() {
   );
   const meetingNames = useMemo(() => state.meetings.map((meeting) => meeting.name), [state.meetings]);
   const isSaec = isBrowserSaecSurface();
+  const managementContext = managementContextSelectorEnabled(basePath)
+    ? resolveManagementPageContext(searchParams)
+    : "unit311central";
 
   if (!canAccessManagementWorkspace(access, { workspaceSlug: entitlements.workspaceSlug })) {
     return (
@@ -861,6 +870,10 @@ export default function ManagementWorkspace() {
         </p>
       </WorkspaceSection>
     );
+  }
+
+  if (managementContext === "wolf") {
+    return <WolfManagementPlaceholder />;
   }
 
   return (

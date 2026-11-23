@@ -80,6 +80,7 @@ import {
 import type { OperatorEntitlementsSnapshot } from "@/lib/operator-entitlements-server";
 import { SALES_MANAGEMENT_QUERY_PARAM_VIEWS } from "@/lib/sales-management-nav";
 import { MANAGEMENT_QUERY_PARAM_VIEWS } from "@/lib/central-capabilities/management-nav";
+import { applyManagementContextSearchParam } from "@/lib/central-capabilities/management-context";
 import { REALTIME_VIDEO_WORKBENCH_QUERY_VIEWS } from "@/lib/realtime-video-workbench-nav";
 import FinancesPlanningWorkspace, {
   type FinancesPlanningView,
@@ -854,6 +855,7 @@ export default function InternalOperationsDashboard({
         url.searchParams.set("country", DEFAULT_POTENTIAL_CLIENTS_COUNTRY_ID);
       }
     }
+    applyManagementContextSearchParam(url.searchParams, activeView, financeNavQuery);
     window.history.replaceState({}, "", url.toString());
     if (financeNavQuery) {
       setFinanceNavQuery(null);
