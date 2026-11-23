@@ -11,7 +11,10 @@ import {
   CLIENT_INDUSTRY_OPTIONS,
   CLIENT_RECORD_COUNTRY_OPTIONS,
   CLIENT_STATUS_OPTIONS,
+  clientTypeBadgeLabel,
+  clientTypeClass,
   createNewClientDraft,
+  isClientType,
   isNewClientDraftId,
   NEW_CLIENT_DRAFT_ID,
   clientCitiesForCountry,
@@ -20,6 +23,7 @@ import {
   formatClientLocation,
   resolveClientLocation,
   type ClientAccountStatus,
+  type ClientType,
   type ManagedClient,
 } from "@/lib/client-management-data";
 import {
@@ -80,6 +84,19 @@ async function readApiJson<T>(response: Response): Promise<T> {
   }
 }
 
+function ClientTypeBadge({ clientType }: { clientType: ClientType }) {
+  return (
+    <span
+      className={cn(
+        "ml-2 inline-flex shrink-0 items-center rounded-full border px-1.5 py-0.5 align-middle text-[9px] font-semibold uppercase leading-none tracking-[0.1em]",
+        clientTypeClass(clientType),
+      )}
+    >
+      {clientTypeBadgeLabel(clientType)}
+    </span>
+  );
+}
+
 type ClientManagementWorkspaceProps = {
   onClientsChange?: (clients: ManagedClient[]) => void;
 };
@@ -115,6 +132,8 @@ export default function ClientManagementClientDirectoryView({
   const [filterCity, setFilterCity] = useState("all");
   const [filterStatus, setFilterStatus] = useState<ClientAccountStatus | "all">("all");
   const [filterContract, setFilterContract] = useState("all");
+  const [filterClientType, setFilterClientType] = useState<ClientType | "all">("all");
+  const [clientTypeError, setClientTypeError] = useState<string | null>(null);
   const [detailClientId, setDetailClientId] = useState<string | null>(null);
   const [financeSummary, setFinanceSummary] = useState<ClientFinanceSummary | null>(null);
   const [financeLoading, setFinanceLoading] = useState(false);
@@ -160,8 +179,18 @@ export default function ClientManagementClientDirectoryView({
         city: filterCity,
         status: filterStatus,
         contract: filterContract,
+        clientType: filterClientType,
       }),
-    [clients, filterContract, filterCountry, filterCity, filterIndustry, filterStatus, search],
+    [
+      clients,
+      filterClientType,
+      filterContract,
+      filterCountry,
+      filterCity,
+      filterIndustry,
+      filterStatus,
+      search,
+    ],
   );
 
   const countryFilterOptions = useMemo(() => {
@@ -223,6 +252,7 @@ export default function ClientManagementClientDirectoryView({
     setSelectedClientId(null);
     setNewClientDraft(null);
     setCompanyNameError(null);
+    setClientTypeError(null);
     snapshottedIdRef.current = null;
     setSavedSnapshot(null);
     syncClientIdToUrl(null);
@@ -232,6 +262,7 @@ export default function ClientManagementClientDirectoryView({
     const draft = createNewClientDraft();
     setNewClientDraft(draft);
     setCompanyNameError(null);
+    setClientTypeError(null);
     setSaveMessage(null);
     setError(null);
     setSelectedClientId(NEW_CLIENT_DRAFT_ID);
@@ -415,6 +446,7 @@ export default function ClientManagementClientDirectoryView({
   function patchSelected(patch: Partial<ManagedClient>) {
     if (!selectedClient) return;
     const next = { ...selectedClient, ...patch };
+    if ("clientType" in patch) setClientTypeError(null);
     if (isNewClientDraftId(next.id)) {
       setNewClientDraft(next);
       if ("companyName" in patch) setCompanyNameError(null);
@@ -459,6 +491,11 @@ export default function ClientManagementClientDirectoryView({
       setCompanyNameError("Company name is required.");
       return;
     }
+    if (!isClientType(draft.clientType)) {
+      setClientTypeError("Client type is required.");
+      return;
+    }
+    setClientTypeError(null);
     if (createInFlightRef.current) return;
     createInFlightRef.current = true;
     setBusy(true);
@@ -467,7 +504,12 @@ export default function ClientManagementClientDirectoryView({
     setCompanyNameError(null);
 
     try {
-      const data = { client: await createClientFromDraftRequest({ ...draft, companyName }) };
+      const data = {
+        client: await createClientFromDraftRequest(
+          { ...draft, companyName },
+          { requireClientType: true },
+        ),
+      };
 
       invalidateCachedJson(PLATFORM_CACHE_KEYS.clients);
       setNewClientDraft(null);
@@ -502,6 +544,11 @@ export default function ClientManagementClientDirectoryView({
       await createClientFromDraft(selectedClient);
       return;
     }
+    if (!isClientType(selectedClient.clientType)) {
+      setClientTypeError("Client type is required.");
+      return;
+    }
+    setClientTypeError(null);
     await saveClient(selectedClient);
   }
 
@@ -703,6 +750,9 @@ export default function ClientManagementClientDirectoryView({
                       />
                       {selectedClient.companyName ||
                         (isNewClientDraftId(selectedClient.id) ? "New client record" : "Client")}
+                      {isClientType(selectedClient.clientType) ? (
+                        <ClientTypeBadge clientType={selectedClient.clientType} />
+                      ) : null}
                     </h2>
                     <p className="mt-1 text-sm text-white/50">
                       {formatClientLocation(selectedClient) || "—"}
@@ -882,6 +932,8 @@ export default function ClientManagementClientDirectoryView({
                   client={selectedClient}
                   busy={busy}
                   companyNameError={companyNameError}
+                  clientTypeError={clientTypeError}
+                  showClientType
                   recordCountryOptions={recordCountryOptions}
                   selectedCityOptions={selectedCityOptions}
                   onPatch={(patch) => patchSelected(patch)}
@@ -928,7 +980,7 @@ export default function ClientManagementClientDirectoryView({
                   className={cn(inputClassName(), "mt-0 pl-10")}
                 />
               </div>
-              <div className="grid min-w-0 w-full max-w-full flex-1 grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
+              <div className="grid min-w-0 w-full max-w-full flex-1 grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
                 <div className="min-w-0">
                   <FieldLabel>Industry</FieldLabel>
                   <select
@@ -1007,6 +1059,20 @@ export default function ClientManagementClientDirectoryView({
                     ))}
                   </select>
                 </div>
+                <div className="min-w-0">
+                  <FieldLabel>Client Type</FieldLabel>
+                  <select
+                    className={cn(inputClassName(), "min-w-0 max-w-full")}
+                    value={filterClientType}
+                    onChange={(event) =>
+                      setFilterClientType(event.target.value as ClientType | "all")
+                    }
+                  >
+                    <option value="all">All Clients</option>
+                    <option value="unit311central">Unit311Central</option>
+                    <option value="wolf">WOLF</option>
+                  </select>
+                </div>
               </div>
             </div>
           </div>
@@ -1060,7 +1126,12 @@ export default function ClientManagementClientDirectoryView({
                               decoding="async"
                               className="h-7 w-7 shrink-0 rounded-md border border-white/10 bg-white/90 object-cover"
                             />
-                            <span className="min-w-0 break-words">{client.companyName}</span>
+                            <span className="min-w-0 break-words">
+                              {client.companyName}
+                              {isClientType(client.clientType) ? (
+                                <ClientTypeBadge clientType={client.clientType} />
+                              ) : null}
+                            </span>
                           </span>
                         </td>
                         <td className="border-b border-white/8 px-3 py-3 align-top text-white/65 break-words">

@@ -59,6 +59,7 @@ const defaultFilters = {
   city: "all",
   status: "all" as const,
   contract: "all",
+  clientType: "all" as const,
 };
 
 const defaultRows = filterClientDirectoryDisplayRows(sample, defaultFilters);
@@ -77,5 +78,31 @@ const archivedOnly = filterClientDirectoryDisplayRows(sample, {
 });
 assert.equal(archivedOnly.length, 1);
 assert.equal(archivedOnly[0]?.companyName, "Archived Co");
+
+const classified = sample.map((client, index) => ({
+  ...client,
+  clientType: index === 0 ? ("wolf" as const) : ("unit311central" as const),
+}));
+assert.equal(
+  filterClientDirectoryDisplayRows(classified, { ...defaultFilters, clientType: "wolf" }).length,
+  1,
+);
+assert.equal(
+  filterClientDirectoryDisplayRows(classified, {
+    ...defaultFilters,
+    clientType: "unit311central",
+    status: "Onboarding",
+    search: "onboarding",
+  })[0]?.companyName,
+  "Onboarding Co",
+);
+assert.equal(
+  filterClientDirectoryDisplayRows(classified, {
+    ...defaultFilters,
+    clientType: "wolf",
+    search: "onboarding",
+  }).length,
+  0,
+);
 
 console.log("ok  client-directory-filter");

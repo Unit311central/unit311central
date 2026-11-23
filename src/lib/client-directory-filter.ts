@@ -1,8 +1,11 @@
 import type { ManagedClient } from "@/lib/client-management-data";
 import {
+  clientTypeBadgeLabel,
   formatClientLocation,
+  isClientType,
   resolveClientLocation,
   type ClientAccountStatus,
+  type ClientType,
 } from "@/lib/client-management-data";
 import { clientDirectoryRows } from "@/lib/business-central/workspace-dashboard-summary";
 
@@ -13,6 +16,7 @@ export type ClientDirectoryListFilters = {
   city: string;
   status: ClientAccountStatus | "all";
   contract: string;
+  clientType: ClientType | "all";
 };
 
 /** Rows shown in BC Client Directory — non-archived by default; Archived only when explicitly filtered. */
@@ -38,6 +42,7 @@ export function filterClientDirectoryDisplayRows(
     if (filters.country !== "all" && location.country !== filters.country) return false;
     if (filters.city !== "all" && location.city !== filters.city) return false;
     if (filters.contract !== "all" && client.contractType !== filters.contract) return false;
+    if (filters.clientType !== "all" && client.clientType !== filters.clientType) return false;
     if (!query) return true;
 
     const haystack = [
@@ -51,6 +56,8 @@ export function filterClientDirectoryDisplayRows(
       client.contractType,
       client.accountStatus,
       client.billingAddress,
+      client.clientType ?? "",
+      isClientType(client.clientType) ? clientTypeBadgeLabel(client.clientType) : "",
     ]
       .join(" ")
       .toLowerCase();

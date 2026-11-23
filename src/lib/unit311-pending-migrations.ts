@@ -148,6 +148,7 @@ export const UNIT311_PENDING_MIGRATIONS = [
   "supabase/migrations/223_plantation_challenge_responses.sql",
   "supabase/migrations/224_internal_files_upload_limit.sql",
   "supabase/migrations/225_demo_attendance_module.sql",
+  "supabase/migrations/226_internal_clients_client_type.sql",
 ] as const;
 
 export const SALES_MANAGEMENT_FOUNDATION_MIGRATION =

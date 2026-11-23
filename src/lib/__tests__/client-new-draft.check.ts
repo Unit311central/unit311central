@@ -21,8 +21,24 @@ assert.equal(draft.companyName, "");
 assert.equal(draft.companyCountry, "");
 assert.equal(draft.supportLoungeUrl, undefined);
 
+assert.equal(draft.clientType, undefined, "new drafts must not preselect a client type");
+
 const createBody = buildCreateClientRequestBody({ ...draft, companyName: "Test 1" });
 assert.equal(createBody.companyName, "Test 1");
+assert.equal("clientType" in createBody, false);
+
+const requiredBody = buildCreateClientRequestBody(
+  { ...draft, companyName: "Test 1" },
+  { requireClientType: true },
+);
+assert.equal(requiredBody.clientType, null);
+assert.equal(requiredBody.requireClientType, true);
+
+const typedBody = buildCreateClientRequestBody(
+  { ...draft, companyName: "Wolf Co", clientType: "wolf" },
+  { requireClientType: true },
+);
+assert.equal(typedBody.clientType, "wolf");
 
 const saved = { ...draft, id: "client-1", companyName: "CorpCentre", jobTitle: "CEO" };
 const updateBody = buildUpdateClientRequestBody(saved);
@@ -33,6 +49,12 @@ assert.equal(
   false,
   "jobTitle edits must mark client dirty",
 );
+assert.equal(
+  clientFieldsEqual(saved, { ...saved, clientType: "wolf" }),
+  false,
+  "client type edits must mark client dirty",
+);
+assert.equal(updateBody.clientType, undefined);
 
 for (const country of [
   "United Kingdom",

@@ -1,15 +1,16 @@
 import { assertDemoMutationAllowedForRequest } from "@/lib/demo/mutation-guard";
 import { NextRequest, NextResponse } from "next/server";
 
-import type {
-  ClientAccountStatus,
-  ClientContractType,
-  ClientIndustry,
-  ClientRegion,
+import {
+  isClientType,
+  type ClientAccountStatus,
+  type ClientContractType,
+  type ClientIndustry,
+  type ClientRegion,
+  type ManagedClient,
 } from "@/lib/client-management-data";
 import { apiErrorStatus } from "@/lib/api-error-status";
 import { createInternalClient, listInternalClients } from "@/lib/internal-clients-service";
-import type { ManagedClient } from "@/lib/client-management-data";
 import { isDemoApiRequest } from "@/lib/demo/demo-request";
 import { getNorthstarClients } from "@/lib/demo/module-fixtures";
 import { enrichNorthstarClientsWithFilesRoots } from "@/lib/demo/northstar-files-fixtures";
@@ -68,7 +69,17 @@ export async function POST(request: NextRequest) {
     const body = (await request.json()) as Partial<ManagedClient> & {
       companyName?: string;
       workspaceId?: string;
+      requireClientType?: boolean;
     };
+
+    if (
+      body.requireClientType === true ||
+      Object.prototype.hasOwnProperty.call(body, "clientType")
+    ) {
+      if (!isClientType(body.clientType)) {
+        return NextResponse.json({ error: "Client type is required." }, { status: 400 });
+      }
+    }
 
     await ensureInternalClientsTable();
     const client = await createInternalClient(body, {

@@ -1,8 +1,14 @@
 import {
   composeLegacyRegion,
+  isClientType,
   resolveClientLocation,
   type ManagedClient,
 } from "@/lib/client-management-data";
+
+export type CreateClientDraftOptions = {
+  /** Client Directory Add Client must send an explicit classification. */
+  requireClientType?: boolean;
+};
 
 function sharedClientWriteFields(draft: ManagedClient) {
   const location = resolveClientLocation(draft);
@@ -27,11 +33,21 @@ function sharedClientWriteFields(draft: ManagedClient) {
     billingSameAsCompany: draft.billingSameAsCompany,
     primaryContactFirstName: draft.primaryContactFirstName,
     primaryContactSurname: draft.primaryContactSurname,
+    ...(isClientType(draft.clientType) ? { clientType: draft.clientType } : {}),
   };
 }
 
-export function buildCreateClientRequestBody(draft: ManagedClient) {
-  return sharedClientWriteFields(draft);
+export function buildCreateClientRequestBody(
+  draft: ManagedClient,
+  options?: CreateClientDraftOptions,
+) {
+  const fields = sharedClientWriteFields(draft);
+  if (!options?.requireClientType) return fields;
+  return {
+    ...fields,
+    clientType: isClientType(draft.clientType) ? draft.clientType : null,
+    requireClientType: true,
+  };
 }
 
 /** PATCH body for Client Directory save — omits read-only / server-derived fields. */
@@ -44,16 +60,20 @@ export function buildUpdateClientRequestBody(client: ManagedClient) {
 
 export async function createClientFromDraftRequest(
   draft: ManagedClient,
+  options?: CreateClientDraftOptions,
 ): Promise<ManagedClient> {
   const companyName = draft.companyName.trim();
   if (!companyName) {
     throw new Error("Company name is required.");
   }
+  if (options?.requireClientType && !isClientType(draft.clientType)) {
+    throw new Error("Client type is required.");
+  }
 
   const response = await fetch("/api/clients", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(buildCreateClientRequestBody({ ...draft, companyName })),
+    body: JSON.stringify(buildCreateClientRequestBody({ ...draft, companyName }, options)),
   });
 
   const text = await response.text();
