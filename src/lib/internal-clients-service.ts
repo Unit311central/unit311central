@@ -2,6 +2,7 @@ import {
   assertClientAccountStatusTransition,
   createBlankClient,
   isClientAccountStatus,
+  isClientType,
   mapInternalClient,
   normalizeClientAccountStatus,
   type ClientAccountStatus,
@@ -104,6 +105,12 @@ function buildClientPayload(input: Partial<ManagedClient>) {
     payload.account_status = input.accountStatus;
   }
   if (input.contractType !== undefined) payload.contract_type = input.contractType;
+  if (input.clientType !== undefined) {
+    if (!isClientType(input.clientType)) {
+      throw new Error("Client type is required.");
+    }
+    payload.client_type = input.clientType;
+  }
   if (input.taxId !== undefined) payload.tax_id = input.taxId.trim();
   if (input.billingAddress !== undefined) payload.billing_address = input.billingAddress.trim();
   if (input.jobTitle !== undefined) payload.job_title = input.jobTitle.trim();
@@ -183,6 +190,7 @@ export async function listInternalClients(
             "region",
             "account_status",
             "contract_type",
+            "client_type",
             "tax_id",
             "billing_address",
             "job_title",
@@ -330,6 +338,9 @@ export async function createInternalClient(
       if (!companyName) {
         throw new Error("Company name is required.");
       }
+      if (input.clientType !== undefined && !isClientType(input.clientType)) {
+        throw new Error("Client type is required.");
+      }
       const { createLoungeToken } = await import("@/lib/support-lounge-service");
       const companySlug = companyName
         .toLowerCase()
@@ -352,6 +363,7 @@ export async function createInternalClient(
         // FDR-MOD-011: every new Directory client starts as Client Created.
         account_status: "Client Created" satisfies ClientAccountStatus,
         contract_type: input.contractType ?? blank.contractType,
+        ...(isClientType(input.clientType) ? { client_type: input.clientType } : {}),
         tax_id: input.taxId?.trim() ?? blank.taxId,
         billing_address: input.billingAddress?.trim() ?? blank.billingAddress,
         // PRM-001: derived field — always start at 0; projects modules update later.

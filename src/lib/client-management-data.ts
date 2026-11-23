@@ -34,6 +34,9 @@ export type ClientContractType =
   | "Retainer"
   | "Trial";
 
+/** Persisted Client Directory classification. */
+export type ClientType = "unit311central" | "wolf";
+
 export type ClientRegion =
   | "Catalonia, Spain"
   | "Porto, Portugal"
@@ -78,6 +81,11 @@ export type ManagedClient = {
   region: ClientRegion;
   accountStatus: ClientAccountStatus;
   contractType: ClientContractType;
+  /**
+   * Product classification. Unset only on an unsaved Add Client draft until
+   * the user chooses. Persisted rows are always unit311central or wolf.
+   */
+  clientType?: ClientType;
   taxId: string;
   billingAddress: string;
   jobTitle?: string;
@@ -215,6 +223,27 @@ export const CLIENT_CONTRACT_OPTIONS: ClientContractType[] = [
   "Retainer",
   "Trial",
 ];
+
+export const CLIENT_TYPE_OPTIONS: readonly { value: ClientType; label: string }[] = [
+  { value: "unit311central", label: "Unit311Central" },
+  { value: "wolf", label: "WOLF" },
+];
+
+export function isClientType(value: unknown): value is ClientType {
+  return value === "unit311central" || value === "wolf";
+}
+
+/** Directory badge text for a persisted classification. */
+export function clientTypeBadgeLabel(value: ClientType): "UNIT311" | "WOLF" {
+  return value === "wolf" ? "WOLF" : "UNIT311";
+}
+
+export function clientTypeClass(value: ClientType): string {
+  if (value === "wolf") {
+    return "border-amber-400/40 bg-amber-500/15 text-amber-100";
+  }
+  return "border-sky-400/40 bg-sky-500/15 text-sky-100";
+}
 
 export const CLIENT_REGION_OPTIONS: ClientRegion[] = [
   "Catalonia, Spain",
@@ -603,6 +632,7 @@ type DbInternalClient = {
   region: string;
   account_status: string;
   contract_type: string;
+  client_type?: string | null;
   tax_id: string;
   billing_address: string;
   job_title: string | null;
@@ -659,6 +689,7 @@ export function mapInternalClient(
     region: row.region as ClientRegion,
     accountStatus: normalizeClientAccountStatus(row.account_status),
     contractType: row.contract_type as ClientContractType,
+    clientType: isClientType(row.client_type) ? row.client_type : undefined,
     taxId: row.tax_id,
     billingAddress: row.billing_address,
     jobTitle: row.job_title ?? undefined,
@@ -709,6 +740,7 @@ export function clientFieldsEqual(a: ManagedClient, b: ManagedClient) {
     a.region === b.region &&
     a.accountStatus === b.accountStatus &&
     a.contractType === b.contractType &&
+    (a.clientType ?? "") === (b.clientType ?? "") &&
     a.taxId === b.taxId &&
     a.billingAddress === b.billingAddress &&
     (a.companyAddress ?? "") === (b.companyAddress ?? "") &&

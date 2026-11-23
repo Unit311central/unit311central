@@ -2,7 +2,7 @@ import { assertDemoMutationAllowedForRequest } from "@/lib/demo/mutation-guard";
 import { NextRequest, NextResponse } from "next/server";
 
 import { apiErrorStatus } from "@/lib/api-error-status";
-import type { ManagedClient } from "@/lib/client-management-data";
+import { isClientType, type ManagedClient } from "@/lib/client-management-data";
 import {
   deleteInternalClient,
   getInternalClient,
@@ -49,6 +49,9 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     const workspace = await requireCurrentWorkspace();
     const { id } = await context.params;
     const body = (await request.json()) as Partial<ManagedClient>;
+    if (Object.prototype.hasOwnProperty.call(body, "clientType") && !isClientType(body.clientType)) {
+      return NextResponse.json({ error: "Client type is required." }, { status: 400 });
+    }
     const client = await updateInternalClient(id, body, { workspaceId: workspace.id });
     return NextResponse.json({ client });
   } catch (error) {

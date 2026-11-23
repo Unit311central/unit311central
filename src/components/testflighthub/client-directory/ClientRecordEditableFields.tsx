@@ -7,7 +7,9 @@ import {
   CLIENT_CONTRACT_OPTIONS,
   CLIENT_INDUSTRY_OPTIONS,
   CLIENT_STATUS_OPTIONS,
+  CLIENT_TYPE_OPTIONS,
   canTransitionClientAccountStatus,
+  isClientType,
   composeLegacyRegion,
   isNewClientDraftId,
   resolveClientLocation,
@@ -51,6 +53,9 @@ export type ClientRecordEditableFieldsProps = {
   recordCountryOptions: readonly string[];
   selectedCityOptions: readonly string[];
   onPatch: (patch: Partial<ManagedClient>) => void;
+  /** Client Directory Add/Edit. Omitted for Sales opportunity inline create. */
+  showClientType?: boolean;
+  clientTypeError?: string | null;
   /** Finance block for saved clients in Client Directory (omit for inline opportunity create). */
   financeSection?: {
     basePath: string;
@@ -68,6 +73,8 @@ export function ClientRecordEditableFields({
   recordCountryOptions,
   selectedCityOptions,
   onPatch,
+  showClientType = false,
+  clientTypeError,
   financeSection,
 }: ClientRecordEditableFieldsProps) {
   const selectedLocation = resolveClientLocation(client);
@@ -95,6 +102,32 @@ export function ClientRecordEditableFields({
         />
         {companyNameError ? <p className="mt-1.5 text-xs text-red-300">{companyNameError}</p> : null}
       </div>
+      {showClientType ? (
+        <div>
+          <FieldLabel>Client Type</FieldLabel>
+          <select
+            className={inputClassName()}
+            value={client.clientType ?? ""}
+            onChange={(event) => {
+              const value = event.target.value;
+              onPatch({ clientType: isClientType(value) ? value : undefined });
+            }}
+            disabled={busy}
+            required
+            aria-invalid={clientTypeError ? true : undefined}
+          >
+            {isNewClientDraftId(client.id) || !isClientType(client.clientType) ? (
+              <option value="">Select client type</option>
+            ) : null}
+            {CLIENT_TYPE_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+          {clientTypeError ? <p className="mt-1.5 text-xs text-red-300">{clientTypeError}</p> : null}
+        </div>
+      ) : null}
       <div>
         <FieldLabel>Industry</FieldLabel>
         <select
