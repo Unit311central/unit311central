@@ -3,6 +3,7 @@
  * Run: node --import tsx src/lib/__tests__/management-context.check.ts
  */
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
@@ -50,6 +51,23 @@ assert.equal(
 assert.equal(
   resolveManagementPageContext(new URLSearchParams("managementContext=other")),
   "unit311central",
+);
+assert.equal(
+  resolveManagementPageContext(new URLSearchParams("view=management"), "wolf"),
+  "wolf",
+  "A bare Management URL keeps the stored WOLF choice",
+);
+assert.equal(
+  resolveManagementPageContext(new URLSearchParams("view=management&section=meetings"), "wolf"),
+  "unit311central",
+);
+assert.equal(
+  resolveManagementNavContext({
+    activeView: "management",
+    searchParams: new URLSearchParams("view=management"),
+    stored: "wolf",
+  }),
+  "wolf",
 );
 
 assert.deepEqual(
@@ -144,6 +162,8 @@ assert.equal(
   assert.match(unit311, /WOLF/);
   assert.match(unit311, /aria-checked="true"/);
   assert.match(unit311, /data-management-context="unit311central"/);
+  assert.match(unit311, /min-h-10/);
+  assert.equal(unit311.includes("ml-6"), false);
   assert.equal(unit311.includes("Management Dashboard"), false);
   assert.equal(unit311.includes("Meetings"), false);
 
@@ -160,6 +180,22 @@ assert.equal(
   assert.equal(placeholder.includes("Management Dashboard"), false);
   assert.equal(placeholder.includes("Function Packs"), false);
   assert.equal(placeholder.includes("Actions &amp; Decisions"), false);
+}
+
+{
+  const workspace = readFileSync(
+    "src/components/central-capabilities/ManagementWorkspace.tsx",
+    "utf8",
+  );
+  const selectorAt = workspace.indexOf("<ManagementContextSelector");
+  const tabsAt = workspace.indexOf("<ManagementSectionNav");
+  assert.ok(selectorAt > 0 && tabsAt > selectorAt, "Selector renders above the Management tabs");
+  assert.equal(workspace.includes("return <WolfManagementPlaceholder />"), false);
+  const sidebar = readFileSync(
+    "src/components/testflighthub/EnterprisePlatformSidebar.tsx",
+    "utf8",
+  );
+  assert.equal(sidebar.includes("ManagementContextSelector"), false);
 }
 
 assert.match(WOLF_MANAGEMENT_PLACEHOLDER.title, /WOLF Management/);

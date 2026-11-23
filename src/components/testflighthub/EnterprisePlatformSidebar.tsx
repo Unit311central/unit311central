@@ -1,6 +1,6 @@
 "use client";
 
-import { startTransition, useEffect, useMemo, useState, useSyncExternalStore, type CSSProperties } from "react";
+import { startTransition, useEffect, useMemo, useState, type CSSProperties } from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import {
@@ -111,18 +111,6 @@ import {
 } from "@/lib/sidebar-nav-custom";
 import type { SurveyOperationsBasePath } from "@/lib/survey-operations-mock-data";
 import { cn } from "@/lib/utils";
-import { ManagementContextSelector } from "@/components/central-capabilities/ManagementContextSelector";
-import {
-  isBusinessCentralManagementNav,
-  managementContextClientSnapshot,
-  managementContextSelectorEnabled,
-  managementContextServerSnapshot,
-  resolveManagementNavContext,
-  resolveManagementPageContext,
-  subscribeManagementContext,
-  writeManagementContext,
-  type ManagementContext,
-} from "@/lib/central-capabilities/management-context";
 import { useOperatorEntitlements } from "./OperatorEntitlementsProvider";
 
 const iconMap = {
@@ -275,16 +263,6 @@ export default function EnterprisePlatformSidebar({
 }: EnterprisePlatformSidebarProps) {
   const pathname = usePathname() ?? "";
   const searchParams = useSearchParams();
-  const storedManagementContext = useSyncExternalStore(
-    subscribeManagementContext,
-    managementContextClientSnapshot,
-    managementContextServerSnapshot,
-  );
-  const managementContext = resolveManagementNavContext({
-    activeView,
-    searchParams,
-    stored: storedManagementContext,
-  });
   const [navExpand, setNavExpand] = useState<SidebarNavExpandState>({ pinned: {}, collapsed: [] });
   const [theme, setTheme] = useState<SidebarThemeTokens>(() => getSidebarTheme(readSidebarThemeId()));
   const [hydrated, setHydrated] = useState(false);
@@ -431,12 +409,6 @@ export default function EnterprisePlatformSidebar({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname]);
 
-  useEffect(() => {
-    if (overviewEmbed || !managementContextSelectorEnabled(basePath)) return;
-    if (activeView !== "management") return;
-    writeManagementContext(resolveManagementPageContext(searchParams));
-  }, [activeView, basePath, overviewEmbed, searchParams]);
-
   function toggleExpanded(key: string, isOpen: boolean) {
     setNavExpand((current) => {
       const collapsed = new Set(current.collapsed);
@@ -462,17 +434,6 @@ export default function EnterprisePlatformSidebar({
   function navigate(view: InternalOperationsView, query?: Record<string, string>) {
     onViewChange?.(view, query);
     onClose?.();
-  }
-
-  function selectManagementContext(next: ManagementContext) {
-    const stayingHere = next === managementContext && activeView === "management";
-    if (stayingHere) return;
-    writeManagementContext(next);
-    if (next === "wolf") {
-      navigate("management", { managementContext: "wolf" });
-      return;
-    }
-    navigate("management", {});
   }
 
   function childLabel(child: InternalNavChildItem) {
@@ -596,7 +557,6 @@ export default function EnterprisePlatformSidebar({
     parentKey: string,
     depth: number,
     expandParentsByDefault = false,
-    sectionLabel: string | null = null,
   ) {
     const key = `${parentKey}::${item.label}`;
     const hasChildren = (item.children?.length ?? 0) > 0;
@@ -619,12 +579,6 @@ export default function EnterprisePlatformSidebar({
       });
     }
 
-    const showManagementContext =
-      !overviewEmbed &&
-      managementContextSelectorEnabled(basePath) &&
-      isBusinessCentralManagementNav(sectionLabel, item.label);
-    const visibleChildren =
-      showManagementContext && managementContext === "wolf" ? [] : item.children;
     const childActive =
       item.children?.some((child) =>
         isInternalNavChildActive(child, activeView, pathname, basePath, searchParams) ||
@@ -679,12 +633,7 @@ export default function EnterprisePlatformSidebar({
           <div className="min-h-0 overflow-hidden">
             {/* Continuous surface — no nested chrome; hierarchy = indent only */}
             <div>
-              {showManagementContext ? (
-                <ManagementContextSelector context={managementContext} onChange={selectManagementContext} />
-              ) : null}
-              {visibleChildren?.map((child) =>
-                renderGroup(child, key, depth + 1, expandParentsByDefault, sectionLabel),
-              )}
+              {item.children?.map((child) => renderGroup(child, key, depth + 1, expandParentsByDefault))}
             </div>
           </div>
         </div>
@@ -925,7 +874,6 @@ export default function EnterprisePlatformSidebar({
                     workspaceKey,
                     0,
                     Boolean(section.expandChildrenByDefault) || isSaecSurface,
-                    section.label,
                   );
                 }
                 const leafActive = isInternalNavItemActive(

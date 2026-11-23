@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useRef, useState, type FormEvent } from "react";
-import { useSearchParams } from "next/navigation";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore, type FormEvent } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   Pencil,
   Plus,
@@ -22,10 +22,19 @@ import {
   resolveManagementShellTitle,
 } from "@/lib/central-capabilities/management-nav";
 import {
+  MANAGEMENT_CONTEXT_QUERY_KEY,
+  managementContextClientSnapshot,
   managementContextSelectorEnabled,
+  managementContextServerSnapshot,
   resolveManagementPageContext,
+  subscribeManagementContext,
+  writeManagementContext,
+  type ManagementContext,
 } from "@/lib/central-capabilities/management-context";
-import { WolfManagementPlaceholder } from "@/components/central-capabilities/ManagementContextSelector";
+import {
+  ManagementContextSelector,
+  WolfManagementPlaceholder,
+} from "@/components/central-capabilities/ManagementContextSelector";
 import type {
   ManagementActionPlaceholder,
   ManagementFunctionPackPlaceholder,
@@ -831,9 +840,16 @@ function ManagementSectionNav({ section }: { section: ManagementSectionId }) {
 }
 
 export default function ManagementWorkspace() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const basePath = useInternalOperationsBasePath();
   const entitlements = useOperatorEntitlements();
+  const storedManagementContext = useSyncExternalStore(
+    subscribeManagementContext,
+    managementContextClientSnapshot,
+    managementContextServerSnapshot,
+  );
+  const [pendingContext, setPendingContext] = useState<ManagementContext | null>(null);
   const access = useMemo(
     () =>
       managementAccessFromEntitlements({
@@ -857,9 +873,45 @@ export default function ManagementWorkspace() {
   );
   const meetingNames = useMemo(() => state.meetings.map((meeting) => meeting.name), [state.meetings]);
   const isSaec = isBrowserSaecSurface();
-  const managementContext = managementContextSelectorEnabled(basePath)
-    ? resolveManagementPageContext(searchParams)
+  const selectorEnabled = managementContextSelectorEnabled(basePath);
+  const resolvedContext = selectorEnabled
+    ? resolveManagementPageContext(searchParams, storedManagementContext)
     : "unit311central";
+  if (pendingContext && pendingContext === resolvedContext) {
+    setPendingContext(null);
+  }
+  const managementContext =
+    pendingContext && pendingContext !== resolvedContext ? pendingContext : resolvedContext;
+
+  useEffect(() => {
+    if (!selectorEnabled || pendingContext) return;
+    const explicit = searchParams.get(MANAGEMENT_CONTEXT_QUERY_KEY);
+    const section = searchParams.get("section")?.trim() ?? "";
+    const moduleSection = section.length > 0 && section !== "dashboard";
+    if (explicit === "wolf" && !moduleSection) {
+      writeManagementContext("wolf");
+      return;
+    }
+    if (explicit === "unit311central") {
+      writeManagementContext("unit311central");
+      return;
+    }
+    if (moduleSection) return;
+    if (storedManagementContext === "wolf") {
+      router.replace(getInternalNavHref("management", basePath, { managementContext: "wolf" }));
+    }
+  }, [basePath, pendingContext, router, searchParams, selectorEnabled, storedManagementContext]);
+
+  function selectManagementContext(next: ManagementContext) {
+    if (next === managementContext) return;
+    setPendingContext(next);
+    writeManagementContext(next);
+    const href =
+      next === "wolf"
+        ? getInternalNavHref("management", basePath, { managementContext: "wolf" })
+        : getInternalNavHref("management", basePath);
+    router.replace(href);
+  }
 
   if (!canAccessManagementWorkspace(access, { workspaceSlug: entitlements.workspaceSlug })) {
     return (
@@ -872,35 +924,40 @@ export default function ManagementWorkspace() {
     );
   }
 
-  if (managementContext === "wolf") {
-    return <WolfManagementPlaceholder />;
-  }
-
   return (
     <div className="space-y-5">
-      {isSaec ? (
-        <WorkspaceModuleHeader
-          brandLabel={SAEC_COMPANY_NAME}
-          moduleLabel="Management"
-          title={resolveManagementShellTitle(section)}
-          description={MANAGEMENT_SUBTITLE}
-        />
+      {selectorEnabled ? (
+        <ManagementContextSelector context={managementContext} onChange={selectManagementContext} />
       ) : null}
-      <ManagementSectionNav section={section} />
-      {section === "dashboard" ? (
-        <ManagementDashboard
-          meetings={state.meetings}
-          actions={state.actions}
-          functionPacks={state.functionPacks}
-        />
-      ) : null}
-      {section === "meetings" ? <ManagementMeetingsPanel /> : null}
-      {section === "function-packs" ? (
-        <ManagementFunctionPacksPanel packs={visiblePacks} />
-      ) : null}
-      {section === "actions-decisions" ? (
-        <ManagementActionsPanel meetingNames={meetingNames} />
-      ) : null}
+      {managementContext === "wolf" ? (
+        <WolfManagementPlaceholder />
+      ) : (
+        <>
+          {isSaec ? (
+            <WorkspaceModuleHeader
+              brandLabel={SAEC_COMPANY_NAME}
+              moduleLabel="Management"
+              title={resolveManagementShellTitle(section)}
+              description={MANAGEMENT_SUBTITLE}
+            />
+          ) : null}
+          <ManagementSectionNav section={section} />
+          {section === "dashboard" ? (
+            <ManagementDashboard
+              meetings={state.meetings}
+              actions={state.actions}
+              functionPacks={state.functionPacks}
+            />
+          ) : null}
+          {section === "meetings" ? <ManagementMeetingsPanel /> : null}
+          {section === "function-packs" ? (
+            <ManagementFunctionPacksPanel packs={visiblePacks} />
+          ) : null}
+          {section === "actions-decisions" ? (
+            <ManagementActionsPanel meetingNames={meetingNames} />
+          ) : null}
+        </>
+      )}
     </div>
   );
 }

@@ -20,7 +20,7 @@ export function ManagementContextSelector({
       role="radiogroup"
       aria-label="Management context"
       data-management-context={context}
-      className="mb-1 ml-6 mr-1 grid gap-0.5"
+      className="flex flex-wrap gap-2"
     >
       {MANAGEMENT_CONTEXT_OPTIONS.map((option) => {
         const selected = option.id === context;
@@ -32,13 +32,11 @@ export function ManagementContextSelector({
             aria-checked={selected}
             onClick={() => onChange(option.id)}
             className={cn(
-              "h-6 rounded-md px-1.5 text-left font-medium leading-none tracking-[0.04em] transition-colors",
-              selected ? "text-white" : "text-white/55 hover:bg-white/[0.04] hover:text-white",
+              "inline-flex min-h-10 items-center rounded-xl border px-4 text-sm font-semibold tracking-[0.04em] transition-colors",
+              selected
+                ? "border-sky-300/50 bg-[#1F4FBF] text-white"
+                : "border-white/15 bg-white/[0.04] text-white/75 hover:border-white/25 hover:bg-white/[0.07] hover:text-white",
             )}
-            style={{
-              fontSize: 9,
-              background: selected ? "#1F4FBF" : "transparent",
-            }}
           >
             {option.label}
           </button>

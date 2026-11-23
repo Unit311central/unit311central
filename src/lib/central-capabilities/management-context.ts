@@ -49,17 +49,26 @@ export function isBusinessCentralManagementNav(
 
 type SearchParamSource = { get(name: string): string | null };
 
+function managementSectionIsModule(searchParams: SearchParamSource): boolean {
+  const section = searchParams.get("section")?.trim() ?? "";
+  return section.length > 0 && section !== "dashboard";
+}
+
 /**
  * Page context for the open Management view.
- * WOLF is explicit (`managementContext=wolf` and no module section).
- * Every existing Management link stays Unit311Central.
+ * An explicit `managementContext=wolf` selects WOLF.
+ * A module `section` link stays on Unit311Central.
+ * A bare Management URL uses the stored choice, otherwise Unit311Central.
  */
-export function resolveManagementPageContext(searchParams: SearchParamSource | null | undefined): ManagementContext {
-  if (!searchParams) return "unit311central";
-  if (searchParams.get(MANAGEMENT_CONTEXT_QUERY_KEY) !== "wolf") return "unit311central";
-  const section = searchParams.get("section")?.trim() ?? "";
-  if (section && section !== "dashboard") return "unit311central";
-  return "wolf";
+export function resolveManagementPageContext(
+  searchParams: SearchParamSource | null | undefined,
+  stored?: ManagementContext | null,
+): ManagementContext {
+  if (!searchParams) return stored === "wolf" ? "wolf" : "unit311central";
+  const explicit = searchParams.get(MANAGEMENT_CONTEXT_QUERY_KEY);
+  if (explicit === "wolf" && !managementSectionIsModule(searchParams)) return "wolf";
+  if (explicit === "unit311central" || managementSectionIsModule(searchParams)) return "unit311central";
+  return stored === "wolf" ? "wolf" : "unit311central";
 }
 
 export function managementNavChildrenForContext(
@@ -119,7 +128,7 @@ export function resolveManagementNavContext(options: {
   stored: ManagementContext;
 }): ManagementContext {
   if (options.activeView === "management") {
-    return resolveManagementPageContext(options.searchParams);
+    return resolveManagementPageContext(options.searchParams, options.stored);
   }
   return options.stored;
 }
