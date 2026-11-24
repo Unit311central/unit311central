@@ -19,10 +19,11 @@ import {
 
 assert.deepEqual(
   SALES_CONTEXT_OPTIONS.map((option) => option.label),
-  ["UNIT311CENTRAL", "WOLF"],
+  ["Unit311", "Wolf"],
 );
 
 assert.equal(salesContextSelectorEnabled({ basePath: "/", workspaceSlug: "unit311" }), true);
+assert.equal(salesContextSelectorEnabled({ basePath: "/", workspaceSlug: "internal" }), true);
 assert.equal(
   salesContextSelectorEnabled({ basePath: "/internaldashboard", workspaceSlug: "unit311" }),
   true,
@@ -87,9 +88,10 @@ assert.equal(untouched.input, "/api/crm/leads");
 const markup = renderToStaticMarkup(
   createElement(SalesBusinessContextSelector, { context: "wolf", onChange: () => {} }),
 );
-assert.equal(markup.includes("UNIT311CENTRAL"), true);
-assert.equal(markup.includes("WOLF"), true);
+assert.equal(markup.includes("<select"), true);
+assert.equal(markup.includes("Unit311"), true);
+assert.equal(markup.includes("Wolf"), true);
 assert.equal(markup.includes('data-sales-context="wolf"'), true);
-assert.equal(markup.includes('aria-checked="true"'), true);
+assert.equal(markup.includes('value="wolf"'), true);
 
 console.log("sales-business-context-ui.check.ts: ok");

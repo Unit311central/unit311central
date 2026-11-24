@@ -22,8 +22,8 @@ export const SALES_CONTEXT_OPTIONS: ReadonlyArray<{
   id: SalesBusinessContext;
   label: string;
 }> = [
-  { id: "unit311central", label: "UNIT311CENTRAL" },
-  { id: "wolf", label: "WOLF" },
+  { id: "unit311central", label: "Unit311" },
+  { id: "wolf", label: "Wolf" },
 ];
 
 const INTERNAL_SALES_BASE_PATHS = new Set([
@@ -48,7 +48,8 @@ export function salesContextSelectorEnabled(input: {
   workspaceSlug?: string | null;
 }): boolean {
   if (!INTERNAL_SALES_BASE_PATHS.has(input.basePath ?? "")) return false;
-  return input.workspaceSlug?.trim().toLowerCase() === UNIT311_SALES_WORKSPACE_SLUG;
+  const slug = input.workspaceSlug?.trim().toLowerCase();
+  return slug === UNIT311_SALES_WORKSPACE_SLUG || slug === "internal";
 }
 
 export function readSalesBusinessContext(): SalesBusinessContext {
