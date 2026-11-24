@@ -76,6 +76,8 @@ import {
 } from "@/lib/internal-operations-data";
 import { filterInternalNavSectionsByGrants, filterInternalNavSectionsForDemoSurface } from "@/lib/internal-role-views";
 import { SALES_MANAGEMENT_MODULE_LABEL } from "@/lib/sales-management-nav";
+import { isBrowserWolfSentinelSurface, isWolfSentinelSlug } from "@/lib/wolf/wolf-sentinel";
+import { buildWolfSentinelNavSections } from "@/lib/wolf/wolf-sentinel-nav";
 import {
   salesBusinessContextClientSnapshot,
   salesBusinessContextServerSnapshot,
@@ -206,6 +208,8 @@ type EnterprisePlatformSidebarProps = {
   onPrefetchView?: (view: InternalOperationsView) => void;
   /** Overview invite: hide brand/logout; show “CLICK BELOW TO VIEW”. */
   overviewEmbed?: boolean;
+  /** wolfsentinel.unit311central.com — fixed Unit311 module list. */
+  wolfSentinel?: boolean;
 };
 
 function resolveIcon(name?: string) {
@@ -269,6 +273,7 @@ export default function EnterprisePlatformSidebar({
   basePath = "/internaldashboard",
   onPrefetchView,
   overviewEmbed = false,
+  wolfSentinel = false,
 }: EnterprisePlatformSidebarProps) {
   const pathname = usePathname() ?? "";
   const searchParams = useSearchParams();
@@ -927,6 +932,13 @@ export default function EnterprisePlatformSidebar({
   }
 
   const navSections = useMemo(() => {
+    if (
+      wolfSentinel ||
+      isWolfSentinelSlug(effectiveWorkspaceSlug) ||
+      isBrowserWolfSentinelSurface()
+    ) {
+      return buildWolfSentinelNavSections();
+    }
     const filtered = filterInternalNavSectionsForDemoSurface(
       filterInternalNavSectionsByGrants(
         workspaceNavBase,
@@ -965,6 +977,7 @@ export default function EnterprisePlatformSidebar({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     allowedViews,
+    wolfSentinel,
     entitlementsReady,
     enabledModules,
     hydrated,

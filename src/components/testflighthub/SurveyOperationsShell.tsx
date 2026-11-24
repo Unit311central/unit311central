@@ -52,6 +52,7 @@ type SurveyOperationsShellProps = {
   activeView?: SurveyOperationsView | InternalOperationsView;
   onViewChange?: (view: SurveyOperationsView | InternalOperationsView, query?: Record<string, string>) => void;
   basePath?: SurveyOperationsBasePath;
+  wolfSentinel?: boolean;
 };
 
 export default function SurveyOperationsShell({
@@ -62,6 +63,7 @@ export default function SurveyOperationsShell({
   activeView,
   onViewChange,
   basePath = "/testflighthub",
+  wolfSentinel = false,
 }: SurveyOperationsShellProps) {
   const { workspaceSlug } = useOperatorEntitlements();
   const searchParams = useSearchParams();
@@ -205,6 +207,7 @@ export default function SurveyOperationsShell({
         onViewChange={onViewChange}
         basePath={basePath}
         onPrefetchView={(view) => prefetchViewOnIntent(view)}
+        wolfSentinel={wolfSentinel}
       />
 
       <div

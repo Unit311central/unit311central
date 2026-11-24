@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import InternalOperationsDashboard from "@/components/testflighthub/InternalOperationsDashboard";
 import WorkspaceLoadingFallback from "@/components/testflighthub/WorkspaceLoadingFallback";
 import { DEMO_WORKSPACE_SLUG, getRequestHost, isDemoDomainHost, parseClientPlatformSubdomainSafe } from "@/lib/app-domains";
+import { isWolfSentinelHost, isWolfSentinelSlug } from "@/lib/wolf/wolf-sentinel";
 import { resolveInternalOperationsBasePath } from "@/lib/internal-operations-data";
 import { loadOperatorEntitlementsSnapshot } from "@/lib/operator-entitlements-server";
 import { getCurrentWorkspace } from "@/lib/workspace-context";
@@ -28,6 +29,10 @@ export default async function InternalDashboardPage() {
     resolvedSlug,
   );
   const initialEntitlementsSnapshot = await loadOperatorEntitlementsSnapshot(host);
+  const wolfSentinel =
+    isWolfSentinelHost(host) ||
+    isWolfSentinelSlug(workspaceSlug) ||
+    isWolfSentinelSlug(requestHeaders.get("x-unit311-workspace-slug"));
 
   return (
     <WorkspaceReportingCurrencyProvider currency={reportingCurrency}>
@@ -36,6 +41,7 @@ export default async function InternalDashboardPage() {
           basePath={basePath}
           executiveHomeReportingCurrency={executiveHomeReportingCurrency}
           initialEntitlementsSnapshot={initialEntitlementsSnapshot}
+          wolfSentinel={wolfSentinel}
         />
       </Suspense>
     </WorkspaceReportingCurrencyProvider>

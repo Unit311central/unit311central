@@ -195,6 +195,7 @@ type SurveyOperationsSidebarProps = {
   basePath?: SurveyOperationsBasePath;
   onPrefetchView?: (view: InternalOperationsView) => void;
   overviewEmbed?: boolean;
+  wolfSentinel?: boolean;
 };
 
 export default function SurveyOperationsSidebar({
@@ -206,6 +207,7 @@ export default function SurveyOperationsSidebar({
   basePath = "/testflighthub",
   onPrefetchView,
   overviewEmbed = false,
+  wolfSentinel = false,
 }: SurveyOperationsSidebarProps) {
   const pathname = usePathname() ?? "";
   const searchParams = useSearchParams();
@@ -587,6 +589,7 @@ export default function SurveyOperationsSidebar({
         basePath={basePath}
         onPrefetchView={onPrefetchView}
         overviewEmbed={overviewEmbed}
+        wolfSentinel={wolfSentinel}
       />
     );
   }

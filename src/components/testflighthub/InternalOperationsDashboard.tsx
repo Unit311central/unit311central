@@ -533,11 +533,13 @@ export default function InternalOperationsDashboard({
   initialView,
   executiveHomeReportingCurrency,
   initialEntitlementsSnapshot,
+  wolfSentinel = false,
 }: {
   basePath?: SurveyOperationsBasePath;
   initialView?: InternalOperationsView;
   executiveHomeReportingCurrency?: ReportingCurrency;
   initialEntitlementsSnapshot?: OperatorEntitlementsSnapshot | null;
+  wolfSentinel?: boolean;
 }) {
   const searchParams = useSearchParams();
   const pathname = usePathname() ?? "";
@@ -916,14 +918,14 @@ export default function InternalOperationsDashboard({
   );
 
   useEffect(() => {
-    if (!sentinelSurface) return;
+    if (!wolfSentinel && !sentinelSurface) return;
     if (isWolfSentinelView(activeView)) return;
     if (activeView === "settings" || activeView === "billing" || activeView === "appearance") {
       handleViewChange("profile");
       return;
     }
     handleViewChange("home");
-  }, [activeView, handleViewChange, sentinelSurface]);
+  }, [activeView, handleViewChange, sentinelSurface, wolfSentinel]);
 
   return (
     <OperatorEntitlementsProvider initialSnapshot={initialEntitlementsSnapshot}>
@@ -945,6 +947,7 @@ export default function InternalOperationsDashboard({
             }
           }}
           basePath={basePath}
+          wolfSentinel={wolfSentinel || sentinelSurface}
         >
       <div
         className={
@@ -964,7 +967,7 @@ export default function InternalOperationsDashboard({
           {isWarm("home") && (
             <WorkspacePane view="home" activeView={activeView} keepMounted={isWarm("home")}>
               <WorkspaceErrorBoundary title="Home">
-                {sentinelSurface ? (
+                {wolfSentinel || sentinelSurface ? (
                   <WolfSentinelHome />
                 ) : (
                   <ExecutiveHomeDashboard
