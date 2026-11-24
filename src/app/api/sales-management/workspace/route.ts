@@ -28,7 +28,7 @@ export async function GET(request: Request) {
     if (!SECTIONS.has(section)) {
       return NextResponse.json({ error: "Unknown section." }, { status: 400 });
     }
-    const auth = await resolveSalesManagementAuth();
+    const auth = await resolveSalesManagementAuth(request);
     const payload = buildSectionPayload(section, auth);
     return NextResponse.json(payload);
   } catch (error) {

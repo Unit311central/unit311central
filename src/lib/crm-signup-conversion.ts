@@ -15,6 +15,7 @@ import {
   formatSignupAddress,
   mapSignupCountryToRegion,
 } from "@/lib/signup-profile";
+import { DEFAULT_SALES_BUSINESS_CONTEXT } from "@/lib/sales-business-context";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
 import { createTenancyServerClient } from "@/lib/supabase/tenancy-server";
 import { provisionCustomerWorkspace } from "@/lib/workspace-provisioning-service";
@@ -46,6 +47,7 @@ export async function findCrmLeadForSignup(input: {
     .from("crm_leads")
     .select("*")
     .eq("workspace_id", internal.id)
+    .eq("business_context", DEFAULT_SALES_BUSINESS_CONTEXT)
     .order("updated_at", { ascending: false })
     .limit(200);
   if (error) throw new Error(error.message);
@@ -66,6 +68,7 @@ async function markLeadWon(leadId: string, workspaceId: string) {
     })
     .eq("id", leadId)
     .eq("workspace_id", workspaceId)
+    .eq("business_context", DEFAULT_SALES_BUSINESS_CONTEXT)
     .neq("status", "Won");
 }
 

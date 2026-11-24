@@ -14,6 +14,7 @@ import {
   normalizeLineColumnVisibility,
   type SalesQuotePricingStyle,
 } from "@/lib/accounting/sales-quote-display";
+import { applySalesBusinessContext } from "@/lib/sales-business-context";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
 import { createTenancyServerClient } from "@/lib/supabase/tenancy-server";
 
@@ -103,11 +104,10 @@ export async function listSalesQuotes(scope: FinancialsWorkspaceScope): Promise<
 
   const workspaceId = await resolveFinancialsWorkspaceId(scope);
   const supabase = requireSupabase();
-  const { data, error } = await supabase
-    .from("sales_quotes")
-    .select("*")
-    .eq("workspace_id", workspaceId)
-    .order("created_at", { ascending: false });
+  const { data, error } = await applySalesBusinessContext(
+    supabase.from("sales_quotes").select("*").eq("workspace_id", workspaceId),
+    scope.businessContext,
+  ).order("created_at", { ascending: false });
   if (error) throw new Error(error.message);
   const ids = (data ?? []).map((row) => String(row.id));
   const grouped = await loadQuoteLines(ids);

@@ -5,6 +5,7 @@ import { uploadCrmLeadCompanyLogo } from "@/lib/crm-company-logo-service";
 import { getLeadById } from "@/lib/crm-leads-service";
 import { requirePlatformSession } from "@/lib/platform-session";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
+import { readRequestedSalesBusinessContext, salesRecordScope } from "@/lib/sales-business-context";
 import { requireCurrentWorkspace } from "@/lib/workspace-context";
 
 export const dynamic = "force-dynamic";
@@ -24,7 +25,10 @@ export async function POST(request: NextRequest, context: RouteContext) {
     const workspace = await requireCurrentWorkspace();
     const { id } = await context.params;
 
-    const existingLead = await getLeadById(id, { workspaceId: workspace.id });
+    const existingLead = await getLeadById(
+      id,
+      salesRecordScope(workspace, readRequestedSalesBusinessContext(request)),
+    );
     if (!existingLead) {
       return NextResponse.json({ error: "Lead not found." }, { status: 404 });
     }
@@ -41,8 +45,9 @@ export async function POST(request: NextRequest, context: RouteContext) {
     return NextResponse.json(result);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to upload company logo";
-    const status =
-      message.includes("Authentication required") || message.includes("Workspace context")
+    const status = message.includes("sales business context")
+      ? 400
+      : message.includes("Authentication required") || message.includes("Workspace context")
         ? 401
         : message.includes("Lead not found")
           ? 404

@@ -35,6 +35,12 @@ import { isSupabaseConfigured } from "@/lib/supabase/server";
 import { createTenancyServerClient } from "@/lib/supabase/tenancy-server";
 import { generateInvoiceNumber } from "@/lib/invoice-number";
 import { getLeadById } from "@/lib/crm-leads-service";
+import { listInternalClients } from "@/lib/internal-clients-service";
+import {
+  applySalesBusinessContext,
+  clientsVisibleInSalesContext,
+  salesBusinessContextColumn,
+} from "@/lib/sales-business-context";
 
 export { listSalesQuotes } from "@/lib/accounting/sales-quotes-list-load";
 export { getSalesQuoteSellerProfile } from "@/lib/accounting/sales-quote-seller-profile";
@@ -180,6 +186,35 @@ async function loadQuoteLines(quoteIds: string[], workspaceId: string) {
   return grouped;
 }
 
+async function assertQuoteAssociations(
+  scope: FinancialsWorkspaceScope,
+  input: { crmLeadId?: string | null; clientId?: string | null },
+) {
+  if (!scope.businessContext) return;
+  const workspaceId = await resolveFinancialsWorkspaceId(scope);
+  if (input.crmLeadId) {
+    const lead = await getLeadById(input.crmLeadId, {
+      workspaceId,
+      businessContext: scope.businessContext,
+    });
+    if (!lead) throw new Error("CRM lead not found.");
+  }
+  if (input.clientId) {
+    const clients = clientsVisibleInSalesContext(
+      await listInternalClients({ workspaceId }),
+      scope.businessContext,
+    );
+    const client = clients.find((row) => row.id === input.clientId);
+    if (!client) {
+      throw new Error("Client is not available in this sales context.");
+    }
+  }
+}
+
+function scopeQuoteQuery<T>(query: T, scope: FinancialsWorkspaceScope): T {
+  return applySalesBusinessContext(query, scope.businessContext);
+}
+
 export async function getSalesQuoteById(id: string, scope: FinancialsWorkspaceScope): Promise<SalesQuote | null> {
   const fixture = resolveAccountingFixtureSource(scope.workspaceSlug);
   if (fixture === "northstar") {
@@ -193,12 +228,10 @@ export async function getSalesQuoteById(id: string, scope: FinancialsWorkspaceSc
 
   const workspaceId = await resolveFinancialsWorkspaceId(scope);
   const supabase = requireSupabase();
-  const { data, error } = await supabase
-    .from("sales_quotes")
-    .select("*")
-    .eq("workspace_id", workspaceId)
-    .eq("id", id)
-    .maybeSingle();
+  const { data, error } = await scopeQuoteQuery(
+    supabase.from("sales_quotes").select("*").eq("workspace_id", workspaceId).eq("id", id),
+    scope,
+  ).maybeSingle();
   if (error) throw new Error(error.message);
   if (!data) return null;
   const grouped = await loadQuoteLines([id], workspaceId);
@@ -210,13 +243,14 @@ export async function deleteSalesQuote(id: string, scope: FinancialsWorkspaceSco
   if (fixture === "northstar" || fixture === "saec") {
     throw new Error("Quote deletion is not available in demo fixture mode.");
   }
+  const existing = await getSalesQuoteById(id, scope);
+  if (!existing) throw new Error("Quote not found.");
   const workspaceId = await resolveFinancialsWorkspaceId(scope);
   const supabase = requireSupabase();
-  const { error } = await supabase
-    .from("sales_quotes")
-    .delete()
-    .eq("workspace_id", workspaceId)
-    .eq("id", id);
+  const { error } = await scopeQuoteQuery(
+    supabase.from("sales_quotes").delete().eq("workspace_id", workspaceId).eq("id", id),
+    scope,
+  );
   if (error) throw new Error(error.message);
 }
 
@@ -318,12 +352,14 @@ export async function createSalesQuote(
   }
 
   const workspaceId = await resolveFinancialsWorkspaceId(scope);
+  await assertQuoteAssociations(scope, input);
   const supabase = requireSupabase();
   const quoteNumber = `Q-${new Date().getFullYear()}-${generateInvoiceNumber()}`;
   const { data: quoteRow, error } = await supabase
     .from("sales_quotes")
     .insert({
       workspace_id: workspaceId,
+      business_context: salesBusinessContextColumn(scope.businessContext),
       quote_number: quoteNumber,
       crm_lead_id: input.crmLeadId ?? null,
       client_id: input.clientId ?? null,
@@ -378,6 +414,7 @@ export async function updateSalesQuote(
   if (!input.title?.trim()) {
     throw new Error("Quote title is required.");
   }
+  await assertQuoteAssociations(scope, input);
 
   const totals = prepareQuoteFinancials(input);
   const visibility = normalizeLineColumnVisibility(input.lineColumnVisibility);
@@ -420,7 +457,8 @@ export async function updateSalesQuote(
   const workspaceId = await resolveFinancialsWorkspaceId(scope);
   const supabase = requireSupabase();
   const issueDate = input.issueDate?.trim() || existing.issueDate || new Date().toISOString().slice(0, 10);
-  const { error } = await supabase
+  const { error } = await scopeQuoteQuery(
+    supabase
     .from("sales_quotes")
     .update({
       crm_lead_id: input.crmLeadId ?? null,
@@ -448,7 +486,9 @@ export async function updateSalesQuote(
       updated_at: new Date().toISOString(),
     })
     .eq("workspace_id", workspaceId)
-    .eq("id", id);
+    .eq("id", id),
+    scope,
+  );
   if (error) throw new Error(error.message);
 
   const { error: deleteLinesError } = await supabase
@@ -472,7 +512,10 @@ export async function createSalesQuoteFromLead(
   const lead =
     fixture === "northstar"
       ? getNorthstarCrmLeads().find((row) => row.id === input.leadId) ?? null
-      : await getLeadById(input.leadId, { workspaceId: scope.workspaceId });
+      : await getLeadById(input.leadId, {
+          workspaceId: scope.workspaceId,
+          businessContext: scope.businessContext,
+        });
 
   if (!lead) throw new Error("CRM lead not found.");
 
@@ -636,14 +679,19 @@ export async function acceptSalesQuote(
 
   const invoice = await issueInvoiceForQuote(quote, scope);
   const supabase = requireSupabase();
-  const { error } = await supabase
-    .from("sales_quotes")
-    .update({
-      status: "accepted",
-      invoice_id: invoice.id,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", id);
+  const workspaceId = await resolveFinancialsWorkspaceId(scope);
+  const { error } = await scopeQuoteQuery(
+    supabase
+      .from("sales_quotes")
+      .update({
+        status: "accepted",
+        invoice_id: invoice.id,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("workspace_id", workspaceId)
+      .eq("id", id),
+    scope,
+  );
   if (error) throw new Error(error.message);
 
   return { quote: (await getSalesQuoteById(id, scope))!, invoice };
@@ -661,11 +709,16 @@ export async function markSalesQuoteSent(id: string, scope: FinancialsWorkspaceS
 
   const workspaceId = await resolveFinancialsWorkspaceId(scope);
   const supabase = requireSupabase();
-  const { error } = await supabase
-    .from("sales_quotes")
-    .update({ status: "sent", updated_at: new Date().toISOString() })
-    .eq("workspace_id", workspaceId)
-    .eq("id", id);
+  const existing = await getSalesQuoteById(id, scope);
+  if (!existing) throw new Error("Quote not found.");
+  const { error } = await scopeQuoteQuery(
+    supabase
+      .from("sales_quotes")
+      .update({ status: "sent", updated_at: new Date().toISOString() })
+      .eq("workspace_id", workspaceId)
+      .eq("id", id),
+    scope,
+  );
   if (error) throw new Error(error.message);
   return (await getSalesQuoteById(id, scope))!;
 }

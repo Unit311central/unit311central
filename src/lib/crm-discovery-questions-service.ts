@@ -4,7 +4,8 @@ import {
   parseDiscoveryQuestionnaireFromNotes,
   type DiscoveryQuestionnaireData,
 } from "@/lib/discovery-questions-data";
-import { getLeadById, updateLead } from "@/lib/crm-leads-service";
+import { getLeadById, updateLead, type CrmWorkspaceScope } from "@/lib/crm-leads-service";
+import { applySalesBusinessContext } from "@/lib/sales-business-context";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
 import { createTenancyServerClient } from "@/lib/supabase/tenancy-server";
 
@@ -40,17 +41,20 @@ function mergeNotesWithQuestionnaire(
 
 export async function getDiscoveryQuestionnaire(
   leadId: string,
+  scope?: CrmWorkspaceScope,
 ): Promise<DiscoveryQuestionnaireData | null> {
-  const lead = await getLeadById(leadId);
+  const lead = await getLeadById(leadId, scope);
   if (!lead) return null;
 
   const supabase = requireSupabase();
-  const { data, error } = await supabase
-    .from("crm_leads")
-    .select("discovery_questionnaire, notes")
-    .eq("id", leadId)
-    .eq("workspace_id", lead.workspaceId)
-    .maybeSingle();
+  const { data, error } = await applySalesBusinessContext(
+    supabase
+      .from("crm_leads")
+      .select("discovery_questionnaire, notes")
+      .eq("id", leadId)
+      .eq("workspace_id", lead.workspaceId),
+    scope?.businessContext,
+  ).maybeSingle();
 
   if (error) {
     if (isMissingDiscoveryQuestionnaireColumn(error.message)) {
@@ -76,8 +80,9 @@ export async function getDiscoveryQuestionnaire(
 export async function saveDiscoveryQuestionnaire(
   leadId: string,
   input: DiscoveryQuestionnaireData,
+  scope?: CrmWorkspaceScope,
 ): Promise<DiscoveryQuestionnaireData> {
-  const lead = await getLeadById(leadId);
+  const lead = await getLeadById(leadId, scope);
   if (!lead) throw new Error("Lead not found.");
 
   const payload = normalizeDiscoveryQuestionnaire({
@@ -85,15 +90,22 @@ export async function saveDiscoveryQuestionnaire(
     updatedAt: new Date().toISOString(),
   });
 
+  const leadScope: CrmWorkspaceScope = {
+    workspaceId: scope?.workspaceId ?? lead.workspaceId,
+    businessContext: scope?.businessContext,
+  };
   const supabase = requireSupabase();
-  const { error } = await supabase
-    .from("crm_leads")
-    .update({
-      discovery_questionnaire: payload,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", leadId)
-    .eq("workspace_id", lead.workspaceId);
+  const { error } = await applySalesBusinessContext(
+    supabase
+      .from("crm_leads")
+      .update({
+        discovery_questionnaire: payload,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", leadId)
+      .eq("workspace_id", lead.workspaceId),
+    leadScope.businessContext,
+  );
 
   if (error && isMissingDiscoveryQuestionnaireColumn(error.message)) {
     await updateLead(
@@ -101,7 +113,7 @@ export async function saveDiscoveryQuestionnaire(
       {
         notes: mergeNotesWithQuestionnaire(lead.notes, payload),
       },
-      { workspaceId: lead.workspaceId },
+      leadScope,
     );
     return payload;
   }

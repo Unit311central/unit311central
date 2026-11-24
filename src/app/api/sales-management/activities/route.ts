@@ -7,6 +7,7 @@ import {
   listSalesActivitiesForCrmLead,
   updateSalesActivity,
 } from "@/lib/sales-management-service";
+import { readRequestedSalesBusinessContext, salesRecordScope } from "@/lib/sales-business-context";
 import { salesManagementErrorResponse } from "@/lib/sales-management-api";
 import { requirePlatformSession } from "@/lib/platform-session";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
@@ -21,11 +22,12 @@ export async function GET(request: Request) {
     }
     await requirePlatformSession();
     const workspace = await requireCurrentWorkspace();
+    const scope = salesRecordScope(workspace, readRequestedSalesBusinessContext(request));
     const crmLeadId = new URL(request.url).searchParams.get("crmLeadId")?.trim();
     if (!crmLeadId) {
       return NextResponse.json({ error: "crmLeadId is required." }, { status: 400 });
     }
-    const activities = await listSalesActivitiesForCrmLead(workspace.id, crmLeadId);
+    const activities = await listSalesActivitiesForCrmLead(workspace.id, crmLeadId, scope.businessContext);
     return NextResponse.json({ activities });
   } catch (error) {
     return salesManagementErrorResponse(error);
@@ -43,6 +45,7 @@ export async function POST(request: Request) {
     const session = await requirePlatformSession();
     const workspace = await requireCurrentWorkspace();
     const body = (await request.json()) as {
+      businessContext?: unknown;
       crmLeadId?: string;
       title?: string;
       activityType?: string;
@@ -55,6 +58,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "crmLeadId and title are required." }, { status: 400 });
     }
 
+    const scope = salesRecordScope(workspace, readRequestedSalesBusinessContext(request, body));
     const activity = await createSalesActivity({
       workspaceId: workspace.id,
       crmLeadId: body.crmLeadId.trim(),
@@ -64,6 +68,7 @@ export async function POST(request: Request) {
       message: body.message,
       occurredAt: body.occurredAt,
       createdBy: session.sub,
+      businessContext: scope.businessContext,
     });
 
     return NextResponse.json({ activity });
@@ -82,6 +87,7 @@ export async function PUT(request: Request) {
 
     const workspace = await requireCurrentWorkspace();
     const body = (await request.json()) as {
+      businessContext?: unknown;
       id?: string;
       title?: string;
       subject?: string | null;
@@ -93,6 +99,7 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: "Activity id is required." }, { status: 400 });
     }
 
+    const scope = salesRecordScope(workspace, readRequestedSalesBusinessContext(request, body));
     const activity = await updateSalesActivity({
       workspaceId: workspace.id,
       activityId: body.id,
@@ -100,6 +107,7 @@ export async function PUT(request: Request) {
       subject: body.subject,
       message: body.message,
       occurredAt: body.occurredAt,
+      businessContext: scope.businessContext,
     });
 
     return NextResponse.json({ activity });
@@ -117,12 +125,13 @@ export async function DELETE(request: Request) {
     if (blocked) return blocked;
 
     const workspace = await requireCurrentWorkspace();
+    const scope = salesRecordScope(workspace, readRequestedSalesBusinessContext(request));
     const id = new URL(request.url).searchParams.get("id")?.trim();
     if (!id) {
       return NextResponse.json({ error: "Activity id is required." }, { status: 400 });
     }
 
-    await deleteSalesActivity(workspace.id, id);
+    await deleteSalesActivity(workspace.id, id, scope.businessContext);
     return NextResponse.json({ ok: true });
   } catch (error) {
     return salesManagementErrorResponse(error);

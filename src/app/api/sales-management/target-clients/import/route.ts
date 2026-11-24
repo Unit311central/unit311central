@@ -11,11 +11,13 @@ import {
   validateAddTargetClientForm,
   type AddTargetClientFormValues,
 } from "@/lib/target-clients";
+import { readRequestedSalesBusinessContext, salesRecordScope } from "@/lib/sales-business-context";
 import { importTargetClientsBatch } from "@/lib/target-clients-service";
 
 export const dynamic = "force-dynamic";
 
 type ImportBody = {
+  businessContext?: unknown;
   rows?: Array<AddTargetClientFormValues & { sourceRowNumber: number }>;
 };
 
@@ -76,7 +78,7 @@ export async function POST(request: NextRequest) {
           notes: String(row.notes ?? ""),
         },
       })),
-      { workspaceId: workspace.id },
+      salesRecordScope(workspace, readRequestedSalesBusinessContext(request, body)),
     );
 
     const imported = results.filter((r) => r.status === "imported");

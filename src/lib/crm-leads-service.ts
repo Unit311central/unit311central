@@ -1,5 +1,10 @@
 import { createBlankLeadInput, mapCrmLead, type CrmLead, type LeadStatus } from "@/lib/crm-data";
 import {
+  applySalesBusinessContext,
+  salesBusinessContextColumn,
+  type SalesBusinessContext,
+} from "@/lib/sales-business-context";
+import {
   extractClientReportPatch,
   mergeClientReportNotes,
   stripClientReportDbColumns,
@@ -15,7 +20,15 @@ type DbLead = Parameters<typeof mapCrmLead>[0];
 export type CrmWorkspaceScope = {
   /** Explicit override for system/provisioning/cron callers. Prefer omit to use session context. */
   workspaceId?: string | null;
+  /**
+   * Set only for the unit311 workspace. When omitted, lead queries stay workspace-only.
+   */
+  businessContext?: SalesBusinessContext | null;
 };
+
+function scopeLeadQuery<T>(query: T, scope?: CrmWorkspaceScope): T {
+  return applySalesBusinessContext(query, scope?.businessContext);
+}
 
 function requireCrmSupabase() {
   if (!isSupabaseConfigured()) {
@@ -41,11 +54,10 @@ export async function listLeads(
 ): Promise<CrmLead[]> {
   const workspaceId = await resolveCrmWorkspaceId(scope);
   const supabase = requireCrmSupabase();
-  let query = supabase
-    .from("crm_leads")
-    .select("*")
-    .eq("workspace_id", workspaceId)
-    .order("updated_at", { ascending: false });
+  let query = scopeLeadQuery(
+    supabase.from("crm_leads").select("*").eq("workspace_id", workspaceId),
+    scope,
+  ).order("updated_at", { ascending: false });
 
   if (status && status !== "All") {
     query = query.eq("status", status);
@@ -62,12 +74,10 @@ export async function getLeadById(
 ): Promise<CrmLead | null> {
   const workspaceId = await resolveCrmWorkspaceId(scope);
   const supabase = requireCrmSupabase();
-  const { data, error } = await supabase
-    .from("crm_leads")
-    .select("*")
-    .eq("id", id)
-    .eq("workspace_id", workspaceId)
-    .maybeSingle();
+  const { data, error } = await scopeLeadQuery(
+    supabase.from("crm_leads").select("*").eq("id", id).eq("workspace_id", workspaceId),
+    scope,
+  ).maybeSingle();
 
   if (error) throw new Error(error.message);
   return data ? mapCrmLead(data as DbLead) : null;
@@ -157,6 +167,7 @@ export async function createLead(
       win_probability: input.winProbability ?? null,
       owner_user_id: input.ownerUserId ?? null,
       notes: input.notes?.trim() || null,
+      business_context: salesBusinessContextColumn(scope?.businessContext),
     })
     .select("*")
     .single();
@@ -204,7 +215,8 @@ export async function updateLead(
   scope?: CrmWorkspaceScope,
 ): Promise<CrmLead> {
   const workspaceId = await resolveCrmWorkspaceId(scope);
-  await requireLeadInWorkspace(id, { workspaceId });
+  const leadScope: CrmWorkspaceScope = { ...scope, workspaceId };
+  await requireLeadInWorkspace(id, leadScope);
   const supabase = requireCrmSupabase();
   const payload: Record<string, string | number | null> = {
     updated_at: new Date().toISOString(),
@@ -281,21 +293,18 @@ export async function updateLead(
 
   const clientReportMetadata = extractClientReportPatch(patch);
 
-  let { data, error } = await supabase
-    .from("crm_leads")
-    .update(payload)
-    .eq("id", id)
-    .eq("workspace_id", workspaceId)
+  let { data, error } = await scopeLeadQuery(
+    supabase.from("crm_leads").update(payload).eq("id", id).eq("workspace_id", workspaceId),
+    leadScope,
+  )
     .select("*")
     .single();
 
   if (error && clientReportMetadata && isMissingCrmClientReportColumnError(error.message)) {
-    const { data: existingRow, error: existingError } = await supabase
-      .from("crm_leads")
-      .select("notes")
-      .eq("id", id)
-      .eq("workspace_id", workspaceId)
-      .maybeSingle();
+    const { data: existingRow, error: existingError } = await scopeLeadQuery(
+      supabase.from("crm_leads").select("notes").eq("id", id).eq("workspace_id", workspaceId),
+      leadScope,
+    ).maybeSingle();
 
     if (existingError) throw new Error(existingError.message);
 
@@ -306,11 +315,14 @@ export async function updateLead(
       patch.notes,
     );
 
-    ({ data, error } = await supabase
-      .from("crm_leads")
-      .update(fallbackPayload)
-      .eq("id", id)
-      .eq("workspace_id", workspaceId)
+    ({ data, error } = await scopeLeadQuery(
+      supabase
+        .from("crm_leads")
+        .update(fallbackPayload)
+        .eq("id", id)
+        .eq("workspace_id", workspaceId),
+      leadScope,
+    )
       .select("*")
       .single());
   }
@@ -320,7 +332,7 @@ export async function updateLead(
 
   if (patch.status === "Won") {
     try {
-      await promoteCrmLeadToClient(id, { workspaceId });
+      await promoteCrmLeadToClient(id, leadScope);
     } catch {
       // Lead save should succeed even if client directory sync fails temporarily.
     }
@@ -334,10 +346,10 @@ export async function listLeadsAwaitingReportFollowup(
 ): Promise<CrmLead[]> {
   const workspaceId = await resolveCrmWorkspaceId(scope);
   const supabase = requireCrmSupabase();
-  const { data, error } = await supabase
-    .from("crm_leads")
-    .select("*")
-    .eq("workspace_id", workspaceId)
+  const { data, error } = await scopeLeadQuery(
+    supabase.from("crm_leads").select("*").eq("workspace_id", workspaceId),
+    scope,
+  )
     .not("client_report_sent_at", "is", null)
     .is("client_report_replied_at", null)
     .order("client_report_sent_at", { ascending: true });
@@ -365,12 +377,12 @@ export async function listLeadsAwaitingReportFollowupAcrossWorkspaces(): Promise
 
 export async function deleteLead(id: string, scope?: CrmWorkspaceScope) {
   const workspaceId = await resolveCrmWorkspaceId(scope);
-  await requireLeadInWorkspace(id, { workspaceId });
+  const leadScope: CrmWorkspaceScope = { ...scope, workspaceId };
+  await requireLeadInWorkspace(id, leadScope);
   const supabase = requireCrmSupabase();
-  const { error } = await supabase
-    .from("crm_leads")
-    .delete()
-    .eq("id", id)
-    .eq("workspace_id", workspaceId);
+  const { error } = await scopeLeadQuery(
+    supabase.from("crm_leads").delete().eq("id", id).eq("workspace_id", workspaceId),
+    leadScope,
+  );
   if (error) throw new Error(error.message);
 }

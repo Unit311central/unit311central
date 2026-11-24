@@ -1,10 +1,16 @@
 import { requireCurrentWorkspace } from "@/lib/workspace-context";
 
+import type { SalesBusinessContext } from "@/lib/sales-business-context";
+
 export type FinancialsWorkspaceScope = {
   /** Explicit override for system/provisioning callers. Prefer omit to use session context. */
   workspaceId?: string | null;
   /** Optional slug hint (avoids an extra DB round-trip / RLS miss on overview). */
   workspaceSlug?: string | null;
+  /**
+   * Set only for the unit311 workspace. When omitted, quote queries stay workspace-only.
+   */
+  businessContext?: SalesBusinessContext | null;
 };
 
 /**

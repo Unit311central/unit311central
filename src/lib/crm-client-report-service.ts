@@ -15,7 +15,7 @@ import {
 import { ensureCrmClientReportSchema } from "@/lib/crm-client-report-schema";
 import { loadClientReportLogoForLead } from "@/lib/crm-company-logo-service";
 import { getDiscoveryQuestionnaire } from "@/lib/crm-discovery-questions-service";
-import { getLeadById, getLeadByReportChatToken, updateLead } from "@/lib/crm-leads-service";
+import { getLeadById, getLeadByReportChatToken, updateLead, type CrmWorkspaceScope } from "@/lib/crm-leads-service";
 import { sendMailboxEmail } from "@/lib/email/smtp";
 import { ensureExternalClientFolder } from "@/lib/external-files-service";
 import { resolveBookingsForCrmLead } from "@/lib/founder-booking/service";
@@ -94,8 +94,8 @@ async function ensureReportMessagingChannel(lead: CrmLead, operatorIds: string[]
   return { channel, clientChatKey };
 }
 
-async function loadLeadReportContext(leadId: string) {
-  const lead = await getLeadById(leadId);
+async function loadLeadReportContext(leadId: string, scope?: CrmWorkspaceScope) {
+  const lead = await getLeadById(leadId, scope);
   if (!lead) {
     throw new Error("Lead not found.");
   }
@@ -107,8 +107,11 @@ async function loadLeadReportContext(leadId: string) {
   return { lead, questionnaire, logo };
 }
 
-function leadWorkspaceScope(lead: CrmLead) {
-  return lead.workspaceId ? { workspaceId: lead.workspaceId } : undefined;
+function leadWorkspaceScope(lead: CrmLead, scope?: CrmWorkspaceScope) {
+  return {
+    workspaceId: scope?.workspaceId ?? lead.workspaceId,
+    ...(scope?.businessContext ? { businessContext: scope.businessContext } : {}),
+  };
 }
 
 export type GenerateCrmClientReportPptxResult = {
@@ -133,9 +136,10 @@ export type GenerateAndSendCrmClientReportResult = {
 /** Auto-run after discovery questions are saved — PowerPoint draft only. */
 export async function generateCrmClientReportPptxDraft(
   leadId: string,
+  scope?: CrmWorkspaceScope,
 ): Promise<GenerateCrmClientReportPptxResult> {
   await ensureCrmClientReportSchema().catch(() => false);
-  const { lead, questionnaire, logo } = await loadLeadReportContext(leadId);
+  const { lead, questionnaire, logo } = await loadLeadReportContext(leadId, scope);
 
   const pptxBytes = await buildCrmClientReportPptx(lead, questionnaire, logo);
   const pptFileName = clientReportPptxFileName(lead.companyName);
@@ -167,7 +171,7 @@ export async function generateCrmClientReportPptxDraft(
         `Discovery report PowerPoint generated on ${formatLondonDateTime(generatedAt)} GMT.`,
       ),
     },
-    leadWorkspaceScope(lead),
+    leadWorkspaceScope(lead, scope),
   );
 
   let alertCreated = false;
@@ -197,8 +201,9 @@ export async function generateCrmClientReportPptxDraft(
 /** Generate PDF from questionnaire, email client, create guest chat, update CRM + meetings. */
 export async function generateAndSendCrmClientReportPdf(
   leadId: string,
+  scope?: CrmWorkspaceScope,
 ): Promise<GenerateAndSendCrmClientReportResult> {
-  const { lead, questionnaire, logo } = await loadLeadReportContext(leadId);
+  const { lead, questionnaire, logo } = await loadLeadReportContext(leadId, scope);
 
   if (!lead.clientReportPptFileId) {
     throw new Error("Generate the PowerPoint draft first by saving discovery questions.");
@@ -228,7 +233,7 @@ export async function generateAndSendCrmClientReportPdf(
       clientReportFileId: uploadedPdf.id,
       clientReportFileName: pdfFileName,
     },
-    leadWorkspaceScope(lead),
+    leadWorkspaceScope(lead, scope),
   );
 
   const savedPdf = await downloadFileBuffer(uploadedPdf.id);
@@ -325,7 +330,7 @@ export async function generateAndSendCrmClientReportPdf(
   }
 
   const sentAt = new Date().toISOString();
-  const linkedMeetings = await resolveBookingsForCrmLead(lead).catch(() => []);
+  const linkedMeetings = await resolveBookingsForCrmLead(lead, scope).catch(() => []);
 
   let alertCreated = false;
   try {
@@ -368,7 +373,7 @@ export async function generateAndSendCrmClientReportPdf(
           .join("\n"),
       ),
     },
-    leadWorkspaceScope(lead),
+    leadWorkspaceScope(lead, scope),
   );
 
   return {

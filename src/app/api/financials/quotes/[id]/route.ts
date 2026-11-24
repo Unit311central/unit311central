@@ -13,26 +13,33 @@ import { assertDemoMutationAllowedForRequest } from "@/lib/demo/mutation-guard";
 import { isDemoApiRequest } from "@/lib/demo/demo-request";
 import { requirePlatformSession } from "@/lib/platform-session";
 import { primeSharpLibvipsForLambda } from "@/lib/sharp-libvips-lambda-prime";
+import {
+  readRequestedSalesBusinessContext,
+  resolveSalesBusinessContext,
+  salesRecordScope,
+} from "@/lib/sales-business-context";
 import { requireCurrentWorkspace } from "@/lib/workspace-context";
 
 export const dynamic = "force-dynamic";
 
-async function resolveScope() {
+async function resolveScope(request: Request, body?: unknown) {
+  const requested = readRequestedSalesBusinessContext(request, body);
   if (await isDemoApiRequest()) {
+    resolveSalesBusinessContext({ workspaceSlug: "demo", requested });
     return { workspaceSlug: "demo" as const };
   }
   await requirePlatformSession();
   const workspace = await requireCurrentWorkspace();
-  return { workspaceId: workspace.id, workspaceSlug: workspace.slug };
+  return salesRecordScope(workspace, requested);
 }
 
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   context: { params: Promise<{ id: string }> },
 ) {
   try {
     const { id } = await context.params;
-    const scope = await resolveScope();
+    const scope = await resolveScope(request);
     const quote = await getSalesQuoteById(id, scope);
     if (!quote) {
       return NextResponse.json({ error: "Quote not found." }, { status: 404 });
@@ -41,7 +48,11 @@ export async function GET(
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unable to load quote.";
     const status =
-      message.includes("Authentication required") || message.includes("Workspace context") ? 401 : 500;
+      message.includes("sales business context")
+        ? 400
+        : message.includes("Authentication required") || message.includes("Workspace context")
+          ? 401
+          : 500;
     return NextResponse.json({ error: message }, { status });
   }
 }
@@ -67,27 +78,22 @@ export async function PATCH(
       return NextResponse.json({ error: "At least one line item is required." }, { status: 400 });
     }
 
-    const scope = (await isDemoApiRequest())
-      ? { workspaceSlug: "demo" as const }
-      : {
-          ...(await (async () => {
-            await requirePlatformSession();
-            const workspace = await requireCurrentWorkspace();
-            return { workspaceId: workspace.id, workspaceSlug: workspace.slug };
-          })()),
-        };
+    const scope = await resolveScope(request, body);
 
     const mapped = mapSalesQuoteApiBody(body);
     const quote = await updateSalesQuote(id, scope, mapped);
     return NextResponse.json({ quote });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unable to update quote.";
-    const status =
-      message.includes("Authentication required") || message.includes("Workspace context")
+    const status = message.includes("sales business context")
+      ? 400
+      : message.includes("Authentication required") || message.includes("Workspace context")
         ? 401
-        : message.includes("cannot be edited")
+        : message.includes("cannot be edited") || message.includes("not available in this sales context")
           ? 400
-          : 500;
+          : message.includes("not found")
+            ? 404
+            : 500;
     return NextResponse.json({ error: message }, { status });
   }
 }
@@ -101,7 +107,7 @@ export async function DELETE(
 
   try {
     const { id } = await context.params;
-    const scope = await resolveScope();
+    const scope = await resolveScope(_request);
     const quote = await getSalesQuoteById(id, scope);
     if (!quote) {
       return NextResponse.json({ error: "Quote not found." }, { status: 404 });
@@ -114,7 +120,11 @@ export async function DELETE(
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unable to delete quote.";
     const status =
-      message.includes("Authentication required") || message.includes("Workspace context") ? 401 : 500;
+      message.includes("sales business context")
+        ? 400
+        : message.includes("Authentication required") || message.includes("Workspace context")
+          ? 401
+          : 500;
     return NextResponse.json({ error: message }, { status });
   }
 }
@@ -128,8 +138,8 @@ export async function POST(
 
   try {
     const { id } = await context.params;
-    const scope = await resolveScope();
-    const body = (await request.json().catch(() => ({}))) as { action?: string };
+    const body = (await request.json().catch(() => ({}))) as { action?: string; businessContext?: unknown };
+    const scope = await resolveScope(request, body);
     const action = body.action ?? "accept";
 
     if (action === "send") {
@@ -196,7 +206,11 @@ export async function POST(
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unable to update quote.";
     const status =
-      message.includes("Authentication required") || message.includes("Workspace context") ? 401 : 500;
+      message.includes("sales business context")
+        ? 400
+        : message.includes("Authentication required") || message.includes("Workspace context")
+          ? 401
+          : 500;
     return NextResponse.json({ error: message }, { status });
   }
 }

@@ -16,9 +16,11 @@ import {
 import { mapCrmLead, type CrmLead } from "@/lib/crm-data";
 import {
   createLead,
+  getLeadById,
   resolveCrmWorkspaceId,
   type CrmWorkspaceScope,
 } from "@/lib/crm-leads-service";
+import { applySalesBusinessContext } from "@/lib/sales-business-context";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
 import { createTenancyServerClient } from "@/lib/supabase/tenancy-server";
 
@@ -59,10 +61,10 @@ export async function findCrmLeadsForContact(
   const organisation = normalizeKey(input.organisation);
   const email = normalizeKey(input.email);
 
-  const { data, error } = await supabase
-    .from("crm_leads")
-    .select("*")
-    .eq("workspace_id", workspaceId)
+  const { data, error } = await applySalesBusinessContext(
+    supabase.from("crm_leads").select("*").eq("workspace_id", workspaceId),
+    scope?.businessContext,
+  )
     .order("updated_at", { ascending: false })
     .limit(500);
   if (error) throw new Error(error.message);
@@ -461,11 +463,18 @@ export async function recordWebsiteContactEnquiry(
   };
 }
 
+async function assertParentLeadInScope(leadId: string, scope?: CrmWorkspaceScope) {
+  if (!scope?.businessContext) return;
+  const lead = await getLeadById(leadId, scope);
+  if (!lead) throw new Error("Lead not found.");
+}
+
 export async function listCrmContactHistoryForLead(
   leadId: string,
   scope?: CrmWorkspaceScope,
 ): Promise<CrmContactHistory[]> {
   const workspaceId = await resolveCrmWorkspaceId(scope);
+  await assertParentLeadInScope(leadId, scope);
   const supabase = requireSupabase();
   const { data, error } = await supabase
     .from("crm_contact_history")
@@ -482,6 +491,7 @@ export async function listCrmActivitiesForLead(
   scope?: CrmWorkspaceScope,
 ): Promise<CrmActivity[]> {
   const workspaceId = await resolveCrmWorkspaceId(scope);
+  await assertParentLeadInScope(leadId, scope);
   const supabase = requireSupabase();
   const { data, error } = await supabase
     .from("crm_activities")

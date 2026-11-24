@@ -8,24 +8,36 @@ import { listSalesQuotes } from "@/lib/accounting/sales-quotes-list-load";
 import { assertDemoMutationAllowedForRequest } from "@/lib/demo/mutation-guard";
 import { isDemoApiRequest } from "@/lib/demo/demo-request";
 import { requirePlatformSession } from "@/lib/platform-session";
+import {
+  readRequestedSalesBusinessContext,
+  resolveSalesBusinessContext,
+  salesRecordScope,
+} from "@/lib/sales-business-context";
 import { requireCurrentWorkspace } from "@/lib/workspace-context";
 
-export async function handleListSalesQuotesGet() {
+async function quoteApiScope(request: Request, body?: unknown) {
+  const requested = readRequestedSalesBusinessContext(request, body);
+  if (await isDemoApiRequest()) {
+    resolveSalesBusinessContext({ workspaceSlug: "demo", requested });
+    return { workspaceSlug: "demo" as const };
+  }
+  await requirePlatformSession();
+  const workspace = await requireCurrentWorkspace();
+  return salesRecordScope(workspace, requested);
+}
+
+export async function handleListSalesQuotesGet(request: Request) {
   try {
-    if (await isDemoApiRequest()) {
-      return NextResponse.json({ quotes: await listSalesQuotes({ workspaceSlug: "demo" }) });
-    }
-    await requirePlatformSession();
-    const workspace = await requireCurrentWorkspace();
-    const quotes = await listSalesQuotes({
-      workspaceId: workspace.id,
-      workspaceSlug: workspace.slug,
-    });
+    const scope = await quoteApiScope(request);
+    const quotes = await listSalesQuotes(scope);
     return NextResponse.json({ quotes });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unable to load quotes.";
-    const status =
-      message.includes("Authentication required") || message.includes("Workspace context") ? 401 : 500;
+    const status = message.includes("sales business context")
+      ? 400
+      : message.includes("Authentication required") || message.includes("Workspace context")
+        ? 401
+        : 500;
     return NextResponse.json({ error: message }, { status });
   }
 }
@@ -47,23 +59,20 @@ export async function handleCreateSalesQuotePost(request: NextRequest) {
       return NextResponse.json({ error: "At least one line item is required." }, { status: 400 });
     }
 
-    const scope = (await isDemoApiRequest())
-      ? { workspaceSlug: "demo" as const }
-      : {
-          ...(await (async () => {
-            await requirePlatformSession();
-            const workspace = await requireCurrentWorkspace();
-            return { workspaceId: workspace.id, workspaceSlug: workspace.slug };
-          })()),
-        };
+    const scope = await quoteApiScope(request, body);
 
     const mapped = mapSalesQuoteApiBody(body);
     const quote = await createSalesQuote(scope, mapped);
     return NextResponse.json({ quote }, { status: 201 });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unable to create quote.";
-    const status =
-      message.includes("Authentication required") || message.includes("Workspace context") ? 401 : 500;
+    const status = message.includes("sales business context")
+      ? 400
+      : message.includes("CRM lead not found") || message.includes("not available in this sales context")
+        ? 404
+        : message.includes("Authentication required") || message.includes("Workspace context")
+          ? 401
+          : 500;
     return NextResponse.json({ error: message }, { status });
   }
 }

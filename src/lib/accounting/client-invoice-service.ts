@@ -12,6 +12,7 @@ import {
 import { resolveFinancialsWorkspaceId, type FinancialsWorkspaceScope } from "@/lib/financials-workspace";
 import { resolveAccountingFixtureSource } from "@/lib/workspace-accounting-fixtures";
 import { sendMailboxEmail } from "@/lib/email/smtp";
+import { applySalesBusinessContext } from "@/lib/sales-business-context";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
 import { createTenancyServerClient } from "@/lib/supabase/tenancy-server";
 import { generateInvoiceNumber } from "@/lib/invoice-number";
@@ -101,14 +102,17 @@ export async function attachPaymentLinkToQuote(
   if (!isSupabaseConfigured()) throw new Error("Supabase is not configured.");
   const workspaceId = await resolveFinancialsWorkspaceId(scope);
   const supabase = createTenancyServerClient();
-  const { error } = await supabase
-    .from("sales_quotes")
-    .update({
-      stripe_payment_link_url: paymentUrl,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("workspace_id", workspaceId)
-    .eq("id", quoteId);
+  const { error } = await applySalesBusinessContext(
+    supabase
+      .from("sales_quotes")
+      .update({
+        stripe_payment_link_url: paymentUrl,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("workspace_id", workspaceId)
+      .eq("id", quoteId),
+    scope.businessContext,
+  );
   if (error) throw new Error(error.message);
 
   const updated = await import("@/lib/accounting/sales-quotes-service").then((mod) =>
@@ -196,14 +200,17 @@ export async function sendClientInvoiceForQuote(
 
   if (!isSupabaseConfigured()) throw new Error("Supabase is not configured.");
   const supabase = createTenancyServerClient();
-  const { error } = await supabase
-    .from("sales_quotes")
-    .update({
-      stripe_payment_link_url: paymentUrl,
-      updated_at: now,
-    })
-    .eq("workspace_id", workspaceId)
-    .eq("id", quoteId);
+  const { error } = await applySalesBusinessContext(
+    supabase
+      .from("sales_quotes")
+      .update({
+        stripe_payment_link_url: paymentUrl,
+        updated_at: now,
+      })
+      .eq("workspace_id", workspaceId)
+      .eq("id", quoteId),
+    scope.businessContext,
+  );
   if (error) throw new Error(error.message);
 
   const updated = await import("@/lib/accounting/sales-quotes-service").then((mod) =>

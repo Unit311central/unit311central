@@ -5,6 +5,7 @@ import { generateCrmClientReportPptxDraft } from "@/lib/crm-client-report-servic
 import { getLeadById } from "@/lib/crm-leads-service";
 import { requirePlatformSession } from "@/lib/platform-session";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
+import { readRequestedSalesBusinessContext, salesRecordScope } from "@/lib/sales-business-context";
 import { requireCurrentWorkspace } from "@/lib/workspace-context";
 
 export const dynamic = "force-dynamic";
@@ -23,21 +24,23 @@ export async function POST(request: NextRequest, context: RouteContext) {
     await requirePlatformSession();
     const workspace = await requireCurrentWorkspace();
     const { id } = await context.params;
+    const scope = salesRecordScope(workspace, readRequestedSalesBusinessContext(request));
 
-    const existingLead = await getLeadById(id, { workspaceId: workspace.id });
+    const existingLead = await getLeadById(id, scope);
     if (!existingLead) {
       return NextResponse.json({ error: "Lead not found." }, { status: 404 });
     }
 
     // generateCrmClientReportPptxDraft resolves workspace via session context
-    const report = await generateCrmClientReportPptxDraft(id);
-    const lead = await getLeadById(id, { workspaceId: workspace.id });
+    const report = await generateCrmClientReportPptxDraft(id, scope);
+    const lead = await getLeadById(id, scope);
 
     return NextResponse.json({ report, lead });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to generate PowerPoint";
-    const status =
-      message.includes("Authentication required") || message.includes("Workspace context")
+    const status = message.includes("sales business context")
+      ? 400
+      : message.includes("Authentication required") || message.includes("Workspace context")
         ? 401
         : 500;
     return NextResponse.json({ error: message }, { status });

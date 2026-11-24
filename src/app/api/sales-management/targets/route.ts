@@ -3,11 +3,15 @@ import { NextResponse } from "next/server";
 import { assertDemoMutationAllowedForRequest } from "@/lib/demo/mutation-guard";
 import { isGreenDesertSlug } from "@/lib/greendesert-surface";
 import { resolveSlugReportingCurrency } from "@/lib/financial-reporting-currency";
-import { resolveSalesManagementAuth, salesManagementErrorResponse } from "@/lib/sales-management-api";
+import {
+  applySalesBusinessContext,
+  readRequestedSalesBusinessContext,
+  salesBusinessContextColumn,
+  salesRecordScope,
+} from "@/lib/sales-business-context";
+import { resolveSalesMutationContext, salesManagementErrorResponse } from "@/lib/sales-management-api";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
 import { createTenancyServerClient } from "@/lib/supabase/tenancy-server";
-import { requireCurrentWorkspace } from "@/lib/workspace-context";
-
 export const dynamic = "force-dynamic";
 
 type TargetBody = {
@@ -29,10 +33,10 @@ export async function POST(request: Request) {
     }
     const blocked = await assertDemoMutationAllowedForRequest(request);
     if (blocked) return blocked;
-    const auth = await resolveSalesManagementAuth();
-
-    const workspace = await requireCurrentWorkspace();
-    const body = (await request.json()) as TargetBody;
+    const body = (await request.json()) as TargetBody & { businessContext?: unknown };
+    const auth = await resolveSalesMutationContext(readRequestedSalesBusinessContext(request, body));
+    const workspace = auth.workspace;
+    const scope = salesRecordScope(workspace, readRequestedSalesBusinessContext(request, body));
 
     if (!body.periodStart || !body.periodEnd || body.targetValue == null) {
       return NextResponse.json({ error: "periodStart, periodEnd, and targetValue are required." }, { status: 400 });
@@ -56,6 +60,7 @@ export async function POST(request: Request) {
         target_value: body.targetValue,
         currency: body.currency ?? resolveSlugReportingCurrency(auth.workspace.slug),
         notes: body.notes ?? null,
+        business_context: salesBusinessContextColumn(scope.businessContext),
       })
       .select("id")
       .single();
@@ -84,8 +89,9 @@ export async function PUT(request: Request) {
     const blocked = await assertDemoMutationAllowedForRequest(request);
     if (blocked) return blocked;
 
-    const workspace = await requireCurrentWorkspace();
-    const body = (await request.json()) as TargetBody;
+    const body = (await request.json()) as TargetBody & { businessContext?: unknown };
+    const auth = await resolveSalesMutationContext(readRequestedSalesBusinessContext(request, body));
+    const scope = salesRecordScope(auth.workspace, readRequestedSalesBusinessContext(request, body));
     if (!body.id) {
       return NextResponse.json({ error: "Target id is required." }, { status: 400 });
     }
@@ -101,13 +107,13 @@ export async function PUT(request: Request) {
     if (body.notes !== undefined) patch.notes = body.notes;
 
     const supabase = createTenancyServerClient();
-    const { error } = await supabase
-      .from("sales_targets")
-      .update(patch)
-      .eq("workspace_id", workspace.id)
-      .eq("id", body.id);
+    const { data, error } = await applySalesBusinessContext(
+      supabase.from("sales_targets").update(patch).eq("workspace_id", auth.workspace.id).eq("id", body.id),
+      scope.businessContext,
+    ).select("id");
 
     if (error) throw new Error(error.message);
+    if (!data?.length) return NextResponse.json({ error: "Target not found." }, { status: 404 });
     return NextResponse.json({ ok: true });
   } catch (error) {
     return salesManagementErrorResponse(error);
@@ -122,7 +128,7 @@ export async function DELETE(request: Request) {
     const blocked = await assertDemoMutationAllowedForRequest(request);
     if (blocked) return blocked;
 
-    const workspace = await requireCurrentWorkspace();
+    const auth = await resolveSalesMutationContext(readRequestedSalesBusinessContext(request));
     const url = new URL(request.url);
     const id = url.searchParams.get("id")?.trim();
     if (!id) {
@@ -130,13 +136,13 @@ export async function DELETE(request: Request) {
     }
 
     const supabase = createTenancyServerClient();
-    const { error } = await supabase
-      .from("sales_targets")
-      .delete()
-      .eq("workspace_id", workspace.id)
-      .eq("id", id);
+    const { data, error } = await applySalesBusinessContext(
+      supabase.from("sales_targets").delete().eq("workspace_id", auth.workspace.id).eq("id", id),
+      auth.businessContext,
+    ).select("id");
 
     if (error) throw new Error(error.message);
+    if (!data?.length) return NextResponse.json({ error: "Target not found." }, { status: 404 });
     return NextResponse.json({ ok: true });
   } catch (error) {
     return salesManagementErrorResponse(error);
