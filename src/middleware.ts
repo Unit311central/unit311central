@@ -20,6 +20,7 @@ import {
   isPublicSiteHost,
   legacyViewRedirects,
   mapHardPathToViewQuery,
+  mapInternalHostDashboardAlias,
   mapLegacyInternalPathToInternalHostPath,
   normalizeHost,
   parseClientPlatformSubdomainSafe,
@@ -1216,6 +1217,9 @@ export async function middleware(request: NextRequest) {
     const legacyBrowserRedirect = redirectLegacyInternalBrowserPath(request, pathname, search);
     if (legacyBrowserRedirect) return legacyBrowserRedirect;
 
+    const dashboardAlias = mapInternalHostDashboardAlias(pathname, search);
+    if (dashboardAlias) return redirectPermanent(request, dashboardAlias);
+
     const gate = await evaluateCustomerHostSessionGate(request, INTERNAL_WORKSPACE_SLUG);
     if (
       gate.status === "anonymous" ||
@@ -1314,6 +1318,8 @@ export async function middleware(request: NextRequest) {
     const headers = withHostHeaders(request, { internal: true });
     const legacyBrowserRedirect = redirectLegacyInternalBrowserPath(request, pathname, search);
     if (legacyBrowserRedirect) return legacyBrowserRedirect;
+    const dashboardAlias = mapInternalHostDashboardAlias(pathname, search);
+    if (dashboardAlias) return redirectPermanent(request, dashboardAlias);
     if (pathname === "/" || pathname === "") {
       return rewriteTo(request, "/internaldashboard", headers, { "x-unit311-internal": "1" });
     }

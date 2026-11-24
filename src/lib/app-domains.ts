@@ -499,6 +499,26 @@ export function mapHardPathToViewQuery(pathname: string, search = ""): string | 
   return qs ? `${base}?${qs}` : `${base}?view=${encodeURIComponent(view)}`;
 }
 
+/**
+ * internal.unit311central.com has no `/dashboard` page. The shell is `/?view=`.
+ * next.config sends legacy `/internaldashboard` to `/dashboard`, which 404s here.
+ */
+export function mapInternalHostDashboardAlias(pathname: string, search = ""): string | null {
+  if (pathname !== "/dashboard" && !pathname.startsWith("/dashboard/")) return null;
+  const query = search && !search.startsWith("?") ? `?${search}` : search;
+  const hardMapped = mapHardPathToViewQuery(pathname, query);
+  let target =
+    hardMapped ??
+    (pathname === "/dashboard" || pathname === "/dashboard/"
+      ? `/${query}`
+      : `${pathname.slice("/dashboard".length)}${query}`);
+  if (target.startsWith("/dashboard")) {
+    target = target.slice("/dashboard".length) || "/";
+  }
+  if (!target.startsWith("/")) target = `/${target}`;
+  return target;
+}
+
 export function mapLegacyInternalPathToInternalHostPath(pathname: string, search = ""): string {
   const query = search && !search.startsWith("?") ? `?${search}` : search;
 
