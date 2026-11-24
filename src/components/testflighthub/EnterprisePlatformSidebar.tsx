@@ -1,6 +1,6 @@
 "use client";
 
-import { startTransition, useEffect, useMemo, useState, type CSSProperties } from "react";
+import { startTransition, useEffect, useMemo, useState, useSyncExternalStore, type CSSProperties } from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import {
@@ -75,6 +75,15 @@ import {
   type InternalOperationsView,
 } from "@/lib/internal-operations-data";
 import { filterInternalNavSectionsByGrants, filterInternalNavSectionsForDemoSurface } from "@/lib/internal-role-views";
+import { SALES_MANAGEMENT_MODULE_LABEL } from "@/lib/sales-management-nav";
+import {
+  salesBusinessContextClientSnapshot,
+  salesBusinessContextServerSnapshot,
+  salesContextSelectorEnabled,
+  subscribeSalesBusinessContext,
+  writeSalesBusinessContext,
+} from "@/lib/sales-business-context-ui";
+import { SalesBusinessContextSelector } from "@/components/testflighthub/sales-management/SalesBusinessContextSelector";
 import { injectDemoAttendanceNav } from "@/lib/attendance/nav";
 import { injectQaWorkspaceNav } from "@/lib/qa-workspace/nav";
 import { resolveWorkspaceNavBaseSections } from "@/lib/platform-workspaces/workspace-nav-resolver";
@@ -345,6 +354,11 @@ export default function EnterprisePlatformSidebar({
   }, []);
 
   const { allowedViews, ready: entitlementsReady, workspaceSlug, workspaceType, enabledModules, enabledSubModules } = useOperatorEntitlements();
+  const salesContext = useSyncExternalStore(
+    subscribeSalesBusinessContext,
+    salesBusinessContextClientSnapshot,
+    salesBusinessContextServerSnapshot,
+  );
 
   const hostWorkspaceSlug = useMemo(() => {
     if (typeof window === "undefined") return null;
@@ -867,6 +881,20 @@ export default function EnterprisePlatformSidebar({
         >
           <div className="min-h-0 overflow-hidden">
             <div className="pb-0.5">
+              {section.label === SALES_MANAGEMENT_MODULE_LABEL &&
+              !overviewEmbed &&
+              salesContextSelectorEnabled({
+                basePath,
+                workspaceSlug: effectiveWorkspaceSlug,
+              }) ? (
+                <div className="px-1 pb-2">
+                  <SalesBusinessContextSelector
+                    context={salesContext}
+                    onChange={writeSalesBusinessContext}
+                    variant="sidebar"
+                  />
+                </div>
+              ) : null}
               {section.items.map((item) => {
                 if (item.children?.length) {
                   return renderGroup(

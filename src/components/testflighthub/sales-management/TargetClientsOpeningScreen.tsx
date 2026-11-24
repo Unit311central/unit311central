@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import { useSalesScopedFetch } from "@/components/testflighthub/sales-management/sales-business-scope";
 import type { TargetClientRow } from "@/lib/target-clients";
 import { rowToFormValues, searchTargetClientRows, targetClientWebsiteHref } from "@/lib/target-clients";
 
@@ -278,14 +279,17 @@ export type TargetClientsOpeningScreenProps = {
   variant?: "live" | "design-preview";
 };
 
-async function fetchTargetClients(): Promise<TargetClientRow[]> {
-  const response = await fetch("/api/sales-management/target-clients", { cache: "no-store" });
+async function fetchTargetClients(
+  load: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>,
+): Promise<TargetClientRow[]> {
+  const response = await load("/api/sales-management/target-clients", { cache: "no-store" });
   const body = (await response.json()) as { clients?: TargetClientRow[]; error?: string };
   if (!response.ok) throw new Error(body.error ?? "Failed to load target clients");
   return body.clients ?? [];
 }
 
 export default function TargetClientsOpeningScreen({ variant = "live" }: TargetClientsOpeningScreenProps) {
+  const salesFetch = useSalesScopedFetch();
   const isLive = variant === "live";
   const [allRows, setAllRows] = useState<TargetClientRow[]>([]);
   const [loading, setLoading] = useState(isLive);
@@ -312,14 +316,14 @@ export default function TargetClientsOpeningScreen({ variant = "live" }: TargetC
     setLoading(true);
     setLoadError(null);
     try {
-      const clients = await fetchTargetClients();
+      const clients = await fetchTargetClients(salesFetch);
       setAllRows(clients);
     } catch (err) {
       setLoadError(err instanceof Error ? err.message : "Failed to load target clients");
     } finally {
       setLoading(false);
     }
-  }, [isLive]);
+  }, [isLive, salesFetch]);
 
   useEffect(() => {
     if (isLive) void reload();
@@ -343,7 +347,7 @@ export default function TargetClientsOpeningScreen({ variant = "live" }: TargetC
       const params = new URLSearchParams();
       if (searchQuery.trim()) params.set("search", searchQuery.trim());
       const url = `/api/sales-management/target-clients/export${params.toString() ? `?${params}` : ""}`;
-      const response = await fetch(url, { cache: "no-store" });
+      const response = await salesFetch(url, { cache: "no-store" });
       if (!response.ok) {
         const body = (await response.json()) as { error?: string };
         throw new Error(body.error ?? "Export failed");
@@ -365,7 +369,7 @@ export default function TargetClientsOpeningScreen({ variant = "live" }: TargetC
     } finally {
       setExportBusy(false);
     }
-  }, [exportBusy, isLive, searchQuery]);
+  }, [exportBusy, isLive, salesFetch, searchQuery]);
 
   const displayedRows = useMemo(() => {
     if (!isLive) return designRows;
@@ -396,7 +400,7 @@ export default function TargetClientsOpeningScreen({ variant = "live" }: TargetC
     if (!deleteRow || deleteBusy) return;
     setDeleteBusy(true);
     try {
-      const response = await fetch(
+      const response = await salesFetch(
         `/api/sales-management/target-clients/${encodeURIComponent(deleteRow.id)}`,
         { method: "DELETE" },
       );
@@ -411,7 +415,7 @@ export default function TargetClientsOpeningScreen({ variant = "live" }: TargetC
     } finally {
       setDeleteBusy(false);
     }
-  }, [deleteRow, deleteBusy, reload]);
+  }, [deleteRow, deleteBusy, reload, salesFetch]);
 
   const promoteToOpportunity = useCallback(
     async (row: TargetClientRow) => {
@@ -424,7 +428,7 @@ export default function TargetClientsOpeningScreen({ variant = "live" }: TargetC
       setPromoteBusyId(row.id);
       setNotice(null);
       try {
-        const response = await fetch(
+        const response = await salesFetch(
           `/api/sales-management/target-clients/${encodeURIComponent(row.id)}/promote`,
           { method: "POST" },
         );
@@ -447,7 +451,7 @@ export default function TargetClientsOpeningScreen({ variant = "live" }: TargetC
         setPromoteBusyId(null);
       }
     },
-    [promoteBusyId, reload],
+    [promoteBusyId, reload, salesFetch],
   );
 
   return (

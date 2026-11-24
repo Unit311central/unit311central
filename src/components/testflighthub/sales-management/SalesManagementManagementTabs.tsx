@@ -47,6 +47,7 @@ import { isBrowserGreenDesertSurface } from "@/lib/greendesert-surface";
 import { formatSalesMoney, resolveSalesUiCurrency } from "@/lib/sales-management-insights";
 
 import { useInternalOperationsBasePath } from "@/components/testflighthub/InternalOperationsBasePathContext";
+import { useSalesScopedFetch } from "@/components/testflighthub/sales-management/sales-business-scope";
 
 import { getInternalNavHref } from "@/lib/internal-operations-data";
 
@@ -101,6 +102,7 @@ const STATUS_COLORS: Record<string, string> = {
 
 
 export function SalesManagementActivitiesTab() {
+  const salesFetch = useSalesScopedFetch();
 
   const { data, loading, error, reload } = useSalesWorkspaceSection("activities");
 
@@ -166,7 +168,7 @@ export function SalesManagementActivitiesTab() {
     setSaving(true);
     setFormError(null);
     try {
-      const res = await fetch("/api/sales-management/activities", {
+      const res = await salesFetch("/api/sales-management/activities", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -336,6 +338,7 @@ export function SalesManagementActivitiesTab() {
 
 
 export function SalesManagementTargetsTab() {
+  const salesFetch = useSalesScopedFetch();
 
   const { data, loading, error, reload } = useSalesWorkspaceSection("targets");
   const basePath = useInternalOperationsBasePath();
@@ -386,7 +389,7 @@ export function SalesManagementTargetsTab() {
 
     try {
 
-      const response = await fetch("/api/sales-management/targets", {
+      const response = await salesFetch("/api/sales-management/targets", {
 
         method: "POST",
 
@@ -436,7 +439,7 @@ export function SalesManagementTargetsTab() {
 
   async function deleteTarget(targetId: string) {
     if (!window.confirm("Delete this target?")) return;
-    const res = await fetch(`/api/sales-management/targets?id=${encodeURIComponent(targetId)}`, { method: "DELETE" });
+    const res = await salesFetch(`/api/sales-management/targets?id=${encodeURIComponent(targetId)}`, { method: "DELETE" });
     if (!res.ok) {
       const body = await res.json().catch(() => ({}));
       window.alert(body.error ?? "Unable to delete target.");
@@ -1189,6 +1192,7 @@ export function SalesManagementForecastTab() {
 
 
 export function SalesManagementCommissionsTab() {
+  const salesFetch = useSalesScopedFetch();
 
   const { data, loading, error, reload } = useSalesWorkspaceSection("commissions");
   const [createOpen, setCreateOpen] = useState(false);
@@ -1202,7 +1206,7 @@ export function SalesManagementCommissionsTab() {
     setSaving(true);
     setFormError(null);
     try {
-      const res = await fetch("/api/sales-management/commission-rules", {
+      const res = await salesFetch("/api/sales-management/commission-rules", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -1227,7 +1231,7 @@ export function SalesManagementCommissionsTab() {
 
   async function handleDeleteRule(ruleId: string) {
     if (!window.confirm("Delete this commission rule?")) return;
-    const res = await fetch(`/api/sales-management/commission-rules?id=${encodeURIComponent(ruleId)}`, {
+    const res = await salesFetch(`/api/sales-management/commission-rules?id=${encodeURIComponent(ruleId)}`, {
       method: "DELETE",
     });
     if (!res.ok) {
@@ -1241,7 +1245,7 @@ export function SalesManagementCommissionsTab() {
   async function handleToggleRule(
     rule: { id: string; name: string; ratePct: number; appliesTo: string; isActive: boolean },
   ) {
-    const res = await fetch("/api/sales-management/commission-rules", {
+    const res = await salesFetch("/api/sales-management/commission-rules", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id: rule.id, isActive: !rule.isActive }),

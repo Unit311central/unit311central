@@ -20,6 +20,7 @@ import type { SalesQuote, SalesQuoteSellerProfile } from "@/lib/accounting/types
 import type { ManagedClient } from "@/lib/client-management-data";
 import { resolveBrowserReportingCurrency, type ReportingCurrency } from "@/lib/financial-reporting-currency";
 import { cn } from "@/lib/utils";
+import { useSalesScopedFetch } from "@/components/testflighthub/sales-management/sales-business-scope";
 
 import type { SalesQuotesOpportunityContext } from "../SalesQuotesWorkspace";
 
@@ -117,6 +118,7 @@ export function SalesQuoteComposeForm({
   onCancel: () => void;
   onSave: (payload: Record<string, unknown>) => void;
 }) {
+  const salesFetch = useSalesScopedFetch();
   const isEdit = Boolean(editingQuote?.id);
 
   const linkedClient = useMemo(() => {
@@ -257,7 +259,7 @@ export function SalesQuoteComposeForm({
     try {
       const formData = new FormData();
       formData.set("file", file);
-      const response = await fetch(`/api/financials/quotes/${editingQuote.id}/terms-pdf`, {
+      const response = await salesFetch(`/api/financials/quotes/${editingQuote.id}/terms-pdf`, {
         method: "POST",
         body: formData,
       });
@@ -276,7 +278,7 @@ export function SalesQuoteComposeForm({
     setTermsPdfBusy(true);
     setError(null);
     try {
-      const response = await fetch(`/api/financials/quotes/${editingQuote.id}/terms-pdf`, {
+      const response = await salesFetch(`/api/financials/quotes/${editingQuote.id}/terms-pdf`, {
         method: "DELETE",
       });
       const body = (await response.json()) as { error?: string };

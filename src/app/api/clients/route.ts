@@ -11,6 +11,11 @@ import {
 } from "@/lib/client-management-data";
 import { apiErrorStatus } from "@/lib/api-error-status";
 import { createInternalClient, listInternalClients } from "@/lib/internal-clients-service";
+import {
+  filterClientsForRequestedSalesContext,
+  readRequestedSalesBusinessContext,
+  salesBusinessContextStatus,
+} from "@/lib/sales-business-context";
 import { isDemoApiRequest } from "@/lib/demo/demo-request";
 import { getNorthstarClients } from "@/lib/demo/module-fixtures";
 import { enrichNorthstarClientsWithFilesRoots } from "@/lib/demo/northstar-files-fixtures";
@@ -21,7 +26,7 @@ import { requireCurrentWorkspace } from "@/lib/workspace-context";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   if (await isDemoApiRequest()) {
     return NextResponse.json({
       clients: enrichNorthstarClientsWithFilesRoots(getNorthstarClients() as ManagedClient[]),
@@ -41,17 +46,25 @@ export async function GET() {
       workspaceSlug: workspace.slug,
     });
     // Talanton portfolio companies are investments (Portfolio Companies), not BC clients.
-    const visibleClients =
+    const workspaceClients =
       workspace.slug === "talantonimpact"
         ? clients.filter((c) => !String(c.id).startsWith("ti-cli-"))
         : clients;
+    const visibleClients = filterClientsForRequestedSalesContext(
+      workspaceClients,
+      workspace.slug,
+      readRequestedSalesBusinessContext(request),
+    );
     return NextResponse.json({
       clients: visibleClients,
       workspace: { id: workspace.id, slug: workspace.slug, name: workspace.name },
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to load clients";
-    return NextResponse.json({ error: message }, { status: apiErrorStatus(error) });
+    return NextResponse.json(
+      { error: message },
+      { status: salesBusinessContextStatus(error) ?? apiErrorStatus(error) },
+    );
   }
 }
 

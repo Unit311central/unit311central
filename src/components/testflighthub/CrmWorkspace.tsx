@@ -19,6 +19,7 @@ import {
   type SalesManagementCrmVariant,
 } from "@/lib/sales-management-insights";
 import { cn } from "@/lib/utils";
+import { useSalesScopedFetch } from "@/components/testflighthub/sales-management/sales-business-scope";
 import ResponsiveMasterDetail, { useMobileDetailPanel } from "@/components/ui/ResponsiveMasterDetail";
 import DashboardTopTilesBar from "@/components/testflighthub/DashboardTopTilesBar";
 import CrmLeadDiscoveryEditor from "@/components/testflighthub/CrmLeadDiscoveryEditor";
@@ -94,6 +95,7 @@ export default function CrmWorkspace({
   title?: string;
   subtitle?: string;
 }) {
+  const salesFetch = useSalesScopedFetch();
   const searchParams = useSearchParams();
   const [leads, setLeads] = useState<CrmLead[]>([]);
   const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null);
@@ -132,7 +134,7 @@ export default function CrmWorkspace({
       const params = new URLSearchParams();
       if (statusFilter !== "All") params.set("status", statusFilter);
 
-      const response = await fetch(`/api/crm/leads?${params.toString()}`, { cache: "no-store" });
+      const response = await salesFetch(`/api/crm/leads?${params.toString()}`, { cache: "no-store" });
       const data = await readApiJson<{ leads?: CrmLead[]; error?: string }>(response);
       if (!response.ok) throw new Error(data.error ?? "Failed to load leads");
 
@@ -156,7 +158,7 @@ export default function CrmWorkspace({
     } finally {
       setLoading(false);
     }
-  }, [statusFilter, searchParams, openDetail]);
+  }, [openDetail, salesFetch, searchParams, statusFilter]);
 
   useEffect(() => {
     startTransition(() => {
@@ -191,7 +193,7 @@ export default function CrmWorkspace({
     setError(null);
 
     try {
-      const response = await fetch(`/api/crm/leads/${lead.id}`, {
+      const response = await salesFetch(`/api/crm/leads/${lead.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -247,7 +249,7 @@ export default function CrmWorkspace({
     const draftContact = isDemo ? "Contact TBC" : "New Contact";
 
     try {
-      const response = await fetch("/api/crm/leads", {
+      const response = await salesFetch("/api/crm/leads", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -282,7 +284,7 @@ export default function CrmWorkspace({
     setSaveMessage(null);
 
     try {
-      const response = await fetch(`/api/crm/leads/${selectedLead.id}`, {
+      const response = await salesFetch(`/api/crm/leads/${selectedLead.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ discoveryNotes: html }),
@@ -314,7 +316,7 @@ export default function CrmWorkspace({
     setSaveMessage(null);
 
     try {
-      const response = await fetch(`/api/crm/leads/${selectedLead.id}/commit-discovery`, {
+      const response = await salesFetch(`/api/crm/leads/${selectedLead.id}/commit-discovery`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ discoveryNotes: html }),
@@ -397,7 +399,7 @@ export default function CrmWorkspace({
     setError(null);
 
     try {
-      const response = await fetch(`/api/files/objects/${selectedLead.clientReportPptFileId}`, {
+      const response = await salesFetch(`/api/files/objects/${selectedLead.clientReportPptFileId}`, {
         cache: "no-store",
       });
       const data = await readApiJson<{ url?: string; error?: string }>(response);
@@ -428,7 +430,7 @@ export default function CrmWorkspace({
     setSaveMessage(null);
 
     try {
-      const response = await fetch(`/api/crm/leads/${selectedLead.id}/generate-pdf`, {
+      const response = await salesFetch(`/api/crm/leads/${selectedLead.id}/generate-pdf`, {
         method: "POST",
       });
 
@@ -479,7 +481,7 @@ export default function CrmWorkspace({
     setSaveMessage(null);
 
     try {
-      const response = await fetch(`/api/crm/leads/${selectedLead.id}/promote-to-client`, {
+      const response = await salesFetch(`/api/crm/leads/${selectedLead.id}/promote-to-client`, {
         method: "POST",
       });
       const data = await readApiJson<{ client?: { companyName: string }; error?: string }>(response);
@@ -507,7 +509,7 @@ export default function CrmWorkspace({
     setSaveMessage(null);
 
     try {
-      const response = await fetch("/api/financials/quotes/from-lead", {
+      const response = await salesFetch("/api/financials/quotes/from-lead", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ leadId: selectedLead.id }),
@@ -534,7 +536,7 @@ export default function CrmWorkspace({
     setError(null);
 
     try {
-      const response = await fetch(`/api/crm/leads/${selectedLead.id}`, { method: "DELETE" });
+      const response = await salesFetch(`/api/crm/leads/${selectedLead.id}`, { method: "DELETE" });
       const data = await readApiJson<{ error?: string }>(response);
       if (!response.ok) throw new Error(data.error ?? "Failed to delete lead");
 

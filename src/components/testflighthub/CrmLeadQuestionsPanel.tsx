@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 
 import type { CrmLead } from "@/lib/crm-data";
+import { useSalesScopedFetch } from "@/components/testflighthub/sales-management/sales-business-scope";
 
 import {
   DISCOVERY_QUESTION_SECTIONS,
@@ -86,6 +87,7 @@ export default function CrmLeadQuestionsPanel({
   showReviewPowerPoint = false,
   showGeneratePdf = false,
 }: CrmLeadQuestionsPanelProps) {
+  const salesFetch = useSalesScopedFetch();
   const [questionnaire, setQuestionnaire] = useState<DiscoveryQuestionnaireData>(
     createEmptyDiscoveryQuestionnaire(),
   );
@@ -102,7 +104,7 @@ export default function CrmLeadQuestionsPanel({
     setError(null);
 
     try {
-      const response = await fetch(`/api/crm/leads/${leadId}/discovery-questions`, {
+      const response = await salesFetch(`/api/crm/leads/${leadId}/discovery-questions`, {
         cache: "no-store",
       });
       const data = await readApiJson<{ questionnaire?: DiscoveryQuestionnaireData; error?: string }>(
@@ -124,7 +126,7 @@ export default function CrmLeadQuestionsPanel({
     } finally {
       setLoading(false);
     }
-  }, [leadId]);
+  }, [leadId, salesFetch]);
 
   useEffect(() => {
     startTransition(() => {
@@ -196,7 +198,7 @@ export default function CrmLeadQuestionsPanel({
     setSaveMessage(null);
 
     try {
-      const response = await fetch(`/api/crm/leads/${leadId}/discovery-questions`, {
+      const response = await salesFetch(`/api/crm/leads/${leadId}/discovery-questions`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ questionnaire }),
@@ -251,7 +253,7 @@ export default function CrmLeadQuestionsPanel({
         return;
       }
 
-      const response = await fetch(`/api/crm/leads/${leadId}/generate-pptx`, {
+      const response = await salesFetch(`/api/crm/leads/${leadId}/generate-pptx`, {
         method: "POST",
       });
       const data = await readApiJson<{

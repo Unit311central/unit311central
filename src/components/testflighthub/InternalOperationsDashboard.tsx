@@ -81,6 +81,10 @@ import type { OperatorEntitlementsSnapshot } from "@/lib/operator-entitlements-s
 import { SALES_MANAGEMENT_QUERY_PARAM_VIEWS } from "@/lib/sales-management-nav";
 import { MANAGEMENT_QUERY_PARAM_VIEWS } from "@/lib/central-capabilities/management-nav";
 import { applyManagementContextSearchParam } from "@/lib/central-capabilities/management-context";
+import {
+  applySalesContextSearchParam,
+  readSalesBusinessContext,
+} from "@/lib/sales-business-context-ui";
 import { REALTIME_VIDEO_WORKBENCH_QUERY_VIEWS } from "@/lib/realtime-video-workbench-nav";
 import FinancesPlanningWorkspace, {
   type FinancesPlanningView,
@@ -856,6 +860,12 @@ export default function InternalOperationsDashboard({
       }
     }
     applyManagementContextSearchParam(url.searchParams, activeView, financeNavQuery);
+    applySalesContextSearchParam(
+      url.searchParams,
+      activeView,
+      financeNavQuery,
+      readSalesBusinessContext(),
+    );
     window.history.replaceState({}, "", url.toString());
     if (financeNavQuery) {
       setFinanceNavQuery(null);

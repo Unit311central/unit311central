@@ -11,6 +11,7 @@ import {
   type OpportunityDiscoveryMeetingSummary,
 } from "@/components/testflighthub/sales-management/OpportunityDiscoveryMeetingForm";
 import { useInternalOperationsBasePath } from "@/components/testflighthub/InternalOperationsBasePathContext";
+import { useSalesScopedFetch } from "@/components/testflighthub/sales-management/sales-business-scope";
 import type { CrmActivity } from "@/lib/crm-contact-data";
 import type { CrmLead, LeadStatus } from "@/lib/crm-data";
 import { LEAD_STATUS_OPTIONS } from "@/lib/crm-data";
@@ -113,6 +114,7 @@ export default function InternalSalesOpportunitiesArchitectureHub({
   const router = useRouter();
   const searchParams = useSearchParams();
   const basePath = useInternalOperationsBasePath();
+  const salesFetch = useSalesScopedFetch();
 
   const [leads, setLeads] = useState<CrmLead[]>([]);
   const [clients, setClients] = useState<ManagedClient[]>([]);
@@ -149,8 +151,8 @@ export default function InternalSalesOpportunitiesArchitectureHub({
     setError(null);
     try {
       const [leadsRes, clientsRes] = await Promise.all([
-        fetch("/api/crm/leads", { cache: "no-store" }),
-        fetch("/api/clients", { cache: "no-store" }),
+        salesFetch("/api/crm/leads", { cache: "no-store" }),
+        salesFetch("/api/clients", { cache: "no-store" }),
       ]);
       const leadsBody = await readApiJson<{ leads?: CrmLead[]; error?: string }>(leadsRes);
       const clientsBody = await readApiJson<{ clients?: ManagedClient[]; error?: string }>(clientsRes);
@@ -163,7 +165,7 @@ export default function InternalSalesOpportunitiesArchitectureHub({
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [salesFetch]);
 
   useEffect(() => {
     void load();
@@ -331,7 +333,7 @@ export default function InternalSalesOpportunitiesArchitectureHub({
     setBusy(true);
     setError(null);
     try {
-      const response = await fetch(`/api/crm/leads/${encodeURIComponent(lead.id)}`, {
+      const response = await salesFetch(`/api/crm/leads/${encodeURIComponent(lead.id)}`, {
         method: "DELETE",
       });
       const data = await readApiJson<{ error?: string }>(response);
@@ -369,7 +371,7 @@ export default function InternalSalesOpportunitiesArchitectureHub({
       };
 
       if (editingLeadId) {
-        const response = await fetch(`/api/crm/leads/${encodeURIComponent(editingLeadId)}`, {
+        const response = await salesFetch(`/api/crm/leads/${encodeURIComponent(editingLeadId)}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
@@ -383,7 +385,7 @@ export default function InternalSalesOpportunitiesArchitectureHub({
         return;
       }
 
-      const response = await fetch("/api/crm/leads", {
+      const response = await salesFetch("/api/crm/leads", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -392,7 +394,7 @@ export default function InternalSalesOpportunitiesArchitectureHub({
       if (!response.ok || !data.lead) throw new Error(data.error ?? "Failed to save opportunity");
 
       if (selectedClientId) {
-        await fetch(`/api/clients/${encodeURIComponent(selectedClientId)}`, {
+        await salesFetch(`/api/clients/${encodeURIComponent(selectedClientId)}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ crmLeadId: data.lead.id }),
@@ -975,7 +977,7 @@ function OpportunityRecordShell({
   const loadMeetings = useCallback(async () => {
     setMeetingsLoading(true);
     try {
-      const response = await fetch(
+      const response = await salesFetch(
         `/api/crm/meetings?crmLeadId=${encodeURIComponent(lead.id)}`,
         { cache: "no-store" },
       );
@@ -1258,7 +1260,7 @@ function OpportunityFollowUpSection({ crmLeadId }: { crmLeadId: string }) {
   const loadFollowUps = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await fetch(
+      const response = await salesFetch(
         `/api/sales-management/activities?crmLeadId=${encodeURIComponent(crmLeadId)}`,
         { cache: "no-store" },
       );
@@ -1286,7 +1288,7 @@ function OpportunityFollowUpSection({ crmLeadId }: { crmLeadId: string }) {
         return;
       }
       const occurredAt = new Date(`${draftDate}T12:00:00`).toISOString();
-      const response = await fetch("/api/sales-management/activities", {
+      const response = await salesFetch("/api/sales-management/activities", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

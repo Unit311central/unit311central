@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Loader2 } from "lucide-react";
 
 import type { CrmLead } from "@/lib/crm-data";
+import { useSalesScopedFetch } from "@/components/testflighthub/sales-management/sales-business-scope";
 import type { ManagedClient } from "@/lib/client-management-data";
 
 export type OpportunityDiscoveryMeetingSummary = {
@@ -55,6 +56,7 @@ export function OpportunityDiscoveryMeetingForm({
   onCancel: () => void;
   title?: string;
 }) {
+  const salesFetch = useSalesScopedFetch();
   const [draftName, setDraftName] = useState(lead.contactName?.trim() || client?.primaryContact?.trim() || "");
   const [draftOrg, setDraftOrg] = useState(lead.companyName?.trim() || client?.companyName?.trim() || "");
   const [draftEmail, setDraftEmail] = useState(lead.email?.trim() || client?.email?.trim() || "");
@@ -78,7 +80,7 @@ export function OpportunityDiscoveryMeetingForm({
         return;
       }
 
-      const response = await fetch("/api/crm/meetings", {
+      const response = await salesFetch("/api/crm/meetings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

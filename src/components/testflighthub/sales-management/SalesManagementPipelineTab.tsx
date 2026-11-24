@@ -15,6 +15,7 @@ import {
 } from "recharts";
 
 import { useInternalOperationsBasePath } from "@/components/testflighthub/InternalOperationsBasePathContext";
+import { useSalesScopedFetch } from "@/components/testflighthub/sales-management/sales-business-scope";
 import type { CrmLead, LeadStatus } from "@/lib/crm-data";
 import { getInternalNavHref } from "@/lib/internal-operations-data";
 import {
@@ -52,6 +53,7 @@ async function readApiJson<T>(response: Response): Promise<T> {
 }
 
 export default function SalesManagementPipelineTab() {
+  const salesFetch = useSalesScopedFetch();
   const basePath = useInternalOperationsBasePath();
   const currency = resolveSalesUiCurrency(salesReportingCurrency());
   const money = (value: number) => formatSalesMoney(value, currency);
@@ -63,7 +65,7 @@ export default function SalesManagementPipelineTab() {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch("/api/crm/leads", { cache: "no-store" });
+      const response = await salesFetch("/api/crm/leads", { cache: "no-store" });
       const data = await readApiJson<{ leads?: CrmLead[]; error?: string }>(response);
       if (!response.ok) throw new Error(data.error ?? "Failed to load pipeline");
       setLeads(data.leads ?? []);
@@ -72,7 +74,7 @@ export default function SalesManagementPipelineTab() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [salesFetch]);
 
   useEffect(() => {
     void load();
