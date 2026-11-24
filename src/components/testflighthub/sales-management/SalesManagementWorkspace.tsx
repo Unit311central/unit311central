@@ -49,6 +49,7 @@ import {
 import TargetClientsOpeningScreen from "./TargetClientsOpeningScreen";
 import { SalesBusinessContextSelector } from "./SalesBusinessContextSelector";
 import { SalesBusinessScopeProvider, useSalesBusinessContextStore } from "./sales-business-scope";
+import { isBrowserWolfSentinelSurface } from "@/lib/wolf/wolf-sentinel";
 import { SalesTabHeader } from "./sales-management-ui";
 import {
   isInternalOpportunitiesArchitectureEnabled,
@@ -77,7 +78,11 @@ export default function SalesManagementWorkspace() {
     basePath,
     workspaceSlug: entitlements.workspaceSlug,
   });
-  const scope = selectorEnabled ? storedContext : null;
+  const [sentinelSales, setSentinelSales] = useState(false);
+  useEffect(() => {
+    setSentinelSales(isBrowserWolfSentinelSurface());
+  }, []);
+  const scope = selectorEnabled ? storedContext : sentinelSales ? "wolf" : null;
   const urlHydrated = useRef(false);
 
   useEffect(() => {

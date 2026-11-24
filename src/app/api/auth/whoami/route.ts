@@ -18,6 +18,12 @@ import { resolveOperatorEntitlementsFromOperatorRow } from "@/lib/operator-entit
 import { getPlatformSession } from "@/lib/platform-session";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
 import { getCurrentWorkspace } from "@/lib/workspace-context";
+import {
+  WOLF_SENTINEL_DISPLAY_NAME,
+  WOLF_SENTINEL_MODULE_IDS,
+  WOLF_SENTINEL_SLUG,
+  requestTargetsWolfSentinel,
+} from "@/lib/wolf/wolf-sentinel";
 import { resolveWorkspaceTenantEntitlements } from "@/lib/workspace-tenant-entitlements";
 import { applyWorkspaceCatalogueAllowedViews } from "@/lib/workspace-enabled-views";
 import { resolveGreenDesertWorkspaceEnablement } from "@/lib/greendesert/greendesert-provisioning";
@@ -261,6 +267,7 @@ export async function GET() {
     enabledSubModules,
   );
 
+  const sentinelHost = requestTargetsWolfSentinel(await headers());
   return NextResponse.json(
     {
       displayName: session.displayName,
@@ -270,17 +277,17 @@ export async function GET() {
       roles,
       department,
       departments,
-      allowedViews,
+      allowedViews: sentinelHost ? null : allowedViews,
       dashboardPrefs,
       userType: session.userType,
       userId: session.sub,
       workspaceId: workspace?.id ?? null,
-      workspaceSlug: workspace?.slug ?? null,
-      workspaceName: workspace?.name ?? null,
-      workspaceType,
+      workspaceSlug: sentinelHost ? WOLF_SENTINEL_SLUG : (workspace?.slug ?? null),
+      workspaceName: sentinelHost ? WOLF_SENTINEL_DISPLAY_NAME : (workspace?.name ?? null),
+      workspaceType: sentinelHost ? "Customer" : workspaceType,
       workspaceLogoUrl,
-      enabledModules,
-      enabledSubModules,
+      enabledModules: sentinelHost ? [...WOLF_SENTINEL_MODULE_IDS] : enabledModules,
+      enabledSubModules: sentinelHost ? null : enabledSubModules,
     },
     {
       headers: WHOAMI_CACHE_HEADERS,

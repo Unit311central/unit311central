@@ -23,6 +23,7 @@ import { ensureInternalClientsTable } from "@/lib/internal-db-migrations";
 import { requirePlatformSession } from "@/lib/platform-session";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
 import { requireCurrentWorkspace } from "@/lib/workspace-context";
+import { requestTargetsWolfSentinel } from "@/lib/wolf/wolf-sentinel";
 
 export const dynamic = "force-dynamic";
 
@@ -84,6 +85,10 @@ export async function POST(request: NextRequest) {
       workspaceId?: string;
       requireClientType?: boolean;
     };
+
+    if (requestTargetsWolfSentinel(request.headers)) {
+      body.clientType = "wolf";
+    }
 
     if (
       body.requireClientType === true ||

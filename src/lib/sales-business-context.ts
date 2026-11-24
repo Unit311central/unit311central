@@ -1,3 +1,5 @@
+import { requestTargetsWolfSentinel } from "@/lib/wolf/wolf-sentinel";
+
 /**
  * Sales Management business context.
  * Separate from Business Central Management's managementContext selector.
@@ -37,6 +39,7 @@ function presentContextValue(value: unknown): unknown {
  * The two sources must agree. An empty value means "not supplied".
  */
 export function readRequestedSalesBusinessContext(request: Request, body?: unknown): unknown {
+  if (requestTargetsWolfSentinel(request.headers)) return "wolf";
   const fromQuery = presentContextValue(
     new URL(request.url).searchParams.get(SALES_BUSINESS_CONTEXT_FIELD),
   );

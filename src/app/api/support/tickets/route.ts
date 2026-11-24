@@ -4,6 +4,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { isDemoApiRequest } from "@/lib/demo/demo-request";
 import { getNorthstarSupportTickets } from "@/lib/demo/northstar-api-fixtures";
 import { createSupportTicket, listSupportTickets } from "@/lib/support-tickets-service";
+import { listInternalClients } from "@/lib/internal-clients-service";
+import {
+  requestTargetsWolfSentinel,
+  supportTicketsVisibleOnWolfSentinel,
+} from "@/lib/wolf/wolf-sentinel";
 import type { SupportTicketPriority } from "@/lib/support-data";
 import {
   ensureSupportLoungeSchema,
@@ -43,14 +48,26 @@ export async function GET(request: NextRequest) {
     const includeArchived = request.nextUrl.searchParams.get("includeArchived") !== "false";
 
     // Fast path: list immediately. Schema ensure only on cold miss / missing columns.
+    const visibleTickets = async (tickets: Awaited<ReturnType<typeof listSupportTickets>>) => {
+      if (!requestTargetsWolfSentinel(request.headers)) return tickets;
+      const clients = await listInternalClients({
+        workspaceId: workspace.id,
+        workspaceSlug: workspace.slug,
+      });
+      const wolfClientIds = new Set(
+        clients.filter((client) => client.clientType === "wolf").map((client) => client.id),
+      );
+      return supportTicketsVisibleOnWolfSentinel(tickets, wolfClientIds);
+    };
+
     try {
-      const tickets = await listSupportTickets(includeArchived, scope);
+      const tickets = await visibleTickets(await listSupportTickets(includeArchived, scope));
       return NextResponse.json({ tickets });
     } catch (listError) {
       if (!isSchemaWarmupError(listError)) throw listError;
       await Promise.all([ensureSupportTicketsTable(), ensureSupportLoungeSchema()]);
-      const tickets = await withSupportTicketsTable(() =>
-        listSupportTickets(includeArchived, scope),
+      const tickets = await visibleTickets(
+        await withSupportTicketsTable(() => listSupportTickets(includeArchived, scope)),
       );
       return NextResponse.json({ tickets });
     }

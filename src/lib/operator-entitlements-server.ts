@@ -10,6 +10,12 @@ import { isUnit311GlobalAdminUsername } from "@/lib/demo/read-only";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
 import { createTenancyServerClient } from "@/lib/supabase/tenancy-server";
 import { getCurrentWorkspace } from "@/lib/workspace-context";
+import {
+  WOLF_SENTINEL_DISPLAY_NAME,
+  WOLF_SENTINEL_MODULE_IDS,
+  WOLF_SENTINEL_SLUG,
+  isWolfSentinelSlug,
+} from "@/lib/wolf/wolf-sentinel";
 import { resolveWorkspaceTenantEntitlements } from "@/lib/workspace-tenant-entitlements";
 import { applyWorkspaceCatalogueAllowedViews } from "@/lib/workspace-enabled-views";
 import { resolveGreenDesertWorkspaceEnablement } from "@/lib/greendesert/greendesert-provisioning";
@@ -145,6 +151,15 @@ export async function loadOperatorEntitlementsSnapshot(
     } catch {
       /* optional nav enablement */
     }
+  }
+
+  if (isWolfSentinelSlug(hostSlug)) {
+    snapshot.workspaceSlug = WOLF_SENTINEL_SLUG;
+    snapshot.workspaceName = WOLF_SENTINEL_DISPLAY_NAME;
+    snapshot.workspaceType = "Customer";
+    snapshot.enabledModules = [...WOLF_SENTINEL_MODULE_IDS];
+    snapshot.enabledSubModules = null;
+    snapshot.allowedViews = null;
   }
 
   return snapshot;

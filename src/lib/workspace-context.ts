@@ -17,6 +17,11 @@ import { allowsAbhiPlatformWorkspaceAccess } from "@/lib/abhi/platform-demo";
 import { allowsGreenDesertWorkspaceAccess } from "@/lib/greendesert/greendesert-workspace-access";
 import { allowsPortalsBriefingPlatformWorkspaceAccess } from "@/lib/portals/registry";
 import { ABHI_SLUG } from "@/lib/abhi-surface";
+import {
+  WOLF_SENTINEL_SLUG,
+  isWolfSentinelSlug,
+  requestTargetsWolfSentinel,
+} from "@/lib/wolf/wolf-sentinel";
 import { resolveTalantonSlugFromHost } from "@/lib/talanton-surface";
 import {
   INTERNAL_WORKSPACE_SLUG,
@@ -266,6 +271,37 @@ export const getWorkspaceContextDiagnostics = cache(
     }
 
     const customerSlug = resolveCustomerHostSlug(requestHeaders, host);
+    if (customerSlug && (isWolfSentinelSlug(customerSlug) || requestTargetsWolfSentinel(requestHeaders))) {
+      const sentinelRecord = await findWorkspaceBySlug(
+        isWolfSentinelSlug(customerSlug) ? customerSlug : WOLF_SENTINEL_SLUG,
+      );
+      if (!sentinelRecord) {
+        return {
+          host,
+          sessionUser,
+          sessionWorkspace: fromSession,
+          resolvedWorkspace: null,
+          source: "none",
+          authenticated: true,
+          authorized: false,
+        };
+      }
+      const sentinelAllowed = await authorizeActiveWorkspace(
+        session,
+        toCurrentWorkspace(sentinelRecord),
+      );
+      const unit311 = sentinelAllowed ? await findWorkspaceBySlug(INTERNAL_WORKSPACE_SLUG) : null;
+      return {
+        host,
+        sessionUser,
+        sessionWorkspace: fromSession,
+        resolvedWorkspace: unit311 ? toCurrentWorkspace(unit311) : null,
+        source: unit311 ? "host_slug" : "none",
+        authenticated: true,
+        authorized: Boolean(unit311),
+      };
+    }
+
     if (customerSlug) {
       const record = await findWorkspaceBySlug(customerSlug);
       if (!record) {

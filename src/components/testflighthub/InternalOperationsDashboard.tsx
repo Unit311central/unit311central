@@ -85,6 +85,9 @@ import {
   applySalesContextSearchParam,
   readSalesBusinessContext,
 } from "@/lib/sales-business-context-ui";
+import { isBrowserWolfSentinelSurface } from "@/lib/wolf/wolf-sentinel";
+import { isWolfSentinelView } from "@/lib/wolf/wolf-sentinel-nav";
+import WolfSentinelHome from "@/components/wolf/WolfSentinelHome";
 import { REALTIME_VIDEO_WORKBENCH_QUERY_VIEWS } from "@/lib/realtime-video-workbench-nav";
 import FinancesPlanningWorkspace, {
   type FinancesPlanningView,
@@ -606,6 +609,7 @@ export default function InternalOperationsDashboard({
   const mockSeededRef = useRef(false);
   const clientsLoadedRef = useRef(false);
   const usersLoadedRef = useRef(false);
+  const [sentinelSurface, setSentinelSurface] = useState(false);
   const [isDemoSurface, setIsDemoSurface] = useState(
     () => typeof window !== "undefined" && isBrowserDemoSurface(),
   );
@@ -618,6 +622,7 @@ export default function InternalOperationsDashboard({
   useInfoEmailWhatsAppPoller(true);
 
   useEffect(() => {
+    setSentinelSurface(isBrowserWolfSentinelSurface());
     setIsDemoSurface(isBrowserDemoSurface());
     setIsGreenDesertSurface(
       isGreenDesertSlug(initialEntitlementsSnapshot?.workspaceSlug) ||
@@ -910,6 +915,16 @@ export default function InternalOperationsDashboard({
     [],
   );
 
+  useEffect(() => {
+    if (!sentinelSurface) return;
+    if (isWolfSentinelView(activeView)) return;
+    if (activeView === "settings" || activeView === "billing" || activeView === "appearance") {
+      handleViewChange("profile");
+      return;
+    }
+    handleViewChange("home");
+  }, [activeView, handleViewChange, sentinelSurface]);
+
   return (
     <OperatorEntitlementsProvider initialSnapshot={initialEntitlementsSnapshot}>
       <InternalOperationsBasePathProvider basePath={basePath}>
@@ -949,10 +964,14 @@ export default function InternalOperationsDashboard({
           {isWarm("home") && (
             <WorkspacePane view="home" activeView={activeView} keepMounted={isWarm("home")}>
               <WorkspaceErrorBoundary title="Home">
-                <ExecutiveHomeDashboard
-                  reportingCurrency={executiveHomeReportingCurrency}
-                  paneActive={activeView === "home"}
-                />
+                {sentinelSurface ? (
+                  <WolfSentinelHome />
+                ) : (
+                  <ExecutiveHomeDashboard
+                    reportingCurrency={executiveHomeReportingCurrency}
+                    paneActive={activeView === "home"}
+                  />
+                )}
               </WorkspaceErrorBoundary>
             </WorkspacePane>
           )}
