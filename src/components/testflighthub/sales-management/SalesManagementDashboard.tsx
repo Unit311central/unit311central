@@ -19,6 +19,7 @@ import {
 import { CalendarClock, Loader2, RefreshCw, Target, TrendingUp } from "lucide-react";
 
 import { useInternalOperationsBasePath } from "@/components/testflighthub/InternalOperationsBasePathContext";
+import { useSalesScopedFetch } from "@/components/testflighthub/sales-management/sales-business-scope";
 import { getInternalNavHref } from "@/lib/internal-operations-data";
 import {
   buildSalesDashboardMetrics,
@@ -63,6 +64,7 @@ async function readApiJson<T>(response: Response): Promise<T> {
 }
 
 export default function SalesManagementDashboard() {
+  const salesFetch = useSalesScopedFetch();
   const basePath = useInternalOperationsBasePath();
   const [metrics, setMetrics] = useState<SalesDashboardMetrics | null>(null);
   const [loading, setLoading] = useState(true);
@@ -72,7 +74,7 @@ export default function SalesManagementDashboard() {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch("/api/sales-management/dashboard", { cache: "no-store" });
+      const response = await salesFetch("/api/sales-management/dashboard", { cache: "no-store" });
       const data = await readApiJson<{ metrics?: SalesDashboardMetrics; error?: string }>(response);
       if (!response.ok) throw new Error(data.error ?? "Failed to load dashboard");
       setMetrics(data.metrics ?? buildSalesDashboardMetrics({ leads: [] }));
@@ -81,7 +83,7 @@ export default function SalesManagementDashboard() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [salesFetch]);
 
   useEffect(() => {
     void load();

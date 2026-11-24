@@ -8,6 +8,7 @@ import { Inbox, Loader2 } from "lucide-react";
 import { DemoDashboardKpiValue } from "@/components/dashboard-framework/motion/DemoDashboardKpiValue";
 import { useDemoDashboardMotionArmed } from "@/components/dashboard-framework/motion/demo-dashboard-motion";
 import { cn } from "@/lib/utils";
+import { useSalesScopedFetch } from "@/components/testflighthub/sales-management/sales-business-scope";
 
 import { WsKpiTile } from "../domain-workspace-ui";
 
@@ -262,6 +263,7 @@ async function readApiJson<T>(response: Response): Promise<T> {
 }
 
 export function useSalesWorkspaceSection(section: import("@/lib/sales-management-api").SalesManagementSection) {
+  const salesFetch = useSalesScopedFetch();
   const [data, setData] = useState<SalesWorkspacePayload | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -270,7 +272,7 @@ export function useSalesWorkspaceSection(section: import("@/lib/sales-management
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(`/api/sales-management/workspace?section=${section}`, {
+      const response = await salesFetch(`/api/sales-management/workspace?section=${section}`, {
         cache: "no-store",
       });
       const payload = await readApiJson<SalesWorkspacePayload & { error?: string }>(response);
@@ -282,7 +284,7 @@ export function useSalesWorkspaceSection(section: import("@/lib/sales-management
     } finally {
       setLoading(false);
     }
-  }, [section]);
+  }, [salesFetch, section]);
 
   useEffect(() => {
     void load();

@@ -13,6 +13,7 @@ import {
   type TargetClientImportField,
 } from "@/lib/target-clients-import";
 import { cn } from "@/lib/utils";
+import { useSalesScopedFetch } from "@/components/testflighthub/sales-management/sales-business-scope";
 
 const STEPS = [
   { id: "file", title: "Select file" },
@@ -55,6 +56,7 @@ export default function TargetClientsImportWizard({
   onClose,
   onImported,
 }: TargetClientsImportWizardProps) {
+  const salesFetch = useSalesScopedFetch();
   const [step, setStep] = useState<StepId>("file");
   const [file, setFile] = useState<File | null>(null);
   const [sheetNames, setSheetNames] = useState<string[]>([]);
@@ -106,7 +108,7 @@ export default function TargetClientsImportWizard({
         const form = new FormData();
         form.append("file", selectedFile);
         if (sheet) form.append("sheet", sheet);
-        const response = await fetch("/api/sales-management/target-clients/import/parse", {
+        const response = await salesFetch("/api/sales-management/target-clients/import/parse", {
           method: "POST",
           body: form,
         });
@@ -131,7 +133,7 @@ export default function TargetClientsImportWizard({
         setBusy(false);
       }
     },
-    [],
+    [salesFetch],
   );
 
   const onFileChange = useCallback(
@@ -159,7 +161,7 @@ export default function TargetClientsImportWizard({
     setBusy(true);
     setError(null);
     try {
-      const response = await fetch("/api/sales-management/target-clients/import/preview", {
+      const response = await salesFetch("/api/sales-management/target-clients/import/preview", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ headers, rows, mapping }),
@@ -179,7 +181,7 @@ export default function TargetClientsImportWizard({
     } finally {
       setBusy(false);
     }
-  }, [headers, mapping, rows]);
+  }, [headers, mapping, rows, salesFetch]);
 
   const readyRows = useMemo(
     () => previews.filter((p) => p.status === "ready"),
@@ -192,7 +194,7 @@ export default function TargetClientsImportWizard({
     setError(null);
     setStep("review");
     try {
-      const response = await fetch("/api/sales-management/target-clients/import", {
+      const response = await salesFetch("/api/sales-management/target-clients/import", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -219,7 +221,7 @@ export default function TargetClientsImportWizard({
     } finally {
       setBusy(false);
     }
-  }, [busy, onImported, readyRows]);
+  }, [busy, onImported, readyRows, salesFetch]);
 
   const downloadRejected = useCallback(() => {
     const csv = rejectedRowsToCsv(previews, headers, rows);

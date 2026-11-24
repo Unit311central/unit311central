@@ -10,6 +10,7 @@ import {
 } from "@/lib/crm-company-logo-data";
 import { normalizeCompanyLogoFile } from "@/lib/crm-company-logo-client";
 import { cn } from "@/lib/utils";
+import { useSalesScopedFetch } from "@/components/testflighthub/sales-management/sales-business-scope";
 
 type CrmLeadLogoUploadProps = {
   lead: CrmLead;
@@ -36,6 +37,7 @@ export default function CrmLeadLogoUpload({
   onUploaded,
   onError,
 }: CrmLeadLogoUploadProps) {
+  const salesFetch = useSalesScopedFetch();
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -51,7 +53,7 @@ export default function CrmLeadLogoUpload({
       }
 
       try {
-        const response = await fetch(`/api/files/objects/${lead.companyLogoFileId}`, {
+        const response = await salesFetch(`/api/files/objects/${lead.companyLogoFileId}`, {
           cache: "no-store",
         });
         const data = await readApiJson<{ url?: string; error?: string }>(response);
@@ -70,7 +72,7 @@ export default function CrmLeadLogoUpload({
       cancelled = true;
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
-  }, [lead.companyLogoFileId]);
+  }, [lead.companyLogoFileId, salesFetch]);
 
   async function handleFileSelected(file: File | null) {
     if (!file) return;
@@ -82,7 +84,7 @@ export default function CrmLeadLogoUpload({
       const formData = new FormData();
       formData.append("file", normalized);
 
-      const response = await fetch(`/api/crm/leads/${lead.id}/logo`, {
+      const response = await salesFetch(`/api/crm/leads/${lead.id}/logo`, {
         method: "POST",
         body: formData,
       });

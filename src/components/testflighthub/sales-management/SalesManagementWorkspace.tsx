@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Target } from "lucide-react";
 
@@ -12,6 +12,13 @@ import {
 import { getInternalNavHref } from "@/lib/internal-operations-data";
 import { createInitialRepresentatives, type Representative } from "@/lib/representatives-data";
 import { useInternalOperationsBasePath } from "@/components/testflighthub/InternalOperationsBasePathContext";
+import { useOperatorEntitlements } from "@/components/testflighthub/OperatorEntitlementsProvider";
+import type { SalesBusinessContext } from "@/lib/sales-business-context";
+import {
+  SALES_CONTEXT_QUERY_KEY,
+  salesContextSelectorEnabled,
+  writeSalesBusinessContext,
+} from "@/lib/sales-business-context-ui";
 
 import CrmWorkspace from "../CrmWorkspace";
 import MeetingsWorkspace from "../MeetingsWorkspace";
@@ -40,6 +47,8 @@ import {
 } from "@/lib/sales-management-target-clients";
 
 import TargetClientsOpeningScreen from "./TargetClientsOpeningScreen";
+import { SalesBusinessContextSelector } from "./SalesBusinessContextSelector";
+import { SalesBusinessScopeProvider, useSalesBusinessContextStore } from "./sales-business-scope";
 import { SalesTabHeader } from "./sales-management-ui";
 import {
   isInternalOpportunitiesArchitectureEnabled,
@@ -62,6 +71,34 @@ export default function SalesManagementWorkspace() {
   const searchParams = useSearchParams();
   const activeTab = useMemo(() => resolveTab(searchParams), [searchParams]);
   const basePath = useInternalOperationsBasePath();
+  const entitlements = useOperatorEntitlements();
+  const storedContext = useSalesBusinessContextStore();
+  const selectorEnabled = salesContextSelectorEnabled({
+    basePath,
+    workspaceSlug: entitlements.workspaceSlug,
+  });
+  const scope = selectorEnabled ? storedContext : null;
+  const urlHydrated = useRef(false);
+
+  useEffect(() => {
+    if (!selectorEnabled) return;
+    const explicit = searchParams.get(SALES_CONTEXT_QUERY_KEY);
+    const urlContext: SalesBusinessContext = explicit === "wolf" ? "wolf" : "unit311central";
+    if (!urlHydrated.current) {
+      urlHydrated.current = true;
+      if ((explicit === "wolf" || explicit === "unit311central") && explicit !== storedContext) {
+        writeSalesBusinessContext(explicit);
+        return;
+      }
+    }
+    if (urlContext === storedContext && explicit !== "unit311central") return;
+    const params = new URLSearchParams(searchParams.toString());
+    if (!params.get("view")) params.set("view", "sales-management");
+    if (storedContext === "wolf") params.set(SALES_CONTEXT_QUERY_KEY, "wolf");
+    else params.delete(SALES_CONTEXT_QUERY_KEY);
+    const path = basePath === "/" ? "/" : basePath;
+    router.replace(`${path}?${params.toString()}`);
+  }, [basePath, router, searchParams, selectorEnabled, storedContext]);
   const [targetClientsEnabled, setTargetClientsEnabled] = useState(() =>
     typeof window !== "undefined" ? isTargetClientsRolloutSurface() : false,
   );
@@ -75,9 +112,12 @@ export default function SalesManagementWorkspace() {
     if (!isInternalOpportunitiesArchitectureEnabled()) return;
     if (!isSalesManagementTab(activeTab)) return;
     if (!isSalesTabHiddenInInternalOpportunitiesArchitecture(activeTab)) return;
-    const href = getInternalNavHref("sales-management", basePath, { tab: "opportunities" });
+    const href = getInternalNavHref("sales-management", basePath, {
+      tab: "opportunities",
+      ...(selectorEnabled && storedContext === "wolf" ? { salesContext: "wolf" } : {}),
+    });
     router.replace(href);
-  }, [activeTab, basePath, router]);
+  }, [activeTab, basePath, router, selectorEnabled, storedContext]);
 
   const [selectedRepresentativeId, setSelectedRepresentativeId] = useState("rep-1");
 
@@ -164,7 +204,11 @@ export default function SalesManagementWorkspace() {
   }, [activeTab, quotesReturnHref, representatives, selectedRepresentativeId, targetClientsEnabled]);
 
   return (
+    <SalesBusinessScopeProvider value={scope}>
     <div className="w-full min-w-0 space-y-4" aria-label="Sales Management">
+      {selectorEnabled ? (
+        <SalesBusinessContextSelector context={storedContext} onChange={writeSalesBusinessContext} />
+      ) : null}
       {activeTab === "dashboard" ? (
         <header className="border-b border-white/10 pb-4">
           <div className="flex items-center gap-2.5 text-white/90">
@@ -178,6 +222,7 @@ export default function SalesManagementWorkspace() {
       ) : null}
 
       <div
+        key={scope ?? "shared"}
         id={`sales-management-panel-${activeTab}`}
         role="tabpanel"
         aria-labelledby={`sales-management-tab-${activeTab}`}
@@ -186,5 +231,6 @@ export default function SalesManagementWorkspace() {
         {panel}
       </div>
     </div>
+    </SalesBusinessScopeProvider>
   );
 }

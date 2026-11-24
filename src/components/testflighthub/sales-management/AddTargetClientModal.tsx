@@ -12,6 +12,7 @@ import {
   type TargetClientFieldErrors,
 } from "@/lib/target-clients";
 import { cn } from "@/lib/utils";
+import { useSalesScopedFetch } from "@/components/testflighthub/sales-management/sales-business-scope";
 
 const EMPTY_FORM: AddTargetClientFormValues = {
   companyName: "",
@@ -47,6 +48,7 @@ function TargetClientFormModal({
   onClose,
   onSaved,
 }: TargetClientFormModalProps) {
+  const salesFetch = useSalesScopedFetch();
   const [values, setValues] = useState<AddTargetClientFormValues>(EMPTY_FORM);
   const [fieldErrors, setFieldErrors] = useState<TargetClientFieldErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
@@ -99,7 +101,7 @@ function TargetClientFormModal({
         mode === "edit"
           ? `/api/sales-management/target-clients/${encodeURIComponent(clientId!)}`
           : "/api/sales-management/target-clients";
-      const response = await fetch(url, {
+      const response = await salesFetch(url, {
         method: mode === "edit" ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(values),

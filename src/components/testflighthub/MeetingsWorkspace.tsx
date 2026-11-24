@@ -8,6 +8,7 @@ import {
   type ExecutiveMeetingStatus,
 } from "@/lib/founder-booking/meeting-slug";
 import { cn } from "@/lib/utils";
+import { useSalesScopedFetch } from "@/components/testflighthub/sales-management/sales-business-scope";
 import { ChevronDown, ExternalLink, FileText, Loader2, Plus, Trash2, Video } from "lucide-react";
 
 type MeetingRow = {
@@ -53,6 +54,7 @@ function statusClass(status: ExecutiveMeetingStatus) {
 }
 
 export default function MeetingsWorkspace({ salesEmbedded = false }: { salesEmbedded?: boolean }) {
+  const salesFetch = useSalesScopedFetch();
   const [meetings, setMeetings] = useState<MeetingRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -70,7 +72,7 @@ export default function MeetingsWorkspace({ salesEmbedded = false }: { salesEmbe
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch("/api/crm/meetings", { cache: "no-store" });
+      const response = await salesFetch("/api/crm/meetings", { cache: "no-store" });
       const data = await readApiJson<{ meetings?: MeetingRow[]; error?: string }>(response);
       if (!response.ok) throw new Error(data.error ?? "Failed to load meetings");
       setMeetings(data.meetings ?? []);
@@ -79,7 +81,7 @@ export default function MeetingsWorkspace({ salesEmbedded = false }: { salesEmbe
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [salesFetch]);
 
   useEffect(() => {
     startTransition(() => {
@@ -91,7 +93,7 @@ export default function MeetingsWorkspace({ salesEmbedded = false }: { salesEmbe
     setCreating(true);
     setError(null);
     try {
-      const response = await fetch("/api/crm/meetings", {
+      const response = await salesFetch("/api/crm/meetings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -135,7 +137,7 @@ export default function MeetingsWorkspace({ salesEmbedded = false }: { salesEmbe
     setBusyId(meetingId);
     setMessage(null);
     try {
-      const response = await fetch(`/api/crm/meetings/${meetingId}`, {
+      const response = await salesFetch(`/api/crm/meetings/${meetingId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status }),
@@ -169,7 +171,7 @@ export default function MeetingsWorkspace({ salesEmbedded = false }: { salesEmbe
     setBusyId(meeting.id);
     setMessage(null);
     try {
-      const response = await fetch(`/api/crm/meetings/${meeting.id}`, { method: "DELETE" });
+      const response = await salesFetch(`/api/crm/meetings/${meeting.id}`, { method: "DELETE" });
       const data = await readApiJson<{ error?: string }>(response);
       if (!response.ok) throw new Error(data.error ?? "Failed to delete meeting");
       setMeetings((current) => current.filter((row) => row.id !== meeting.id));
@@ -195,7 +197,7 @@ export default function MeetingsWorkspace({ salesEmbedded = false }: { salesEmbe
     setBusyId(meeting.id);
     setError(null);
     try {
-      const response = await fetch(`/api/files/objects/${fileId}`, {
+      const response = await salesFetch(`/api/files/objects/${fileId}`, {
         cache: "no-store",
       });
       const data = await readApiJson<{ url?: string; error?: string }>(response);

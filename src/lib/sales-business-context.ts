@@ -107,6 +107,24 @@ export function clientsVisibleInSalesContext<T extends { clientType?: string | n
   return clients.filter((client) => client.clientType === businessContext);
 }
 
+/**
+ * Filter a client list only when the caller asked for a sales context.
+ * A request without `businessContext` keeps the full workspace list, so the
+ * Client Directory is unchanged. Inside the unit311 workspace the requested
+ * context keeps clients of that type. Other workspaces stay unfiltered.
+ */
+export function filterClientsForRequestedSalesContext<T extends { clientType?: string | null }>(
+  clients: T[],
+  workspaceSlug: string | null | undefined,
+  requested: unknown,
+): T[] {
+  if (presentContextValue(requested) === undefined) return clients;
+  return clientsVisibleInSalesContext(
+    clients,
+    resolveSalesBusinessContext({ workspaceSlug, requested }),
+  );
+}
+
 export function applySalesBusinessContext<T>(
   query: T,
   businessContext: SalesBusinessContext | null | undefined,

@@ -9,6 +9,7 @@ import type { ManagedClient } from "@/lib/client-management-data";
 import { resolveBrowserReportingCurrency, type ReportingCurrency } from "@/lib/financial-reporting-currency";
 import { isInternalOpportunitiesArchitectureEnabled } from "@/lib/internal-sales-opportunities-architecture";
 import { cn } from "@/lib/utils";
+import { useSalesScopedFetch } from "@/components/testflighthub/sales-management/sales-business-scope";
 
 function statusClass(status: SalesQuote["status"]) {
   switch (status) {
@@ -80,6 +81,7 @@ export default function SalesQuotesWorkspace({
   opportunityContext?: SalesQuotesOpportunityContext;
 }) {
   const listOnly = opportunityListOnly || (embedded && isInternalOpportunitiesArchitectureEnabled());
+  const salesFetch = useSalesScopedFetch();
 
   const [quotes, setQuotes] = useState<SalesQuote[]>([]);
   const [clients, setClients] = useState<ManagedClient[]>([]);
@@ -98,9 +100,9 @@ export default function SalesQuotesWorkspace({
     setNotice(null);
     try {
       const [quotesRes, clientsRes, contextRes] = await Promise.all([
-        fetch("/api/financials/sales-quotes", { cache: "no-store" }),
-        fetch("/api/clients", { cache: "no-store" }),
-        fetch("/api/financials/sales-quotes/compose-context", { cache: "no-store" }),
+        salesFetch("/api/financials/sales-quotes", { cache: "no-store" }),
+        salesFetch("/api/clients", { cache: "no-store" }),
+        salesFetch("/api/financials/sales-quotes/compose-context", { cache: "no-store" }),
       ]);
       const quotesBody = await readApiJson<{ quotes?: SalesQuote[]; error?: string }>(quotesRes);
       const clientsBody = await readApiJson<{ clients?: ManagedClient[]; error?: string }>(clientsRes);
@@ -118,7 +120,7 @@ export default function SalesQuotesWorkspace({
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [salesFetch]);
 
   useEffect(() => {
     void load();
@@ -139,7 +141,7 @@ export default function SalesQuotesWorkspace({
     try {
       if (action === "delete") {
         if (!window.confirm("Delete this quote? This cannot be undone.")) return;
-        const response = await fetch(`/api/financials/quotes/${id}`, { method: "DELETE" });
+        const response = await salesFetch(`/api/financials/quotes/${id}`, { method: "DELETE" });
         const body = await readApiJson<{ error?: string }>(response);
         if (!response.ok) throw new Error(body.error ?? "Delete failed");
         setQuotes((rows) => rows.filter((row) => row.id !== id));
@@ -148,7 +150,7 @@ export default function SalesQuotesWorkspace({
       }
 
       if (action === "pdf" || action === "invoice-pdf") {
-        const response = await fetch(`/api/financials/quotes/${id}`, {
+        const response = await salesFetch(`/api/financials/quotes/${id}`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ action }),
@@ -172,7 +174,7 @@ export default function SalesQuotesWorkspace({
       }
 
       if (action === "send-invoice" || action === "payment-link") {
-        const response = await fetch(`/api/financials/quotes/${id}`, {
+        const response = await salesFetch(`/api/financials/quotes/${id}`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ action }),
@@ -197,7 +199,7 @@ export default function SalesQuotesWorkspace({
         return;
       }
 
-      const response = await fetch(`/api/financials/quotes/${id}`, {
+      const response = await salesFetch(`/api/financials/quotes/${id}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action }),
@@ -242,7 +244,7 @@ export default function SalesQuotesWorkspace({
     setActionError(null);
     setNotice(null);
     try {
-      const response = await fetch(
+      const response = await salesFetch(
         editingId ? `/api/financials/quotes/${editingId}` : "/api/financials/sales-quotes",
         {
           method: editingId ? "PATCH" : "POST",

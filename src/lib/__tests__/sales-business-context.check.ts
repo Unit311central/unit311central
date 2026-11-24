@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   applySalesBusinessContext,
   clientsVisibleInSalesContext,
+  filterClientsForRequestedSalesContext,
   DEFAULT_SALES_BUSINESS_CONTEXT,
   readRequestedSalesBusinessContext,
   resolveSalesBusinessContext,
@@ -101,5 +102,17 @@ assert.deepEqual(
   ["u"],
 );
 assert.equal(clientsVisibleInSalesContext(clients, null).length, 2);
+assert.deepEqual(
+  filterClientsForRequestedSalesContext(clients, "unit311", undefined).map((client) => client.id),
+  ["u", "w"],
+);
+assert.deepEqual(
+  filterClientsForRequestedSalesContext(clients, "unit311", "wolf").map((client) => client.id),
+  ["w"],
+);
+assert.deepEqual(
+  filterClientsForRequestedSalesContext(clients, "demo", "wolf").map((client) => client.id),
+  ["u", "w"],
+);
 
 console.log("sales-business-context.check.ts: ok");

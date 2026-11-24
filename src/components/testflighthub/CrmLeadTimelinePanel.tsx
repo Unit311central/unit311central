@@ -9,6 +9,7 @@ import {
   type CrmContactHistory,
 } from "@/lib/crm-contact-data";
 import { formatLeadDate } from "@/lib/crm-data";
+import { useSalesScopedFetch } from "@/components/testflighthub/sales-management/sales-business-scope";
 
 type CrmLeadTimelinePanelProps = {
   leadId: string;
@@ -38,6 +39,7 @@ function formatTime(value: string) {
 }
 
 export default function CrmLeadTimelinePanel({ leadId }: CrmLeadTimelinePanelProps) {
+  const salesFetch = useSalesScopedFetch();
   const [activities, setActivities] = useState<CrmActivity[]>([]);
   const [history, setHistory] = useState<CrmContactHistory[]>([]);
   const [loading, setLoading] = useState(true);
@@ -47,7 +49,7 @@ export default function CrmLeadTimelinePanel({ leadId }: CrmLeadTimelinePanelPro
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(`/api/crm/leads/${leadId}/timeline`, { cache: "no-store" });
+      const response = await salesFetch(`/api/crm/leads/${leadId}/timeline`, { cache: "no-store" });
       const data = (await response.json()) as {
         activities?: CrmActivity[];
         history?: CrmContactHistory[];
@@ -63,7 +65,7 @@ export default function CrmLeadTimelinePanel({ leadId }: CrmLeadTimelinePanelPro
     } finally {
       setLoading(false);
     }
-  }, [leadId]);
+  }, [leadId, salesFetch]);
 
   useEffect(() => {
     startTransition(() => {
