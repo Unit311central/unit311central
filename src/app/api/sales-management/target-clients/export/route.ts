@@ -10,6 +10,7 @@ import {
   targetClientsExportFilename,
 } from "@/lib/target-clients-export";
 import { searchTargetClientRows } from "@/lib/target-clients";
+import { readRequestedSalesBusinessContext, salesRecordScope } from "@/lib/sales-business-context";
 import { listTargetClients } from "@/lib/target-clients-service";
 
 export const dynamic = "force-dynamic";
@@ -22,7 +23,9 @@ export async function GET(request: NextRequest) {
   try {
     const workspace = await requireTargetClientsApiContext(request);
     const search = request.nextUrl.searchParams.get("search") ?? "";
-    const clients = await listTargetClients({ workspaceId: workspace.id });
+    const clients = await listTargetClients(
+      salesRecordScope(workspace, readRequestedSalesBusinessContext(request)),
+    );
     const filtered = searchTargetClientRows(clients, search);
     const csv = buildTargetClientsExportCsv(filtered);
     const filename = targetClientsExportFilename();

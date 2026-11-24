@@ -8,6 +8,7 @@ import {
 import { assertDemoMutationAllowedForRequest } from "@/lib/demo/mutation-guard";
 import { isDemoApiRequest } from "@/lib/demo/demo-request";
 import { requirePlatformSession } from "@/lib/platform-session";
+import { applySalesBusinessContext, readRequestedSalesBusinessContext, resolveSalesBusinessContext, salesRecordScope } from "@/lib/sales-business-context";
 import { requireCurrentWorkspace } from "@/lib/workspace-context";
 import { resolveFinancialsWorkspaceId } from "@/lib/financials-workspace";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
@@ -15,13 +16,15 @@ import { createTenancyServerClient } from "@/lib/supabase/tenancy-server";
 
 export const dynamic = "force-dynamic";
 
-async function resolveScope() {
+async function resolveScope(request: Request) {
+  const requested = readRequestedSalesBusinessContext(request);
   if (await isDemoApiRequest()) {
+    resolveSalesBusinessContext({ workspaceSlug: "demo", requested });
     return { workspaceSlug: "demo" as const, workspaceId: null as string | null };
   }
   await requirePlatformSession();
   const workspace = await requireCurrentWorkspace();
-  return { workspaceId: workspace.id, workspaceSlug: workspace.slug };
+  return salesRecordScope(workspace, requested);
 }
 
 export async function POST(
@@ -33,7 +36,7 @@ export async function POST(
 
   try {
     const { id } = await context.params;
-    const scope = await resolveScope();
+    const scope = await resolveScope(request);
     const quote = await getSalesQuoteById(id, scope);
     if (!quote) return NextResponse.json({ error: "Quote not found." }, { status: 404 });
 
@@ -64,22 +67,30 @@ export async function POST(
 
     const workspaceId = await resolveFinancialsWorkspaceId(scope);
     const supabase = createTenancyServerClient();
-    const { error } = await supabase
-      .from("sales_quotes")
-      .update({
-        terms_pdf_storage_path: uploaded.storagePath,
-        terms_pdf_filename: uploaded.filename,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("workspace_id", workspaceId)
-      .eq("id", id);
+    const { error } = await applySalesBusinessContext(
+      supabase
+        .from("sales_quotes")
+        .update({
+          terms_pdf_storage_path: uploaded.storagePath,
+          terms_pdf_filename: uploaded.filename,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("workspace_id", workspaceId)
+        .eq("id", id),
+      "businessContext" in scope ? scope.businessContext : null,
+    );
     if (error) throw new Error(error.message);
 
     const updated = await getSalesQuoteById(id, scope);
     return NextResponse.json({ quote: updated });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unable to attach terms PDF.";
-    return NextResponse.json({ error: message }, { status: 500 });
+    const status = message.includes("sales business context")
+      ? 400
+      : message.includes("Authentication required") || message.includes("Workspace context")
+        ? 401
+        : 500;
+    return NextResponse.json({ error: message }, { status });
   }
 }
 
@@ -92,7 +103,7 @@ export async function DELETE(
 
   try {
     const { id } = await context.params;
-    const scope = await resolveScope();
+    const scope = await resolveScope(_request);
     const quote = await getSalesQuoteById(id, scope);
     if (!quote) return NextResponse.json({ error: "Quote not found." }, { status: 404 });
 
@@ -102,21 +113,29 @@ export async function DELETE(
     }
     const workspaceId = await resolveFinancialsWorkspaceId(scope);
     const supabase = createTenancyServerClient();
-    const { error } = await supabase
-      .from("sales_quotes")
-      .update({
-        terms_pdf_storage_path: null,
-        terms_pdf_filename: null,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("workspace_id", workspaceId)
-      .eq("id", id);
+    const { error } = await applySalesBusinessContext(
+      supabase
+        .from("sales_quotes")
+        .update({
+          terms_pdf_storage_path: null,
+          terms_pdf_filename: null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("workspace_id", workspaceId)
+        .eq("id", id),
+      "businessContext" in scope ? scope.businessContext : null,
+    );
     if (error) throw new Error(error.message);
 
     const updated = await getSalesQuoteById(id, scope);
     return NextResponse.json({ quote: updated });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unable to remove terms PDF.";
-    return NextResponse.json({ error: message }, { status: 500 });
+    const status = message.includes("sales business context")
+      ? 400
+      : message.includes("Authentication required") || message.includes("Workspace context")
+        ? 401
+        : 500;
+    return NextResponse.json({ error: message }, { status });
   }
 }

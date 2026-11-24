@@ -6,6 +6,7 @@ import {
   requireTargetClientsApiContext,
   targetClientsErrorResponse,
 } from "@/lib/target-clients-api-context";
+import { readRequestedSalesBusinessContext, salesRecordScope } from "@/lib/sales-business-context";
 import { promoteTargetClientToOpportunity } from "@/lib/target-clients-service";
 
 export const dynamic = "force-dynamic";
@@ -23,7 +24,10 @@ export async function POST(request: NextRequest, context: RouteContext) {
   try {
     const workspace = await requireTargetClientsApiContext(request);
     const { id } = await context.params;
-    const result = await promoteTargetClientToOpportunity(id, { workspaceId: workspace.id });
+    const result = await promoteTargetClientToOpportunity(
+      id,
+      salesRecordScope(workspace, readRequestedSalesBusinessContext(request)),
+    );
 
     return NextResponse.json({
       opportunityId: result.opportunityId,

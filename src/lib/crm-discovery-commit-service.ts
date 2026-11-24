@@ -1,5 +1,5 @@
 import { saveCrmDiscoveryNotesDocument } from "@/lib/crm-discovery-document-service";
-import { getLeadById, updateLead } from "@/lib/crm-leads-service";
+import { getLeadById, updateLead, type CrmWorkspaceScope } from "@/lib/crm-leads-service";
 import { saveExecutiveCallTranscriptsForBookings } from "@/lib/executive-call-transcript-service";
 import {
   completeFounderSessionBookingsForCrmLead,
@@ -21,23 +21,28 @@ export type CommitCrmDiscoveryResult = {
 export async function commitCrmLeadDiscovery(
   leadId: string,
   discoveryNotes?: string,
+  scope?: CrmWorkspaceScope,
 ): Promise<CommitCrmDiscoveryResult> {
   const warnings: string[] = [];
   let discoverySaved = false;
 
-  const lead = await getLeadById(leadId);
+  const lead = await getLeadById(leadId, scope);
   if (!lead) {
     throw new Error("Lead not found.");
   }
+  const leadScope: CrmWorkspaceScope = {
+    workspaceId: scope?.workspaceId ?? lead.workspaceId,
+    businessContext: scope?.businessContext,
+  };
 
   if (discoveryNotes !== undefined) {
-    await updateLead(leadId, { discoveryNotes }, { workspaceId: lead.workspaceId });
+    await updateLead(leadId, { discoveryNotes }, leadScope);
     lead.discoveryNotes = discoveryNotes;
     discoverySaved = true;
   }
 
-  const linkedBookings = await resolveBookingsForCrmLead(lead);
-  const completedMeetings = await completeFounderSessionBookingsForCrmLead(leadId);
+  const linkedBookings = await resolveBookingsForCrmLead(lead, leadScope);
+  const completedMeetings = await completeFounderSessionBookingsForCrmLead(leadId, leadScope);
   const bookingIds = linkedBookings.map((meeting) => meeting.id);
 
   let alertsCleared = 0;

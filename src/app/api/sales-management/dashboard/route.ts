@@ -9,12 +9,17 @@ import { requirePlatformSession } from "@/lib/platform-session";
 import { buildSalesDashboardMetrics, type SalesDashboardMeetingSummary } from "@/lib/sales-management-insights";
 import { loadSalesQuotesForWorkspace } from "@/lib/sales-management-service";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
+import { readRequestedSalesBusinessContext, salesRecordScope } from "@/lib/sales-business-context";
+import { salesManagementErrorResponse } from "@/lib/sales-management-api";
 import { requireCurrentWorkspace } from "@/lib/workspace-context";
 
 export const dynamic = "force-dynamic";
 
-async function loadMeetings(workspaceId: string): Promise<SalesDashboardMeetingSummary[]> {
-  const bookings = await listFounderSessionBookings({ workspaceId });
+async function loadMeetings(
+  workspaceId: string,
+  businessContext?: import("@/lib/sales-business-context").SalesBusinessContext | null,
+): Promise<SalesDashboardMeetingSummary[]> {
+  const bookings = await listFounderSessionBookings({ workspaceId, businessContext });
   return Promise.all(
     bookings.map(async (booking) => {
       const timezoneMeta = getFounderBookingTimezone(booking.clientTimezone ?? "Europe/London");
@@ -31,7 +36,7 @@ async function loadMeetings(workspaceId: string): Promise<SalesDashboardMeetingS
   );
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     if (!isSupabaseConfigured()) {
       return NextResponse.json({ error: "Supabase is not configured." }, { status: 503 });
@@ -39,14 +44,12 @@ export async function GET() {
 
     await requirePlatformSession();
     const workspace = await requireCurrentWorkspace();
+    const scope = salesRecordScope(workspace, readRequestedSalesBusinessContext(request));
     const reportingCurrency = resolveSlugReportingCurrency(workspace.slug);
     const [leads, quotes, meetings] = await Promise.all([
-      listLeads("All", { workspaceId: workspace.id }),
-      loadSalesQuotesForWorkspace({
-        workspaceId: workspace.id,
-        workspaceSlug: workspace.slug,
-      }),
-      loadMeetings(workspace.id),
+      listLeads("All", scope),
+      loadSalesQuotesForWorkspace(scope),
+      loadMeetings(workspace.id, scope.businessContext),
     ]);
 
     return NextResponse.json({
@@ -60,9 +63,6 @@ export async function GET() {
       workspace: { id: workspace.id, slug: workspace.slug, name: workspace.name },
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Unable to load sales dashboard.";
-    const status =
-      message.includes("Authentication required") || message.includes("Workspace context") ? 401 : 500;
-    return NextResponse.json({ error: message }, { status });
+    return salesManagementErrorResponse(error);
   }
 }

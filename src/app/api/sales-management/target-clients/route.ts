@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { assertDemoMutationAllowedForRequest } from "@/lib/demo/mutation-guard";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
+import { readRequestedSalesBusinessContext, salesRecordScope } from "@/lib/sales-business-context";
 import { requireTargetClientsApiContext, targetClientsErrorResponse } from "@/lib/target-clients-api-context";
 import {
   validateAddTargetClientForm,
@@ -22,7 +23,9 @@ export async function GET(request: NextRequest) {
 
   try {
     const workspace = await requireTargetClientsApiContext(request);
-    const clients = await listTargetClients({ workspaceId: workspace.id });
+    const clients = await listTargetClients(
+      salesRecordScope(workspace, readRequestedSalesBusinessContext(request)),
+    );
     return NextResponse.json({
       clients,
       workspace: { id: workspace.id, slug: workspace.slug },
@@ -43,7 +46,9 @@ export async function POST(request: NextRequest) {
   try {
     const workspace = await requireTargetClientsApiContext(request);
 
-    const body = (await request.json()) as Partial<AddTargetClientFormValues>;
+    const body = (await request.json()) as Partial<AddTargetClientFormValues> & {
+      businessContext?: unknown;
+    };
     const values: AddTargetClientFormValues = {
       companyName: String(body.companyName ?? ""),
       website: String(body.website ?? ""),
@@ -59,7 +64,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Validation failed.", fieldErrors }, { status: 400 });
     }
 
-    const client = await createTargetClientFromForm(values, { workspaceId: workspace.id });
+    const client = await createTargetClientFromForm(
+      values,
+      salesRecordScope(workspace, readRequestedSalesBusinessContext(request, body)),
+    );
     return NextResponse.json({ client });
   } catch (error) {
     if (error instanceof TargetClientDuplicateError) {

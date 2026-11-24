@@ -8,8 +8,8 @@ import {
 export const dynamic = "force-dynamic";
 
 /** List/create quotes — isolated from /api/financials/quotes/[id] PDF bundle. */
-export async function GET() {
-  return handleListSalesQuotesGet();
+export async function GET(request: NextRequest) {
+  return handleListSalesQuotesGet(request);
 }
 
 export async function POST(request: NextRequest) {

@@ -13,11 +13,13 @@ import {
   targetClientsErrorResponse,
 } from "@/lib/target-clients-api-context";
 import { type AddTargetClientFormValues } from "@/lib/target-clients";
+import { readRequestedSalesBusinessContext, salesRecordScope } from "@/lib/sales-business-context";
 import { listCrmLeadContactKeysForImport } from "@/lib/target-clients-service";
 
 export const dynamic = "force-dynamic";
 
 type PreviewBody = {
+  businessContext?: unknown;
   headers?: string[];
   rows?: string[][];
   mapping?: Partial<Record<TargetClientImportField, number>>;
@@ -55,7 +57,9 @@ export async function POST(request: NextRequest) {
     }
 
     const crmKeys = buildCrmDuplicateKeysFromLeads(
-      await listCrmLeadContactKeysForImport({ workspaceId: workspace.id }),
+      await listCrmLeadContactKeysForImport(
+        salesRecordScope(workspace, readRequestedSalesBusinessContext(request, body)),
+      ),
     );
     const previews = previewImportRows(mappedRows, crmKeys);
 

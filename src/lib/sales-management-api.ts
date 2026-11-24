@@ -14,6 +14,11 @@ import {
 } from "@/lib/sales-management-service";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
 import { createTenancyServerClient } from "@/lib/supabase/tenancy-server";
+import {
+  readRequestedSalesBusinessContext,
+  resolveSalesBusinessContext,
+  SalesBusinessContextError,
+} from "@/lib/sales-business-context";
 import { requireCurrentWorkspace } from "@/lib/workspace-context";
 
 export const dynamic = "force-dynamic";
@@ -29,15 +34,23 @@ export type SalesManagementSection =
   | "commissions"
   | "reports";
 
-export async function resolveSalesManagementAuth() {
+export async function resolveSalesMutationContext(requested?: unknown) {
   if (!isSupabaseConfigured()) {
     throw new Error("Supabase is not configured.");
   }
-
   await ensureSalesManagementFoundationTables();
-
   const session = await requirePlatformSession();
   const workspace = await requireCurrentWorkspace();
+  const businessContext = resolveSalesBusinessContext({
+    workspaceSlug: workspace.slug,
+    requested,
+  });
+  return { session, workspace, businessContext };
+}
+
+export async function resolveSalesManagementAuth(request?: Request) {
+  const requested = request ? readRequestedSalesBusinessContext(request) : undefined;
+  const { session, workspace, businessContext } = await resolveSalesMutationContext(requested);
   const bundle = await loadSalesWorkspaceBundle({
     workspaceId: workspace.id,
     workspaceSlug: workspace.slug,
@@ -45,11 +58,13 @@ export async function resolveSalesManagementAuth() {
     currentUserName: session.displayName,
     currentUsername: session.username,
     currentUserType: session.userType,
+    businessContext,
   });
 
   return {
     workspace,
     session,
+    businessContext,
     bundle,
     leads: bundle.leads,
     quotes: bundle.quotes,
@@ -61,8 +76,13 @@ export async function resolveSalesManagementAuth() {
 
 export function salesManagementErrorResponse(error: unknown) {
   const message = error instanceof Error ? error.message : "Unable to load sales data.";
-  const status =
-    message.includes("Authentication required") || message.includes("Workspace context") ? 401 : 500;
+  const status = error instanceof SalesBusinessContextError
+    ? 400
+    : message.includes("Authentication required") || message.includes("Workspace context")
+      ? 401
+      : /not found/i.test(message)
+        ? 404
+        : 500;
   return NextResponse.json({ error: message }, { status });
 }
 

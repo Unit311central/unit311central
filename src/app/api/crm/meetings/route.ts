@@ -12,6 +12,8 @@ import { formatExecutiveMeetingStatus } from "@/lib/founder-booking/meeting-slug
 import { createSalesDiscoverySession } from "@/lib/sales-management-service";
 import { requirePlatformSession } from "@/lib/platform-session";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
+import { readRequestedSalesBusinessContext, salesRecordScope } from "@/lib/sales-business-context";
+import { requireLeadInWorkspace } from "@/lib/crm-leads-service";
 import { requireCurrentWorkspace } from "@/lib/workspace-context";
 
 export const dynamic = "force-dynamic";
@@ -60,19 +62,26 @@ export async function GET(request: Request) {
   try {
     await requirePlatformSession();
     const workspace = await requireCurrentWorkspace();
+    const scope = salesRecordScope(workspace, readRequestedSalesBusinessContext(request));
     const crmLeadId = new URL(request.url).searchParams.get("crmLeadId")?.trim();
+    if (crmLeadId) {
+      await requireLeadInWorkspace(crmLeadId, scope);
+    }
     const bookings = crmLeadId
-      ? await getFounderSessionBookingsForCrmLead(crmLeadId)
-      : await listFounderSessionBookings({ workspaceId: workspace.id });
+      ? await getFounderSessionBookingsForCrmLead(crmLeadId, scope)
+      : await listFounderSessionBookings(scope);
     const meetings = await mapBookingsToMeetings(bookings);
 
     return NextResponse.json({ meetings });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to load meetings";
-    const status =
-      message.includes("Authentication required") || message.includes("Workspace context")
-        ? 401
-        : 500;
+    const status = message.includes("sales business context")
+      ? 400
+      : message.includes("Lead not found")
+        ? 404
+        : message.includes("Authentication required") || message.includes("Workspace context")
+          ? 401
+          : 500;
     return NextResponse.json({ error: message }, { status });
   }
 }
@@ -89,6 +98,7 @@ export async function POST(request: Request) {
     await requirePlatformSession();
     const workspace = await requireCurrentWorkspace();
     const body = (await request.json()) as {
+      businessContext?: unknown;
       name?: string;
       organization?: string;
       role?: string | null;
@@ -108,6 +118,7 @@ export async function POST(request: Request) {
       );
     }
 
+    const scope = salesRecordScope(workspace, readRequestedSalesBusinessContext(request, body));
     const booking = await createSalesDiscoverySession({
       workspaceId: workspace.id,
       name: body.name,
@@ -119,11 +130,17 @@ export async function POST(request: Request) {
       clientTimezone: body.clientTimezone,
       crmLeadId: body.crmLeadId,
       videoLink: body.meetingLink ?? body.videoLink,
+      businessContext: scope.businessContext,
     });
 
     return NextResponse.json({ booking });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to create discovery session";
-    return NextResponse.json({ error: message }, { status: 500 });
+    const status = message.includes("sales business context")
+      ? 400
+      : message.includes("Lead not found")
+        ? 404
+        : 500;
+    return NextResponse.json({ error: message }, { status });
   }
 }

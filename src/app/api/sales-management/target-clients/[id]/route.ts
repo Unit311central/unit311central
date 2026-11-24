@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { assertDemoMutationAllowedForRequest } from "@/lib/demo/mutation-guard";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
+import { readRequestedSalesBusinessContext, salesRecordScope } from "@/lib/sales-business-context";
 import {
   requireTargetClientsApiContext,
   targetClientsErrorResponse,
@@ -32,7 +33,9 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     const workspace = await requireTargetClientsApiContext(request);
 
     const { id } = await context.params;
-    const body = (await request.json()) as Partial<AddTargetClientFormValues>;
+    const body = (await request.json()) as Partial<AddTargetClientFormValues> & {
+      businessContext?: unknown;
+    };
     const values: AddTargetClientFormValues = {
       companyName: String(body.companyName ?? ""),
       website: String(body.website ?? ""),
@@ -48,7 +51,11 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       return NextResponse.json({ error: "Validation failed.", fieldErrors }, { status: 400 });
     }
 
-    const client = await updateTargetClientFromForm(id, values, { workspaceId: workspace.id });
+    const client = await updateTargetClientFromForm(
+      id,
+      values,
+      salesRecordScope(workspace, readRequestedSalesBusinessContext(request, body)),
+    );
     return NextResponse.json({ client });
   } catch (error) {
     if (error instanceof TargetClientDuplicateError) {
@@ -82,7 +89,7 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
     const workspace = await requireTargetClientsApiContext(request);
 
     const { id } = await context.params;
-    await deleteTargetClient(id, { workspaceId: workspace.id });
+    await deleteTargetClient(id, salesRecordScope(workspace, readRequestedSalesBusinessContext(request)));
     return NextResponse.json({ ok: true });
   } catch (error) {
     return targetClientsErrorResponse(error);

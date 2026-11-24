@@ -1,4 +1,5 @@
 import type { ManagedClient } from "@/lib/client-management-data";
+import { clientsVisibleInSalesContext } from "@/lib/sales-business-context";
 import {
   buildCrmLeadClientNotes,
   CRM_LEAD_CLIENT_NOTE_PREFIX,
@@ -30,15 +31,17 @@ export async function promoteCrmLeadToClient(
   scope?: CrmWorkspaceScope,
 ): Promise<ManagedClient> {
   const workspaceId = await resolveCrmWorkspaceId(scope);
-  const lead = await getLeadById(leadId, { workspaceId });
+  const lead = await getLeadById(leadId, { ...scope, workspaceId });
   if (!lead) {
     throw new Error("Lead not found.");
   }
 
+  const clientType = scope?.businessContext ?? null;
   const clients = await listInternalClients({ workspaceId });
+  const eligible = clientsVisibleInSalesContext(clients, clientType);
   const existing =
-    clients.find((client) => clientMatchesCrmLead(client, leadId)) ??
-    clients.find(
+    eligible.find((client) => clientMatchesCrmLead(client, leadId)) ??
+    eligible.find(
       (client) =>
         client.companyName.trim().toLowerCase() === lead.companyName.trim().toLowerCase(),
     );
@@ -50,6 +53,7 @@ export async function promoteCrmLeadToClient(
     phone: lead.phone,
     crmLeadId: leadId,
     notes: buildCrmLeadClientNotes(leadId, lead.notes),
+    ...(clientType ? { clientType } : {}),
   };
 
   if (existing) {

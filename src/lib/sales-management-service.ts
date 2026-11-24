@@ -1,7 +1,12 @@
 import type { SalesQuote } from "@/lib/accounting/types";
 import type { CrmLead } from "@/lib/crm-data";
 import { mapCrmActivity, type CrmActivity } from "@/lib/crm-contact-data";
-import { listLeads } from "@/lib/crm-leads-service";
+import { listLeads, requireLeadInWorkspace, type CrmWorkspaceScope } from "@/lib/crm-leads-service";
+import {
+  applySalesBusinessContext,
+  salesBusinessContextColumn,
+  type SalesBusinessContext,
+} from "@/lib/sales-business-context";
 import { listFounderSessionBookings } from "@/lib/founder-booking/service";
 import { formatLondonDateTime } from "@/lib/founder-booking/slots";
 import { formatDateTimeInTimezone, getFounderBookingTimezone } from "@/lib/founder-booking/timezones";
@@ -143,8 +148,11 @@ function classifyWhen(iso: string | null | undefined): SalesActivityItem["status
   return "upcoming";
 }
 
-async function loadMeetings(workspaceId: string): Promise<SalesDashboardMeetingSummary[]> {
-  const bookings = await listFounderSessionBookings({ workspaceId });
+async function loadMeetings(
+  workspaceId: string,
+  businessContext?: SalesBusinessContext | null,
+): Promise<SalesDashboardMeetingSummary[]> {
+  const bookings = await listFounderSessionBookings({ workspaceId, businessContext });
   return Promise.all(
     bookings.map(async (booking) => {
       const timezoneMeta = getFounderBookingTimezone(booking.clientTimezone ?? "Europe/London");
@@ -340,13 +348,13 @@ async function loadTargets(
   leads: CrmLead[],
   quotes: SalesQuote[],
   displayNameForUserId: (userId: string | null | undefined) => string,
+  businessContext?: SalesBusinessContext | null,
 ): Promise<SalesTargetRecord[]> {
   const supabase = requireSupabase();
-  const { data, error } = await supabase
-    .from("sales_targets")
-    .select("*")
-    .eq("workspace_id", workspaceId)
-    .order("period_start", { ascending: false });
+  const { data, error } = await applySalesBusinessContext(
+    supabase.from("sales_targets").select("*").eq("workspace_id", workspaceId),
+    businessContext,
+  ).order("period_start", { ascending: false });
   if (error) {
     if (error.message.includes("sales_targets")) return [];
     throw new Error(error.message);
@@ -381,13 +389,15 @@ async function loadTargets(
   });
 }
 
-async function loadCommissionRules(workspaceId: string): Promise<SalesCommissionRule[]> {
+async function loadCommissionRules(
+  workspaceId: string,
+  businessContext?: SalesBusinessContext | null,
+): Promise<SalesCommissionRule[]> {
   const supabase = requireSupabase();
-  const { data, error } = await supabase
-    .from("sales_commission_rules")
-    .select("*")
-    .eq("workspace_id", workspaceId)
-    .order("name");
+  const { data, error } = await applySalesBusinessContext(
+    supabase.from("sales_commission_rules").select("*").eq("workspace_id", workspaceId),
+    businessContext,
+  ).order("name");
   if (error) {
     if (error.message.includes("sales_commission_rules")) return [];
     throw new Error(error.message);
@@ -406,12 +416,13 @@ async function loadCommissions(
   leads: CrmLead[],
   rules: SalesCommissionRule[],
   displayNameForUserId: (userId: string | null | undefined) => string,
+  businessContext?: SalesBusinessContext | null,
 ): Promise<SalesCommissionRecord[]> {
   const supabase = requireSupabase();
-  const { data, error } = await supabase
-    .from("sales_commissions")
-    .select("*")
-    .eq("workspace_id", workspaceId)
+  const { data, error } = await applySalesBusinessContext(
+    supabase.from("sales_commissions").select("*").eq("workspace_id", workspaceId),
+    businessContext,
+  )
     .order("created_at", { ascending: false })
     .limit(100);
   if (error) {
@@ -530,14 +541,14 @@ export function filterLeadsForUser(
 export async function loadSalesQuotesForWorkspace(input: {
   workspaceId: string;
   workspaceSlug: string;
+  businessContext?: SalesBusinessContext | null;
 }): Promise<SalesQuote[]> {
   if (!isSupabaseConfigured()) return [];
   const supabase = requireSupabase();
-  const { data, error } = await supabase
-    .from("sales_quotes")
-    .select("*")
-    .eq("workspace_id", input.workspaceId)
-    .order("created_at", { ascending: false });
+  const { data, error } = await applySalesBusinessContext(
+    supabase.from("sales_quotes").select("*").eq("workspace_id", input.workspaceId),
+    input.businessContext,
+  ).order("created_at", { ascending: false });
   if (error) {
     if (error.message.includes("sales_quotes")) return [];
     throw new Error(error.message);
@@ -623,14 +634,20 @@ export async function loadSalesWorkspaceBundle(input: {
   currentUserName: string;
   currentUsername?: string;
   currentUserType?: "internal" | "external";
+  businessContext?: SalesBusinessContext | null;
 }): Promise<SalesWorkspaceBundle> {
+  const leadScope: CrmWorkspaceScope = {
+    workspaceId: input.workspaceId,
+    businessContext: input.businessContext,
+  };
   const [leads, quotes, meetings, teams] = await Promise.all([
-    listLeads("All", { workspaceId: input.workspaceId }),
+    listLeads("All", leadScope),
     loadSalesQuotesForWorkspace({
       workspaceId: input.workspaceId,
       workspaceSlug: input.workspaceSlug,
+      businessContext: input.businessContext,
     }),
-    loadMeetings(input.workspaceId),
+    loadMeetings(input.workspaceId, input.businessContext),
     loadSalesTeams(input.workspaceId),
   ]);
 
@@ -683,13 +700,15 @@ export async function loadSalesWorkspaceBundle(input: {
     leads,
     quotes,
     displayNameForUserId,
+    input.businessContext,
   );
-  const commissionRules = await loadCommissionRules(input.workspaceId);
+  const commissionRules = await loadCommissionRules(input.workspaceId, input.businessContext);
   const commissions = await loadCommissions(
     input.workspaceId,
     leads,
     commissionRules,
     displayNameForUserId,
+    input.businessContext,
   );
 
   const metrics = buildSalesDashboardMetrics({
@@ -962,6 +981,7 @@ export async function createSalesCommissionRule(input: {
   ratePct: number;
   appliesTo: SalesCommissionRule["appliesTo"];
   isActive?: boolean;
+  businessContext?: SalesBusinessContext | null;
 }): Promise<SalesCommissionRule> {
   const supabase = requireSupabase();
   const { data, error } = await supabase
@@ -972,6 +992,7 @@ export async function createSalesCommissionRule(input: {
       rate_pct: input.ratePct,
       applies_to: input.appliesTo,
       is_active: input.isActive ?? true,
+      business_context: salesBusinessContextColumn(input.businessContext),
     })
     .select("*")
     .single();
@@ -992,6 +1013,7 @@ export async function updateSalesCommissionRule(input: {
   ratePct?: number;
   appliesTo?: SalesCommissionRule["appliesTo"];
   isActive?: boolean;
+  businessContext?: SalesBusinessContext | null;
 }): Promise<SalesCommissionRule> {
   const supabase = requireSupabase();
   const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
@@ -999,14 +1021,18 @@ export async function updateSalesCommissionRule(input: {
   if (input.ratePct != null) patch.rate_pct = input.ratePct;
   if (input.appliesTo != null) patch.applies_to = input.appliesTo;
   if (input.isActive != null) patch.is_active = input.isActive;
-  const { data, error } = await supabase
-    .from("sales_commission_rules")
-    .update(patch)
-    .eq("workspace_id", input.workspaceId)
-    .eq("id", input.ruleId)
+  const { data, error } = await applySalesBusinessContext(
+    supabase
+      .from("sales_commission_rules")
+      .update(patch)
+      .eq("workspace_id", input.workspaceId)
+      .eq("id", input.ruleId),
+    input.businessContext,
+  )
     .select("*")
-    .single();
+    .maybeSingle();
   if (error) throw new Error(error.message);
+  if (!data) throw new Error("Commission rule not found.");
   return {
     id: String(data.id),
     name: String(data.name),
@@ -1016,14 +1042,18 @@ export async function updateSalesCommissionRule(input: {
   };
 }
 
-export async function deleteSalesCommissionRule(workspaceId: string, ruleId: string): Promise<void> {
+export async function deleteSalesCommissionRule(
+  workspaceId: string,
+  ruleId: string,
+  businessContext?: SalesBusinessContext | null,
+): Promise<void> {
   const supabase = requireSupabase();
-  const { error } = await supabase
-    .from("sales_commission_rules")
-    .delete()
-    .eq("workspace_id", workspaceId)
-    .eq("id", ruleId);
+  const { data, error } = await applySalesBusinessContext(
+    supabase.from("sales_commission_rules").delete().eq("workspace_id", workspaceId).eq("id", ruleId),
+    businessContext,
+  ).select("id");
   if (error) throw new Error(error.message);
+  if (!data?.length) throw new Error("Commission rule not found.");
 }
 
 export async function createSalesActivity(input: {
@@ -1035,7 +1065,12 @@ export async function createSalesActivity(input: {
   message?: string | null;
   occurredAt?: string | null;
   createdBy?: string | null;
+  businessContext?: SalesBusinessContext | null;
 }): Promise<CrmActivity> {
+  await requireLeadInWorkspace(input.crmLeadId, {
+    workspaceId: input.workspaceId,
+    businessContext: input.businessContext,
+  });
   const supabase = requireSupabase();
   const { data, error } = await supabase
     .from("crm_activities")
@@ -1062,8 +1097,22 @@ export async function updateSalesActivity(input: {
   subject?: string | null;
   message?: string | null;
   occurredAt?: string | null;
+  businessContext?: SalesBusinessContext | null;
 }): Promise<CrmActivity> {
   const supabase = requireSupabase();
+  const existing = await supabase
+    .from("crm_activities")
+    .select("id, crm_lead_id")
+    .eq("workspace_id", input.workspaceId)
+    .eq("id", input.activityId)
+    .maybeSingle();
+  if (existing.error) throw new Error(existing.error.message);
+  const crmLeadId = existing.data?.crm_lead_id ? String(existing.data.crm_lead_id) : "";
+  if (!existing.data || !crmLeadId) throw new Error("Activity not found.");
+  await requireLeadInWorkspace(crmLeadId, {
+    workspaceId: input.workspaceId,
+    businessContext: input.businessContext,
+  });
   const patch: Record<string, unknown> = {};
   if (input.title != null) patch.title = input.title.trim();
   if (input.subject !== undefined) patch.subject = input.subject?.trim() || null;
@@ -1080,8 +1129,22 @@ export async function updateSalesActivity(input: {
   return mapCrmActivity(data);
 }
 
-export async function deleteSalesActivity(workspaceId: string, activityId: string): Promise<void> {
+export async function deleteSalesActivity(
+  workspaceId: string,
+  activityId: string,
+  businessContext?: SalesBusinessContext | null,
+): Promise<void> {
   const supabase = requireSupabase();
+  const existing = await supabase
+    .from("crm_activities")
+    .select("id, crm_lead_id")
+    .eq("workspace_id", workspaceId)
+    .eq("id", activityId)
+    .maybeSingle();
+  if (existing.error) throw new Error(existing.error.message);
+  const crmLeadId = existing.data?.crm_lead_id ? String(existing.data.crm_lead_id) : "";
+  if (!existing.data || !crmLeadId) throw new Error("Activity not found.");
+  await requireLeadInWorkspace(crmLeadId, { workspaceId, businessContext });
   const { error } = await supabase
     .from("crm_activities")
     .delete()
@@ -1093,7 +1156,9 @@ export async function deleteSalesActivity(workspaceId: string, activityId: strin
 export async function listSalesActivitiesForCrmLead(
   workspaceId: string,
   crmLeadId: string,
+  businessContext?: SalesBusinessContext | null,
 ): Promise<CrmActivity[]> {
+  await requireLeadInWorkspace(crmLeadId, { workspaceId, businessContext });
   return loadCrmActivities(workspaceId, [crmLeadId]);
 }
 
@@ -1109,7 +1174,14 @@ export async function createSalesDiscoverySession(input: {
   status?: string;
   crmLeadId?: string | null;
   videoLink?: string | null;
+  businessContext?: SalesBusinessContext | null;
 }) {
+  if (input.crmLeadId) {
+    await requireLeadInWorkspace(input.crmLeadId, {
+      workspaceId: input.workspaceId,
+      businessContext: input.businessContext,
+    });
+  }
   const supabase = requireSupabase();
   const startsAt = input.startsAt;
   const endsAt =
@@ -1139,6 +1211,7 @@ export async function createSalesDiscoverySession(input: {
       status: input.status ?? "scheduled",
       client_timezone: input.clientTimezone?.trim() || "Europe/London",
       crm_lead_id: input.crmLeadId ?? null,
+      business_context: salesBusinessContextColumn(input.businessContext),
     })
     .select("*")
     .single();
@@ -1156,6 +1229,7 @@ export async function updateSalesTarget(input: {
   periodEnd?: string;
   targetValue?: number;
   notes?: string | null;
+  businessContext?: SalesBusinessContext | null;
 }): Promise<void> {
   const supabase = requireSupabase();
   const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
@@ -1166,22 +1240,26 @@ export async function updateSalesTarget(input: {
   if (input.periodEnd) patch.period_end = input.periodEnd;
   if (input.targetValue != null) patch.target_value = input.targetValue;
   if (input.notes !== undefined) patch.notes = input.notes;
-  const { error } = await supabase
-    .from("sales_targets")
-    .update(patch)
-    .eq("workspace_id", input.workspaceId)
-    .eq("id", input.targetId);
+  const { data, error } = await applySalesBusinessContext(
+    supabase.from("sales_targets").update(patch).eq("workspace_id", input.workspaceId).eq("id", input.targetId),
+    input.businessContext,
+  ).select("id");
   if (error) throw new Error(error.message);
+  if (!data?.length) throw new Error("Target not found.");
 }
 
-export async function deleteSalesTarget(workspaceId: string, targetId: string): Promise<void> {
+export async function deleteSalesTarget(
+  workspaceId: string,
+  targetId: string,
+  businessContext?: SalesBusinessContext | null,
+): Promise<void> {
   const supabase = requireSupabase();
-  const { error } = await supabase
-    .from("sales_targets")
-    .delete()
-    .eq("workspace_id", workspaceId)
-    .eq("id", targetId);
+  const { data, error } = await applySalesBusinessContext(
+    supabase.from("sales_targets").delete().eq("workspace_id", workspaceId).eq("id", targetId),
+    businessContext,
+  ).select("id");
   if (error) throw new Error(error.message);
+  if (!data?.length) throw new Error("Target not found.");
 }
 
 export { formatSalesMoney, filterLeadsBySalesSegment };

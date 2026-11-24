@@ -6,8 +6,9 @@ import {
   deleteSalesCommissionRule,
   updateSalesCommissionRule,
 } from "@/lib/sales-management-service";
+import { readRequestedSalesBusinessContext, salesRecordScope } from "@/lib/sales-business-context";
 import {
-  resolveSalesManagementAuth,
+  resolveSalesMutationContext,
   salesManagementErrorResponse,
 } from "@/lib/sales-management-api";
 
@@ -27,13 +28,15 @@ export async function POST(request: Request) {
   try {
     const blocked = await assertDemoMutationAllowedForRequest(request);
     if (blocked) return blocked;
-    const auth = await resolveSalesManagementAuth();
     const body = (await request.json()) as {
+      businessContext?: unknown;
       name?: string;
       ratePct?: number;
       appliesTo?: string;
       isActive?: boolean;
     };
+    const auth = await resolveSalesMutationContext(readRequestedSalesBusinessContext(request, body));
+    const scope = salesRecordScope(auth.workspace, readRequestedSalesBusinessContext(request, body));
     const name = String(body.name ?? "").trim();
     const ratePct = Number(body.ratePct);
     const appliesTo = parseAppliesTo(body.appliesTo);
@@ -50,6 +53,7 @@ export async function POST(request: Request) {
       ratePct,
       appliesTo,
       isActive: body.isActive ?? true,
+      businessContext: scope.businessContext,
     });
     return NextResponse.json({ rule }, { status: 201 });
   } catch (error) {
@@ -61,8 +65,8 @@ export async function PUT(request: Request) {
   try {
     const blocked = await assertDemoMutationAllowedForRequest(request);
     if (blocked) return blocked;
-    const auth = await resolveSalesManagementAuth();
     const body = (await request.json()) as {
+      businessContext?: unknown;
       id?: string;
       name?: string;
       ratePct?: number;
@@ -75,8 +79,11 @@ export async function PUT(request: Request) {
     if (body.appliesTo != null && !appliesTo) {
       return NextResponse.json({ error: "Invalid appliesTo value." }, { status: 400 });
     }
+    const auth = await resolveSalesMutationContext(readRequestedSalesBusinessContext(request, body));
+    const scope = salesRecordScope(auth.workspace, readRequestedSalesBusinessContext(request, body));
     const rule = await updateSalesCommissionRule({
       workspaceId: auth.workspace.id,
+      businessContext: scope.businessContext,
       ruleId,
       name: body.name != null ? String(body.name) : undefined,
       ratePct: body.ratePct != null ? Number(body.ratePct) : undefined,
@@ -93,11 +100,11 @@ export async function DELETE(request: Request) {
   try {
     const blocked = await assertDemoMutationAllowedForRequest(request);
     if (blocked) return blocked;
-    const auth = await resolveSalesManagementAuth();
+    const auth = await resolveSalesMutationContext(readRequestedSalesBusinessContext(request));
     const url = new URL(request.url);
     const ruleId = url.searchParams.get("id")?.trim();
     if (!ruleId) return NextResponse.json({ error: "Rule id is required." }, { status: 400 });
-    await deleteSalesCommissionRule(auth.workspace.id, ruleId);
+    await deleteSalesCommissionRule(auth.workspace.id, ruleId, auth.businessContext);
     return NextResponse.json({ ok: true });
   } catch (error) {
     return salesManagementErrorResponse(error);

@@ -30,6 +30,8 @@ export function targetClientsErrorResponse(error: unknown) {
     message.includes("not a Target Client")
   ) {
     status = 403;
+  } else if (message.includes("sales business context")) {
+    status = 400;
   } else if (message.includes("Lead not found")) {
     status = 404;
   }

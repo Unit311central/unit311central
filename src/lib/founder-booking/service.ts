@@ -39,9 +39,25 @@ import {
   resolveWorkspaceBinding,
 } from "@/lib/workspace-context";
 
+import {
+  applySalesBusinessContext,
+  salesBusinessContextColumn,
+  type SalesBusinessContext,
+} from "@/lib/sales-business-context";
+
 export type FounderBookingsWorkspaceScope = {
   workspaceId?: string | null;
+  /** Set only for the unit311 workspace. When omitted, bookings stay workspace-only. */
+  businessContext?: SalesBusinessContext | null;
 };
+
+function scopeBookingQuery<T>(query: T, scope?: FounderBookingsWorkspaceScope): T {
+  const workspaceId = scope?.workspaceId?.trim();
+  const scoped = workspaceId
+    ? (query as { eq: (column: string, value: string) => T }).eq("workspace_id", workspaceId)
+    : query;
+  return applySalesBusinessContext(scoped, scope?.businessContext);
+}
 
 async function resolveFounderBookingsWorkspaceId(
   scope?: FounderBookingsWorkspaceScope,
@@ -605,17 +621,33 @@ export async function getFounderSessionBookingById(bookingId: string) {
   });
 }
 
+export async function getFounderSessionBookingInScope(
+  bookingId: string,
+  scope?: FounderBookingsWorkspaceScope,
+) {
+  const normalizedId = bookingId.trim();
+  if (!normalizedId) return null;
+  return withFounderSessionBookingsTable(async () => {
+    const supabase = requireSupabase();
+    const { data, error } = await scopeBookingQuery(
+      supabase.from("founder_session_bookings").select("*").eq("id", normalizedId),
+      scope,
+    ).maybeSingle();
+    if (error) throw new Error(error.message);
+    return data ? mapBooking(data as DbFounderSessionBooking) : null;
+  });
+}
+
 export async function listFounderSessionBookings(scope?: FounderBookingsWorkspaceScope) {
   await maybeSendDueFounderSessionHourReminders().catch(() => undefined);
   const workspaceId = await resolveFounderBookingsWorkspaceId(scope);
 
   return withFounderSessionBookingsTable(async () => {
     const supabase = requireSupabase();
-    const { data, error } = await supabase
-      .from("founder_session_bookings")
-      .select("*")
-      .eq("workspace_id", workspaceId)
-      .order("starts_at", { ascending: true });
+    const { data, error } = await scopeBookingQuery(
+      supabase.from("founder_session_bookings").select("*"),
+      { workspaceId, businessContext: scope?.businessContext },
+    ).order("starts_at", { ascending: true });
 
     if (error) throw new Error(error.message);
     return (data as DbFounderSessionBooking[]).map(mapBooking);
@@ -676,28 +708,33 @@ export async function getFounderSessionBookingBySlug(slug: string) {
 export async function updateFounderSessionMeetingStatus(
   bookingId: string,
   status: ExecutiveMeetingStatus,
+  scope?: FounderBookingsWorkspaceScope,
 ) {
   return withFounderSessionBookingsTable(async () => {
     const supabase = requireSupabase();
-    const { data, error } = await supabase
-      .from("founder_session_bookings")
-      .update({ status })
-      .eq("id", bookingId)
+    const { data, error } = await scopeBookingQuery(
+      supabase.from("founder_session_bookings").update({ status }).eq("id", bookingId),
+      scope,
+    )
       .select("*")
-      .single();
+      .maybeSingle();
 
     if (error) throw new Error(error.message);
+    if (!data) throw new Error("Booking not found.");
     return mapBooking(data as DbFounderSessionBooking);
   });
 }
 
-export async function getFounderSessionBookingsForCrmLead(crmLeadId: string) {
+export async function getFounderSessionBookingsForCrmLead(
+  crmLeadId: string,
+  scope?: FounderBookingsWorkspaceScope,
+) {
   return withFounderSessionBookingsTable(async () => {
     const supabase = requireSupabase();
-    const { data, error } = await supabase
-      .from("founder_session_bookings")
-      .select("*")
-      .eq("crm_lead_id", crmLeadId)
+    const { data, error } = await scopeBookingQuery(
+      supabase.from("founder_session_bookings").select("*").eq("crm_lead_id", crmLeadId),
+      scope,
+    )
       .neq("status", "cancelled")
       .order("starts_at", { ascending: false });
 
@@ -711,20 +748,28 @@ function normalizeBookingMatch(value: string) {
 }
 
 /** Link orphan bookings by company/email, then return all bookings for the lead. */
-export async function resolveBookingsForCrmLead(lead: {
-  id: string;
-  companyName: string;
-  email: string;
-}) {
+export async function resolveBookingsForCrmLead(
+  lead: {
+    id: string;
+    companyName: string;
+    email: string;
+    workspaceId?: string;
+  },
+  scope?: FounderBookingsWorkspaceScope,
+) {
   return withFounderSessionBookingsTable(async () => {
     const supabase = requireSupabase();
     const normalizedCompany = normalizeBookingMatch(lead.companyName);
     const normalizedEmail = normalizeBookingMatch(lead.email);
 
-    const { data: candidates, error } = await supabase
-      .from("founder_session_bookings")
-      .select("*")
-      .neq("status", "cancelled")
+    const bookingScope: FounderBookingsWorkspaceScope = {
+      workspaceId: scope?.workspaceId ?? lead.workspaceId,
+      businessContext: scope?.businessContext,
+    };
+    const { data: candidates, error } = await scopeBookingQuery(
+      supabase.from("founder_session_bookings").select("*").neq("status", "cancelled"),
+      bookingScope,
+    )
       .or(`crm_lead_id.is.null,crm_lead_id.neq.${lead.id}`)
       .order("starts_at", { ascending: false })
       .limit(100);
@@ -741,24 +786,27 @@ export async function resolveBookingsForCrmLead(lead: {
     });
 
     for (const row of toLink) {
-      const { error: linkError } = await supabase
-        .from("founder_session_bookings")
-        .update({ crm_lead_id: lead.id })
-        .eq("id", row.id);
+      const { error: linkError } = await scopeBookingQuery(
+        supabase.from("founder_session_bookings").update({ crm_lead_id: lead.id }).eq("id", row.id),
+        bookingScope,
+      );
       if (linkError) throw new Error(linkError.message);
     }
 
-    return getFounderSessionBookingsForCrmLead(lead.id);
+    return getFounderSessionBookingsForCrmLead(lead.id, bookingScope);
   });
 }
 
-export async function completeFounderSessionBookingsForCrmLead(crmLeadId: string) {
+export async function completeFounderSessionBookingsForCrmLead(
+  crmLeadId: string,
+  scope?: FounderBookingsWorkspaceScope,
+) {
   return withFounderSessionBookingsTable(async () => {
     const supabase = requireSupabase();
-    const { data, error } = await supabase
-      .from("founder_session_bookings")
-      .update({ status: "completed" })
-      .eq("crm_lead_id", crmLeadId)
+    const { data, error } = await scopeBookingQuery(
+      supabase.from("founder_session_bookings").update({ status: "completed" }).eq("crm_lead_id", crmLeadId),
+      scope,
+    )
       .neq("status", "cancelled")
       .neq("status", "completed")
       .select("*");
@@ -768,25 +816,35 @@ export async function completeFounderSessionBookingsForCrmLead(crmLeadId: string
   });
 }
 
-export async function deleteFounderSessionBooking(bookingId: string) {
+export async function deleteFounderSessionBooking(
+  bookingId: string,
+  scope?: FounderBookingsWorkspaceScope,
+) {
   return withFounderSessionBookingsTable(async () => {
     const supabase = requireSupabase();
-    const { error } = await supabase.from("founder_session_bookings").delete().eq("id", bookingId);
+    const { data, error } = await scopeBookingQuery(
+      supabase.from("founder_session_bookings").delete().eq("id", bookingId),
+      scope,
+    ).select("id");
 
     if (error) throw new Error(error.message);
+    if (scope && !data?.length) throw new Error("Booking not found.");
   });
 }
 
-export async function sendFounderSessionStartReminder(bookingId: string) {
+export async function sendFounderSessionStartReminder(
+  bookingId: string,
+  scope?: FounderBookingsWorkspaceScope,
+) {
   return withFounderSessionBookingsTable(async () => {
     const supabase = requireSupabase();
-    const { data, error } = await supabase
-      .from("founder_session_bookings")
-      .select("*")
-      .eq("id", bookingId)
-      .single();
+    const { data, error } = await scopeBookingQuery(
+      supabase.from("founder_session_bookings").select("*").eq("id", bookingId),
+      scope,
+    ).maybeSingle();
 
     if (error) throw new Error(error.message);
+    if (!data) throw new Error("Booking not found.");
     const booking = mapBooking(data as DbFounderSessionBooking);
 
     const reminder = buildFounderStartMeetingEmail({
@@ -807,10 +865,13 @@ export async function sendFounderSessionStartReminder(bookingId: string) {
     });
 
     const sentAt = new Date().toISOString();
-    await supabase
-      .from("founder_session_bookings")
-      .update({ start_reminder_sent_at: sentAt })
-      .eq("id", booking.id);
+    await scopeBookingQuery(
+      supabase
+        .from("founder_session_bookings")
+        .update({ start_reminder_sent_at: sentAt })
+        .eq("id", booking.id),
+      scope,
+    );
 
     return { booking: { ...booking, startReminderSentAt: sentAt }, sentAt };
   });

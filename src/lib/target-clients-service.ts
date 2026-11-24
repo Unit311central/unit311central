@@ -6,7 +6,9 @@ import {
   requireLeadInWorkspace,
   resolveCrmWorkspaceId,
   updateLead,
+  type CrmWorkspaceScope,
 } from "@/lib/crm-leads-service";
+import { applySalesBusinessContext } from "@/lib/sales-business-context";
 import { isOpportunityLead } from "@/lib/sales-management-insights";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
 import { createTenancyServerClient } from "@/lib/supabase/tenancy-server";
@@ -46,7 +48,7 @@ export class TargetClientDuplicateError extends Error {
 
 async function assertNoDuplicateTargetClient(
   values: AddTargetClientFormValues,
-  scope: { workspaceId?: string },
+  scope: CrmWorkspaceScope,
   excludeLeadId?: string,
 ) {
   const companyName = values.companyName.trim();
@@ -65,21 +67,21 @@ async function assertNoDuplicateTargetClient(
   );
 }
 
-export async function listTargetClients(scope?: {
-  workspaceId?: string;
-}): Promise<TargetClientRow[]> {
+export async function listTargetClients(scope?: CrmWorkspaceScope): Promise<TargetClientRow[]> {
   const workspaceId = await resolveCrmWorkspaceId(scope);
   if (!isSupabaseConfigured()) {
     throw new Error("Supabase is not configured.");
   }
   const supabase = createTenancyServerClient();
-  const { data, error } = await supabase
-    .from("crm_leads")
-    .select("*")
-    .eq("workspace_id", workspaceId)
-    .eq("source", TARGET_CLIENTS_CRM_SOURCE)
-    .eq("status", "Cold")
-    .order("updated_at", { ascending: false });
+  const { data, error } = await applySalesBusinessContext(
+    supabase
+      .from("crm_leads")
+      .select("*")
+      .eq("workspace_id", workspaceId)
+      .eq("source", TARGET_CLIENTS_CRM_SOURCE)
+      .eq("status", "Cold"),
+    scope?.businessContext,
+  ).order("updated_at", { ascending: false });
 
   if (error) throw new Error(error.message);
   return (data as DbLead[]).map((row) => mapLeadToTargetClientRow(mapCrmLead(row)));
@@ -87,7 +89,7 @@ export async function listTargetClients(scope?: {
 
 export async function requireTargetClientLead(
   id: string,
-  scope?: { workspaceId?: string },
+  scope?: CrmWorkspaceScope,
 ): Promise<CrmLead> {
   const lead = await requireLeadInWorkspace(id, scope);
   assertTargetClientLead(lead);
@@ -109,16 +111,16 @@ function formValuesToLeadPatch(values: AddTargetClientFormValues) {
   };
 }
 
-export async function listCrmLeadContactKeysForImport(scope?: {
-  workspaceId?: string;
-}): Promise<Array<{ companyName: string; email: string }>> {
+export async function listCrmLeadContactKeysForImport(
+  scope?: CrmWorkspaceScope,
+): Promise<Array<{ companyName: string; email: string }>> {
   const workspaceId = await resolveCrmWorkspaceId(scope);
   if (!isSupabaseConfigured()) return [];
   const supabase = createTenancyServerClient();
-  const { data, error } = await supabase
-    .from("crm_leads")
-    .select("company_name, email")
-    .eq("workspace_id", workspaceId);
+  const { data, error } = await applySalesBusinessContext(
+    supabase.from("crm_leads").select("company_name, email").eq("workspace_id", workspaceId),
+    scope?.businessContext,
+  );
   if (error) throw new Error(error.message);
   return (data ?? []).map((row) => ({
     companyName: String((row as { company_name: string }).company_name ?? ""),
@@ -132,7 +134,7 @@ export type TargetClientImportRowResult =
 
 export async function importTargetClientsBatch(
   rows: Array<{ sourceRowNumber: number; values: AddTargetClientFormValues }>,
-  scope?: { workspaceId?: string },
+  scope?: CrmWorkspaceScope,
 ): Promise<TargetClientImportRowResult[]> {
   const results: TargetClientImportRowResult[] = [];
   for (const row of rows) {
@@ -192,7 +194,7 @@ export async function importTargetClientsBatch(
 
 export async function createTargetClientFromForm(
   values: AddTargetClientFormValues,
-  scope?: { workspaceId?: string },
+  scope?: CrmWorkspaceScope,
 ): Promise<TargetClientRow> {
   await assertNoDuplicateTargetClient(values, scope ?? {});
 
@@ -218,7 +220,7 @@ export async function createTargetClientFromForm(
 export async function updateTargetClientFromForm(
   id: string,
   values: AddTargetClientFormValues,
-  scope?: { workspaceId?: string },
+  scope?: CrmWorkspaceScope,
 ): Promise<TargetClientRow> {
   await requireTargetClientLead(id, scope);
   await assertNoDuplicateTargetClient(values, scope ?? {}, id);
@@ -245,7 +247,7 @@ export async function updateTargetClientFromForm(
 
 export async function deleteTargetClient(
   id: string,
-  scope?: { workspaceId?: string },
+  scope?: CrmWorkspaceScope,
 ): Promise<void> {
   await requireTargetClientLead(id, scope);
   await deleteLead(id, scope);
@@ -259,7 +261,7 @@ export type PromoteTargetClientResult = {
 
 export async function promoteTargetClientToOpportunity(
   id: string,
-  scope?: { workspaceId?: string },
+  scope?: CrmWorkspaceScope,
 ): Promise<PromoteTargetClientResult> {
   const lead = await requireLeadInWorkspace(id, scope);
   if (lead.source.trim().toLowerCase() !== TARGET_CLIENTS_CRM_SOURCE.toLowerCase()) {
@@ -286,8 +288,7 @@ export async function promoteTargetClientToOpportunity(
 }
 
 /** Read-only metadata for operational investigation (no mutations). */
-export async function describeTargetClientCandidates(scope?: {
-  workspaceId?: string;
+export async function describeTargetClientCandidates(scope?: CrmWorkspaceScope & {
   companyNames?: string[];
 }): Promise<
   Array<{
@@ -303,11 +304,13 @@ export async function describeTargetClientCandidates(scope?: {
   const workspaceId = await resolveCrmWorkspaceId(scope);
   if (!isSupabaseConfigured()) return [];
   const supabase = createTenancyServerClient();
-  let query = supabase
-    .from("crm_leads")
-    .select("id, company_name, source, status, created_at, updated_at")
-    .eq("workspace_id", workspaceId)
-    .order("created_at", { ascending: true });
+  let query = applySalesBusinessContext(
+    supabase
+      .from("crm_leads")
+      .select("id, company_name, source, status, created_at, updated_at")
+      .eq("workspace_id", workspaceId),
+    scope?.businessContext,
+  ).order("created_at", { ascending: true });
 
   const names = scope?.companyNames?.filter(Boolean);
   if (names?.length) {
