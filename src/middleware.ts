@@ -766,12 +766,9 @@ export async function middleware(request: NextRequest) {
       });
     }
 
-    const sentinelWorkspace = workspaceSlug === "wolfsentinel";
     const requiresAuthenticatedApp =
       pathname === "/dashboard" ||
       pathname.startsWith("/dashboard/") ||
-      (sentinelWorkspace &&
-        (pathname === "/workspace" || pathname.startsWith("/workspace/"))) ||
       pathname === "/" ||
       pathname === "";
 
