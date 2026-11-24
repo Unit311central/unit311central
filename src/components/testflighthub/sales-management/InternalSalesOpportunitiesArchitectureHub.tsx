@@ -953,6 +953,7 @@ function OpportunityRecordShell({
   onBack: () => void;
   onReload: () => void;
 }) {
+  const salesFetch = useSalesScopedFetch();
   const summaryRef = useRef<HTMLDivElement>(null);
   const discoveryRef = useRef<HTMLDivElement>(null);
   const followUpRef = useRef<HTMLDivElement>(null);
@@ -989,7 +990,7 @@ function OpportunityRecordShell({
     } finally {
       setMeetingsLoading(false);
     }
-  }, [lead.id]);
+  }, [lead.id, salesFetch]);
 
   useEffect(() => {
     void loadMeetings();
@@ -1248,6 +1249,7 @@ function formatFollowUpDate(iso: string) {
 }
 
 function OpportunityFollowUpSection({ crmLeadId }: { crmLeadId: string }) {
+  const salesFetch = useSalesScopedFetch();
   const [activities, setActivities] = useState<CrmActivity[]>([]);
   const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
@@ -1273,7 +1275,7 @@ function OpportunityFollowUpSection({ crmLeadId }: { crmLeadId: string }) {
     } finally {
       setLoading(false);
     }
-  }, [crmLeadId]);
+  }, [crmLeadId, salesFetch]);
 
   useEffect(() => {
     void loadFollowUps();
