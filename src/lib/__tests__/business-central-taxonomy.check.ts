@@ -27,7 +27,10 @@ import {
   resolveWorkspaceNavEnablement,
 } from "@/lib/platform-workspaces/workspace-product-nav";
 import { SAEC_SLUG } from "@/lib/saec-surface";
-import { buildAbhiNavSections } from "@/lib/internal-role-views";
+import {
+  buildAbhiNavSections,
+  buildOnwardAirNavSections,
+} from "@/lib/internal-role-views";
 import {
   internalSurveyNavSections,
   type InternalNavSection,
@@ -221,6 +224,19 @@ assert.ok(abhiBcJson.includes("Member Dashboard"));
 assert.ok(abhiBcJson.includes("Member Directory"));
 assert.ok(!abhiBcJson.includes("Grant Management"));
 assert.ok(!abhiBcJson.includes('"view":"grants"'));
+
+// OnwardAir: drop BC Dashboard + Client Management group; keep Management / Information Repository.
+// Canonical central catalogue still exposes those leaves for Demo / ABHI Member Management.
+const oaNav = buildOnwardAirNavSections(internalSurveyNavSections);
+const oaBc = oaNav.find((section) => section.label === "Business Central");
+assert.ok(oaBc, "OnwardAir must keep Business Central");
+assert.deepEqual(
+  oaBc!.items.map((item) => item.label),
+  ["Management", "Information Repository"],
+);
+assert.ok(!JSON.stringify(oaBc).includes("business-central-dashboard"));
+assert.ok(!JSON.stringify(oaBc).includes("Client Directory"));
+assert.ok(!JSON.stringify(oaBc).includes("Client Management"));
 
 const saecNav = buildWorkspaceProductNavSections({
   workspaceSlug: SAEC_SLUG,

@@ -1128,6 +1128,23 @@ const ONWARDAIR_TECH_HIDDEN_LABELS = new Set([
   "Settings",
 ]);
 
+/**
+ * OnwardAir Business Central chrome removed from the LHS (keeps Management + Information Repository).
+ * Central catalogue / ABHI Member Management retain these elsewhere — hide only here.
+ */
+export const ONWARDAIR_BC_HIDDEN_ITEM_LABELS = new Set([
+  "Dashboard",
+  "Client Management",
+  "Client Dashboard",
+  "Client Directory",
+]);
+
+export const ONWARDAIR_BC_HIDDEN_VIEWS = new Set<InternalOperationsView>([
+  "business-central-dashboard",
+  "clients-dashboard",
+  "clients",
+]);
+
 function stripOnwardAirPlatformItems(section: InternalNavSection): InternalNavSection {
   return {
     ...section,
@@ -1230,22 +1247,26 @@ function stripOnwardAirBusinessCentralProjects(section: InternalNavSection): Int
           item.view !== "oa-competitor-intelligence" &&
           item.view !== "oa-ecosystem-partners" &&
           item.label !== "Competitor Intelligence" &&
-          item.label !== "Ecosystem Partners",
+          item.label !== "Ecosystem Partners" &&
+          !(item.view && ONWARDAIR_BC_HIDDEN_VIEWS.has(item.view)) &&
+          !ONWARDAIR_BC_HIDDEN_ITEM_LABELS.has(item.label),
       )
       .map((item) => {
         if (!item.children?.length) return item;
-        return {
-          ...item,
-          children: item.children.filter(
-            (child) =>
-              child.view !== "potential-clients" &&
-              child.view !== "oa-ecosystem-partners" &&
-              child.label !== "Potential Clients" &&
-              child.label !== "Ecosystem Partners",
-          ),
-        };
-      }),
-};
+        const children = item.children.filter(
+          (child) =>
+            child.view !== "potential-clients" &&
+            child.view !== "oa-ecosystem-partners" &&
+            child.label !== "Potential Clients" &&
+            child.label !== "Ecosystem Partners" &&
+            !(child.view && ONWARDAIR_BC_HIDDEN_VIEWS.has(child.view)) &&
+            !ONWARDAIR_BC_HIDDEN_ITEM_LABELS.has(child.label),
+        );
+        if (children.length === 0 && !item.view && !item.href) return null;
+        return { ...item, children };
+      })
+      .filter((item): item is NonNullable<typeof item> => item != null),
+  };
 }
 
 function insertOnwardAirNavSections(sections: readonly InternalNavSection[]): InternalNavSection[] {
@@ -1303,18 +1324,8 @@ function insertOnwardAirNavSections(sections: readonly InternalNavSection[]): In
     }
 
     if (section.label === "Business Central") {
-      const stripped = stripOnwardAirBusinessCentralProjects(section);
-      out.push({
-        ...stripped,
-        items: [
-          {
-            label: "Dashboard",
-            icon: "LayoutDashboard",
-            view: "business-central-dashboard" as const,
-          },
-          ...stripped.items,
-        ],
-      });
+      // Do not re-inject BC Dashboard / Client Management — OnwardAir drops those leaves.
+      out.push(stripOnwardAirBusinessCentralProjects(section));
       out.push(ONWARDAIR_PROJECT_MANAGEMENT_NAV_SECTION);
       out.push(ONWARDAIR_INTELLIGENCE_NAV_SECTION);
       insertedProjectManagement = true;

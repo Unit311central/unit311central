@@ -130,6 +130,37 @@ assert.ok(
   "OnwardAir nav must not include Workspaces",
 );
 
+const onwardAirBc = onwardAirNav.find((section) => section.label === "Business Central");
+assert.ok(onwardAirBc, "OnwardAir must keep Business Central");
+const onwardAirBcLabels = onwardAirBc!.items.flatMap((item) => [
+  item.label,
+  ...(item.children?.map((child) => child.label) ?? []),
+]);
+assert.ok(
+  !onwardAirBc!.items.some((item) => item.view === "business-central-dashboard"),
+  "OnwardAir Business Central must not include business-central-dashboard",
+);
+assert.ok(
+  !onwardAirBcLabels.includes("Client Management"),
+  "OnwardAir Business Central must not include Client Management",
+);
+assert.ok(
+  !onwardAirBcLabels.includes("Client Directory"),
+  "OnwardAir Business Central must not include Client Directory",
+);
+assert.ok(
+  !onwardAirBcLabels.includes("Client Dashboard"),
+  "OnwardAir Business Central must not include Client Dashboard",
+);
+assert.ok(
+  onwardAirBcLabels.includes("Management"),
+  "OnwardAir Business Central must retain Management",
+);
+assert.ok(
+  onwardAirBcLabels.includes("Information Repository"),
+  "OnwardAir Business Central must retain Information Repository",
+);
+
 const catalogueIds = listPlatformModules().map((module) => module.id);
 assert.ok(
   !catalogueIds.includes("workspaces-overview") && !catalogueIds.includes("workspaces-new"),
