@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 
 import {
   applySalesBusinessContext,
+  clientAllowedInRequestedSalesContext,
   clientsVisibleInSalesContext,
   filterClientsForRequestedSalesContext,
   DEFAULT_SALES_BUSINESS_CONTEXT,
@@ -114,5 +115,11 @@ assert.deepEqual(
   filterClientsForRequestedSalesContext(clients, "demo", "wolf").map((client) => client.id),
   ["u", "w"],
 );
+assert.equal(clientAllowedInRequestedSalesContext({ clientType: "wolf" }, "unit311", "wolf"), true);
+assert.equal(
+  clientAllowedInRequestedSalesContext({ clientType: "unit311central" }, "unit311", "wolf"),
+  false,
+);
+assert.equal(clientAllowedInRequestedSalesContext({ clientType: "wolf" }, "unit311", undefined), true);
 
 console.log("sales-business-context.check.ts: ok");

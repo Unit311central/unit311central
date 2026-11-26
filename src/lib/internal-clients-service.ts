@@ -30,6 +30,8 @@ export type ClientsWorkspaceScope = {
   workspaceId?: string | null;
   /** Optional slug so Support Lounge URLs use the tenant host (not demo). */
   workspaceSlug?: string | null;
+  /** When set, list/read queries filter internal_clients.client_type at the database. */
+  clientType?: import("@/lib/client-management-data").ClientType;
 };
 
 function requireClientsSupabase() {
@@ -177,7 +179,7 @@ export async function listInternalClients(
   return withInternalClientsFilesFolderColumns(() =>
     withInternalClientsTable(async () => {
       const supabase = requireClientsSupabase();
-      const { data, error } = await supabase
+      let listQuery = supabase
         .from("internal_clients")
         .select(
           [
@@ -225,8 +227,13 @@ export async function listInternalClients(
             "updated_at",
           ].join(","),
         )
-        .eq("workspace_id", workspaceId)
-        .order("company_name", { ascending: true });
+        .eq("workspace_id", workspaceId);
+
+      if (scope?.clientType) {
+        listQuery = listQuery.eq("client_type", scope.clientType);
+      }
+
+      const { data, error } = await listQuery.order("company_name", { ascending: true });
 
       if (error) throw new Error(error.message);
       const clients = (data as unknown as DbClient[]).map((row) =>

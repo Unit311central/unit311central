@@ -112,8 +112,8 @@ const directory = readFileSync(
   "src/components/testflighthub/ClientManagementClientDirectoryView.tsx",
   "utf8",
 );
-assert.match(directory, /All Clients/);
-assert.match(directory, /Unit311Central/);
+assert.match(directory, /ClientDirectoryBusinessContextSelector/);
+assert.match(directory, /All types/);
 assert.match(directory, /clientTypeBadgeLabel/);
 assert.match(directory, /requireClientType: true/);
 assert.match(directory, /Client type is required/);

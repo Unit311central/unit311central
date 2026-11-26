@@ -52,7 +52,9 @@ import type { ExternalUser } from "@/lib/external-users-data";
 import { getInternalNavHref } from "@/lib/internal-operations-data";
 import type { InternalProject } from "@/lib/projects-data";
 import type { SupportTicket } from "@/lib/support-data";
+import { clientsListApiPath } from "@/lib/client-directory-business-context";
 import { cn } from "@/lib/utils";
+import { isBrowserWolfSentinelSurface } from "@/lib/wolf/wolf-sentinel";
 
 async function readApiJson<T>(response: Response): Promise<T> {
   const text = await response.text();
@@ -294,8 +296,11 @@ export default function ClientsDashboardWorkspace({
     const notes: string[] = [];
 
     try {
+      const clientsPath = isBrowserWolfSentinelSurface()
+        ? clientsListApiPath("wolf")
+        : "/api/clients";
       const [clientsRes, projectsRes, ticketsRes, usersRes] = await Promise.all([
-        fetch("/api/clients", { cache: "no-store" }),
+        fetch(clientsPath, { cache: "no-store" }),
         fetch("/api/projects", { cache: "no-store" }),
         fetch("/api/support/tickets?includeArchived=false", { cache: "no-store" }),
         fetch("/api/external-users", { cache: "no-store" }),

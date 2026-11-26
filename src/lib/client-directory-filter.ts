@@ -1,3 +1,4 @@
+import type { ClientDirectoryBusinessContext } from "@/lib/client-directory-business-context";
 import type { ManagedClient } from "@/lib/client-management-data";
 import {
   clientTypeBadgeLabel,
@@ -16,7 +17,10 @@ export type ClientDirectoryListFilters = {
   city: string;
   status: ClientAccountStatus | "all";
   contract: string;
+  /** Fine-grained Client type filter (grid); separate from business context scope. */
   clientType: ClientType | "all";
+  /** Directory business context (All / Unit311Central / WOLF). */
+  businessContext?: ClientDirectoryBusinessContext;
 };
 
 /** Rows shown in BC Client Directory — non-archived by default; Archived only when explicitly filtered. */
@@ -42,6 +46,8 @@ export function filterClientDirectoryDisplayRows(
     if (filters.country !== "all" && location.country !== filters.country) return false;
     if (filters.city !== "all" && location.city !== filters.city) return false;
     if (filters.contract !== "all" && client.contractType !== filters.contract) return false;
+    const businessContext = filters.businessContext ?? "all";
+    if (businessContext !== "all" && client.clientType !== businessContext) return false;
     if (filters.clientType !== "all" && client.clientType !== filters.clientType) return false;
     if (!query) return true;
 
