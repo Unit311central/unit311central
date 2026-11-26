@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import WolfPhoneFieldCapture from "@/components/wolf/WolfPhoneFieldCapture";
 import WolfPhoneTelemetryOverlay from "@/components/wolf/WolfPhoneTelemetryOverlay";
+import WolfQwenLaptopOverlay from "@/components/wolf/WolfQwenLaptopOverlay";
 import { wolfCardClass, wolfEyebrowClass, wolfShellClass } from "@/components/wolf/wolf-ui";
 import {
   wolfGroundWebRtcLinkLabel,
@@ -505,6 +506,7 @@ export default function WolfGroundWebRtcWorkspace({
               controls
             />
             {showPhoneTelemetry ? <WolfPhoneTelemetryOverlay /> : null}
+            <WolfQwenLaptopOverlay videoRef={videoRef} />
             {needsGesture ? (
               <button
                 type="button"
