@@ -128,6 +128,18 @@ export function filterClientsForRequestedSalesContext<T extends { clientType?: s
   );
 }
 
+/** True when a single client record may be read or mutated for this request scope. */
+export function clientAllowedInRequestedSalesContext(
+  client: { clientType?: string | null },
+  workspaceSlug: string | null | undefined,
+  requested: unknown,
+): boolean {
+  if (presentContextValue(requested) === undefined) return true;
+  const context = resolveSalesBusinessContext({ workspaceSlug, requested });
+  if (!context) return true;
+  return client.clientType === context;
+}
+
 export function applySalesBusinessContext<T>(
   query: T,
   businessContext: SalesBusinessContext | null | undefined,

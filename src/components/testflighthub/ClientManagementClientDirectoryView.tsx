@@ -31,7 +31,13 @@ import {
   createClientFromDraftRequest,
 } from "@/lib/client-create-from-draft";
 import { centralLoginUrl } from "@/lib/app-domains";
+import { ClientDirectoryBusinessContextSelector } from "@/components/testflighthub/client-directory/ClientDirectoryBusinessContextSelector";
 import { ClientRecordEditableFields } from "@/components/testflighthub/client-directory/ClientRecordEditableFields";
+import {
+  clientsListApiPath,
+  clientsPlatformCacheKey,
+  type ClientDirectoryBusinessContext,
+} from "@/lib/client-directory-business-context";
 import { copyTextToClipboard } from "@/lib/clipboard";
 import { clientLogoUrl } from "@/lib/support-email-html";
 import { useInternalOperationsBasePath } from "./InternalOperationsBasePathContext";
@@ -41,7 +47,6 @@ import {
   fetchCachedJson,
   invalidateCachedJson,
   peekCachedJson,
-  PLATFORM_CACHE_KEYS,
 } from "@/lib/platform-fetch-cache";
 import WorkspaceLoadingFallback from "@/components/testflighthub/WorkspaceLoadingFallback";
 import { clientDirectoryRows } from "@/lib/business-central/workspace-dashboard-summary";
@@ -52,6 +57,7 @@ import { isBrowserAbhiSurface } from "@/lib/abhi-surface";
 import { isBrowserOnwardAirSurface } from "@/lib/onwardair-surface";
 import { isBrowserCorpCentreSurface } from "@/lib/corpcentre-surface";
 import { isBrowserGreenDesertSurface } from "@/lib/greendesert-surface";
+import { isBrowserWolfSentinelSurface } from "@/lib/wolf/wolf-sentinel";
 import { GREENDESERT_CLIENT_COUNTRY_OPTIONS } from "@/lib/greendesert/greendesert-client-countries";
 import {
   Archive,
@@ -133,7 +139,10 @@ export default function ClientManagementClientDirectoryView({
   const [filterStatus, setFilterStatus] = useState<ClientAccountStatus | "all">("all");
   const [filterContract, setFilterContract] = useState("all");
   const [filterClientType, setFilterClientType] = useState<ClientType | "all">("all");
+  const [filterBusinessContext, setFilterBusinessContext] =
+    useState<ClientDirectoryBusinessContext>("all");
   const [clientTypeError, setClientTypeError] = useState<string | null>(null);
+  const [isWolfSentinel, setIsWolfSentinel] = useState(false);
   const [detailClientId, setDetailClientId] = useState<string | null>(null);
   const [financeSummary, setFinanceSummary] = useState<ClientFinanceSummary | null>(null);
   const [financeLoading, setFinanceLoading] = useState(false);
@@ -152,6 +161,31 @@ export default function ClientManagementClientDirectoryView({
   const isOnwardAir = typeof window !== "undefined" ? isBrowserOnwardAirSurface() : false;
   const isGreenDesert = typeof window !== "undefined" ? isBrowserGreenDesertSurface() : false;
   const directoryClients = useMemo(() => clientDirectoryRows(clients), [clients]);
+
+  const effectiveBusinessContext = useMemo<ClientDirectoryBusinessContext>(
+    () => (isWolfSentinel ? "wolf" : filterBusinessContext),
+    [filterBusinessContext, isWolfSentinel],
+  );
+
+  const clientsCacheKey = useMemo(
+    () => clientsPlatformCacheKey(effectiveBusinessContext),
+    [effectiveBusinessContext],
+  );
+
+  const clientsApiPath = useMemo(
+    () => clientsListApiPath(effectiveBusinessContext),
+    [effectiveBusinessContext],
+  );
+
+  useEffect(() => {
+    setIsWolfSentinel(isBrowserWolfSentinelSurface());
+  }, []);
+
+  useEffect(() => {
+    if (isWolfSentinel) {
+      setFilterBusinessContext("wolf");
+    }
+  }, [isWolfSentinel]);
 
   const selectedClient = useMemo(() => {
     if (isNewClientDraftId(selectedClientId)) return newClientDraft;
@@ -180,9 +214,11 @@ export default function ClientManagementClientDirectoryView({
         status: filterStatus,
         contract: filterContract,
         clientType: filterClientType,
+        businessContext: effectiveBusinessContext,
       }),
     [
       clients,
+      effectiveBusinessContext,
       filterClientType,
       filterContract,
       filterCountry,
@@ -260,6 +296,9 @@ export default function ClientManagementClientDirectoryView({
 
   function startNewClientDraft() {
     const draft = createNewClientDraft();
+    if (isWolfSentinel) {
+      draft.clientType = "wolf";
+    }
     setNewClientDraft(draft);
     setCompanyNameError(null);
     setClientTypeError(null);
@@ -312,7 +351,7 @@ export default function ClientManagementClientDirectoryView({
     setError(null);
 
     // Paint instantly from shared shell cache (dashboard / other views often warm this).
-    const cached = peekCachedJson<{ clients?: ManagedClient[] }>(PLATFORM_CACHE_KEYS.clients);
+    const cached = peekCachedJson<{ clients?: ManagedClient[] }>(clientsCacheKey);
     if (cached?.clients?.length) {
       syncClients(cached.clients);
       setLoading(false);
@@ -323,8 +362,8 @@ export default function ClientManagementClientDirectoryView({
     try {
       // Lounge tokens are minted on create / copy — do not block the directory load.
       const data = await fetchCachedJson<{ clients?: ManagedClient[] }>(
-        PLATFORM_CACHE_KEYS.clients,
-        "/api/clients",
+        clientsCacheKey,
+        clientsApiPath,
         { ttlMs: 120_000, timeoutMs: 25_000 },
       );
 
@@ -340,7 +379,7 @@ export default function ClientManagementClientDirectoryView({
     } finally {
       setLoading(false);
     }
-  }, [syncClients]);
+  }, [clientsApiPath, clientsCacheKey, syncClients]);
 
   useEffect(() => {
     startTransition(() => {
@@ -350,7 +389,7 @@ export default function ClientManagementClientDirectoryView({
 
   useEffect(() => {
     const onClientsChanged = () => {
-      invalidateCachedJson(PLATFORM_CACHE_KEYS.clients);
+      invalidateCachedJson(/^platform:clients/);
       void loadClients();
     };
     window.addEventListener("unit311:clients-changed", onClientsChanged);
@@ -471,7 +510,7 @@ export default function ClientManagementClientDirectoryView({
       const data = await readApiJson<{ client?: ManagedClient; error?: string }>(response);
       if (!response.ok || !data.client) throw new Error(data.error ?? "Failed to save client");
 
-      invalidateCachedJson(PLATFORM_CACHE_KEYS.clients);
+      invalidateCachedJson(/^platform:clients/);
       syncClients(clients.map((item) => (item.id === data.client!.id ? data.client! : item)));
       snapshottedIdRef.current = data.client.id;
       setSavedSnapshot(data.client);
@@ -511,7 +550,7 @@ export default function ClientManagementClientDirectoryView({
         ),
       };
 
-      invalidateCachedJson(PLATFORM_CACHE_KEYS.clients);
+      invalidateCachedJson(/^platform:clients/);
       setNewClientDraft(null);
       syncClients([data.client, ...clients]);
       snapshottedIdRef.current = data.client.id;
@@ -662,7 +701,7 @@ export default function ClientManagementClientDirectoryView({
       const data = await readApiJson<{ client?: ManagedClient; error?: string }>(response);
       if (!response.ok || !data.client) throw new Error(data.error ?? "Failed to archive client");
 
-      invalidateCachedJson(PLATFORM_CACHE_KEYS.clients);
+      invalidateCachedJson(/^platform:clients/);
       syncClients(clients.map((item) => (item.id === target.id ? data.client! : item)));
       if (detailClientId === target.id) backToDirectory();
       else if (selectedClientId === target.id) setSelectedClientId(null);
@@ -970,17 +1009,36 @@ export default function ClientManagementClientDirectoryView({
                 </button>
               </div>
 
-            <div className="flex w-full min-w-0 max-w-full flex-col gap-3 lg:flex-row lg:flex-wrap lg:items-end">
-              <div className="relative min-w-0 flex-1 basis-48">
-                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/35" />
-                <input
-                  value={search}
-                  onChange={(event) => setSearch(event.target.value)}
-                  placeholder="Search clients…"
-                  className={cn(inputClassName(), "mt-0 pl-10")}
-                />
+            <div className="flex w-full min-w-0 max-w-full flex-col gap-3">
+              <div className="flex flex-col gap-3 lg:flex-row lg:flex-wrap lg:items-stretch">
+                {!isWolfSentinel ? (
+                  <ClientDirectoryBusinessContextSelector
+                    value={filterBusinessContext}
+                    onChange={(next) => {
+                      setFilterBusinessContext(next);
+                      invalidateCachedJson(/^platform:clients/);
+                    }}
+                  />
+                ) : (
+                  <div className="flex min-w-[12rem] shrink-0 flex-col justify-center rounded-xl border border-amber-400/30 bg-amber-500/[0.08] px-3 py-2.5">
+                    <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-amber-100/90">
+                      Business context
+                    </span>
+                    <p className="mt-1 text-sm font-semibold text-amber-50">WOLF clients only</p>
+                  </div>
+                )}
+                <div className="relative min-w-0 flex-1 basis-56 self-end">
+                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/35" />
+                  <input
+                    value={search}
+                    onChange={(event) => setSearch(event.target.value)}
+                    placeholder="Search clients…"
+                    aria-label="Search clients"
+                    className={cn(inputClassName(), "mt-0 pl-10")}
+                  />
+                </div>
               </div>
-              <div className="grid min-w-0 w-full max-w-full flex-1 grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+              <div className="grid min-w-0 w-full max-w-full grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6 xl:grid-cols-6">
                 <div className="min-w-0">
                   <FieldLabel>Industry</FieldLabel>
                   <select
@@ -1059,20 +1117,22 @@ export default function ClientManagementClientDirectoryView({
                     ))}
                   </select>
                 </div>
-                <div className="min-w-0">
-                  <FieldLabel>Client Type</FieldLabel>
-                  <select
-                    className={cn(inputClassName(), "min-w-0 max-w-full")}
-                    value={filterClientType}
-                    onChange={(event) =>
-                      setFilterClientType(event.target.value as ClientType | "all")
-                    }
-                  >
-                    <option value="all">All Clients</option>
-                    <option value="unit311central">Unit311Central</option>
-                    <option value="wolf">WOLF</option>
-                  </select>
-                </div>
+                {!isWolfSentinel ? (
+                  <div className="min-w-0">
+                    <FieldLabel>Client type</FieldLabel>
+                    <select
+                      className={cn(inputClassName(), "min-w-0 max-w-full")}
+                      value={filterClientType}
+                      onChange={(event) =>
+                        setFilterClientType(event.target.value as ClientType | "all")
+                      }
+                    >
+                      <option value="all">All types</option>
+                      <option value="unit311central">UNIT311</option>
+                      <option value="wolf">WOLF</option>
+                    </select>
+                  </div>
+                ) : null}
               </div>
             </div>
           </div>

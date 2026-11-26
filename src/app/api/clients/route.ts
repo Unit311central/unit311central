@@ -14,6 +14,7 @@ import { createInternalClient, listInternalClients } from "@/lib/internal-client
 import {
   filterClientsForRequestedSalesContext,
   readRequestedSalesBusinessContext,
+  resolveSalesBusinessContext,
   salesBusinessContextStatus,
 } from "@/lib/sales-business-context";
 import { isDemoApiRequest } from "@/lib/demo/demo-request";
@@ -42,9 +43,15 @@ export async function GET(request: NextRequest) {
   try {
     await requirePlatformSession();
     const workspace = await requireCurrentWorkspace();
+    const requestedContext = readRequestedSalesBusinessContext(request);
+    const businessContext = resolveSalesBusinessContext({
+      workspaceSlug: workspace.slug,
+      requested: requestedContext,
+    });
     const clients = await listInternalClients({
       workspaceId: workspace.id,
       workspaceSlug: workspace.slug,
+      ...(businessContext ? { clientType: businessContext } : {}),
     });
     // Talanton portfolio companies are investments (Portfolio Companies), not BC clients.
     const workspaceClients =
@@ -54,7 +61,7 @@ export async function GET(request: NextRequest) {
     const visibleClients = filterClientsForRequestedSalesContext(
       workspaceClients,
       workspace.slug,
-      readRequestedSalesBusinessContext(request),
+      requestedContext,
     );
     return NextResponse.json({
       clients: visibleClients,
